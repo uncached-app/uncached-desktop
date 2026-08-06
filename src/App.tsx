@@ -6,6 +6,8 @@ import {
   AlertTriangle,
   Ban,
   Check,
+  ChevronLeft,
+  ChevronRight,
   FolderOpen,
   FolderSearch,
   LoaderCircle,
@@ -76,6 +78,7 @@ function App() {
   const [listenersReady, setListenersReady] = useState(false);
   const [cleaningTargetIds, setCleaningTargetIds] = useState<Set<string>>(new Set());
   const [deletingAll, setDeletingAll] = useState(false);
+  const [page, setPage] = useState(1);
   const activeScanId = useRef<string | null>(null);
   const pendingScan = useRef(false);
   const pendingEvents = useRef<PendingScanEvent[]>([]);
@@ -200,6 +203,7 @@ function App() {
 
     setError(null);
     setTargets([]);
+    setPage(1);
     pendingSizeUpdates.current.clear();
     setProgress(null);
     setScanning(true);
@@ -322,6 +326,14 @@ function App() {
   const sizesReady = targets.length > 0 && targets.every((target) => !target.sizePending && !target.sizeHasErrors);
   const deleteAllDisabled = scanning || deletingAll || !sizesReady;
   const deleteAllLoading = scanning || deletingAll || targets.some((target) => target.sizePending);
+  const pageSize = 6;
+  const pageCount = Math.max(1, Math.ceil(targets.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visibleTargets = targets.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   return (
     <main className="h-screen overflow-hidden bg-forest-950 text-mist-100">
@@ -341,7 +353,8 @@ function App() {
           </span>
         </header>
 
-        <section className="grid shrink-0 gap-8 py-9 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-14 lg:py-12">
+        <div className="min-h-0 flex-1 grid gap-6 overflow-hidden lg:grid-cols-[0.82fr_1.18fr]">
+        <section className="flex min-h-0 flex-col justify-center overflow-hidden py-4 lg:pr-6">
           <div className="max-w-xl">
             <p className="mb-5 text-xs font-medium uppercase tracking-[0.22em] text-sage-400">Workspace care</p>
             <h1 className="max-w-lg text-5xl font-semibold leading-[0.96] tracking-[-0.06em] text-mist-100 sm:text-6xl">
@@ -356,7 +369,7 @@ function App() {
             </div>
           </div>
 
-          <form onSubmit={startScan} className="rounded-3xl border border-white/10 bg-forest-900/80 p-5 shadow-2xl shadow-black/20 sm:p-7">
+          <form onSubmit={startScan} className="mt-8 rounded-3xl border border-white/10 bg-forest-900/80 p-5 shadow-2xl shadow-black/20 sm:p-7">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-mist-100">Choose a workspace</p>
@@ -401,12 +414,11 @@ function App() {
               {progress && <span className="ml-auto font-mono text-xs text-mist-500">{progress.directoriesScanned.toLocaleString()} dirs · {progress.targetsFound} targets</span>}
             </div>
           </form>
+          {error && <div className="mt-5 flex items-start gap-3 rounded-2xl border border-coral-300/25 bg-coral-300/8 p-4 text-sm text-coral-300" role="alert"><AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" /><span>{error}</span></div>}
         </section>
 
-        {error && <div className="mb-8 flex items-start gap-3 rounded-2xl border border-coral-300/25 bg-coral-300/8 p-4 text-sm text-coral-300" role="alert"><AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" /><span>{error}</span></div>}
-
-        <section aria-label="Scan targets" className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-white/8 py-7 sm:py-9">
-          <div className="mb-6 flex items-end justify-between gap-4">
+        <section aria-label="Scan targets" className="flex min-h-0 flex-col overflow-hidden border-t border-white/8 py-7 lg:border-l lg:pl-6 sm:py-9">
+          <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-sage-400">Findings</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-mist-100 sm:text-3xl">Disposable artifacts</h2>
@@ -436,14 +448,14 @@ function App() {
           ) : (
             <div className="min-h-0 overflow-hidden">
               <div className="grid gap-3">
-              {targets.map((target) => (
-                <article className="group grid gap-5 rounded-2xl border border-white/8 bg-forest-900/55 p-5 transition-colors hover:border-sage-400/25 sm:grid-cols-[1fr_auto] sm:items-center" key={target.id}>
+              {visibleTargets.map((target) => (
+                <article className="group grid gap-3 rounded-2xl border border-white/8 bg-forest-900/55 p-3.5 transition-colors hover:border-sage-400/25 sm:grid-cols-[1fr_auto] sm:items-center" key={target.id}>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="text-xs font-medium uppercase tracking-[0.14em] text-sage-400">{target.category}</span>
                       <span className="text-xs text-mist-500">{target.name}</span>
                     </div>
-                    <p className="mt-3 break-all font-mono text-xs leading-5 text-mist-500">{target.path}</p>
+                    <p className="mt-1 truncate font-mono text-xs leading-5 text-mist-500" title={target.path}>{target.path}</p>
                   </div>
                   <div className="flex items-center justify-between gap-5 sm:justify-end">
                     <div className="text-right">
@@ -464,7 +476,17 @@ function App() {
               </div>
             </div>
           )}
+          {targets.length > pageSize && (
+            <div className="mt-4 flex shrink-0 items-center justify-between border-t border-white/8 pt-4 text-xs text-mist-500">
+              <span>Page {currentPage} of {pageCount}</span>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage === 1} className="grid size-8 place-items-center rounded-lg border border-white/10 hover:border-sage-400/50 hover:text-sage-300 disabled:opacity-30" aria-label="Previous page"><ChevronLeft size={15} aria-hidden="true" /></button>
+                <button type="button" onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={currentPage === pageCount} className="grid size-8 place-items-center rounded-lg border border-white/10 hover:border-sage-400/50 hover:text-sage-300 disabled:opacity-30" aria-label="Next page"><ChevronRight size={15} aria-hidden="true" /></button>
+              </div>
+            </div>
+          )}
         </section>
+        </div>
 
         <footer className="flex shrink-0 items-center justify-between border-t border-white/8 py-5 text-xs text-mist-500">
           <span>Local by design.</span>
