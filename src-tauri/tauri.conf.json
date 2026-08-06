@@ -13,8 +13,13 @@
     "windows": [
       {
         "title": "Uncached",
-        "width": 800,
-        "height": 600
+        "width": 960,
+        "height": 720,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": true,
+        "fullscreen": false,
+        "center": true
       }
     ],
     "security": {

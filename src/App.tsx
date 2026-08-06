@@ -324,8 +324,8 @@ function App() {
   const deleteAllLoading = scanning || deletingAll || targets.some((target) => target.sizePending);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-forest-950 text-mist-100">
-      <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-8 lg:px-12">
+    <main className="h-screen overflow-hidden bg-forest-950 text-mist-100">
+      <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between border-b border-white/8 pb-5">
           <div className="flex items-center gap-3">
             <span className="grid size-9 place-items-center rounded-xl border border-sage-400/30 bg-sage-400/10 text-sage-300">
@@ -341,7 +341,7 @@ function App() {
           </span>
         </header>
 
-        <section className="grid gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-20 lg:py-24">
+        <section className="grid shrink-0 gap-8 py-9 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-14 lg:py-12">
           <div className="max-w-xl">
             <p className="mb-5 text-xs font-medium uppercase tracking-[0.22em] text-sage-400">Workspace care</p>
             <h1 className="max-w-lg text-5xl font-semibold leading-[0.96] tracking-[-0.06em] text-mist-100 sm:text-6xl">
@@ -405,7 +405,7 @@ function App() {
 
         {error && <div className="mb-8 flex items-start gap-3 rounded-2xl border border-coral-300/25 bg-coral-300/8 p-4 text-sm text-coral-300" role="alert"><AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" /><span>{error}</span></div>}
 
-        <section aria-label="Scan targets" className="border-t border-white/8 py-10 sm:py-14">
+        <section aria-label="Scan targets" className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-white/8 py-7 sm:py-9">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-sage-400">Findings</p>
@@ -434,7 +434,8 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="min-h-0 overflow-hidden">
+              <div className="grid gap-3">
               {targets.map((target) => (
                 <article className="group grid gap-5 rounded-2xl border border-white/8 bg-forest-900/55 p-5 transition-colors hover:border-sage-400/25 sm:grid-cols-[1fr_auto] sm:items-center" key={target.id}>
                   <div className="min-w-0">
@@ -460,11 +461,12 @@ function App() {
                   </div>
                 </article>
               ))}
+              </div>
             </div>
           )}
         </section>
 
-        <footer className="flex items-center justify-between border-t border-white/8 py-6 text-xs text-mist-500">
+        <footer className="flex shrink-0 items-center justify-between border-t border-white/8 py-5 text-xs text-mist-500">
           <span>Local by design.</span>
           <span className="inline-flex items-center gap-1.5"><X size={12} aria-hidden="true" /> No guessing</span>
         </footer>
