@@ -22,6 +22,19 @@ pub fn normalize_win_path(path: &Path) -> PathBuf {
     }
 }
 
+/// Removes the Windows extended-length prefix when a path is safe to use as a
+/// regular Windows path.
+pub fn strip_extended_prefix(path: &Path) -> PathBuf {
+    let value = path.to_string_lossy();
+    if let Some(unc_path) = value.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{}", unc_path));
+    }
+    if let Some(drive_path) = value.strip_prefix(r"\\?\") {
+        return PathBuf::from(drive_path);
+    }
+    path.to_path_buf()
+}
+
 /// Checks if a path is safe to delete (not system root or drive root).
 pub fn is_safe_to_delete(path: &Path) -> bool {
     if !path.exists() {
@@ -101,7 +114,7 @@ fn is_critical_directory(path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_safe_to_delete, is_within_root};
+    use super::{is_safe_to_delete, is_within_root, strip_extended_prefix};
     use std::fs;
     use std::path::PathBuf;
 
@@ -147,5 +160,21 @@ mod tests {
         assert!(!is_within_root(&child, &outside));
 
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn strips_extended_prefix_from_windows_drive_path() {
+        assert_eq!(
+            strip_extended_prefix(&PathBuf::from(r"\\?\D:\Downloads\project")),
+            PathBuf::from(r"D:\Downloads\project")
+        );
+    }
+
+    #[test]
+    fn converts_extended_unc_path_to_regular_unc_path() {
+        assert_eq!(
+            strip_extended_prefix(&PathBuf::from(r"\\?\UNC\server\share\project")),
+            PathBuf::from(r"\\server\share\project")
+        );
     }
 }

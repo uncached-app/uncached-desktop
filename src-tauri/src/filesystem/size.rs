@@ -33,8 +33,16 @@ pub fn calculate_dir_size_report(path: &Path) -> DirSize {
             .skip_hidden(false)
             .into_iter()
             .map(|entry| -> Result<u64, ()> {
-                let entry = entry.map_err(|_| ())?;
-                let metadata = entry.metadata().map_err(|_| ())?;
+                let entry = entry.map_err(|error| {
+                    crate::logging::warn("size", &format!("walk error=\"{}\"", error));
+                })?;
+                let entry_path = entry.path();
+                let metadata = entry.metadata().map_err(|error| {
+                    crate::logging::warn(
+                        "size",
+                        &format!("metadata path=\"{}\" error=\"{}\"", entry_path.display(), error),
+                    );
+                })?;
                 Ok(if metadata.is_file() {
                     metadata.len()
                 } else {
@@ -64,5 +72,24 @@ mod tests {
         let report = super::calculate_dir_size_report(&path);
 
         assert!(report.errors > 0);
+    }
+
+    #[test]
+    fn calculates_bytes_for_files_in_directory() {
+        use std::fs;
+
+        let root = std::env::temp_dir().join(format!(
+            "uncached-size-bytes-{}-{}",
+            std::process::id(),
+            format!("{:?}", std::thread::current().id())
+        ));
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("package.json"), b"12345").unwrap();
+
+        let report = super::calculate_dir_size_report(&root);
+
+        assert_eq!(report.bytes, 5);
+        assert_eq!(report.errors, 0);
+        fs::remove_dir_all(root).unwrap();
     }
 }

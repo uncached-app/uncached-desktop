@@ -1,4 +1,5 @@
 use crate::errors::{NukeError, NukeResult};
+use crate::filesystem::paths::strip_extended_prefix;
 use crate::filesystem::walker::DiskWalker;
 use crate::models::target::ScanTarget;
 use crate::scanner::get_default_scanners;
@@ -68,6 +69,10 @@ fn registry() -> &'static Arc<Mutex<ScanRegistry>> {
     REGISTRY.get_or_init(|| Arc::new(Mutex::new(ScanRegistry::default())))
 }
 
+fn scan_path(path: &Path) -> PathBuf {
+    strip_extended_prefix(path)
+}
+
 pub struct ScanService;
 
 impl ScanService {
@@ -80,7 +85,8 @@ impl ScanService {
             ));
         }
 
-        let root = std::fs::canonicalize(root_path)?;
+        let canonical_root = std::fs::canonicalize(root_path)?;
+        let scan_root = scan_path(&canonical_root);
         let scan_id = format!(
             "scan-{}",
             NEXT_SCAN_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
@@ -89,7 +95,7 @@ impl ScanService {
         let worker_scan_id = scan_id.clone();
         crate::logging::info(
             "scan",
-            &format!("start scanId=\"{}\" root=\"{}\"", scan_id, root.display()),
+            &format!("start scanId=\"{}\" root=\"{}\"", scan_id, scan_root.display()),
         );
         let session = ScanSession::new();
         let cancel_token = Arc::clone(&session.cancel_token);
@@ -101,7 +107,7 @@ impl ScanService {
         let app_handle = app.clone();
         let _ = app.emit(
             "scan:started",
-            serde_json::json!({ "scanId": scan_id, "rootPath": root }),
+            serde_json::json!({ "scanId": scan_id, "rootPath": scan_root.clone() }),
         );
 
         std::thread::spawn(move || {
@@ -113,10 +119,10 @@ impl ScanService {
             let registry_for_callback = Arc::clone(registry());
             let callback_scan_id = worker_scan_id.clone();
             let callback_event_scan_id = worker_scan_id.clone();
-            let callback_root = root.clone();
+            let callback_root = canonical_root.clone();
             let callback_cancel_token = Arc::clone(&cancel_token);
 
-            let walk_result = DiskWalker::walk_directories(&root, move |dir_path, dir_name| {
+            let walk_result = DiskWalker::walk_directories(&scan_root, move |dir_path, dir_name| {
                 if callback_cancel_token.load(Ordering::Acquire) {
                     return true;
                 }
@@ -352,6 +358,14 @@ mod tests {
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use std::path::PathBuf;
+
+    #[test]
+    fn scan_path_removes_extended_prefix() {
+        assert_eq!(
+            super::scan_path(std::path::Path::new(r"\\?\D:\Downloads\project")),
+            PathBuf::from(r"D:\Downloads\project")
+        );
+    }
 
     #[test]
     fn serializes_scan_id_as_camel_case() {
