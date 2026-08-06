@@ -1,4 +1,4 @@
-use jwalk::WalkDir;
+use jwalk::{Parallelism, WalkDir};
 use std::path::Path;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -31,6 +31,9 @@ pub fn calculate_dir_size_report(path: &Path) -> DirSize {
     let entries =
         WalkDir::new(path)
             .skip_hidden(false)
+            // Size calculation runs inside the parallel scan callback.
+            // A nested Rayon walk deadlocks when it shares the scan pool.
+            .parallelism(Parallelism::Serial)
             .into_iter()
             .map(|entry| -> Result<u64, ()> {
                 let entry = entry.map_err(|error| {
