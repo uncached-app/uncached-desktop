@@ -25,6 +25,8 @@ input:focus { border-color: #a8c982; box-shadow: 0 0 0 3px #a8c98222; }
 button { border: 1px solid #bbdb8e; border-radius: 4px; padding: 12px 18px; color: #101311; background: #b9d98d; font-weight: 700; cursor: pointer; }
 button:hover { background: #d1eca9; }
 button:disabled { cursor: wait; opacity: .5; }
+.cancel-button { border-color: #ed836d; color: #ffc2b5; background: transparent; }
+.cancel-button:hover { color: #101311; background: #ed836d; }
 .status-bar { display: flex; align-items: center; gap: 10px; min-height: 48px; border-bottom: 1px solid #323932; color: #c7d0c1; font-size: 13px; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #8c9a88; }
 .pulse { background: #b9d98d; box-shadow: 0 0 0 5px #b9d98d1f; }

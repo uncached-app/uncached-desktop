@@ -31,10 +31,16 @@ type ScanFinished = {
   totalBytesFound: number;
   durationMs: number;
 };
+type ScanCancelled = {
+  scanId: string;
+  totalTargets: number;
+  totalBytesFound: number;
+};
 type PendingScanEvent =
   | { kind: "target"; payload: TargetFound }
   | { kind: "progress"; payload: ScanProgress }
   | { kind: "finished"; payload: ScanFinished }
+  | { kind: "cancelled"; payload: ScanCancelled }
   | { kind: "failed"; payload: { scanId: string; message: string } };
 
 function App() {
@@ -44,6 +50,7 @@ function App() {
   const [status, setStatus] = useState("Ready to scan");
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [listenersReady, setListenersReady] = useState(false);
   const [cleaningTargetIds, setCleaningTargetIds] = useState<Set<string>>(new Set());
   const activeScanId = useRef<string | null>(null);
@@ -73,6 +80,15 @@ function App() {
       pendingScan.current = false;
       setScanning(false);
       setStatus(`Scan complete in ${event.payload.durationMs} ms`);
+    } else if (event.kind === "cancelled") {
+      pendingScan.current = false;
+      pendingEvents.current = [];
+      activeScanId.current = null;
+      setScanning(false);
+      setCancelling(false);
+      setTargets([]);
+      setProgress(null);
+      setStatus("Scan cancelled");
     } else {
       pendingScan.current = false;
       setScanning(false);
@@ -95,6 +111,9 @@ function App() {
       }),
       listen<ScanFinished>("scan:finished", ({ payload }) => {
         handleScanEvent({ kind: "finished", payload });
+      }),
+      listen<ScanCancelled>("scan:cancelled", ({ payload }) => {
+        handleScanEvent({ kind: "cancelled", payload });
       }),
       listen<{ scanId: string; message: string }>("scan:failed", ({ payload }) => {
         handleScanEvent({ kind: "failed", payload });
@@ -146,6 +165,34 @@ function App() {
     }
   }
 
+  async function cancelScan() {
+    const scanId = activeScanId.current;
+    if (!scanId || !scanning || cancelling) return;
+
+    setCancelling(true);
+    setError(null);
+    setStatus("Cancelling scan...");
+    try {
+      const result = await invoke<{ cancelled: boolean }>("cancel_scan", { scanId });
+      if (result.cancelled) {
+        activeScanId.current = null;
+        pendingScan.current = false;
+        pendingEvents.current = [];
+        setTargets([]);
+        setProgress(null);
+        setScanning(false);
+        setCancelling(false);
+        setStatus("Scan cancelled");
+      } else {
+        setCancelling(false);
+        setStatus("Scan already complete");
+      }
+    } catch (cancelError) {
+      setCancelling(false);
+      setError(String(cancelError));
+    }
+  }
+
   async function moveToTrash(targetId: string) {
     if (cleaningTargetIds.has(targetId)) return;
     setError(null);
@@ -194,6 +241,16 @@ function App() {
           <button type="submit" disabled={!listenersReady || scanning || !rootPath.trim()}>
             {scanning ? "Scanning" : "Scan workspace"}
           </button>
+          {scanning && (
+            <button
+              type="button"
+              className="cancel-button"
+              disabled={cancelling}
+              onClick={cancelScan}
+            >
+              {cancelling ? "Cancelling..." : "Cancel scan"}
+            </button>
+          )}
         </div>
       </form>
 

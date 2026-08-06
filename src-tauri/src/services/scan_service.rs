@@ -5,6 +5,7 @@ use crate::scanner::get_default_scanners;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter};
@@ -13,6 +14,12 @@ use tauri::{AppHandle, Emitter};
 #[serde(rename_all = "camelCase")]
 pub struct ScanStartResult {
     pub scan_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelScanResult {
+    pub cancelled: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +32,26 @@ pub struct RegisteredTarget {
 struct ScanRegistry {
     targets: HashMap<String, RegisteredTarget>,
     in_flight: HashSet<String>,
+    sessions: HashMap<String, ScanSession>,
+}
+
+#[derive(Debug, Clone)]
+struct ScanSession {
+    cancel_token: Arc<AtomicBool>,
+    cancelled: bool,
+    finished: bool,
+    target_ids: HashSet<String>,
+}
+
+impl ScanSession {
+    fn new() -> Self {
+        Self {
+            cancel_token: Arc::new(AtomicBool::new(false)),
+            cancelled: false,
+            finished: false,
+            target_ids: HashSet::new(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -60,6 +87,13 @@ impl ScanService {
         );
         let result_scan_id = scan_id.clone();
         let worker_scan_id = scan_id.clone();
+        let session = ScanSession::new();
+        let cancel_token = Arc::clone(&session.cancel_token);
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
         let app_handle = app.clone();
         let _ = app.emit(
             "scan:started",
@@ -76,26 +110,51 @@ impl ScanService {
             let callback_scan_id = worker_scan_id.clone();
             let callback_event_scan_id = worker_scan_id.clone();
             let callback_root = root.clone();
+            let callback_cancel_token = Arc::clone(&cancel_token);
 
             let walk_result = DiskWalker::walk_directories(&root, move |dir_path, dir_name| {
+                if callback_cancel_token.load(Ordering::Acquire) {
+                    return true;
+                }
                 let mut stats = stats_for_callback.lock().unwrap();
                 stats.directories_scanned += 1;
 
                 for scanner in &scanners {
                     if scanner.matches(dir_name) {
                         if let Some(mut target) = scanner.create_target(dir_path) {
+                            if callback_cancel_token.load(Ordering::Acquire) {
+                                return true;
+                            }
                             target.id = format!("{}-{}", callback_scan_id, target.id);
                             stats.targets_found += 1;
                             stats.total_bytes_found =
                                 stats.total_bytes_found.saturating_add(target.size_bytes);
 
-                            registry_for_callback.lock().unwrap().targets.insert(
+                            let mut registry = registry_for_callback.lock().unwrap();
+                            let accepted = {
+                                let Some(session) = registry.sessions.get_mut(&callback_scan_id)
+                                else {
+                                    return true;
+                                };
+                                if session.cancelled || session.cancel_token.load(Ordering::Acquire)
+                                {
+                                    false
+                                } else {
+                                    session.target_ids.insert(target.id.clone());
+                                    true
+                                }
+                            };
+                            if !accepted {
+                                return true;
+                            }
+                            registry.targets.insert(
                                 target.id.clone(),
                                 RegisteredTarget {
                                     target: target.clone(),
                                     root_path: callback_root.clone(),
                                 },
                             );
+                            drop(registry);
                             let _ = target_event_handle.emit(
                                 "scan:target_found",
                                 serde_json::json!({
@@ -119,7 +178,32 @@ impl ScanService {
                 false
             });
 
+            if cancel_token.load(Ordering::Acquire) {
+                let _ = app_handle.emit(
+                    "scan:cancelled",
+                    serde_json::json!({
+                        "scanId": worker_scan_id,
+                        "totalTargets": 0,
+                        "totalBytesFound": 0
+                    }),
+                );
+                return;
+            }
+
             if let Err(error) = walk_result {
+                if !ScanService::end_session(&worker_scan_id) {
+                    if cancel_token.load(Ordering::Acquire) {
+                        let _ = app_handle.emit(
+                            "scan:cancelled",
+                            serde_json::json!({
+                                "scanId": worker_scan_id,
+                                "totalTargets": 0,
+                                "totalBytesFound": 0
+                            }),
+                        );
+                    }
+                    return;
+                }
                 let _ = app_handle.emit(
                     "scan:failed",
                     serde_json::json!({
@@ -130,6 +214,19 @@ impl ScanService {
                 return;
             }
 
+            if !ScanService::end_session(&worker_scan_id) {
+                if cancel_token.load(Ordering::Acquire) {
+                    let _ = app_handle.emit(
+                        "scan:cancelled",
+                        serde_json::json!({
+                            "scanId": worker_scan_id,
+                            "totalTargets": 0,
+                            "totalBytesFound": 0
+                        }),
+                    );
+                }
+                return;
+            }
             let stats = stats.lock().unwrap();
             let _ = app_handle.emit(
                 "scan:finished",
@@ -155,6 +252,35 @@ impl ScanService {
             .get(target_id)
             .cloned()
             .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))
+    }
+
+    pub fn cancel_scan(scan_id: &str) -> NukeResult<CancelScanResult> {
+        let mut registry = registry().lock().unwrap();
+        let Some(mut session) = registry.sessions.remove(scan_id) else {
+            return Ok(CancelScanResult { cancelled: false });
+        };
+        if session.cancelled || session.finished {
+            return Ok(CancelScanResult { cancelled: false });
+        }
+
+        session.cancel_token.store(true, Ordering::Release);
+        session.cancelled = true;
+        let target_ids = session.target_ids.drain().collect::<Vec<_>>();
+        for target_id in target_ids {
+            registry.in_flight.remove(&target_id);
+            registry.targets.remove(&target_id);
+        }
+
+        Ok(CancelScanResult { cancelled: true })
+    }
+
+    fn end_session(scan_id: &str) -> bool {
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .remove(scan_id)
+            .is_some()
     }
 
     pub fn claim_target(target_id: &str) -> NukeResult<RegisteredTarget> {
@@ -280,5 +406,62 @@ mod tests {
         ScanService::release_target(&target_id);
         assert!(ScanService::get_target(&target_id).is_ok());
         ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn cancelling_session_removes_targets_and_is_idempotent() {
+        let scan_id = format!("cancel-scan-{}", std::process::id());
+        let target_id = format!("{scan_id}-target");
+        let target = ScanTarget::new(
+            PathBuf::from("C:\\workspace\\node_modules"),
+            Category::NodeModules,
+            1,
+            false,
+            None,
+        );
+        let mut registry = registry().lock().unwrap();
+        registry
+            .sessions
+            .insert(scan_id.clone(), super::ScanSession::new());
+        registry.targets.insert(
+            target_id.clone(),
+            RegisteredTarget {
+                target,
+                root_path: PathBuf::from("C:\\workspace"),
+            },
+        );
+        registry
+            .sessions
+            .get_mut(&scan_id)
+            .unwrap()
+            .target_ids
+            .insert(target_id.clone());
+        drop(registry);
+
+        assert!(ScanService::cancel_scan(&scan_id).unwrap().cancelled);
+        assert!(ScanService::get_target(&target_id).is_err());
+        assert!(ScanService::claim_target(&target_id).is_err());
+        assert!(!ScanService::cancel_scan(&scan_id).unwrap().cancelled);
+    }
+
+    #[test]
+    fn serializes_cancel_result() {
+        let result = super::CancelScanResult { cancelled: true };
+        let value = serde_json::to_value(result).unwrap();
+        assert_eq!(value["cancelled"], true);
+    }
+
+    #[test]
+    fn ending_session_removes_terminal_state() {
+        let scan_id = format!("finished-scan-{}", std::process::id());
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), super::ScanSession::new());
+
+        assert!(ScanService::end_session(&scan_id));
+        assert!(!ScanService::end_session(&scan_id));
+        assert!(!ScanService::cancel_scan(&scan_id).unwrap().cancelled);
     }
 }

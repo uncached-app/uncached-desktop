@@ -6,6 +6,7 @@ pub mod models;
 pub mod scanner;
 pub mod services;
 
+use commands::cancel::cancel_scan;
 use commands::clean::clean_target;
 use commands::scan::start_scan;
 use commands::settings::get_settings;
@@ -15,6 +16,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            cancel_scan,
             start_scan,
             clean_target,
             get_settings
