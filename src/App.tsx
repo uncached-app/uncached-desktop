@@ -370,11 +370,8 @@ function App() {
       <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between border-b border-white/8 pb-5">
           <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-xl border border-sage-400/30 bg-sage-400/10 text-sage-300">
-              <FolderOpen size={18} strokeWidth={1.8} aria-hidden="true" />
-            </span>
+            <img src="/brand/UNCACHED-LOGO-LIGHT-NOBG.svg" alt="Uncached" className="h-9 w-auto max-w-[150px] object-contain" />
             <div>
-              <p className="text-sm font-semibold tracking-[0.12em] text-mist-100">UNCACHED</p>
               <p className="text-xs text-mist-500">A calmer way to reclaim space</p>
             </div>
           </div>
