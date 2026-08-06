@@ -9,6 +9,7 @@ import {
   FolderOpen,
   FolderSearch,
   LoaderCircle,
+  RefreshCw,
   ScanSearch,
   Trash2,
   X,
@@ -23,6 +24,7 @@ type ScanTarget = {
   category: Category;
   sizeBytes: number;
   sizeHasErrors: boolean;
+  sizePending: boolean;
   formattedSize: string;
   lastModified: string | null;
 };
@@ -36,6 +38,14 @@ type ScanProgress = {
   totalBytesFound: number;
 };
 type TargetFound = { scanId: string; target: ScanTarget };
+type TargetSized = {
+  scanId: string;
+  targetId: string;
+  sizeBytes: number;
+  sizeHasErrors: boolean;
+  sizePending: boolean;
+  formattedSize: string;
+};
 type ScanFinished = {
   scanId: string;
   totalTargets: number;
@@ -49,6 +59,7 @@ type ScanCancelled = {
 };
 type PendingScanEvent =
   | { kind: "target"; payload: TargetFound }
+  | { kind: "sized"; payload: TargetSized }
   | { kind: "progress"; payload: ScanProgress }
   | { kind: "finished"; payload: ScanFinished }
   | { kind: "cancelled"; payload: ScanCancelled }
@@ -64,9 +75,11 @@ function App() {
   const [cancelling, setCancelling] = useState(false);
   const [listenersReady, setListenersReady] = useState(false);
   const [cleaningTargetIds, setCleaningTargetIds] = useState<Set<string>>(new Set());
+  const [deletingAll, setDeletingAll] = useState(false);
   const activeScanId = useRef<string | null>(null);
   const pendingScan = useRef(false);
   const pendingEvents = useRef<PendingScanEvent[]>([]);
+  const pendingSizeUpdates = useRef<Map<string, TargetSized>>(new Map());
 
   function acceptsScanEvent(scanId: string) {
     return activeScanId.current === scanId;
@@ -80,11 +93,38 @@ function App() {
     if (!acceptsScanEvent(event.payload.scanId)) return;
 
     if (event.kind === "target") {
-      setTargets((current) =>
-        current.some((target) => target.id === event.payload.target.id)
-          ? current
-          : [...current, event.payload.target],
-      );
+      const sizeUpdate = pendingSizeUpdates.current.get(event.payload.target.id);
+      pendingSizeUpdates.current.delete(event.payload.target.id);
+      setTargets((current) => {
+        const target = sizeUpdate
+          ? {
+              ...event.payload.target,
+              sizeBytes: sizeUpdate.sizeBytes,
+              sizeHasErrors: sizeUpdate.sizeHasErrors,
+              sizePending: sizeUpdate.sizePending,
+              formattedSize: sizeUpdate.formattedSize,
+            }
+          : event.payload.target;
+        return current.some((item) => item.id === target.id) ? current : [...current, target];
+      });
+    } else if (event.kind === "sized") {
+      setTargets((current) => {
+        if (!current.some((target) => target.id === event.payload.targetId)) {
+          pendingSizeUpdates.current.set(event.payload.targetId, event.payload);
+          return current;
+        }
+        return current.map((target) =>
+            target.id === event.payload.targetId
+              ? {
+                  ...target,
+                  sizeBytes: event.payload.sizeBytes,
+                  sizeHasErrors: event.payload.sizeHasErrors,
+                  sizePending: event.payload.sizePending,
+                  formattedSize: event.payload.formattedSize,
+                }
+              : target,
+          );
+      });
     } else if (event.kind === "progress") {
       setProgress(event.payload);
     } else if (event.kind === "finished") {
@@ -123,6 +163,9 @@ function App() {
       listen<TargetFound>("scan:target_found", ({ payload }) => {
         handleScanEvent({ kind: "target", payload });
       }),
+      listen<TargetSized>("scan:target_sized", ({ payload }) => {
+        handleScanEvent({ kind: "sized", payload });
+      }),
       listen<ScanProgress>("scan:progress", ({ payload }) => {
         handleScanEvent({ kind: "progress", payload });
       }),
@@ -157,6 +200,7 @@ function App() {
 
     setError(null);
     setTargets([]);
+    pendingSizeUpdates.current.clear();
     setProgress(null);
     setScanning(true);
     setStatus("Scanning workspace...");
@@ -211,6 +255,7 @@ function App() {
         pendingScan.current = false;
         pendingEvents.current = [];
         setTargets([]);
+        pendingSizeUpdates.current.clear();
         setProgress(null);
         setScanning(false);
         setCancelling(false);
@@ -248,6 +293,35 @@ function App() {
       });
     }
   }
+
+  async function refreshTargetSize(targetId: string) {
+    setError(null);
+    setTargets((current) => current.map((target) => target.id === targetId
+      ? { ...target, sizePending: true, sizeHasErrors: false }
+      : target));
+    try {
+      await invoke("retry_target_size", { targetId });
+    } catch (sizeError) {
+      setTargets((current) => current.map((target) => target.id === targetId
+        ? { ...target, sizePending: false, sizeHasErrors: true }
+        : target));
+      setError(String(sizeError));
+    }
+  }
+
+  async function deleteAll() {
+    if (scanning || deletingAll || targets.some((target) => target.sizePending || target.sizeHasErrors)) return;
+    setDeletingAll(true);
+    try {
+      for (const target of targets) await moveToTrash(target.id);
+    } finally {
+      setDeletingAll(false);
+    }
+  }
+
+  const sizesReady = targets.length > 0 && targets.every((target) => !target.sizePending && !target.sizeHasErrors);
+  const deleteAllDisabled = scanning || deletingAll || !sizesReady;
+  const deleteAllLoading = scanning || deletingAll || targets.some((target) => target.sizePending);
 
   return (
     <main className="min-h-screen overflow-hidden bg-forest-950 text-mist-100">
@@ -337,7 +411,18 @@ function App() {
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-sage-400">Findings</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-mist-100 sm:text-3xl">Disposable artifacts</h2>
             </div>
-            <span className="grid size-10 place-items-center rounded-full border border-sage-400/25 bg-sage-400/8 font-mono text-sm text-sage-300">{targets.length}</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={deleteAll}
+                disabled={deleteAllDisabled}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-coral-300/30 px-3 text-sm font-medium text-coral-300 hover:bg-coral-300/10 disabled:cursor-wait disabled:opacity-40"
+              >
+                {deleteAllLoading ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
+                <span className="hidden sm:inline">Delete all</span>
+              </button>
+              <span className="grid size-10 place-items-center rounded-full border border-sage-400/25 bg-sage-400/8 font-mono text-sm text-sage-300">{targets.length}</span>
+            </div>
           </div>
 
           {targets.length === 0 ? (
@@ -361,13 +446,17 @@ function App() {
                   </div>
                   <div className="flex items-center justify-between gap-5 sm:justify-end">
                     <div className="text-right">
-                      <strong className="block text-lg font-semibold text-mist-100">{target.formattedSize}</strong>
-                      {target.sizeHasErrors && <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-amber-300"><AlertTriangle size={12} aria-hidden="true" /> Size may be incomplete</span>}
+                      {target.sizePending ? (
+                        <span className="inline-flex items-center gap-2 text-sm text-mist-500"><LoaderCircle size={16} className="animate-spin text-sage-400" aria-hidden="true" /> Loading size</span>
+                      ) : target.sizeHasErrors ? (
+                        <button type="button" onClick={() => refreshTargetSize(target.id)} className="inline-flex items-center gap-2 text-sm text-amber-300 hover:text-amber-200" aria-label={`Retry size for ${target.name}`}><RefreshCw size={15} aria-hidden="true" /> Refresh</button>
+                      ) : (
+                        <strong className="block text-lg font-semibold text-mist-100">{target.formattedSize}</strong>
+                      )}
                     </div>
-                    <button type="button" disabled={cleaningTargetIds.has(target.id)} onClick={() => moveToTrash(target.id)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-sm font-medium text-mist-300 hover:border-sage-400/50 hover:bg-sage-400/10 hover:text-sage-300 disabled:cursor-wait disabled:opacity-50" aria-label={`Move ${target.name} to trash`}>
+                    {!target.sizePending && !target.sizeHasErrors && <button type="button" disabled={cleaningTargetIds.has(target.id)} onClick={() => moveToTrash(target.id)} className="inline-flex size-10 items-center justify-center rounded-xl border border-white/10 text-mist-300 hover:border-sage-400/50 hover:bg-sage-400/10 hover:text-sage-300 disabled:cursor-wait disabled:opacity-50" aria-label={`Move ${target.name} to trash`}>
                       <Trash2 size={16} aria-hidden="true" />
-                      <span className="hidden sm:inline">{cleaningTargetIds.has(target.id) ? "Moving..." : "Move to trash"}</span>
-                    </button>
+                    </button>}
                   </div>
                 </article>
               ))}

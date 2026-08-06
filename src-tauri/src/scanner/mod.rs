@@ -26,28 +26,15 @@ pub trait Scanner: Send + Sync {
             return None;
         }
 
-        let size = crate::filesystem::size::calculate_dir_size_report(dir_path);
         let category = self.category();
-        crate::logging::info(
-            "size",
-            &format!(
-                "targetPath=\"{}\" category=\"{}\" bytes={} errors={}",
-                dir_path.display(),
-                category,
-                size.bytes,
-                size.errors
-            ),
-        );
         let metadata = std::fs::metadata(dir_path).ok();
         let last_modified = metadata
             .and_then(|m| m.modified().ok())
             .map(|t| chrono::DateTime::<chrono::Utc>::from(t));
 
-        Some(ScanTarget::new(
+        Some(ScanTarget::pending(
             dir_path.to_path_buf(),
             category,
-            size.bytes,
-            size.errors > 0,
             last_modified,
         ))
     }

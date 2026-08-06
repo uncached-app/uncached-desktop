@@ -12,6 +12,7 @@ pub struct ScanTarget {
     pub category: Category,
     pub size_bytes: u64,
     pub size_has_errors: bool,
+    pub size_pending: bool,
     pub formatted_size: String,
     pub last_modified: Option<DateTime<Utc>>,
 }
@@ -39,9 +40,23 @@ impl ScanTarget {
             category,
             size_bytes,
             size_has_errors,
+            size_pending: false,
             formatted_size,
             last_modified,
         }
+    }
+
+    pub fn pending(path: PathBuf, category: Category, last_modified: Option<DateTime<Utc>>) -> Self {
+        let mut target = Self::new(path, category, 0, false, last_modified);
+        target.size_pending = true;
+        target
+    }
+
+    pub fn set_size(&mut self, size_bytes: u64, size_has_errors: bool) {
+        self.size_bytes = size_bytes;
+        self.size_has_errors = size_has_errors;
+        self.size_pending = false;
+        self.formatted_size = format_size(size_bytes);
     }
 }
 

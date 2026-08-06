@@ -23,6 +23,17 @@ pub struct CancelScanResult {
     pub cancelled: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetSizeUpdate {
+    pub scan_id: String,
+    pub target_id: String,
+    pub size_bytes: u64,
+    pub size_has_errors: bool,
+    pub size_pending: bool,
+    pub formatted_size: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct RegisteredTarget {
     pub target: ScanTarget,
@@ -175,14 +186,18 @@ impl ScanService {
                             crate::logging::info(
                                 "scan",
                                 &format!(
-                                    "target scanId=\"{}\" path=\"{}\" bytes={} errors={}",
-                                    callback_event_scan_id,
-                                    target.path.display(),
-                                    target.size_bytes,
-                                    target.size_has_errors as u8
-                                ),
-                            );
-                            return true;
+                                    "target scanId=\"{}\" path=\"{}\" pending=true",
+                                     callback_event_scan_id,
+                                     target.path.display()
+                                 ),
+                             );
+                             ScanService::start_target_size(
+                                 &target_event_handle,
+                                 &callback_event_scan_id,
+                                 &target.id,
+                                 &target.path,
+                             );
+                             return true;
                         }
                     }
                 }
@@ -290,6 +305,55 @@ impl ScanService {
             .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))
     }
 
+    pub fn start_target_size(app: &AppHandle, scan_id: &str, target_id: &str, path: &Path) {
+        let app = app.clone();
+        let scan_id = scan_id.to_string();
+        let target_id = target_id.to_string();
+        let path = path.to_path_buf();
+        std::thread::spawn(move || {
+            let report = crate::filesystem::size::calculate_dir_size_report(&path);
+            if let Some(update) = Self::apply_target_size(&target_id, report) {
+                crate::logging::info(
+                    "size",
+                    &format!(
+                        "targetPath=\"{}\" bytes={} errors={}",
+                        path.display(), report.bytes, report.errors
+                    ),
+                );
+                let _ = app.emit("scan:target_sized", update);
+            } else {
+                crate::logging::info(
+                    "size",
+                    &format!("discarded targetId=\"{}\" scanId=\"{}\"", target_id, scan_id),
+                );
+            }
+        });
+    }
+
+    pub fn refresh_target_size(target_id: &str) -> NukeResult<TargetSizeUpdate> {
+        let registered = Self::get_target(target_id)?;
+        let report = crate::filesystem::size::calculate_dir_size_report(&registered.target.path);
+        Self::apply_target_size(target_id, report)
+            .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))
+    }
+
+    fn apply_target_size(
+        target_id: &str,
+        report: crate::filesystem::size::DirSize,
+    ) -> Option<TargetSizeUpdate> {
+        let mut registry = registry().lock().unwrap();
+        let registered = registry.targets.get_mut(target_id)?;
+        registered.target.set_size(report.bytes, report.errors > 0);
+        Some(TargetSizeUpdate {
+            scan_id: scan_id_from_target_id(target_id),
+            target_id: target_id.to_string(),
+            size_bytes: registered.target.size_bytes,
+            size_has_errors: registered.target.size_has_errors,
+            size_pending: registered.target.size_pending,
+            formatted_size: registered.target.formatted_size.clone(),
+        })
+    }
+
     pub fn cancel_scan(scan_id: &str) -> NukeResult<CancelScanResult> {
         let mut registry = registry().lock().unwrap();
         let Some(mut session) = registry.sessions.remove(scan_id) else {
@@ -332,6 +396,11 @@ impl ScanService {
             .get(target_id)
             .cloned()
             .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))?;
+        if target.target.size_pending || target.target.size_has_errors {
+            return Err(NukeError::PermissionDenied(
+                "Target size is not ready".to_string(),
+            ));
+        }
         registry.in_flight.insert(target_id.to_string());
         Ok(target)
     }
@@ -347,6 +416,14 @@ impl ScanService {
             .targets
             .remove(target_id)
             .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))
+    }
+}
+
+fn scan_id_from_target_id(target_id: &str) -> String {
+    let mut parts = target_id.splitn(3, '-');
+    match (parts.next(), parts.next()) {
+        (Some(prefix), Some(number)) if prefix == "scan" => format!("scan-{number}"),
+        _ => String::new(),
     }
 }
 
