@@ -11,11 +11,13 @@ type ScanTarget = {
   name: string;
   category: Category;
   sizeBytes: number;
+  sizeHasErrors: boolean;
   formattedSize: string;
   lastModified: string | null;
 };
 
 type ScanStartResult = { scanId: string };
+type ScanStarted = { scanId: string; rootPath: string };
 type ScanProgress = {
   scanId: string;
   directoriesScanned: number;
@@ -29,6 +31,11 @@ type ScanFinished = {
   totalBytesFound: number;
   durationMs: number;
 };
+type PendingScanEvent =
+  | { kind: "target"; payload: TargetFound }
+  | { kind: "progress"; payload: ScanProgress }
+  | { kind: "finished"; payload: ScanFinished }
+  | { kind: "failed"; payload: { scanId: string; message: string } };
 
 function App() {
   const [rootPath, setRootPath] = useState("");
@@ -37,35 +44,73 @@ function App() {
   const [status, setStatus] = useState("Ready to scan");
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [listenersReady, setListenersReady] = useState(false);
+  const [cleaningTargetIds, setCleaningTargetIds] = useState<Set<string>>(new Set());
   const activeScanId = useRef<string | null>(null);
+  const pendingScan = useRef(false);
+  const pendingEvents = useRef<PendingScanEvent[]>([]);
+
+  function acceptsScanEvent(scanId: string) {
+    return activeScanId.current === scanId;
+  }
+
+  function handleScanEvent(event: PendingScanEvent) {
+    if (activeScanId.current === null) {
+      if (pendingScan.current) pendingEvents.current.push(event);
+      return;
+    }
+    if (!acceptsScanEvent(event.payload.scanId)) return;
+
+    if (event.kind === "target") {
+      setTargets((current) =>
+        current.some((target) => target.id === event.payload.target.id)
+          ? current
+          : [...current, event.payload.target],
+      );
+    } else if (event.kind === "progress") {
+      setProgress(event.payload);
+    } else if (event.kind === "finished") {
+      pendingScan.current = false;
+      setScanning(false);
+      setStatus(`Scan complete in ${event.payload.durationMs} ms`);
+    } else {
+      pendingScan.current = false;
+      setScanning(false);
+      setStatus("Scan failed");
+      setError(event.payload.message);
+    }
+  }
 
   useEffect(() => {
+    let disposed = false;
     const listeners = Promise.all([
+      listen<ScanStarted>("scan:started", ({ payload }) => {
+        if (acceptsScanEvent(payload.scanId)) setStatus("Scanning workspace...");
+      }),
       listen<TargetFound>("scan:target_found", ({ payload }) => {
-        if (activeScanId.current && payload.scanId !== activeScanId.current) return;
-        setTargets((current) =>
-          current.some((target) => target.id === payload.target.id)
-            ? current
-            : [...current, payload.target],
-        );
+        handleScanEvent({ kind: "target", payload });
       }),
       listen<ScanProgress>("scan:progress", ({ payload }) => {
-        if (activeScanId.current && payload.scanId !== activeScanId.current) return;
-        setProgress(payload);
+        handleScanEvent({ kind: "progress", payload });
       }),
       listen<ScanFinished>("scan:finished", ({ payload }) => {
-        if (activeScanId.current && payload.scanId !== activeScanId.current) return;
-        setScanning(false);
-        setStatus(`Scan complete in ${payload.durationMs} ms`);
+        handleScanEvent({ kind: "finished", payload });
       }),
       listen<{ scanId: string; message: string }>("scan:failed", ({ payload }) => {
-        if (activeScanId.current && payload.scanId !== activeScanId.current) return;
-        setScanning(false);
-        setError(payload.message);
+        handleScanEvent({ kind: "failed", payload });
       }),
     ]);
 
+    listeners
+      .then(() => {
+        if (!disposed) setListenersReady(true);
+      })
+      .catch((listenerError) => {
+        if (!disposed) setError(String(listenerError));
+      });
+
     return () => {
+      disposed = true;
       listeners.then((unlisten) => unlisten.forEach((stop) => stop()));
     };
   }, []);
@@ -79,20 +124,32 @@ function App() {
     setProgress(null);
     setScanning(true);
     setStatus("Scanning workspace...");
+    activeScanId.current = null;
+    pendingScan.current = true;
+    pendingEvents.current = [];
 
     try {
       const result = await invoke<ScanStartResult>("start_scan", {
         path: rootPath.trim(),
       });
       activeScanId.current = result.scanId;
+      pendingScan.current = false;
+      const events = pendingEvents.current;
+      pendingEvents.current = [];
+      events.forEach(handleScanEvent);
     } catch (scanError) {
       setScanning(false);
+      activeScanId.current = null;
+      pendingScan.current = false;
+      pendingEvents.current = [];
       setError(String(scanError));
     }
   }
 
   async function moveToTrash(targetId: string) {
+    if (cleaningTargetIds.has(targetId)) return;
     setError(null);
+    setCleaningTargetIds((current) => new Set(current).add(targetId));
     try {
       await invoke("clean_target", {
         request: {
@@ -104,6 +161,12 @@ function App() {
       setTargets((current) => current.filter((target) => target.id !== targetId));
     } catch (cleanError) {
       setError(String(cleanError));
+    } finally {
+      setCleaningTargetIds((current) => {
+        const next = new Set(current);
+        next.delete(targetId);
+        return next;
+      });
     }
   }
 
@@ -128,7 +191,7 @@ function App() {
             placeholder="C:\\Users\\you\\Projects"
             spellCheck={false}
           />
-          <button type="submit" disabled={scanning || !rootPath.trim()}>
+          <button type="submit" disabled={!listenersReady || scanning || !rootPath.trim()}>
             {scanning ? "Scanning" : "Scan workspace"}
           </button>
         </div>
@@ -170,9 +233,18 @@ function App() {
                   <p className="target-path">{target.path}</p>
                 </div>
                 <div className="target-action">
-                  <strong>{target.formattedSize}</strong>
-                  <button type="button" onClick={() => moveToTrash(target.id)}>
-                    Move to trash
+                  <strong>
+                    {target.formattedSize}
+                    {target.sizeHasErrors && (
+                      <small className="size-warning">Size may be incomplete</small>
+                    )}
+                  </strong>
+                  <button
+                    type="button"
+                    disabled={cleaningTargetIds.has(target.id)}
+                    onClick={() => moveToTrash(target.id)}
+                  >
+                    {cleaningTargetIds.has(target.id) ? "Moving..." : "Move to trash"}
                   </button>
                 </div>
               </article>

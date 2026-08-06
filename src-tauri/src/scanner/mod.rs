@@ -26,7 +26,7 @@ pub trait Scanner: Send + Sync {
             return None;
         }
 
-        let size = crate::filesystem::size::calculate_dir_size(dir_path);
+        let size = crate::filesystem::size::calculate_dir_size_report(dir_path);
         let metadata = std::fs::metadata(dir_path).ok();
         let last_modified = metadata
             .and_then(|m| m.modified().ok())
@@ -35,7 +35,8 @@ pub trait Scanner: Send + Sync {
         Some(ScanTarget::new(
             dir_path.to_path_buf(),
             self.category(),
-            size,
+            size.bytes,
+            size.errors > 0,
             last_modified,
         ))
     }

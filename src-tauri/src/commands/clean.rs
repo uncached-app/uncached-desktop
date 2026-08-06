@@ -8,7 +8,7 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     let target_id = request.target_id.clone();
     let mode = request.mode;
     let confirmation = request.confirmation.clone();
-    let registered = ScanService::take_target(&target_id).map_err(|error| error.to_string())?;
+    let registered = ScanService::claim_target(&target_id).map_err(|error| error.to_string())?;
     let _ = app.emit(
         "clean:started",
         serde_json::json!({ "targetId": target_id, "mode": mode }),
@@ -18,10 +18,14 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
         CleanService::clean_registered_target(registered, mode, confirmation)
     })
     .await
-    .map_err(|error| error.to_string())?;
+    .map_err(|error| {
+        ScanService::release_target(&target_id);
+        error.to_string()
+    })?;
 
     match result {
         Ok(clean_result) => {
+            let _ = ScanService::remove_target(&target_id);
             let _ = app.emit(
                 "clean:success",
                 serde_json::json!({ "targetId": target_id, "result": clean_result }),
@@ -29,6 +33,7 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
             Ok(clean_result)
         }
         Err(error) => {
+            ScanService::release_target(&target_id);
             let _ = app.emit(
                 "clean:failed",
                 serde_json::json!({ "targetId": target_id, "message": error.to_string() }),

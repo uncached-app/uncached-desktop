@@ -43,8 +43,10 @@ button:disabled { cursor: wait; opacity: .5; }
 .target-path { max-width: 650px; margin-bottom: 0; overflow: hidden; color: #737e73; font-family: ui-monospace, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .target-action { display: flex; flex-shrink: 0; align-items: end; flex-direction: column; justify-content: space-between; gap: 16px; }
 .target-action strong { color: #d9e7c5; font-size: 18px; }
+.size-warning { display: block; margin-top: 4px; color: #d9aa72; font-size: 10px; font-weight: 500; }
 .target-action button { border-color: #53604e; color: #cfdbca; background: transparent; font-size: 12px; }
 .target-action button:hover { border-color: #b9d98d; color: #101311; background: #b9d98d; }
+.target-action button:disabled { cursor: wait; }
 
 @media (max-width: 640px) {
   .app-shell { width: min(100% - 28px, 1080px); padding-top: 40px; }

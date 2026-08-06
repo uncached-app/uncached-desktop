@@ -23,7 +23,7 @@ impl CleanService {
             ));
         }
 
-        let freed_bytes = match mode {
+        let clean_report = match mode {
             CleanMode::Trash => {
                 let cleaner = TrashCleaner;
                 cleaner.clean(&target_path)?
@@ -37,7 +37,8 @@ impl CleanService {
         Ok(CleanResult {
             success: true,
             target_path: target_path.to_string_lossy().to_string(),
-            freed_bytes,
+            freed_bytes: clean_report.freed_bytes,
+            size_has_errors: clean_report.size_has_errors,
             mode_used: mode,
             message: None,
         })

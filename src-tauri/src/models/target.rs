@@ -11,6 +11,7 @@ pub struct ScanTarget {
     pub name: String,
     pub category: Category,
     pub size_bytes: u64,
+    pub size_has_errors: bool,
     pub formatted_size: String,
     pub last_modified: Option<DateTime<Utc>>,
 }
@@ -20,6 +21,7 @@ impl ScanTarget {
         path: PathBuf,
         category: Category,
         size_bytes: u64,
+        size_has_errors: bool,
         last_modified: Option<DateTime<Utc>>,
     ) -> Self {
         let name = path
@@ -36,6 +38,7 @@ impl ScanTarget {
             name,
             category,
             size_bytes,
+            size_has_errors,
             formatted_size,
             last_modified,
         }

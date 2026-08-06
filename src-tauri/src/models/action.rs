@@ -20,13 +20,14 @@ pub struct CleanResult {
     pub success: bool,
     pub target_path: String,
     pub freed_bytes: u64,
+    pub size_has_errors: bool,
     pub mode_used: CleanMode,
     pub message: Option<String>,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{CleanMode, CleanRequest};
+    use super::{CleanMode, CleanRequest, CleanResult};
 
     #[test]
     fn serializes_clean_request_with_camel_case_fields() {
@@ -39,5 +40,21 @@ mod tests {
         let value = serde_json::to_value(request).unwrap();
         assert_eq!(value["targetId"], "target-1");
         assert!(value.get("target_id").is_none());
+    }
+
+    #[test]
+    fn serializes_partial_size_flag_with_camel_case() {
+        let result = CleanResult {
+            success: true,
+            target_path: "C:\\workspace\\target".to_string(),
+            freed_bytes: 7,
+            size_has_errors: true,
+            mode_used: CleanMode::Trash,
+            message: None,
+        };
+
+        let value = serde_json::to_value(result).unwrap();
+        assert_eq!(value["sizeHasErrors"], true);
+        assert!(value.get("size_has_errors").is_none());
     }
 }
