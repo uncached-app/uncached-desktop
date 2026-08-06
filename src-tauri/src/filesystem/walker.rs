@@ -34,6 +34,10 @@ impl DiskWalker {
                             if child.file_type().is_dir() {
                                 let path = child.path();
                                 let name = child.file_name().to_string_lossy();
+                                if is_protected_directory(&name) {
+                                    child.read_children_path = None;
+                                    continue;
+                                }
                                 if callback.lock().unwrap()(&path, &name) {
                                     child.read_children_path = None;
                                 }
@@ -65,6 +69,11 @@ impl DiskWalker {
     }
 }
 
+fn is_protected_directory(name: &str) -> bool {
+    name.eq_ignore_ascii_case("$RECYCLE.BIN")
+        || name.eq_ignore_ascii_case("System Volume Information")
+}
+
 #[cfg(test)]
 mod tests {
     use super::DiskWalker;
@@ -73,7 +82,11 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     fn temp_root() -> PathBuf {
-        let root = std::env::temp_dir().join(format!("nuke-modules-walker-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!(
+            "uncached-walker-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
         fs::create_dir_all(&root).unwrap();
         root
     }
@@ -105,8 +118,35 @@ mod tests {
     #[test]
     fn returns_error_for_missing_root() {
         let root =
-            std::env::temp_dir().join(format!("nuke-modules-missing-root-{}", std::process::id()));
+            std::env::temp_dir().join(format!("uncached-missing-root-{}", std::process::id()));
         let result = DiskWalker::walk_directories(&root, |_path, _name| false);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn prunes_windows_protected_directories() {
+        let root = temp_root();
+        let recycle_child = root.join("$RECYCLE.BIN").join("deleted-project");
+        let volume_child = root
+            .join("System Volume Information")
+            .join("protected-project");
+        fs::create_dir_all(recycle_child.join("node_modules")).unwrap();
+        fs::create_dir_all(volume_child.join("node_modules")).unwrap();
+
+        let visited = Arc::new(Mutex::new(Vec::new()));
+        let visited_for_callback = Arc::clone(&visited);
+        DiskWalker::walk_directories(&root, move |path, _name| {
+            visited_for_callback
+                .lock()
+                .unwrap()
+                .push(path.to_path_buf());
+            false
+        })
+        .unwrap();
+
+        let visited = visited.lock().unwrap();
+        assert!(!visited.contains(&recycle_child));
+        assert!(!visited.contains(&volume_child));
+        fs::remove_dir_all(root).unwrap();
     }
 }

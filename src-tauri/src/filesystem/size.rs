@@ -60,7 +60,7 @@ mod tests {
     #[test]
     fn reports_error_for_missing_directory() {
         let path =
-            std::env::temp_dir().join(format!("nuke-modules-size-missing-{}", std::process::id()));
+            std::env::temp_dir().join(format!("uncached-size-missing-{}", std::process::id()));
         let report = super::calculate_dir_size_report(&path);
 
         assert!(report.errors > 0);

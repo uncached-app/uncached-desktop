@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "nuke-modules",
+  "productName": "Uncached",
   "version": "0.1.0",
-  "identifier": "com.nuke-modules",
+  "identifier": "app.uncached.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "nuke-modules",
+        "title": "Uncached",
         "width": 800,
         "height": 600
       }

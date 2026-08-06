@@ -27,6 +27,17 @@ pub trait Scanner: Send + Sync {
         }
 
         let size = crate::filesystem::size::calculate_dir_size_report(dir_path);
+        let category = self.category();
+        crate::logging::info(
+            "size",
+            &format!(
+                "targetPath=\"{}\" category=\"{}\" bytes={} errors={}",
+                dir_path.display(),
+                category,
+                size.bytes,
+                size.errors
+            ),
+        );
         let metadata = std::fs::metadata(dir_path).ok();
         let last_modified = metadata
             .and_then(|m| m.modified().ok())
@@ -34,7 +45,7 @@ pub trait Scanner: Send + Sync {
 
         Some(ScanTarget::new(
             dir_path.to_path_buf(),
-            self.category(),
+            category,
             size.bytes,
             size.errors > 0,
             last_modified,
@@ -42,7 +53,7 @@ pub trait Scanner: Send + Sync {
     }
 }
 
-/// Returns all default scanners registered in Nuke Modules.
+/// Returns all default scanners registered in Uncached.
 pub fn get_default_scanners() -> Vec<Box<dyn Scanner>> {
     vec![
         Box::new(node_modules::NodeModulesScanner),

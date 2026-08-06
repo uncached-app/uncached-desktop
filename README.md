@@ -1,6 +1,7 @@
-# Nuke Modules
+# Uncached
 
 Desktop cleaner para artefatos descartáveis de projetos, construído com Tauri 2, Rust e React.
+Saiba mais em [uncached.app](https://uncached.app).
 
 ## Status
 

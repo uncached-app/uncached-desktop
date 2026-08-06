@@ -9,6 +9,10 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     let mode = request.mode;
     let confirmation = request.confirmation.clone();
     let registered = ScanService::claim_target(&target_id).map_err(|error| error.to_string())?;
+    crate::logging::info(
+        "clean",
+        &format!("started targetId=\"{}\" mode=\"{:?}\"", target_id, mode),
+    );
     let _ = app.emit(
         "clean:started",
         serde_json::json!({ "targetId": target_id, "mode": mode }),
@@ -26,6 +30,13 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     match result {
         Ok(clean_result) => {
             let _ = ScanService::remove_target(&target_id);
+            crate::logging::info(
+                "clean",
+                &format!(
+                    "success targetId=\"{}\" bytes={} sizeHasErrors={}",
+                    target_id, clean_result.freed_bytes, clean_result.size_has_errors
+                ),
+            );
             let _ = app.emit(
                 "clean:success",
                 serde_json::json!({ "targetId": target_id, "result": clean_result }),
@@ -34,6 +45,10 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
         }
         Err(error) => {
             ScanService::release_target(&target_id);
+            crate::logging::error(
+                "clean",
+                &format!("failed targetId=\"{}\" error=\"{}\"", target_id, error),
+            );
             let _ = app.emit(
                 "clean:failed",
                 serde_json::json!({ "targetId": target_id, "message": error.to_string() }),

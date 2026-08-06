@@ -1,7 +1,18 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import "./App.css";
+import { open } from "@tauri-apps/plugin-dialog";
+import {
+  AlertTriangle,
+  Ban,
+  Check,
+  FolderOpen,
+  FolderSearch,
+  LoaderCircle,
+  ScanSearch,
+  Trash2,
+  X,
+} from "lucide-react";
 
 type Category = string;
 
@@ -99,6 +110,12 @@ function App() {
 
   useEffect(() => {
     let disposed = false;
+
+    if (!isTauri()) {
+      setError("Tauri runtime unavailable. Start the app with `pnpm tauri dev`.");
+      return;
+    }
+
     const listeners = Promise.all([
       listen<ScanStarted>("scan:started", ({ payload }) => {
         if (acceptsScanEvent(payload.scanId)) setStatus("Scanning workspace...");
@@ -165,6 +182,21 @@ function App() {
     }
   }
 
+  async function pickFolder() {
+    setError(null);
+    if (!isTauri()) {
+      setError("Tauri runtime unavailable. Start the app with `pnpm tauri dev`.");
+      return;
+    }
+
+    try {
+      const selected = await open({ directory: true, multiple: false });
+      if (typeof selected === "string") setRootPath(selected);
+    } catch (pickerError) {
+      setError(String(pickerError));
+    }
+  }
+
   async function cancelScan() {
     const scanId = activeScanId.current;
     if (!scanId || !scanning || cancelling) return;
@@ -218,97 +250,136 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <header className="hero">
-        <p className="eyebrow">NUKE MODULES / WORKSPACE CLEANER</p>
-        <h1>Recover space without guessing.</h1>
-        <p className="lede">
-          Scan project trees for disposable build artifacts. Every cleanup is
-          authorized by the Rust backend.
-        </p>
-      </header>
-
-      <form className="scan-form" onSubmit={startScan}>
-        <label htmlFor="root-path">Workspace root</label>
-        <div className="form-row">
-          <input
-            id="root-path"
-            value={rootPath}
-            onChange={(event) => setRootPath(event.currentTarget.value)}
-            placeholder="C:\\Users\\you\\Projects"
-            spellCheck={false}
-          />
-          <button type="submit" disabled={!listenersReady || scanning || !rootPath.trim()}>
-            {scanning ? "Scanning" : "Scan workspace"}
-          </button>
-          {scanning && (
-            <button
-              type="button"
-              className="cancel-button"
-              disabled={cancelling}
-              onClick={cancelScan}
-            >
-              {cancelling ? "Cancelling..." : "Cancel scan"}
-            </button>
-          )}
-        </div>
-      </form>
-
-      <section className="status-bar" aria-live="polite">
-        <span className={scanning ? "pulse status-dot" : "status-dot"} />
-        <span>{status}</span>
-        {progress && (
-          <span className="status-detail">
-            {progress.directoriesScanned.toLocaleString()} directories / {progress.targetsFound} targets
+    <main className="min-h-screen overflow-hidden bg-forest-950 text-mist-100">
+      <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-8 lg:px-12">
+        <header className="flex items-center justify-between border-b border-white/8 pb-5">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-xl border border-sage-400/30 bg-sage-400/10 text-sage-300">
+              <FolderOpen size={18} strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold tracking-[0.12em] text-mist-100">UNCACHED</p>
+              <p className="text-xs text-mist-500">A calmer way to reclaim space</p>
+            </div>
+          </div>
+          <span className="hidden rounded-full border border-white/8 px-3 py-1 text-xs text-mist-500 sm:inline-flex">
+            Local & private
           </span>
-        )}
-      </section>
+        </header>
 
-      {error && <p className="error-message">{error}</p>}
+        <section className="grid gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-20 lg:py-24">
+          <div className="max-w-xl">
+            <p className="mb-5 text-xs font-medium uppercase tracking-[0.22em] text-sage-400">Workspace care</p>
+            <h1 className="max-w-lg text-5xl font-semibold leading-[0.96] tracking-[-0.06em] text-mist-100 sm:text-6xl">
+              Make room for what matters.
+            </h1>
+            <p className="mt-6 max-w-md text-base leading-7 text-mist-500 sm:text-lg">
+              Find disposable project artifacts, review what is safe, and reclaim space without guessing.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-5 text-sm text-mist-500">
+              <span className="inline-flex items-center gap-2"><Check size={16} className="text-sage-400" /> Rust-validated cleanup</span>
+              <span className="inline-flex items-center gap-2"><Check size={16} className="text-sage-400" /> No cloud uploads</span>
+            </div>
+          </div>
 
-      <section className="results" aria-label="Scan targets">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">FINDINGS</p>
-            <h2>Disposable artifacts</h2>
-          </div>
-          <span className="count-badge">{targets.length}</span>
-        </div>
+          <form onSubmit={startScan} className="rounded-3xl border border-white/10 bg-forest-900/80 p-5 shadow-2xl shadow-black/20 sm:p-7">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-mist-100">Choose a workspace</p>
+                <p className="mt-1 text-sm leading-6 text-mist-500">Pick a folder or paste its path below.</p>
+              </div>
+              <FolderSearch size={21} className="shrink-0 text-sage-400" strokeWidth={1.7} aria-hidden="true" />
+            </div>
 
-        {targets.length === 0 ? (
-          <div className="empty-state">
-            <strong>No targets found yet.</strong>
-            <span>Start a scan to inspect project caches and build output.</span>
+            <label htmlFor="root-path" className="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-mist-500">Workspace root</label>
+            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-forest-950/70 p-2 transition-colors focus-within:border-sage-400/70 focus-within:ring-4 focus-within:ring-sage-400/10">
+              <FolderOpen size={18} className="ml-2 shrink-0 text-mist-500" strokeWidth={1.8} aria-hidden="true" />
+              <input
+                id="root-path"
+                className="min-w-0 flex-1 bg-transparent px-2 py-3 text-sm text-mist-100 outline-none placeholder:text-mist-500/60"
+                value={rootPath}
+                onChange={(event) => setRootPath(event.currentTarget.value)}
+                placeholder="D:\\Projects"
+                spellCheck={false}
+              />
+              <button type="button" onClick={pickFolder} className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-sm font-medium text-mist-300 hover:border-sage-400/50 hover:bg-sage-400/10 hover:text-sage-300" aria-label="Browse for a folder">
+                <FolderOpen size={16} strokeWidth={1.8} aria-hidden="true" />
+                <span className="hidden sm:inline">Browse</span>
+              </button>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <button type="submit" disabled={!listenersReady || scanning || !rootPath.trim()} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 hover:bg-sage-300 disabled:cursor-wait disabled:opacity-50">
+                {scanning ? <LoaderCircle size={17} className="animate-spin" aria-hidden="true" /> : <ScanSearch size={17} aria-hidden="true" />}
+                {scanning ? "Scanning" : "Scan workspace"}
+              </button>
+              {scanning && (
+                <button type="button" disabled={cancelling} onClick={cancelScan} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-coral-300/30 px-5 text-sm font-medium text-coral-300 hover:bg-coral-300/10 disabled:cursor-wait disabled:opacity-50">
+                  <Ban size={17} aria-hidden="true" />
+                  {cancelling ? "Cancelling..." : "Cancel scan"}
+                </button>
+              )}
+            </div>
+
+            <div className="mt-5 flex min-h-6 items-center gap-2 text-sm text-mist-500" aria-live="polite">
+              {scanning ? <LoaderCircle size={15} className="animate-spin text-sage-400" aria-hidden="true" /> : status === "Scan cancelled" ? <Ban size={15} className="text-mist-500" aria-hidden="true" /> : <span className="size-2 rounded-full bg-sage-400/70" aria-hidden="true" />}
+              <span>{status}</span>
+              {progress && <span className="ml-auto font-mono text-xs text-mist-500">{progress.directoriesScanned.toLocaleString()} dirs · {progress.targetsFound} targets</span>}
+            </div>
+          </form>
+        </section>
+
+        {error && <div className="mb-8 flex items-start gap-3 rounded-2xl border border-coral-300/25 bg-coral-300/8 p-4 text-sm text-coral-300" role="alert"><AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" /><span>{error}</span></div>}
+
+        <section aria-label="Scan targets" className="border-t border-white/8 py-10 sm:py-14">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-sage-400">Findings</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-mist-100 sm:text-3xl">Disposable artifacts</h2>
+            </div>
+            <span className="grid size-10 place-items-center rounded-full border border-sage-400/25 bg-sage-400/8 font-mono text-sm text-sage-300">{targets.length}</span>
           </div>
-        ) : (
-          <div className="target-list">
-            {targets.map((target) => (
-              <article className="target-card" key={target.id}>
-                <div>
-                  <p className="target-category">{target.category}</p>
-                  <h3>{target.name}</h3>
-                  <p className="target-path">{target.path}</p>
-                </div>
-                <div className="target-action">
-                  <strong>
-                    {target.formattedSize}
-                    {target.sizeHasErrors && (
-                      <small className="size-warning">Size may be incomplete</small>
-                    )}
-                  </strong>
-                  <button
-                    type="button"
-                    disabled={cleaningTargetIds.has(target.id)}
-                    onClick={() => moveToTrash(target.id)}
-                  >
-                    {cleaningTargetIds.has(target.id) ? "Moving..." : "Move to trash"}
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+
+          {targets.length === 0 ? (
+            <div className="grid min-h-52 place-items-center rounded-3xl border border-dashed border-white/12 bg-forest-900/30 px-6 py-10 text-center">
+              <div>
+                <FolderSearch size={30} className="mx-auto text-mist-500" strokeWidth={1.5} aria-hidden="true" />
+                <p className="mt-4 text-sm font-medium text-mist-300">Nothing to clear yet.</p>
+                <p className="mt-1 text-sm text-mist-500">Choose a workspace above to inspect disposable artifacts.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {targets.map((target) => (
+                <article className="group grid gap-5 rounded-2xl border border-white/8 bg-forest-900/55 p-5 transition-colors hover:border-sage-400/25 sm:grid-cols-[1fr_auto] sm:items-center" key={target.id}>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-xs font-medium uppercase tracking-[0.14em] text-sage-400">{target.category}</span>
+                      <span className="text-xs text-mist-500">{target.name}</span>
+                    </div>
+                    <p className="mt-3 break-all font-mono text-xs leading-5 text-mist-500">{target.path}</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-5 sm:justify-end">
+                    <div className="text-right">
+                      <strong className="block text-lg font-semibold text-mist-100">{target.formattedSize}</strong>
+                      {target.sizeHasErrors && <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-amber-300"><AlertTriangle size={12} aria-hidden="true" /> Size may be incomplete</span>}
+                    </div>
+                    <button type="button" disabled={cleaningTargetIds.has(target.id)} onClick={() => moveToTrash(target.id)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-sm font-medium text-mist-300 hover:border-sage-400/50 hover:bg-sage-400/10 hover:text-sage-300 disabled:cursor-wait disabled:opacity-50" aria-label={`Move ${target.name} to trash`}>
+                      <Trash2 size={16} aria-hidden="true" />
+                      <span className="hidden sm:inline">{cleaningTargetIds.has(target.id) ? "Moving..." : "Move to trash"}</span>
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <footer className="flex items-center justify-between border-t border-white/8 py-6 text-xs text-mist-500">
+          <span>Local by design.</span>
+          <span className="inline-flex items-center gap-1.5"><X size={12} aria-hidden="true" /> No guessing</span>
+        </footer>
+      </div>
     </main>
   );
 }

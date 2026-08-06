@@ -1,0 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-forest-950: #101311;
+  --color-forest-900: #151b17;
+  --color-forest-850: #1a211c;
+  --color-forest-800: #222b24;
+  --color-sage-300: #d1eca9;
+  --color-sage-400: #b9d98d;
+  --color-sage-500: #a8c982;
+  --color-mist-100: #edf0eb;
+  --color-mist-300: #c7d0c1;
+  --color-mist-500: #8e998e;
+  --color-coral-300: #ffc2b5;
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: var(--color-mist-100);
+  background: var(--color-forest-950);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 82% 4%, rgba(168, 201, 130, 0.1), transparent 24rem),
+    var(--color-forest-950);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

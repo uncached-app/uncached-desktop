@@ -107,7 +107,7 @@ mod tests {
 
     fn temp_root() -> PathBuf {
         let root = std::env::temp_dir().join(format!(
-            "nuke-modules-paths-{}-{:?}",
+            "uncached-paths-{}-{:?}",
             std::process::id(),
             std::thread::current().id()
         ));

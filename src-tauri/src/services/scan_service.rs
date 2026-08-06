@@ -87,6 +87,10 @@ impl ScanService {
         );
         let result_scan_id = scan_id.clone();
         let worker_scan_id = scan_id.clone();
+        crate::logging::info(
+            "scan",
+            &format!("start scanId=\"{}\" root=\"{}\"", scan_id, root.display()),
+        );
         let session = ScanSession::new();
         let cancel_token = Arc::clone(&session.cancel_token);
         registry()
@@ -162,6 +166,16 @@ impl ScanService {
                                     "target": target
                                 }),
                             );
+                            crate::logging::info(
+                                "scan",
+                                &format!(
+                                    "target scanId=\"{}\" path=\"{}\" bytes={} errors={}",
+                                    callback_event_scan_id,
+                                    target.path.display(),
+                                    target.size_bytes,
+                                    target.size_has_errors as u8
+                                ),
+                            );
                             return true;
                         }
                     }
@@ -179,6 +193,7 @@ impl ScanService {
             });
 
             if cancel_token.load(Ordering::Acquire) {
+                crate::logging::info("scan", &format!("cancelled scanId=\"{}\"", worker_scan_id));
                 let _ = app_handle.emit(
                     "scan:cancelled",
                     serde_json::json!({
@@ -191,6 +206,10 @@ impl ScanService {
             }
 
             if let Err(error) = walk_result {
+                crate::logging::warn(
+                    "walker",
+                    &format!("scanId=\"{}\" error=\"{}\"", worker_scan_id, error),
+                );
                 if !ScanService::end_session(&worker_scan_id) {
                     if cancel_token.load(Ordering::Acquire) {
                         let _ = app_handle.emit(
@@ -228,6 +247,17 @@ impl ScanService {
                 return;
             }
             let stats = stats.lock().unwrap();
+            crate::logging::info(
+                "scan",
+                &format!(
+                    "finished scanId=\"{}\" directories={} targets={} bytes={} durationMs={}",
+                    worker_scan_id,
+                    stats.directories_scanned,
+                    stats.targets_found,
+                    stats.total_bytes_found,
+                    started_at.elapsed().as_millis()
+                ),
+            );
             let _ = app_handle.emit(
                 "scan:finished",
                 serde_json::json!({

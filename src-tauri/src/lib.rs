@@ -2,6 +2,7 @@ pub mod cleaner;
 pub mod commands;
 pub mod errors;
 pub mod filesystem;
+pub mod logging;
 pub mod models;
 pub mod scanner;
 pub mod services;
@@ -15,6 +16,7 @@ use commands::settings::get_settings;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             cancel_scan,
             start_scan,
