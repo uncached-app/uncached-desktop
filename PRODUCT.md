@@ -39,12 +39,13 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - Targets are held in memory and become invalid when the application restarts.
 - Current desktop window is resizable, starts at 1080x800, and has an 800x600 minimum.
 - Default appearance is light. Dark and system-follow are opt-in from Settings § Appearance.
+- Cleanup completion may celebrate confirmed results with positive copy, reclaimed-byte emphasis, animation, and confetti. Active, failed, and cancelled states remain factual.
 
 ## Brand Commitments
 
 - Product name: Uncached.
 - Tagline: "Reclaim disk from build artifacts." Used in metadata, the About panel, and any header subtitle.
-- Voice: spec-terse and developer-facing. No metaphor, lifestyle framing, emotional reassurance, exclamation marks, or celebration — including in success and empty states.
+- Voice: spec-terse and developer-facing during operations. No metaphor, lifestyle framing, emotional reassurance, or exclamation marks near destructive actions. Confirmed success may use positive language and celebration.
 - Product term for a detected disposable directory is **target**, not "finding" or "item". The scanned root is the **workspace** — it names the first step, the primary action (`Scan workspace`), and the back affordance. Keep one term per concept across UI, docs, and metadata.
 - Preserve existing Uncached logo and icon assets in `public/brand`.
 - Preserve desktop-first Tauri architecture.
@@ -64,5 +65,6 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - Reclaim space without disrupting developer workflow.
 - Report, do not reassure: measurements and consequences instead of comfort.
 - Never invent progress, sizes, or outcomes the backend has not reported.
+- Celebrate only cleanup outcomes confirmed by the backend.
 - Name the phase the backend is actually in, including the ones between the obvious steps.
 - Offer a control only while its operation exists; never dress a dead control as status.

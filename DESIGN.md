@@ -100,7 +100,7 @@ components:
 
 Uncached is a quiet surface running a destructive operation. The visual system is calm on purpose: a dark evergreen canvas, layered tonal surfaces, and pale sage for safe forward motion give scanning, review, and confirmation room to be read without turning cleanup into a spectacle.
 
-**The calm is visual only.** Surfaces, spacing, color, and motion are restrained; the language is not soft. Copy is written for developers who already know what `node_modules` is and want counts, paths, byte sizes, and consequences — not encouragement. See **Voice & Copy** below; that section governs every string, and no visual rule here licenses warmth in text.
+**The calm is visual only during the operation.** Surfaces, spacing, and motion stay restrained while scanning and deletion are in progress. A confirmed result may become visibly rewarding: reclaimed bytes, processed targets, positive language, and a short celebration give the operation a satisfying endpoint. Copy during the operation remains written for developers who already know what `node_modules` is and want counts, paths, byte sizes, and consequences.
 
 Technical information such as paths, categories, and sizes uses a distinct monospace voice; explanation stays humanist and readable, but never chatty. Tonal surfaces do most of the structural work, with color reserved for meaningful state.
 
@@ -197,7 +197,7 @@ Coral in particular is a promise that something can be cancelled or destroyed. A
 ¹ `Nuke` is the literal confirmation token required by the backend for permanent deletion. It is a typed value, never prose.
 
 ### Named Rules
-**The No-Comfort Rule.** Calm belongs to the surface, never to the sentence. If a string reads as if it is managing the user's feelings, rewrite it as a measurement or a consequence.
+**The Confirmed-Result Rule.** Calm and factual language govern active, destructive, failed, and cancelled states. Once cleanup succeeds, the interface may celebrate the confirmed result with positive language, reclaimed-byte emphasis, motion, and confetti. Never celebrate an estimate, a failure, or a cancelled operation.
 
 ## Layout
 
@@ -269,4 +269,4 @@ Target cards pair a selectable checkbox, a small monospace category chip, a trun
 - **Don't** turn technical metadata into decorative typography.
 - **Don't** replace the Uncached logo assets with improvised marks.
 - **Don't** let the quiet visual world leak into the writing as warmth, metaphor, or reassurance.
-- **Don't** celebrate. Completion states report what was removed and what was reclaimed.
+- **Do** celebrate confirmed completion. Completion states report what was removed and what was reclaimed, then give that result visual emphasis.

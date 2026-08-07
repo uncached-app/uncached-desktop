@@ -22,11 +22,11 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }:
   const noun = cleanupSummary.removed === 1 ? "target" : "targets";
   const copy = cleanupMode === "Permanent"
     ? {
-        result: `${cleanupSummary.removed} ${noun} deleted from disk.`,
+        result: `You reclaimed ${formatBytes(cleanupSummary.freedBytes)} from ${cleanupSummary.removed} ${noun}.`,
         recovery: "Not recoverable. Rebuild the artifacts to restore them.",
       }
     : {
-        result: `${cleanupSummary.removed} ${noun} moved to the Recycle Bin.`,
+        result: `You reclaimed ${formatBytes(cleanupSummary.freedBytes)} from ${cleanupSummary.removed} ${noun}.`,
         recovery: "Restore from the Recycle Bin if a build needs them.",
       };
 
@@ -86,7 +86,7 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }:
             tabIndex={-1}
             className="mt-6 text-4xl font-semibold tracking-tighter text-mist-100 outline-none focus-visible:ring-2 focus-visible:ring-sage-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-forest-950"
           >
-            Cleanup complete
+            Workspace reclaimed
           </h1>
           <p aria-live="polite" className="mt-3 max-w-sm text-sm leading-6 text-mist-500">
             {copy.result}

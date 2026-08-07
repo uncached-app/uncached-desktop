@@ -1,6 +1,8 @@
 # Uncached Pro: Monetization & Security Architecture Blueprint
 
-This document outlines the product strategy, technical security architecture, feature differentiation, and implementation roadmap for monetizing **Uncached**.
+This document outlines the future product strategy, technical security architecture, feature differentiation, and implementation roadmap for monetizing **Uncached**.
+
+**Current state:** Uncached is in private early access with the free tier only. There is no public download, checkout, license activation, or Pro feature availability yet. Prices below are planning values and must not appear as current offers until the merchant and licensing implementation are complete.
 
 ---
 

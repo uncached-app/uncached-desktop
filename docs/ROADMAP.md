@@ -1,5 +1,7 @@
 # Roadmap
 
+Current release state: private early access for the free tier. Public download and Pro monetization follow completed product and licensing work.
+
 ## Phase 1: Core seguro
 
 - [x] Traits `Scanner` e `Cleaner`
