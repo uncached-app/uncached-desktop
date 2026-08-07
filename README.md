@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>A calmer, faster way to reclaim disk space from heavy project build artifacts.</strong>
+  <strong>Reclaim disk from build artifacts.</strong>
 </p>
 
 <p align="center">
@@ -18,9 +18,9 @@
 
 ## ⚡ Overview
 
-**Uncached** is a lightweight, cross-platform desktop application designed to find and safely clear disposable build artifacts (`node_modules`, Cargo `target/`, Gradle caches, `.next`, `.venv`, etc.) that silently consume tens of gigabytes across your developer workspace.
+**Uncached** is a lightweight, cross-platform desktop application that finds and safely clears the dependency, build, and cache directories your toolchains can regenerate — the ones that silently consume tens of gigabytes across a developer workspace. See [Supported Ecosystems](#-supported-ecosystems--targets) for current coverage.
 
-Built with **Rust** for native filesystem scanning speed and **React + Tauri v2** for a cozy, minimal, zero-bloat user experience.
+Built with **Rust** for native filesystem scanning speed and **React + Tauri v2** for a minimal, zero-bloat desktop shell.
 
 ---
 
@@ -28,8 +28,8 @@ Built with **Rust** for native filesystem scanning speed and **React + Tauri v2*
 
 - 🚀 **Blazing Fast Scanning**: Powered by a multi-threaded Rust backend capable of traversing tens of thousands of directories in seconds.
 - 🛡️ **Safety-First Deletion**: Strict path validation prevents accidental deletion of source code or arbitrary system files.
-- ♻️ **Recycle Bin Integration**: Moves items safely to system Recycle Bin by default instead of permanent deletion.
-- 🎨 **Cozy & Minimalist UI**: Crafted with a calm dark aesthetic, grain noise textures, Geist Mono typography, and micro-interactions.
+- ♻️ **Recycle Bin Integration**: Moves targets to the system Recycle Bin by default instead of deleting them.
+- 🎨 **Calm, Minimalist UI**: A quiet dark surface — grain texture, Geist Mono for filesystem data, restrained motion — paired with terse, developer-facing copy.
 - 🔒 **100% Private & Local**: Zero telemetry, zero analytics, zero cloud uploads. Your filesystem stays completely on your device.
 - 🎛️ **Granular Controls**: Select all or choose specific targets, review real-time size updates, and track total space reclaimed.
 
@@ -44,7 +44,9 @@ Built with **Rust** for native filesystem scanning speed and **React + Tauri v2*
 | **Android / Java** | `.gradle/` | Gradle build cache and wrapper dependencies | 🟢 Safe |
 | **Next.js** | `.next/` | Next.js build cache and static output | 🟢 Safe |
 | **Turborepo** | `.turbo/` | Turborepo build cache | 🟢 Safe |
-| **Python** | `.venv`, `venv` | Virtual environments | 🟢 Safe |
+| **Python** | `__pycache__`, `.pytest_cache`, `.mypy_cache` | Bytecode and test/type-check caches | 🟢 Safe |
+
+Every ecosystem above except Python has a toggle under **Settings › Scanning**. `.NET`, Docker, and Python virtual environments (`.venv`) exist as categories in the domain model but have no scanner implementation yet — see [`docs/SCANNERS.md`](docs/SCANNERS.md).
 
 ---
 
@@ -114,8 +116,8 @@ uncached/
 │   │   ├── workspace/            # Step 1: Workspace Selection Form
 │   │   ├── scan/                 # Step 2: Scanning Progress View
 │   │   ├── findings/             # Step 3: Review & Selection Grid
-│   │   ├── completion/           # Step 4: Cleanup Summary & Victory View
-│   │   ├── layout/               # Titlebar, Header, & Footer
+│   │   ├── completion/           # Step 4: Cleanup Summary
+│   │   ├── layout/               # Titlebar & Footer
 │   │   └── settings/             # Settings Modal & Preferences
 │   ├── hooks/                    # Custom React Hooks (useScanWorkspace, useSettings, useTheme)
 │   ├── types/                    # Strongly-typed IPC Event Payloads & Models

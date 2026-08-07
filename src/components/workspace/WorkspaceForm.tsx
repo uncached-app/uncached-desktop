@@ -38,6 +38,15 @@ export function WorkspaceForm({
 }: WorkspaceFormProps) {
   const reducedMotion = useReducedMotion();
 
+  const lastRun = cleanupSummary.removed > 0 ? cleanupSummary : lastCleanup;
+  const statusLine = scanning
+    ? status
+    : lastRun
+      ? `Last run: ${lastRun.removed} ${lastRun.removed === 1 ? "target" : "targets"} removed, ${formatBytes(lastRun.freedBytes)} reclaimed`
+      : status === "Scan cancelled"
+        ? status
+        : null;
+
   if (step !== 1) return null;
 
   return (
@@ -49,11 +58,11 @@ export function WorkspaceForm({
     >
       <div className="flex w-full max-w-3xl flex-col items-center">
         <h1 className="text-5xl font-semibold leading-[1.05] tracking-[-0.05em] text-mist-100">
-          Make room for what matters.
+          Reclaim disk from build artifacts.
         </h1>
 
-        <p className="mt-3 max-w-lg text-base leading-relaxed text-mist-500">
-          Choose a folder to find disposable project artifacts.
+        <p className="mt-3 max-w-xl text-base leading-relaxed text-mist-500">
+          Finds dependency, build, and cache directories your toolchains can regenerate.
         </p>
 
         <form onSubmit={startScan} className="mt-6 w-full max-w-2xl">
@@ -109,8 +118,8 @@ export function WorkspaceForm({
 
           <div className="mt-4 flex min-h-6 items-center justify-center gap-2 text-xs text-mist-500" aria-live="polite">
             {scanning && <LoaderCircle size={14} className="animate-spin text-sage-400" aria-hidden="true" />}
-            {status === "Scan cancelled" && <Ban size={14} className="text-coral-300" aria-hidden="true" />}
-            {scanning || status === "Scan cancelled" || cleanupSummary.removed > 0 || lastCleanup ? <span>{scanning ? status : cleanupSummary.removed > 0 ? `Cleanup history: ${cleanupSummary.removed} ${cleanupSummary.removed === 1 ? "item" : "items"} reclaimed ${formatBytes(cleanupSummary.freedBytes)}` : lastCleanup ? `Cleanup history: ${lastCleanup.removed} ${lastCleanup.removed === 1 ? "item" : "items"} reclaimed ${formatBytes(lastCleanup.freedBytes)}` : status}</span> : null}
+            {statusLine === "Scan cancelled" && <Ban size={14} className="text-coral-300" aria-hidden="true" />}
+            {statusLine && <span>{statusLine}</span>}
           </div>
         </form>
 

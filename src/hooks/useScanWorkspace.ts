@@ -88,7 +88,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     } else if (event.kind === "finished") {
       pendingScan.current = false;
       setScanning(false);
-      setStatus(`Scan complete in ${event.payload.durationMs} ms`);
+      setStatus(`Scan complete · ${event.payload.totalTargets} targets · ${event.payload.durationMs} ms`);
       setScanFinished(true);
       setScanTargetCount(event.payload.totalTargets);
     } else if (event.kind === "cancelled") {

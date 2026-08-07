@@ -43,6 +43,8 @@ export function FindingsSection({
   const permanent = cleanMode === "Permanent";
   const confirmationReady = !permanent || confirmation === "Nuke";
 
+  const selectedNoun = selectedTargets.length === 1 ? "target" : "targets";
+
   const totalBytesFound = readyTargets.reduce((sum, t) => sum + t.sizeBytes, 0);
   const selectedBytes = selectedTargets.reduce((sum, t) => sum + t.sizeBytes, 0);
 
@@ -110,7 +112,7 @@ export function FindingsSection({
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-semibold tracking-[-0.04em] text-mist-100 sm:text-3xl">
-                Review {targets.length} {targets.length === 1 ? "finding" : "findings"}
+                {targets.length} {targets.length === 1 ? "target" : "targets"}
               </h2>
               {readyTargets.length > 0 && (
                 <span className="rounded-md border border-sage-400 bg-forest-900 px-2.5 py-0.5 font-mono text-xs font-medium text-sage-300">
@@ -120,8 +122,8 @@ export function FindingsSection({
             </div>
             <p className="mt-1.5 text-sm text-mist-500">
                {permanent
-                 ? "Select items you want to permanently delete."
-                 : "Select items you want to move to the Recycle Bin."}
+                 ? "Selected targets are deleted permanently. Not recoverable."
+                 : "Selected targets move to the Recycle Bin. Restorable from there."}
             </p>
             <p
               className={`mt-1.5 text-xs font-medium transition-all duration-200 ${
@@ -130,7 +132,7 @@ export function FindingsSection({
               aria-live="polite"
             >
               {selectedTargets.length > 0
-                ? `${selectedTargets.length} selected (${formatBytes(selectedBytes)})`
+                ? `${selectedTargets.length} selected · ${formatBytes(selectedBytes)}`
                 : "Placeholder"}
             </p>
           </div>
@@ -176,10 +178,12 @@ export function FindingsSection({
           <div>
             <FolderSearch size={32} className="mx-auto text-mist-500" strokeWidth={1.5} aria-hidden="true" />
             <p className="mt-4 text-sm font-medium text-mist-300">
-              {scanning ? "Looking for disposable artifacts..." : "No disposable artifacts found."}
+              {scanning ? "Scan in progress." : "No reclaimable targets in this workspace."}
             </p>
             <p className="mt-1 text-sm text-mist-500">
-              {scanning ? "Targets will appear as the scan progresses." : "Go back to Workspace to scan another folder."}
+              {scanning
+                ? "Targets appear as they are found."
+                : "Adjust which caches are detected in Settings, under Scanning."}
             </p>
             {!scanning && (
               <button
@@ -232,16 +236,16 @@ export function FindingsSection({
                       {deleting ? <LoaderCircle size={18} className="animate-spin" aria-hidden="true" /> : <AlertTriangle size={18} aria-hidden="true" />}
                     </div>
                     <h2 id="delete-confirm-title" className="text-xl font-semibold text-mist-100">
-                      {deleting ? "Cleaning up" : "Confirm cleanup"}
+                      {deleting ? (permanent ? "Deleting" : "Moving to Recycle Bin") : permanent ? "Delete permanently" : "Move to Recycle Bin"}
                     </h2>
                     <p className="mt-2 text-sm leading-6 text-mist-500">
                        {deleting
                          ? permanent
-                           ? `Permanently deleting ${selectedTargets.length} ${selectedTargets.length === 1 ? "item" : "items"}...`
-                           : `Moving ${selectedTargets.length} ${selectedTargets.length === 1 ? "item" : "items"} to the Recycle Bin...`
+                           ? `Deleting ${selectedTargets.length} ${selectedNoun}...`
+                           : `Moving ${selectedTargets.length} ${selectedNoun}...`
                          : permanent
-                           ? `Permanently delete ${selectedTargets.length} selected ${selectedTargets.length === 1 ? "item" : "items"}?`
-                           : `Move ${selectedTargets.length} selected ${selectedTargets.length === 1 ? "item" : "items"} to the Recycle Bin?`}
+                           ? `${selectedTargets.length} ${selectedNoun} will be deleted from disk. Not recoverable.`
+                           : `${selectedTargets.length} ${selectedNoun} will be moved to the Recycle Bin. Restore from there if a build needs them.`}
                    </p>
                 </div>
                 <button
@@ -256,11 +260,11 @@ export function FindingsSection({
               </div>
                {!deleting && <>
                  <p className="mt-5 rounded-xl border border-forest-800 bg-forest-950 px-4 py-3 text-sm text-mist-300">
-                   Estimated space: <strong className="text-mist-100">{formatBytes(selectedBytes)}</strong>
+                   Reclaims <strong className="text-mist-100">{formatBytes(selectedBytes)}</strong> (estimated)
                  </p>
                  {permanent && (
                    <label className="mt-4 block text-left text-sm text-mist-300">
-                     Type <strong className="font-mono text-coral-200">Nuke</strong> to confirm permanent deletion.
+                     Type <strong className="font-mono text-coral-200">Nuke</strong> to confirm.
                      <input
                        value={confirmation}
                        onChange={(event) => setConfirmation(event.target.value)}
@@ -287,7 +291,7 @@ export function FindingsSection({
                    disabled={!confirmationReady || selectedTargets.length === 0}
                    className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:bg-coral-200 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
                  >
-                   {permanent ? "Permanently delete" : "Confirm delete"}
+                   {permanent ? "Delete permanently" : "Move to Recycle Bin"}
                 </button>
                 </>}
               </div>

@@ -1,7 +1,7 @@
 [package]
 name = "uncached"
 version = "0.1.0"
-description = "A Tauri App"
+description = "Reclaim disk from build artifacts."
 authors = ["you"]
 edition = "2021"
 

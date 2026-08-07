@@ -15,12 +15,13 @@
 - [x] Eventos incrementais de scan e limpeza
 - [x] Frontend mínimo para scan e Trash
 - [x] Cancelamento de scan
-- [ ] Persistência de configurações
-- [ ] UI de confirmação para Permanent Nuke
+- [x] Persistência de configurações
+- [x] UI de confirmação para Permanent Nuke
 
 ## Phase 3: Scanners e performance
 
-- [ ] Next.js, .NET, `.venv` e Docker
+- [x] Next.js e Turborepo
+- [ ] .NET, `.venv` e Docker
 - [ ] Melhorar cálculo de tamanho com erros parciais explícitos
 - [ ] Perfil de performance em árvores grandes
 - [ ] Estratégia segura de deleção paralela

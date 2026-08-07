@@ -46,7 +46,7 @@ function App() {
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-forest-950 text-mist-100">
       <Titlebar step={step} />
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
+      <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center w-full overflow-hidden">
           <WorkspaceForm
             step={step}

@@ -19,15 +19,15 @@ interface CompletionViewProps {
 export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }: CompletionViewProps) {
   const reducedMotion = useReducedMotion();
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const noun = cleanupSummary.removed === 1 ? "item" : "items";
+  const noun = cleanupSummary.removed === 1 ? "target" : "targets";
   const copy = cleanupMode === "Permanent"
     ? {
-        result: `${cleanupSummary.removed} ${noun} permanently deleted.`,
-        recovery: "This action cannot be undone.",
+        result: `${cleanupSummary.removed} ${noun} deleted from disk.`,
+        recovery: "Not recoverable. Rebuild the artifacts to restore them.",
       }
     : {
-        result: `${cleanupSummary.removed} ${noun} moved to your system Recycle Bin/Trash.`,
-        recovery: "You can restore them from the Recycle Bin/Trash if needed.",
+        result: `${cleanupSummary.removed} ${noun} moved to the Recycle Bin.`,
+        recovery: "Restore from the Recycle Bin if a build needs them.",
       };
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }:
             tabIndex={-1}
             className="mt-6 text-4xl font-semibold tracking-tighter text-mist-100 outline-none focus-visible:ring-2 focus-visible:ring-sage-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-forest-950"
           >
-            Cleanup complete.
+            Cleanup complete
           </h1>
           <p aria-live="polite" className="mt-3 max-w-sm text-sm leading-6 text-mist-500">
             {copy.result}
@@ -97,7 +97,7 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }:
 
           <div className="mt-8 flex gap-3">
             <div className="rounded-2xl border border-forest-800 bg-forest-900 px-5 py-4 text-left">
-              <span className="block text-xs uppercase tracking-[0.14em] text-mist-500">Removed</span>
+              <span className="block text-xs uppercase tracking-[0.14em] text-mist-500">Targets removed</span>
               <strong className="mt-1 block text-2xl text-mist-100">{cleanupSummary.removed}</strong>
             </div>
             <div className="rounded-2xl border border-forest-800 bg-forest-900 px-5 py-4 text-left">

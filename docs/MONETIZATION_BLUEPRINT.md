@@ -18,14 +18,14 @@ This document outlines the product strategy, technical security architecture, fe
    - Core manual scanning and basic cleanup (`node_modules`, Cargo `target/`, `.gradle/`).
 2. **Pro Monthly Subscription ($4.90 / month)**
    - Full access to all Pro features with cancel-anytime flexibility.
-3. **Pro Lifetime License ($29.90 one-time)**
+3. **Pro Lifetime License ($59.90 one-time)**
    - Permanent license key for all Pro features and lifetime access.
 
 ---
 
 ## 📊 Feature Matrix (Free vs. Pro)
 
-| Feature | Free Tier ($0) | Pro Tier ($4.90/mo or $29.90) |
+| Feature | Free Tier ($0) | Pro Tier ($4.90/mo or $59.90) |
 | :--- | :---: | :---: |
 | **Standard Target Scans** (`node_modules`, `target/`, `.gradle/`) | ✅ | ✅ |
 | **Manual One-Click Cleanup** | ✅ | ✅ |
@@ -91,7 +91,7 @@ To prevent unauthorized cracking, **all feature gating and license validation lo
 - [ ] Register LemonSqueezy merchant account.
 - [ ] Create **Uncached Pro** product with 2 variants:
   - Variant 1: Subscription ($4.90/month)
-  - Variant 2: Lifetime License ($29.90 one-time)
+  - Variant 2: Lifetime License ($59.90 one-time)
 - [ ] Configure Webhooks and License Key generation rules.
 
 ### Phase 2: Rust Licensing Engine (`src-tauri/src/licensing/`)
@@ -108,7 +108,7 @@ To prevent unauthorized cracking, **all feature gating and license validation lo
 - [ ] Implement background daemon scheduler for automated cleanups.
 
 ### Phase 4: Frontend UI Integration (React)
-- [ ] Build "Upgrade to Pro" modal with pricing cards ($4.90/mo vs $29.90 lifetime).
+- [ ] Build "Upgrade to Pro" modal with pricing cards ($4.90/mo vs $59.90 lifetime).
 - [ ] Add License Key input form with instant validation feedback.
 - [ ] Add Pro badges on advanced settings options.
 

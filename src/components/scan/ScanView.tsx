@@ -29,7 +29,7 @@ export function ScanView({
       animate={{ opacity: 1, scale: 1 }}
       exit={reducedMotion ? undefined : { opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      aria-label="Scanning workspace"
+      aria-label={scanning ? "Scanning workspace" : "Measuring targets"}
       className="flex h-full w-full flex-col items-center justify-center text-center px-4 py-8"
     >
       <div className="flex flex-col items-center max-w-md w-full">
@@ -38,13 +38,13 @@ export function ScanView({
         </div>
 
         <h2 className="text-3xl font-semibold tracking-[-0.04em] text-mist-100 sm:text-4xl">
-          {scanning ? "Scanning workspace" : "Almost done..."}
+          {scanning ? "Scanning workspace" : "Measuring targets"}
         </h2>
 
-        <p className="mt-3 text-sm leading-relaxed text-mist-500 max-w-xs">
+        <p className="mt-3 text-sm leading-relaxed text-mist-500 max-w-lg">
           {scanning
-            ? "Finding disposable artifacts."
-            : "Preparing findings for review."}
+            ? "Targets are measured as they are found."
+            : "Computing size on disk for each target."}
         </p>
 
         <div className="mt-8 flex min-h-16 items-center justify-center gap-12 px-4 py-3 text-center">
@@ -54,21 +54,25 @@ export function ScanView({
           </div>
           <div>
             <strong className="block font-mono text-2xl font-medium tracking-tight text-sage-300">{targets.length}</strong>
-            <span className="mt-1 block font-sans text-xs text-mist-500">findings found</span>
+            <span className="mt-1 block font-sans text-xs text-mist-500">
+              {targets.length === 1 ? "target found" : "targets found"}
+            </span>
           </div>
         </div>
 
-        {/* Minimalist Cancel Action */}
-        <div className="mt-8">
-          <button
-            type="button"
-            onClick={cancelScan}
-            disabled={!scanning || cancelling}
-            className="inline-flex items-center gap-2 rounded-xl bg-coral-300 px-4 py-2 text-xs font-semibold text-forest-950 transition-colors hover:bg-coral-200 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
-          >
-            <Ban size={14} aria-hidden="true" />
-            <span>{scanning ? (cancelling ? "Cancelling..." : "Cancel scan") : "Finishing..."}</span>
-          </button>
+        {/* Cancel is offered only while there is a scan to cancel. */}
+        <div className="mt-8 flex min-h-9 items-center">
+          {scanning && (
+            <button
+              type="button"
+              onClick={cancelScan}
+              disabled={cancelling}
+              className="inline-flex items-center gap-2 rounded-xl bg-coral-300 px-4 py-2 text-xs font-semibold text-forest-950 transition-colors hover:bg-coral-200 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
+            >
+              <Ban size={14} aria-hidden="true" />
+              <span>{cancelling ? "Cancelling..." : "Cancel scan"}</span>
+            </button>
+          )}
         </div>
       </div>
     </motion.section>

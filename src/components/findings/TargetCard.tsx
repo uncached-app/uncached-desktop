@@ -89,7 +89,7 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
                 onRefreshSize(target.id);
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-forest-800 px-2.5 py-1 text-xs font-medium text-amber-300 hover:bg-forest-850"
-              aria-label={`Retry size for ${target.name}`}
+              aria-label={`Size failed for ${target.name}. Retry measurement`}
             >
               <RefreshCw size={13} aria-hidden="true" /> Retry
             </button>
