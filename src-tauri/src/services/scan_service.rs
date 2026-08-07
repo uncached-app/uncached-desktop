@@ -160,6 +160,9 @@ impl ScanService {
                             || scanner.matches(dir_name)
                         {
                             if let Some(mut target) = scanner.create_target(dir_path) {
+                                if core_node_modules {
+                                    target.identity = entry.identity;
+                                }
                                 if callback_cancel_token.load(Ordering::Acquire) {
                                     return uncached_core::TraversalControl::Cancel;
                                 }

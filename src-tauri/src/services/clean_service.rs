@@ -30,7 +30,8 @@ impl CleanService {
                         registered.target.path.clone(),
                         uncached_core::Category::NodeModules,
                         registered.target.size_bytes,
-                    );
+                    )
+                    .with_identity(registered.target.identity);
                     let report = uncached_core::clean_to_trash(&registered.root_path, &target)
                         .map_err(map_core_error)?;
                     crate::cleaner::CleanReport {

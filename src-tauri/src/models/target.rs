@@ -15,6 +15,8 @@ pub struct ScanTarget {
     pub size_pending: bool,
     pub formatted_size: String,
     pub last_modified: Option<DateTime<Utc>>,
+    #[serde(skip)]
+    pub identity: Option<uncached_core::FileIdentity>,
 }
 
 impl ScanTarget {
@@ -43,6 +45,7 @@ impl ScanTarget {
             size_pending: false,
             formatted_size,
             last_modified,
+            identity: None,
         }
     }
 
