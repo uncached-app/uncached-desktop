@@ -1,3 +1,5 @@
+import type { CleanMode } from "./settings";
+
 export type Category = string;
 
 export type ScanTarget = {
@@ -17,6 +19,7 @@ export type Step = 1 | 2 | 3 | 4;
 export type CleanResult = {
   freedBytes: number;
   sizeHasErrors: boolean;
+  modeUsed: CleanMode;
 };
 
 export type ScanStartResult = {

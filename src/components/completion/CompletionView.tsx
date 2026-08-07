@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { Step } from "../../types/scan";
+import type { CleanMode } from "../../types/settings";
 import { formatBytes } from "../../utils/format";
 
 interface CompletionViewProps {
@@ -11,23 +12,38 @@ interface CompletionViewProps {
     removed: number;
     freedBytes: number;
   };
+  cleanupMode: CleanMode;
   resetScan: () => void;
 }
 
-export function CompletionView({ step, cleanupSummary, resetScan }: CompletionViewProps) {
+export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }: CompletionViewProps) {
   const reducedMotion = useReducedMotion();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const noun = cleanupSummary.removed === 1 ? "item" : "items";
+  const copy = cleanupMode === "Permanent"
+    ? {
+        result: `${cleanupSummary.removed} ${noun} permanently deleted.`,
+        recovery: "This action cannot be undone.",
+      }
+    : {
+        result: `${cleanupSummary.removed} ${noun} moved to your system Recycle Bin/Trash.`,
+        recovery: "You can restore them from the Recycle Bin/Trash if needed.",
+      };
 
   useEffect(() => {
-    if (step !== 4 || reducedMotion) return;
+    if (step !== 4) return;
+    window.requestAnimationFrame(() => headingRef.current?.focus());
+
+    if (reducedMotion || cleanupSummary.removed === 0) return;
 
     const burst = (origin: { x: number; y: number }, angle: number) => {
       void confetti({
-        particleCount: 55,
+        particleCount: 28,
         angle,
-        spread: 62,
-        startVelocity: 30,
-        gravity: 1.1,
-        ticks: 180,
+        spread: 48,
+        startVelocity: 22,
+        gravity: 1.2,
+        ticks: 120,
         origin,
         colors: ["#b9d98d", "#ffc2b5", "#edf0eb"],
         disableForReducedMotion: true,
@@ -36,13 +52,13 @@ export function CompletionView({ step, cleanupSummary, resetScan }: CompletionVi
     };
 
     const timers = [
-      window.setTimeout(() => burst({ x: 0.5, y: 0.62 }, 90), 0),
-      window.setTimeout(() => burst({ x: 0.18, y: 0.7 }, 55), 300),
-      window.setTimeout(() => burst({ x: 0.82, y: 0.7 }, 125), 600),
+      window.setTimeout(() => burst({ x: 0.5, y: 0.68 }, 90), 0),
+      window.setTimeout(() => burst({ x: 0.28, y: 0.72 }, 65), 700),
+      window.setTimeout(() => burst({ x: 0.72, y: 0.72 }, 115), 1400),
     ];
 
     return () => timers.forEach(window.clearTimeout);
-  }, [reducedMotion, step]);
+  }, [cleanupSummary.removed, reducedMotion, step]);
 
   return (
     <AnimatePresence mode="wait">
@@ -52,6 +68,7 @@ export function CompletionView({ step, cleanupSummary, resetScan }: CompletionVi
           initial={reducedMotion ? false : { opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          aria-labelledby="cleanup-complete-title"
           className="col-span-full w-full flex min-h-0 flex-col items-center justify-center text-center"
         >
           <motion.div
@@ -63,11 +80,19 @@ export function CompletionView({ step, cleanupSummary, resetScan }: CompletionVi
             <Check size={38} strokeWidth={1.6} aria-hidden="true" />
           </motion.div>
 
-          <h1 className="mt-6 text-4xl font-semibold tracking-tighter text-mist-100">
+          <h1
+            id="cleanup-complete-title"
+            ref={headingRef}
+            tabIndex={-1}
+            className="mt-6 text-4xl font-semibold tracking-tighter text-mist-100 outline-none focus-visible:ring-2 focus-visible:ring-sage-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-forest-950"
+          >
             Cleanup complete.
           </h1>
-          <p className="mt-3 max-w-sm text-sm leading-6 text-mist-500">
-            Your workspace has more room for what matters.
+          <p aria-live="polite" className="mt-3 max-w-sm text-sm leading-6 text-mist-500">
+            {copy.result}
+          </p>
+          <p className="mt-2 max-w-sm text-xs leading-5 text-mist-500">
+            {copy.recovery}
           </p>
 
           <div className="mt-8 flex gap-3">

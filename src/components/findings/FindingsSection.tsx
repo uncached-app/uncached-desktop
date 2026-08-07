@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowLeft, Check, FolderSearch, LoaderCircle, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { CleanResult, ScanTarget, Step } from "../../types/scan";
+import type { CleanMode } from "../../types/settings";
 import { formatBytes } from "../../utils/format";
 import { TargetCard } from "./TargetCard";
 
@@ -11,9 +12,10 @@ interface FindingsSectionProps {
   cancelling: boolean;
   targets: ScanTarget[];
   cleaningTargetIds: Set<string>;
+  cleanMode: CleanMode;
   cancelScan: () => void;
   onDone: () => void;
-  moveToTrash: (targetId: string) => Promise<CleanResult | null>;
+  cleanTarget: (targetId: string, confirmation?: string | null) => Promise<CleanResult | null>;
   refreshTargetSize: (targetId: string) => void;
   onBack: () => void;
 }
@@ -23,19 +25,23 @@ export function FindingsSection({
   scanning,
   targets,
   cleaningTargetIds,
+  cleanMode,
   onDone,
-  moveToTrash,
+  cleanTarget,
   refreshTargetSize,
   onBack,
 }: FindingsSectionProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
   const readyTargets = targets.filter((target) => !target.sizePending && !target.sizeHasErrors);
   const selectedTargets = readyTargets.filter((target) => selectedIds.has(target.id));
   const allSelected = readyTargets.length > 0 && selectedTargets.length === readyTargets.length;
   const deleteDisabled = scanning || confirming || deleting || selectedTargets.length === 0;
   const reducedMotion = useReducedMotion();
+  const permanent = cleanMode === "Permanent";
+  const confirmationReady = !permanent || confirmation === "Nuke";
 
   const totalBytesFound = readyTargets.reduce((sum, t) => sum + t.sizeBytes, 0);
   const selectedBytes = selectedTargets.reduce((sum, t) => sum + t.sizeBytes, 0);
@@ -44,6 +50,15 @@ export function FindingsSection({
     const available = new Set(targets.map((target) => target.id));
     setSelectedIds((current) => new Set([...current].filter((id) => available.has(id))));
   }, [targets]);
+
+  useEffect(() => {
+    if (step !== 3) {
+      setConfirming(false);
+      setDeleting(false);
+      setConfirmation("");
+      setSelectedIds(new Set());
+    }
+  }, [step]);
 
   function toggleTarget(targetId: string) {
     setSelectedIds((current) => {
@@ -59,10 +74,13 @@ export function FindingsSection({
   }
 
   async function confirmDelete() {
+    if (selectedTargets.length === 0 || !confirmationReady) return;
     setDeleting(true);
     const results = [];
-    for (const target of selectedTargets) results.push(await moveToTrash(target.id));
+    for (const target of selectedTargets) results.push(await cleanTarget(target.id, permanent ? confirmation : null));
     setDeleting(false);
+    setConfirming(false);
+    setConfirmation("");
     setSelectedIds(new Set());
     if (results.length > 0 && results.every(Boolean)) onDone();
   }
@@ -101,7 +119,9 @@ export function FindingsSection({
               )}
             </div>
             <p className="mt-1.5 text-sm text-mist-500">
-              Select items you want to move to the Recycle Bin.
+               {permanent
+                 ? "Select items you want to permanently delete."
+                 : "Select items you want to move to the Recycle Bin."}
             </p>
             <p
               className={`mt-1.5 text-xs font-medium transition-all duration-200 ${
@@ -215,10 +235,14 @@ export function FindingsSection({
                       {deleting ? "Cleaning up" : "Confirm cleanup"}
                     </h2>
                     <p className="mt-2 text-sm leading-6 text-mist-500">
-                      {deleting
-                        ? `Moving ${selectedTargets.length} ${selectedTargets.length === 1 ? "item" : "items"} to the Recycle Bin...`
-                        : `Move ${selectedTargets.length} selected ${selectedTargets.length === 1 ? "item" : "items"} to the Recycle Bin?`}
-                  </p>
+                       {deleting
+                         ? permanent
+                           ? `Permanently deleting ${selectedTargets.length} ${selectedTargets.length === 1 ? "item" : "items"}...`
+                           : `Moving ${selectedTargets.length} ${selectedTargets.length === 1 ? "item" : "items"} to the Recycle Bin...`
+                         : permanent
+                           ? `Permanently delete ${selectedTargets.length} selected ${selectedTargets.length === 1 ? "item" : "items"}?`
+                           : `Move ${selectedTargets.length} selected ${selectedTargets.length === 1 ? "item" : "items"} to the Recycle Bin?`}
+                   </p>
                 </div>
                 <button
                   type="button"
@@ -230,9 +254,24 @@ export function FindingsSection({
                   <X size={17} aria-hidden="true" />
                 </button>
               </div>
-              {!deleting && <p className="mt-5 rounded-xl border border-forest-800 bg-forest-950 px-4 py-3 text-sm text-mist-300">
-                Estimated space: <strong className="text-mist-100">{formatBytes(selectedBytes)}</strong>
-              </p>}
+               {!deleting && <>
+                 <p className="mt-5 rounded-xl border border-forest-800 bg-forest-950 px-4 py-3 text-sm text-mist-300">
+                   Estimated space: <strong className="text-mist-100">{formatBytes(selectedBytes)}</strong>
+                 </p>
+                 {permanent && (
+                   <label className="mt-4 block text-left text-sm text-mist-300">
+                     Type <strong className="font-mono text-coral-200">Nuke</strong> to confirm permanent deletion.
+                     <input
+                       value={confirmation}
+                       onChange={(event) => setConfirmation(event.target.value)}
+                       className="mt-2 w-full rounded-xl border border-forest-700 bg-forest-950 px-3 py-2.5 font-mono text-sm text-mist-100 outline-none focus:border-coral-300"
+                       autoComplete="off"
+                       spellCheck={false}
+                       aria-label="Permanent deletion confirmation"
+                     />
+                   </label>
+                 )}
+               </>}
               <div className="mt-6 flex justify-end gap-3">
                 {deleting ? <button type="button" disabled className="inline-flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-medium text-mist-300"><LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> Cleaning...</button> : <>
                 <button
@@ -244,10 +283,11 @@ export function FindingsSection({
                 </button>
                 <button
                   type="button"
-                  onClick={confirmDelete}
-                  className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:bg-coral-200"
-                >
-                  Confirm delete
+                   onClick={confirmDelete}
+                   disabled={!confirmationReady || selectedTargets.length === 0}
+                   className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:bg-coral-200 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
+                 >
+                   {permanent ? "Permanently delete" : "Confirm delete"}
                 </button>
                 </>}
               </div>

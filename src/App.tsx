@@ -11,6 +11,9 @@ import { useSettings } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
 
 function App() {
+  const settings = useSettings();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const cleanMode = settings.settings?.defaultCleanMode ?? "Trash";
   const {
     rootPath,
     setRootPath,
@@ -24,16 +27,15 @@ function App() {
     cleaningTargetIds,
     step,
     cleanupSummary,
+    cleanupMode,
     setStep,
     startScan,
     pickFolder,
     cancelScan,
-    moveToTrash,
+    cleanTarget,
     refreshTargetSize,
     resetScan,
-  } = useScanWorkspace();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const settings = useSettings();
+  } = useScanWorkspace(cleanMode);
   useTheme(settings.settings?.appearance);
 
   function goBackStep() {
@@ -77,16 +79,18 @@ function App() {
             cancelling={cancelling}
             targets={targets}
             cleaningTargetIds={cleaningTargetIds}
+            cleanMode={cleanMode}
             cancelScan={cancelScan}
             onDone={() => setStep(4)}
             onBack={goBackStep}
-            moveToTrash={moveToTrash}
+            cleanTarget={cleanTarget}
             refreshTargetSize={refreshTargetSize}
           />
 
           <CompletionView
             step={step}
             cleanupSummary={cleanupSummary}
+            cleanupMode={cleanupMode}
             resetScan={resetScan}
           />
         </div>

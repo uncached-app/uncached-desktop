@@ -15,8 +15,9 @@ import type {
   TargetFound,
   TargetSized,
 } from "../types/scan";
+import type { CleanMode } from "../types/settings";
 
-export function useScanWorkspace() {
+export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   const [rootPath, setRootPath] = useState("");
   const [targets, setTargets] = useState<ScanTarget[]>([]);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -29,6 +30,7 @@ export function useScanWorkspace() {
   const [deletingAll, setDeletingAll] = useState(false);
   const [step, setStep] = useState<Step>(1);
   const [cleanupSummary, setCleanupSummary] = useState({ removed: 0, freedBytes: 0 });
+  const [cleanupMode, setCleanupMode] = useState<CleanMode>("Trash");
   const [scanFinished, setScanFinished] = useState(false);
   const [scanTargetCount, setScanTargetCount] = useState<number | null>(null);
 
@@ -247,7 +249,7 @@ export function useScanWorkspace() {
     }
   }
 
-  async function moveToTrash(targetId: string): Promise<CleanResult | null> {
+  async function cleanTarget(targetId: string, confirmation: string | null = null): Promise<CleanResult | null> {
     if (cleaningTargetIds.has(targetId)) return null;
     setError(null);
     setCleaningTargetIds((current) => new Set(current).add(targetId));
@@ -255,8 +257,8 @@ export function useScanWorkspace() {
       const result = await invoke<CleanResult>("clean_target", {
         request: {
           targetId,
-          mode: "Trash",
-          confirmation: null,
+          mode: cleanMode,
+          confirmation,
         },
       });
       setTargets((current) => current.filter((target) => target.id !== targetId));
@@ -264,6 +266,7 @@ export function useScanWorkspace() {
         removed: current.removed + 1,
         freedBytes: current.freedBytes + result.freedBytes,
       }));
+      setCleanupMode(result.modeUsed);
       if (targets.length === 1) setStep(4);
       return result;
     } catch (cleanError) {
@@ -302,7 +305,7 @@ export function useScanWorkspace() {
     setDeletingAll(true);
     try {
       const results = [];
-      for (const target of targets) results.push(await moveToTrash(target.id));
+      for (const target of targets) results.push(await cleanTarget(target.id));
       if (results.every(Boolean)) setStep(4);
     } finally {
       setDeletingAll(false);
@@ -311,10 +314,11 @@ export function useScanWorkspace() {
 
   function resetScan() {
     setTargets([]);
-        setStep(1);
-        setScanFinished(false);
-        setScanTargetCount(null);
+    setStep(1);
+    setScanFinished(false);
+    setScanTargetCount(null);
     setStatus("Ready to scan");
+    setCleanupMode("Trash");
   }
 
   const sizesReady = targets.length > 0 && targets.every((target) => !target.sizePending && !target.sizeHasErrors);
@@ -336,12 +340,13 @@ export function useScanWorkspace() {
     step,
     setStep,
     cleanupSummary,
+    cleanupMode,
     deleteAllDisabled,
     deleteAllLoading,
     startScan,
     pickFolder,
     cancelScan,
-    moveToTrash,
+    cleanTarget,
     refreshTargetSize,
     deleteAll,
     resetScan,
