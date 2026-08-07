@@ -1,29 +1,54 @@
-@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:ital,wght@0,100..900;1,100..900&family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-forest-950: #101311;
-  --color-forest-900: #151b17;
-  --color-forest-850: #1a211c;
-  --color-forest-800: #222b24;
-  --color-sage-300: #d1eca9;
-  --color-sage-400: #b9d98d;
-  --color-sage-500: #a8c982;
-  --color-mist-100: #edf0eb;
-  --color-mist-300: #c7d0c1;
-  --color-mist-500: #8e998e;
-  --color-coral-300: #ffc2b5;
+  --font-sans: "Hanken Grotesk", sans-serif;
+  --font-mono: "Geist Mono", monospace;
+  --color-forest-950: var(--theme-forest-950);
+  --color-forest-900: var(--theme-forest-900);
+  --color-forest-850: var(--theme-forest-850);
+  --color-forest-800: var(--theme-forest-800);
+  --color-sage-300: var(--theme-sage-300);
+  --color-sage-400: var(--theme-sage-400);
+  --color-sage-500: var(--theme-sage-500);
+  --color-mist-100: var(--theme-mist-100);
+  --color-mist-300: var(--theme-mist-300);
+  --color-mist-500: var(--theme-mist-500);
+  --color-coral-300: var(--theme-coral-300);
 }
 
 :root {
+  --theme-forest-950: #101311;
+  --theme-forest-900: #151b17;
+  --theme-forest-850: #1a211c;
+  --theme-forest-800: #222b24;
+  --theme-sage-300: #d1eca9;
+  --theme-sage-400: #b9d98d;
+  --theme-sage-500: #a8c982;
+  --theme-mist-100: #edf0eb;
+  --theme-mist-300: #c7d0c1;
+  --theme-mist-500: #8e998e;
+  --theme-coral-300: #ffc2b5;
   font-family: var(--font-sans);
   color: var(--color-mist-100);
   background: var(--color-forest-950);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+[data-theme="light"] {
+  --theme-forest-950: #f4f6f1;
+  --theme-forest-900: #ffffff;
+  --theme-forest-850: #eef2eb;
+  --theme-forest-800: #dfe7dc;
+  --theme-sage-300: #3d5c2d;
+  --theme-sage-400: #567a3d;
+  --theme-sage-500: #6f9252;
+  --theme-mist-100: #182018;
+  --theme-mist-300: #354336;
+  --theme-mist-500: #637064;
+  --theme-coral-300: #b64d3f;
 }
 
 * {
@@ -35,9 +60,17 @@ body {
   min-width: 320px;
   height: 100%;
   margin: 0;
-  background:
-    radial-gradient(circle at 82% 4%, rgba(168, 201, 130, 0.1), transparent 24rem),
-    var(--color-forest-950);
+  background: var(--color-forest-950);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='4' numOctaves='8' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
 html,
@@ -45,6 +78,18 @@ html,
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.theme-logo-dark {
+  display: none;
+}
+
+[data-theme="light"] .theme-logo-light {
+  display: none;
+}
+
+[data-theme="light"] .theme-logo-dark {
+  display: block;
 }
 
 button,
@@ -60,7 +105,27 @@ button:active:not(:disabled) {
   transform: translateY(1px) scale(0.99);
 }
 
+/* Custom Cozy Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-forest-950);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-forest-800);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-sage-500);
+}
+
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

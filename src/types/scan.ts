@@ -1,0 +1,71 @@
+export type Category = string;
+
+export type ScanTarget = {
+  id: string;
+  path: string;
+  name: string;
+  category: Category;
+  sizeBytes: number;
+  sizeHasErrors: boolean;
+  sizePending: boolean;
+  formattedSize: string;
+  lastModified: string | null;
+};
+
+export type Step = 1 | 2 | 3 | 4;
+
+export type CleanResult = {
+  freedBytes: number;
+  sizeHasErrors: boolean;
+};
+
+export type ScanStartResult = {
+  scanId: string;
+};
+
+export type ScanStarted = {
+  scanId: string;
+  rootPath: string;
+};
+
+export type ScanProgress = {
+  scanId: string;
+  directoriesScanned: number;
+  targetsFound: number;
+  totalBytesFound: number;
+};
+
+export type TargetFound = {
+  scanId: string;
+  target: ScanTarget;
+};
+
+export type TargetSized = {
+  scanId: string;
+  targetId: string;
+  sizeBytes: number;
+  sizeHasErrors: boolean;
+  sizePending: boolean;
+  formattedSize: string;
+};
+
+export type ScanFinished = {
+  scanId: string;
+  totalTargets: number;
+  totalBytesFound: number;
+  durationMs: number;
+};
+
+export type ScanCancelled = {
+  scanId: string;
+  totalTargets: number;
+  totalBytesFound: number;
+};
+
+export type PendingScanEvent =
+  | { kind: "target"; payload: TargetFound }
+  | { kind: "sized"; payload: TargetSized }
+  | { kind: "progress"; payload: ScanProgress }
+  | { kind: "finished"; payload: ScanFinished }
+  | { kind: "cancelled"; payload: ScanCancelled }
+  | { kind: "failed"; payload: { scanId: string; message: string } };

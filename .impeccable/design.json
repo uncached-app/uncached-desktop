@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-06T00:00:00.000Z",
+  "title": "Design System: Uncached",
+  "extensions": {
+    "colorMeta": {
+      "forest-night": { "role": "neutral", "displayName": "Forest Night", "canonical": "#101311", "tonalRamp": ["#101311", "#151b17", "#1a211c", "#222b24", "#354336", "#637064", "#c7d0c1", "#edf0eb"] },
+      "forest-surface": { "role": "neutral", "displayName": "Forest Surface", "canonical": "#151b17", "tonalRamp": ["#101311", "#151b17", "#1a211c", "#222b24", "#354336", "#637064", "#c7d0c1", "#edf0eb"] },
+      "forest-raised": { "role": "neutral", "displayName": "Forest Raised", "canonical": "#1a211c", "tonalRamp": ["#101311", "#151b17", "#1a211c", "#222b24", "#354336", "#637064", "#c7d0c1", "#edf0eb"] },
+      "forest-border": { "role": "neutral", "displayName": "Forest Border", "canonical": "#222b24", "tonalRamp": ["#101311", "#151b17", "#1a211c", "#222b24", "#354336", "#637064", "#c7d0c1", "#edf0eb"] },
+      "fresh-sage": { "role": "primary", "displayName": "Fresh Sage", "canonical": "#b9d98d", "tonalRamp": ["#33442a", "#4d6739", "#6f9252", "#8eb66b", "#a8c982", "#b9d98d", "#d1eca9", "#ecf7d9"] },
+      "fresh-sage-light": { "role": "primary", "displayName": "Fresh Sage Light", "canonical": "#d1eca9", "tonalRamp": ["#33442a", "#4d6739", "#6f9252", "#8eb66b", "#a8c982", "#b9d98d", "#d1eca9", "#ecf7d9"] },
+      "warning-coral": { "role": "secondary", "displayName": "Warning Coral", "canonical": "#ffc2b5", "tonalRamp": ["#63352e", "#8c493e", "#b64d3f", "#d97563", "#ed9685", "#ffc2b5", "#ffd8d1", "#ffefec"] },
+      "mist-primary": { "role": "neutral", "displayName": "Mist Primary", "canonical": "#edf0eb", "tonalRamp": ["#182018", "#354336", "#637064", "#8e998e", "#aeb9ab", "#c7d0c1", "#dde4da", "#edf0eb"] },
+      "mist-secondary": { "role": "neutral", "displayName": "Mist Secondary", "canonical": "#c7d0c1", "tonalRamp": ["#182018", "#354336", "#637064", "#8e998e", "#aeb9ab", "#c7d0c1", "#dde4da", "#edf0eb"] },
+      "mist-muted": { "role": "neutral", "displayName": "Mist Muted", "canonical": "#8e998e", "tonalRamp": ["#182018", "#354336", "#637064", "#8e998e", "#aeb9ab", "#c7d0c1", "#dde4da", "#edf0eb"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Workspace Display", "purpose": "Entry headline only; create calm focus around the first decision." },
+      "mono": { "displayName": "Filesystem Mono", "purpose": "Paths, categories, counts, versions, and other technical facts." }
+    },
+    "shadows": [
+      { "name": "dialog", "value": "0 24px 64px rgba(0, 0, 0, 0.32)", "purpose": "Separate modal interruption from the grounded workflow." }
+    ],
+    "motion": [
+      { "name": "standard", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Short entrance and state transitions." },
+      { "name": "press", "value": "160ms ease", "purpose": "Button background, border, and pressed feedback." },
+      { "name": "reduced-motion", "value": "0.01ms", "purpose": "Collapse transitions and animation when the user requests reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Safe forward action for starting a scan or completing a workflow.",
+      "html": "<button class=\"ds-btn-primary\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 12h16M13 5l7 7-7 7\"/></svg>Scan workspace</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; gap:8px; background:#b9d98d; color:#101311; padding:11px 20px; border:0; border-radius:12px; font:600 14px/1.4 'Hanken Grotesk',sans-serif; transition:background-color 160ms ease,transform 160ms ease,box-shadow 160ms ease; } .ds-btn-primary svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; } .ds-btn-primary:hover { background:#d1eca9; } .ds-btn-primary:focus-visible { outline:2px solid #b9d98d; outline-offset:3px; } .ds-btn-primary:active { transform:translateY(1px) scale(.99); }"
+    },
+    {
+      "name": "Path Input",
+      "kind": "input",
+      "refersTo": "input-path",
+      "description": "Grounded field for choosing or pasting a workspace path.",
+      "html": "<label class=\"ds-input-label\" for=\"workspace-path\">Workspace</label><input id=\"workspace-path\" class=\"ds-input-path\" placeholder=\"Select or paste folder path...\" />",
+      "css": ".ds-input-label { display:block; margin-bottom:6px; color:#8e998e; font:500 12px/1.4 'Hanken Grotesk',sans-serif; } .ds-input-path { width:100%; background:#151b17; color:#edf0eb; padding:12px 16px; border:1px solid #222b24; border-radius:16px; outline:0; font:14px/1.5 'Geist Mono',monospace; transition:border-color 160ms ease,box-shadow 160ms ease; } .ds-input-path::placeholder { color:#8e998e; font-family:'Hanken Grotesk',sans-serif; } .ds-input-path:hover { border-color:#6f9252; } .ds-input-path:focus { border-color:#b9d98d; box-shadow:0 0 0 3px rgba(185,217,141,.2); }"
+    },
+    {
+      "name": "Finding Card",
+      "kind": "card",
+      "refersTo": "finding-card",
+      "description": "Selectable review row for a verified disposable artifact.",
+      "html": "<article class=\"ds-finding-card\"><span class=\"ds-check\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m5 12 4 4L19 6\"/></svg></span><div><span class=\"ds-chip\">NODE_MODULES</span><p>project/node_modules</p></div><strong>842 MB</strong></article>",
+      "css": ".ds-finding-card { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:14px; background:#151b17; color:#c7d0c1; padding:16px; border:1px solid #222b24; border-radius:16px; transition:border-color 160ms ease,background-color 160ms ease; } .ds-finding-card:hover,.ds-finding-card:focus-within { border-color:#b9d98d; } .ds-check { display:grid; place-items:center; width:20px; height:20px; border:1px solid #354336; border-radius:6px; color:#101311; } .ds-check svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; } .ds-chip { display:inline-flex; padding:2px 8px; border:1px solid #222b24; border-radius:6px; background:#222b24; color:#b9d98d; font:500 11px/1.4 'Geist Mono',monospace; letter-spacing:.04em; } .ds-finding-card p { margin:6px 0 0; overflow:hidden; color:#8e998e; text-overflow:ellipsis; white-space:nowrap; font:12px/1.5 'Geist Mono',monospace; } .ds-finding-card strong { color:#edf0eb; font:600 18px/1.25 'Hanken Grotesk',sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Quiet Forest Utility",
+    "overview": "Uncached is a calm, grounded instrument for a risky task. Its dark evergreen canvas makes the workspace feel protected, while pale sage signals safe forward motion. The interface is deliberately quiet: it gives scanning, review, and confirmation enough room to be understood without turning cleanup into a spectacle.\n\nThe system uses soft edges and restrained texture to make developer tooling feel approachable without becoming playful. Technical information such as paths, categories, and sizes uses a distinct monospace voice; action and explanation remain humanist and readable.",
+    "keyCharacteristics": ["Deep evergreen canvas with layered forest surfaces.", "Pale botanical green for safe, affirmative actions.", "Soft coral for destructive or cancelling actions.", "Rounded, tactile controls with compact developer-tool density.", "Quiet motion that clarifies transitions and progress."],
+    "rules": [
+      { "name": "The Signal Scarcity Rule", "body": "Sage and coral are state signals, not decoration. Use them where users need to understand what is safe, active, selected, cancelling, or destructive.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Humanist type explains and invites; monospace type identifies filesystem facts. Do not use mono for general prose.", "section": "typography" },
+      { "name": "The Grounded Surface Rule", "body": "Cards and controls sit in the forest layers. Do not float every element with a shadow; reserve lift for modal interruption and meaningful focus.", "section": "elevation" }
+    ],
+    "dos": ["Do preserve Deep Forest surfaces and use tonal contrast before adding decoration.", "Do reserve Fresh Sage for safe action, progress, selection, and focus.", "Do use Geist Mono for paths, categories, counts, and other filesystem facts.", "Do keep destructive actions unmistakably Coral and explicit.", "Do respect reduced-motion preferences and keep transitions short."],
+    "donts": ["Don't introduce generic neon gradients, cyberpunk glow, or terminal-green spectacle.", "Don't use coral as a general accent or interchangeable brand color.", "Don't make every container shadowed or floating.", "Don't turn technical metadata into decorative typography.", "Don't replace the Uncached logo assets with improvised marks."]
+  }
+}

@@ -123,7 +123,8 @@ impl ScanService {
 
         std::thread::spawn(move || {
             let started_at = Instant::now();
-            let scanners = get_default_scanners();
+            let settings = crate::commands::settings::load_settings(&app_handle).unwrap_or_default();
+            let scanners = get_default_scanners(&settings);
             let target_event_handle = app_handle.clone();
             let stats = Arc::new(Mutex::new(ScanStats::default()));
             let stats_for_callback = Arc::clone(&stats);

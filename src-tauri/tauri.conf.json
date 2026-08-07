@@ -13,10 +13,13 @@
     "windows": [
       {
         "title": "Uncached",
-        "width": 960,
-        "height": 720,
-        "resizable": false,
-        "maximizable": false,
+        "width": 1080,
+        "height": 800,
+        "resizable": true,
+        "maximizable": true,
+        "decorations": false,
+        "minWidth": 800,
+        "minHeight": 600,
         "minimizable": true,
         "fullscreen": false,
         "center": true
