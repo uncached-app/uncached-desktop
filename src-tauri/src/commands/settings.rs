@@ -58,7 +58,7 @@ impl Default for AppSettings {
             detect_next_cache: true,
             detect_turbo_cache: true,
             default_clean_mode: CleanMode::Trash,
-            appearance: Appearance::Dark,
+            appearance: Appearance::Light,
             last_cleanup: None,
         }
     }
@@ -128,7 +128,7 @@ mod tests {
     fn defaults_are_safe() {
         let settings = AppSettings::default();
         assert_eq!(settings.default_clean_mode, CleanMode::Trash);
-        assert_eq!(settings.appearance, Appearance::Dark);
+        assert_eq!(settings.appearance, Appearance::Light);
         assert!(!settings.open_at_startup);
     }
 

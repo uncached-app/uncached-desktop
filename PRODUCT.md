@@ -38,6 +38,7 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - Backend canonicalizes paths, rejects symlinks and critical roots, enforces scan-root scope, and protects against arbitrary frontend paths.
 - Targets are held in memory and become invalid when the application restarts.
 - Current desktop window is resizable, starts at 1080x800, and has an 800x600 minimum.
+- Default appearance is light. Dark and system-follow are opt-in from Settings § Appearance.
 
 ## Brand Commitments
 

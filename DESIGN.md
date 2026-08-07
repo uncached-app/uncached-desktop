@@ -114,7 +114,9 @@ Technical information such as paths, categories, and sizes uses a distinct monos
 
 ## Colors
 
-Deep Forest + Fresh Sage creates a low-noise, safety-oriented palette. The dark theme is canonical; the existing light theme inverts the same roles into a pale neutral canvas.
+Deep Forest + Fresh Sage creates a low-noise, safety-oriented palette. **Light is the default theme and the one most users will see**; dark is the deliberate alternative. Both express the same role assignments — the palette below names the dark values, and the light theme maps every role onto a pale neutral canvas with darkened sage and coral so contrast holds in both.
+
+Because light ships as the default, it is not a secondary skin: any new surface must be checked in light first, then dark. In CSS, `:root` carries the light values and `[data-theme="dark"]` overrides them, so the first paint is correct before settings resolve.
 
 ### Primary
 - **Fresh Sage** (`#b9d98d`): Primary action, active progress, selected state, and safe confirmation.
