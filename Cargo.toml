@@ -1,0 +1,3 @@
+[workspace]
+members = ["src-tauri", "src-tauri/crates/uncached-core"]
+resolver = "2"
