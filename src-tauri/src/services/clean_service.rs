@@ -1,4 +1,5 @@
 use crate::cleaner::permanent::PermanentCleaner;
+use crate::cleaner::trash::TrashCleaner;
 use crate::cleaner::Cleaner;
 use crate::errors::NukeResult;
 use crate::filesystem::paths::{canonicalize_target, is_within_root};
@@ -34,12 +35,11 @@ impl CleanService {
                         .map_err(map_core_error)?;
                     crate::cleaner::CleanReport {
                         freed_bytes: report.freed_bytes,
-                        size_has_errors: false,
+                        size_has_errors: registered.target.size_has_errors,
                     }
                 } else {
-                    return Err(crate::errors::NukeError::Internal(
-                        "Unsupported trash category".to_string(),
-                    ));
+                    let cleaner = TrashCleaner;
+                    cleaner.clean(&target_path)?
                 }
             }
             CleanMode::Permanent => {
@@ -119,5 +119,50 @@ mod tests {
         assert!(result.is_err());
         assert!(target_path.exists());
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn desktop_only_category_uses_desktop_trash_cleanup() {
+        let root =
+            std::env::temp_dir().join(format!("uncached-clean-desktop-{}", std::process::id()));
+        let target_path = root.join("project/.next");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&target_path).unwrap();
+        std::fs::write(target_path.join("build.js"), b"1234").unwrap();
+        let target = ScanTarget::new(target_path, Category::NextJs, 4, false, None);
+
+        let result = CleanService::clean_registered_target(
+            RegisteredTarget {
+                target,
+                root_path: root.clone(),
+            },
+            CleanMode::Trash,
+            None,
+        );
+
+        assert!(result.is_ok());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn node_modules_cleanup_preserves_existing_size_error() {
+        let root = std::env::temp_dir().join(format!("uncached-clean-size-{}", std::process::id()));
+        let target_path = root.join("project/node_modules");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&target_path).unwrap();
+        std::fs::write(root.join("project/package.json"), b"{}").unwrap();
+        let target = ScanTarget::new(target_path, Category::NodeModules, 0, true, None);
+
+        let result = CleanService::clean_registered_target(
+            RegisteredTarget {
+                target,
+                root_path: root.clone(),
+            },
+            CleanMode::Trash,
+            None,
+        )
+        .unwrap();
+
+        assert!(result.size_has_errors);
     }
 }

@@ -1,4 +1,5 @@
 pub mod permanent;
+pub mod trash;
 pub mod windows;
 
 use crate::errors::NukeResult;
