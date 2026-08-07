@@ -4087,7 +4087,12 @@ dependencies = [
  "tauri-plugin-opener",
  "thiserror 2.0.19",
  "trash",
+ "uncached-core",
 ]
+
+[[package]]
+name = "uncached-core"
+version = "0.1.0"
 
 [[package]]
 name = "unic-char-property"

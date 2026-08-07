@@ -5,6 +5,10 @@ description = "Reclaim disk from build artifacts."
 authors = ["you"]
 edition = "2021"
 
+[workspace]
+members = [".", "crates/uncached-core"]
+resolver = "2"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
@@ -27,3 +31,4 @@ chrono = { version = "0.4", features = ["serde"] }
 trash = "5.2"
 thiserror = "2.0"
 tauri-plugin-dialog = "2"
+uncached-core = { path = "crates/uncached-core" }

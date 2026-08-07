@@ -7,6 +7,8 @@ pub mod models;
 pub mod scanner;
 pub mod services;
 
+pub use uncached_core as shared_core;
+
 use commands::cancel::cancel_scan;
 use commands::clean::clean_target;
 use commands::scan::{retry_target_size, start_scan};
