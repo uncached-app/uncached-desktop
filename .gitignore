@@ -12,14 +12,30 @@ dist
 dist-ssr
 *.local
 
-# IDE & Agent directories
-.agent
+# IDEs & Editors
 .vscode
+.idea
+
+# Local tooling & AI agent state
+.agent/
+.agents/
+.superpowers/
+.claude/
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.cline/
+.roo/
+.clinerules
+.roomodes
+.codex/
+.opencode/
+.aider*
+*.local.md
+docs/superpowers/
 
 # Rust build target
 /target
 /src-tauri/target
-
-# Project documentation
-docs/superpowers/*
 
