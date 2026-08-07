@@ -57,7 +57,7 @@ export function WorkspaceForm({
       className="flex h-full w-full flex-col items-center justify-center text-center px-4 py-8"
     >
       <div className="flex w-full max-w-3xl flex-col items-center">
-        <h1 className="text-5xl font-semibold leading-[1.05] tracking-[-0.05em] text-mist-100">
+        <h1 className="text-5xl font-semibold leading-[1.05] tracking-tighter text-mist-100">
           Reclaim disk from build artifacts.
         </h1>
 
