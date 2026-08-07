@@ -1,6 +1,5 @@
 use crate::errors::{NukeError, NukeResult};
 use crate::filesystem::paths::strip_extended_prefix;
-use crate::filesystem::walker::DiskWalker;
 use crate::models::target::ScanTarget;
 use crate::scanner::get_default_scanners;
 use serde::Serialize;
@@ -139,19 +138,30 @@ impl ScanService {
             let callback_root = canonical_root.clone();
             let callback_cancel_token = Arc::clone(&cancel_token);
 
-            let walk_result =
-                DiskWalker::walk_directories(&scan_root, move |dir_path, dir_name| {
+            let core_cancel_token = Arc::clone(&cancel_token);
+            let walk_result = uncached_core::traverse_workspace(
+                &scan_root,
+                &uncached_core::ProviderSet::free(),
+                &core_cancel_token,
+                move |entry| {
+                    let dir_path = &entry.path;
+                    let dir_name = &entry.name;
                     if callback_cancel_token.load(Ordering::Acquire) {
-                        return true;
+                        return uncached_core::TraversalControl::Cancel;
                     }
                     let mut stats = stats_for_callback.lock().unwrap();
                     stats.directories_scanned += 1;
 
                     for scanner in &scanners {
-                        if scanner.matches(dir_name) {
+                        let core_node_modules =
+                            entry.category == Some(uncached_core::Category::NodeModules);
+                        if (scanner.category() == crate::models::category::Category::NodeModules
+                            && core_node_modules)
+                            || scanner.matches(dir_name)
+                        {
                             if let Some(mut target) = scanner.create_target(dir_path) {
                                 if callback_cancel_token.load(Ordering::Acquire) {
-                                    return true;
+                                    return uncached_core::TraversalControl::Cancel;
                                 }
                                 target.id = format!("{}-{}", callback_scan_id, target.id);
                                 stats.targets_found += 1;
@@ -163,7 +173,7 @@ impl ScanService {
                                     let Some(session) =
                                         registry.sessions.get_mut(&callback_scan_id)
                                     else {
-                                        return true;
+                                        return uncached_core::TraversalControl::Cancel;
                                     };
                                     if session.cancelled
                                         || session.cancel_token.load(Ordering::Acquire)
@@ -175,7 +185,7 @@ impl ScanService {
                                     }
                                 };
                                 if !accepted {
-                                    return true;
+                                    return uncached_core::TraversalControl::Cancel;
                                 }
                                 registry.targets.insert(
                                     target.id.clone(),
@@ -206,7 +216,7 @@ impl ScanService {
                                     &target.id,
                                     &target.path,
                                 );
-                                return true;
+                                return uncached_core::TraversalControl::Prune;
                             }
                         }
                     }
@@ -219,8 +229,9 @@ impl ScanService {
                     });
                     drop(stats);
                     let _ = target_event_handle.emit("scan:progress", snapshot);
-                    false
-                });
+                    uncached_core::TraversalControl::Continue
+                },
+            );
 
             if cancel_token.load(Ordering::Acquire) {
                 crate::logging::info("scan", &format!("cancelled scanId=\"{}\"", worker_scan_id));
