@@ -1,8 +1,8 @@
 pub mod gradle;
+pub mod next;
 pub mod node_modules;
 pub mod python;
 pub mod rust;
-pub mod next;
 pub mod turbo;
 
 use crate::models::category::Category;
@@ -43,13 +43,25 @@ pub trait Scanner: Send + Sync {
 }
 
 /// Returns all default scanners registered in Uncached.
-pub fn get_default_scanners(settings: &crate::commands::settings::AppSettings) -> Vec<Box<dyn Scanner>> {
+pub fn get_default_scanners(
+    settings: &crate::commands::settings::AppSettings,
+) -> Vec<Box<dyn Scanner>> {
     let mut scanners: Vec<Box<dyn Scanner>> = Vec::new();
-    if settings.detect_node_modules { scanners.push(Box::new(node_modules::NodeModulesScanner)); }
-    if settings.detect_cargo_target { scanners.push(Box::new(rust::CargoTargetScanner)); }
+    if settings.detect_node_modules {
+        scanners.push(Box::new(node_modules::NodeModulesScanner));
+    }
+    if settings.detect_cargo_target {
+        scanners.push(Box::new(rust::CargoTargetScanner));
+    }
     scanners.push(Box::new(python::PyCacheScanner));
-    if settings.detect_gradle_cache { scanners.push(Box::new(gradle::GradleScanner)); }
-    if settings.detect_next_cache { scanners.push(Box::new(next::NextCacheScanner)); }
-    if settings.detect_turbo_cache { scanners.push(Box::new(turbo::TurboCacheScanner)); }
+    if settings.detect_gradle_cache {
+        scanners.push(Box::new(gradle::GradleScanner));
+    }
+    if settings.detect_next_cache {
+        scanners.push(Box::new(next::NextCacheScanner));
+    }
+    if settings.detect_turbo_cache {
+        scanners.push(Box::new(turbo::TurboCacheScanner));
+    }
     scanners
 }

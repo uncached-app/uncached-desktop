@@ -30,8 +30,13 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     match result {
         Ok(clean_result) => {
             let _ = ScanService::remove_target(&target_id);
-            if let Err(error) = crate::commands::settings::record_cleanup(&app, clean_result.freed_bytes) {
-                crate::logging::warn("settings", &format!("failed to persist cleanup history error=\"{}\"", error));
+            if let Err(error) =
+                crate::commands::settings::record_cleanup(&app, clean_result.freed_bytes)
+            {
+                crate::logging::warn(
+                    "settings",
+                    &format!("failed to persist cleanup history error=\"{}\"", error),
+                );
             }
             crate::logging::info(
                 "clean",

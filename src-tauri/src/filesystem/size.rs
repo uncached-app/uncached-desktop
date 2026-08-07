@@ -28,30 +28,33 @@ pub fn calculate_dir_size(path: &Path) -> u64 {
 }
 
 pub fn calculate_dir_size_report(path: &Path) -> DirSize {
-    let entries =
-        WalkDir::new(path)
-            .skip_hidden(false)
-            // Size calculation runs inside the parallel scan callback.
-            // A nested Rayon walk deadlocks when it shares the scan pool.
-            .parallelism(Parallelism::Serial)
-            .into_iter()
-            .map(|entry| -> Result<u64, ()> {
-                let entry = entry.map_err(|error| {
-                    crate::logging::warn("size", &format!("walk error=\"{}\"", error));
-                })?;
-                let entry_path = entry.path();
-                let metadata = entry.metadata().map_err(|error| {
-                    crate::logging::warn(
-                        "size",
-                        &format!("metadata path=\"{}\" error=\"{}\"", entry_path.display(), error),
-                    );
-                })?;
-                Ok(if metadata.is_file() {
-                    metadata.len()
-                } else {
-                    0
-                })
-            });
+    let entries = WalkDir::new(path)
+        .skip_hidden(false)
+        // Size calculation runs inside the parallel scan callback.
+        // A nested Rayon walk deadlocks when it shares the scan pool.
+        .parallelism(Parallelism::Serial)
+        .into_iter()
+        .map(|entry| -> Result<u64, ()> {
+            let entry = entry.map_err(|error| {
+                crate::logging::warn("size", &format!("walk error=\"{}\"", error));
+            })?;
+            let entry_path = entry.path();
+            let metadata = entry.metadata().map_err(|error| {
+                crate::logging::warn(
+                    "size",
+                    &format!(
+                        "metadata path=\"{}\" error=\"{}\"",
+                        entry_path.display(),
+                        error
+                    ),
+                );
+            })?;
+            Ok(if metadata.is_file() {
+                metadata.len()
+            } else {
+                0
+            })
+        });
 
     calculate_dir_size_with_entries(entries)
 }

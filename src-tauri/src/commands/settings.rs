@@ -81,7 +81,9 @@ pub fn load_settings(app: &AppHandle) -> Result<AppSettings, String> {
 
 fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
     let path = settings_path(app)?;
-    let parent = path.parent().ok_or_else(|| "Invalid settings path".to_string())?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Invalid settings path".to_string())?;
     fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     let temporary = path.with_extension("json.tmp");
     let contents = serde_json::to_vec_pretty(settings).map_err(|error| error.to_string())?;
@@ -111,7 +113,10 @@ pub async fn get_app_info() -> AppInfo {
 
 pub fn record_cleanup(app: &AppHandle, freed_bytes: u64) -> Result<(), String> {
     let mut settings = load_settings(app)?;
-    let previous = settings.last_cleanup.unwrap_or(LastCleanup { removed: 0, freed_bytes: 0 });
+    let previous = settings.last_cleanup.unwrap_or(LastCleanup {
+        removed: 0,
+        freed_bytes: 0,
+    });
     settings.last_cleanup = Some(LastCleanup {
         removed: previous.removed + 1,
         freed_bytes: previous.freed_bytes.saturating_add(freed_bytes),

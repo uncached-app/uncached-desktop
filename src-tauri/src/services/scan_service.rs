@@ -106,7 +106,11 @@ impl ScanService {
         let worker_scan_id = scan_id.clone();
         crate::logging::info(
             "scan",
-            &format!("start scanId=\"{}\" root=\"{}\"", scan_id, scan_root.display()),
+            &format!(
+                "start scanId=\"{}\" root=\"{}\"",
+                scan_id,
+                scan_root.display()
+            ),
         );
         let session = ScanSession::new();
         let cancel_token = Arc::clone(&session.cancel_token);
@@ -123,7 +127,8 @@ impl ScanService {
 
         std::thread::spawn(move || {
             let started_at = Instant::now();
-            let settings = crate::commands::settings::load_settings(&app_handle).unwrap_or_default();
+            let settings =
+                crate::commands::settings::load_settings(&app_handle).unwrap_or_default();
             let scanners = get_default_scanners(&settings);
             let target_event_handle = app_handle.clone();
             let stats = Arc::new(Mutex::new(ScanStats::default()));
@@ -134,85 +139,88 @@ impl ScanService {
             let callback_root = canonical_root.clone();
             let callback_cancel_token = Arc::clone(&cancel_token);
 
-            let walk_result = DiskWalker::walk_directories(&scan_root, move |dir_path, dir_name| {
-                if callback_cancel_token.load(Ordering::Acquire) {
-                    return true;
-                }
-                let mut stats = stats_for_callback.lock().unwrap();
-                stats.directories_scanned += 1;
+            let walk_result =
+                DiskWalker::walk_directories(&scan_root, move |dir_path, dir_name| {
+                    if callback_cancel_token.load(Ordering::Acquire) {
+                        return true;
+                    }
+                    let mut stats = stats_for_callback.lock().unwrap();
+                    stats.directories_scanned += 1;
 
-                for scanner in &scanners {
-                    if scanner.matches(dir_name) {
-                        if let Some(mut target) = scanner.create_target(dir_path) {
-                            if callback_cancel_token.load(Ordering::Acquire) {
-                                return true;
-                            }
-                            target.id = format!("{}-{}", callback_scan_id, target.id);
-                            stats.targets_found += 1;
-                            stats.total_bytes_found =
-                                stats.total_bytes_found.saturating_add(target.size_bytes);
-
-                            let mut registry = registry_for_callback.lock().unwrap();
-                            let accepted = {
-                                let Some(session) = registry.sessions.get_mut(&callback_scan_id)
-                                else {
+                    for scanner in &scanners {
+                        if scanner.matches(dir_name) {
+                            if let Some(mut target) = scanner.create_target(dir_path) {
+                                if callback_cancel_token.load(Ordering::Acquire) {
                                     return true;
-                                };
-                                if session.cancelled || session.cancel_token.load(Ordering::Acquire)
-                                {
-                                    false
-                                } else {
-                                    session.target_ids.insert(target.id.clone());
-                                    true
                                 }
-                            };
-                            if !accepted {
+                                target.id = format!("{}-{}", callback_scan_id, target.id);
+                                stats.targets_found += 1;
+                                stats.total_bytes_found =
+                                    stats.total_bytes_found.saturating_add(target.size_bytes);
+
+                                let mut registry = registry_for_callback.lock().unwrap();
+                                let accepted = {
+                                    let Some(session) =
+                                        registry.sessions.get_mut(&callback_scan_id)
+                                    else {
+                                        return true;
+                                    };
+                                    if session.cancelled
+                                        || session.cancel_token.load(Ordering::Acquire)
+                                    {
+                                        false
+                                    } else {
+                                        session.target_ids.insert(target.id.clone());
+                                        true
+                                    }
+                                };
+                                if !accepted {
+                                    return true;
+                                }
+                                registry.targets.insert(
+                                    target.id.clone(),
+                                    RegisteredTarget {
+                                        target: target.clone(),
+                                        root_path: callback_root.clone(),
+                                    },
+                                );
+                                drop(registry);
+                                let _ = target_event_handle.emit(
+                                    "scan:target_found",
+                                    serde_json::json!({
+                                        "scanId": callback_event_scan_id,
+                                        "target": target
+                                    }),
+                                );
+                                crate::logging::info(
+                                    "scan",
+                                    &format!(
+                                        "target scanId=\"{}\" path=\"{}\" pending=true",
+                                        callback_event_scan_id,
+                                        target.path.display()
+                                    ),
+                                );
+                                ScanService::start_target_size(
+                                    &target_event_handle,
+                                    &callback_event_scan_id,
+                                    &target.id,
+                                    &target.path,
+                                );
                                 return true;
                             }
-                            registry.targets.insert(
-                                target.id.clone(),
-                                RegisteredTarget {
-                                    target: target.clone(),
-                                    root_path: callback_root.clone(),
-                                },
-                            );
-                            drop(registry);
-                            let _ = target_event_handle.emit(
-                                "scan:target_found",
-                                serde_json::json!({
-                                    "scanId": callback_event_scan_id,
-                                    "target": target
-                                }),
-                            );
-                            crate::logging::info(
-                                "scan",
-                                &format!(
-                                    "target scanId=\"{}\" path=\"{}\" pending=true",
-                                     callback_event_scan_id,
-                                     target.path.display()
-                                 ),
-                             );
-                             ScanService::start_target_size(
-                                 &target_event_handle,
-                                 &callback_event_scan_id,
-                                 &target.id,
-                                 &target.path,
-                             );
-                             return true;
                         }
                     }
-                }
 
-                let snapshot = serde_json::json!({
-                    "scanId": callback_event_scan_id,
-                    "directoriesScanned": stats.directories_scanned,
-                    "targetsFound": stats.targets_found,
-                    "totalBytesFound": stats.total_bytes_found
+                    let snapshot = serde_json::json!({
+                        "scanId": callback_event_scan_id,
+                        "directoriesScanned": stats.directories_scanned,
+                        "targetsFound": stats.targets_found,
+                        "totalBytesFound": stats.total_bytes_found
+                    });
+                    drop(stats);
+                    let _ = target_event_handle.emit("scan:progress", snapshot);
+                    false
                 });
-                drop(stats);
-                let _ = target_event_handle.emit("scan:progress", snapshot);
-                false
-            });
 
             if cancel_token.load(Ordering::Acquire) {
                 crate::logging::info("scan", &format!("cancelled scanId=\"{}\"", worker_scan_id));
@@ -318,14 +326,19 @@ impl ScanService {
                     "size",
                     &format!(
                         "targetPath=\"{}\" bytes={} errors={}",
-                        path.display(), report.bytes, report.errors
+                        path.display(),
+                        report.bytes,
+                        report.errors
                     ),
                 );
                 let _ = app.emit("scan:target_sized", update);
             } else {
                 crate::logging::info(
                     "size",
-                    &format!("discarded targetId=\"{}\" scanId=\"{}\"", target_id, scan_id),
+                    &format!(
+                        "discarded targetId=\"{}\" scanId=\"{}\"",
+                        target_id, scan_id
+                    ),
                 );
             }
         });

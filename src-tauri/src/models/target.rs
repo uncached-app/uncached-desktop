@@ -46,7 +46,11 @@ impl ScanTarget {
         }
     }
 
-    pub fn pending(path: PathBuf, category: Category, last_modified: Option<DateTime<Utc>>) -> Self {
+    pub fn pending(
+        path: PathBuf,
+        category: Category,
+        last_modified: Option<DateTime<Utc>>,
+    ) -> Self {
         let mut target = Self::new(path, category, 0, false, last_modified);
         target.size_pending = true;
         target
