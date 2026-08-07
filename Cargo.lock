@@ -4094,6 +4094,7 @@ dependencies = [
 name = "uncached-core"
 version = "0.1.0"
 dependencies = [
+ "jwalk",
  "serde",
  "thiserror 2.0.19",
  "trash",

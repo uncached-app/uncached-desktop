@@ -35,7 +35,8 @@ impl CleanService {
                         .map_err(map_core_error)?;
                     crate::cleaner::CleanReport {
                         freed_bytes: report.freed_bytes,
-                        size_has_errors: registered.target.size_has_errors,
+                        size_has_errors: registered.target.size_has_errors
+                            || report.size_has_errors,
                     }
                 } else {
                     let cleaner = TrashCleaner;
