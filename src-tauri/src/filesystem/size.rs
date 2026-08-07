@@ -85,9 +85,9 @@ mod tests {
         use std::fs;
 
         let root = std::env::temp_dir().join(format!(
-            "uncached-size-bytes-{}-{}",
+            "uncached-size-bytes-{}-{:?}",
             std::process::id(),
-            format!("{:?}", std::thread::current().id())
+            std::thread::current().id()
         ));
         fs::create_dir_all(&root).unwrap();
         fs::write(root.join("package.json"), b"12345").unwrap();

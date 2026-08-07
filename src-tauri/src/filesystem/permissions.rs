@@ -18,7 +18,14 @@ pub fn ensure_writable(path: &Path) -> NukeResult<()> {
     {
         let mut permissions = metadata.permissions();
         if permissions.readonly() {
+            #[cfg(target_os = "windows")]
+            #[allow(clippy::permissions_set_readonly_false)]
             permissions.set_readonly(false);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                permissions.set_mode(permissions.mode() | 0o200);
+            }
             fs::set_permissions(path, permissions)?;
         }
     }

@@ -32,7 +32,7 @@ pub trait Scanner: Send + Sync {
         let metadata = std::fs::metadata(dir_path).ok();
         let last_modified = metadata
             .and_then(|m| m.modified().ok())
-            .map(|t| chrono::DateTime::<chrono::Utc>::from(t));
+            .map(chrono::DateTime::<chrono::Utc>::from);
 
         Some(ScanTarget::pending(
             dir_path.to_path_buf(),

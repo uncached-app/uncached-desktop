@@ -96,11 +96,11 @@ fn is_critical_directory(path: &Path) -> bool {
             std::env::var("ProgramFiles(x86)")
                 .unwrap_or_else(|_| r"C:\Program Files (x86)".to_string()),
         ];
-        return critical.iter().any(|value| {
+        critical.iter().any(|value| {
             let critical = value.trim_end_matches(['\\', '/']).to_lowercase();
             !critical.is_empty()
                 && (normalized == critical || normalized.starts_with(&(critical + "\\")))
-        });
+        })
     }
 
     #[cfg(not(target_os = "windows"))]

@@ -447,7 +447,7 @@ impl ScanService {
 fn scan_id_from_target_id(target_id: &str) -> String {
     let mut parts = target_id.splitn(3, '-');
     match (parts.next(), parts.next()) {
-        (Some(prefix), Some(number)) if prefix == "scan" => format!("scan-{number}"),
+        (Some("scan"), Some(number)) => format!("scan-{number}"),
         _ => String::new(),
     }
 }
