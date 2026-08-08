@@ -135,7 +135,7 @@ test("rejects malformed finished payloads before UI state can consume them", () 
 test("rejects malformed capability payloads before action gating", () => {
   assert.throws(
     () => unwrapV1(
-      { apiVersion: "v1", platform: "windows", data: { permanent: true, trash: "yes", secureIdentity: false }, error: null },
+       { apiVersion: "v1", platform: "windows", data: { permanentCleanup: true, moveToTrash: "yes", secureIdentity: false }, error: null },
       validateCapabilities,
     ),
     /capabilities payload/,
@@ -193,7 +193,7 @@ test("converts core errors into explicit UI errors", () => {
 });
 
 test("gates cleanup actions from capability booleans", () => {
-  assert.equal(canUseCleanupMode({ permanent: true, trash: false, secureIdentity: true }, "Permanent"), true);
-  assert.equal(canUseCleanupMode({ permanent: false, trash: true, secureIdentity: false }, "Permanent"), false);
-  assert.equal(canUseCleanupMode({ permanent: false, trash: true, secureIdentity: false }, "Trash"), true);
+   assert.equal(canUseCleanupMode({ permanentCleanup: true, moveToTrash: false, secureIdentity: true }, "Permanent"), true);
+   assert.equal(canUseCleanupMode({ permanentCleanup: false, moveToTrash: true, secureIdentity: false }, "Permanent"), false);
+   assert.equal(canUseCleanupMode({ permanentCleanup: false, moveToTrash: true, secureIdentity: false }, "Trash"), true);
 });

@@ -200,7 +200,7 @@ pub fn platform() -> uncached_core::contract::v1::Platform {
     uncached_core::contract::v1::Platform::Unsupported
 }
 
-fn core_error_info(error: &NukeError) -> uncached_core::CoreErrorInfo {
+pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorInfo {
     let core_error = match error {
         NukeError::Io(error) => {
             uncached_core::CoreError::Io(std::io::Error::new(error.kind(), "desktop I/O error"))
@@ -220,7 +220,7 @@ fn core_error_info(error: &NukeError) -> uncached_core::CoreErrorInfo {
 pub fn error_event(
     error: &NukeError,
 ) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
-    uncached_core::contract::v1::ApiEnvelope::failure(platform(), core_error_info(error))
+    uncached_core::contract::v1::ApiEnvelope::failure(platform(), public_error_info(error))
 }
 
 fn value_event(

@@ -4,6 +4,14 @@ use crate::services::clean_service::CleanService;
 use crate::services::scan_service::{error_event, platform, ScanService};
 use tauri::{AppHandle, Emitter};
 
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CleanupEventResult {
+    target_id: String,
+    freed_bytes: u64,
+    size_has_errors: bool,
+}
+
 fn clean_started_event(
     target_id: &str,
     mode: crate::models::action::CleanMode,
@@ -17,14 +25,31 @@ fn clean_started_event(
 fn clean_finished_event(
     target_id: &str,
     result: &CleanResult,
-) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::CleanupResultDto> {
+) -> uncached_core::contract::v1::ApiEnvelope<CleanupEventResult> {
     uncached_core::contract::v1::ApiEnvelope::success(
         platform(),
-        uncached_core::contract::v1::CleanupResultDto {
+        CleanupEventResult {
             target_id: target_id.to_owned(),
             freed_bytes: result.freed_bytes,
             size_has_errors: result.size_has_errors,
         },
+    )
+}
+
+fn clean_command_failure(
+    error: &crate::errors::NukeError,
+) -> uncached_core::contract::v1::ApiEnvelope<CleanResult> {
+    uncached_core::contract::v1::ApiEnvelope::failure(
+        platform(),
+        crate::services::scan_service::public_error_info(error),
+    )
+}
+
+fn internal_command_failure() -> uncached_core::contract::v1::ApiEnvelope<CleanResult> {
+    uncached_core::contract::v1::ApiEnvelope::failure(
+        platform(),
+        uncached_core::CoreError::Io(std::io::Error::other("desktop command failure"))
+            .public_info(),
     )
 }
 
@@ -80,8 +105,8 @@ fn should_record_cleanup(mode: crate::models::action::CleanMode) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        clean_event_for_result, clean_failed_event, clean_finished_event, clean_started_event,
-        settings_for_clean, should_record_cleanup,
+        clean_command_failure, clean_event_for_result, clean_failed_event, clean_finished_event,
+        clean_started_event, internal_command_failure, settings_for_clean, should_record_cleanup,
     };
     use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
@@ -123,6 +148,31 @@ mod tests {
         assert_eq!(value["data"]["sizeHasErrors"], false);
         assert!(value["data"].get("targetPath").is_none());
         assert!(value["error"].is_null());
+    }
+
+    #[test]
+    fn cleanup_command_errors_are_sanitized_v1_failures() {
+        for error in [
+            NukeError::NotFound("native target detail".into()),
+            NukeError::CleanupCancelled,
+            NukeError::Trash("native trash detail".into()),
+        ] {
+            let value = serde_json::to_value(clean_command_failure(&error)).unwrap();
+            assert_eq!(value["apiVersion"], "v1");
+            assert!(value["data"].is_null());
+            assert!(value["error"]["code"].is_string());
+            assert!(!value.to_string().contains("native"));
+        }
+    }
+
+    #[test]
+    fn settings_and_blocking_failures_are_sanitized_v1_failures() {
+        let value = serde_json::to_value(internal_command_failure()).unwrap();
+        assert_eq!(value["apiVersion"], "v1");
+        assert_eq!(value["error"]["code"], "io");
+        assert_eq!(value["error"]["message"], "I/O error");
+        assert!(value["data"].is_null());
+        assert!(!value.to_string().contains("native"));
     }
 
     #[test]
@@ -194,18 +244,23 @@ mod tests {
 }
 
 #[tauri::command]
-pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<CleanResult, String> {
+pub async fn clean_target(
+    app: AppHandle,
+    request: CleanRequest,
+) -> uncached_core::contract::v1::ApiEnvelope<CleanResult> {
     let target_id = request.target_id.clone();
     let mode = request.mode;
     let confirmation = request.confirmation.clone();
-    let (registered, control) =
-        ScanService::claim_target_for_cleanup(&target_id).map_err(|error| error.to_string())?;
+    let (registered, control) = match ScanService::claim_target_for_cleanup(&target_id) {
+        Ok(value) => value,
+        Err(error) => return clean_command_failure(&error),
+    };
     let settings = match settings_for_clean(mode, || crate::commands::settings::load_settings(&app))
     {
         Ok(settings) => settings,
-        Err(error) => {
+        Err(_error) => {
             ScanService::release_cleanup(&target_id);
-            return Err(error);
+            return internal_command_failure();
         }
     };
     crate::logging::info(
@@ -214,7 +269,7 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     );
     let _ = app.emit("clean:started", clean_started_event(&target_id, mode));
 
-    let result = tauri::async_runtime::spawn_blocking(move || {
+    let result = match tauri::async_runtime::spawn_blocking(move || {
         CleanService::clean_registered_target(
             registered,
             control,
@@ -224,10 +279,15 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
         )
     })
     .await
-    .map_err(|error| {
-        ScanService::release_cleanup(&target_id);
-        error.to_string()
-    })?;
+    {
+        Ok(result) => result,
+        Err(_error) => {
+            ScanService::release_cleanup(&target_id);
+            let envelope = internal_command_failure();
+            let _ = app.emit("clean:failed", serde_json::to_value(&envelope).unwrap());
+            return envelope;
+        }
+    };
 
     let (event, payload) = clean_event_for_result(&target_id, &result);
 
@@ -252,7 +312,7 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
                 ),
             );
             let _ = app.emit(event, payload);
-            Ok(clean_result)
+            uncached_core::contract::v1::ApiEnvelope::success(platform(), clean_result)
         }
         Err(error) => {
             ScanService::release_cleanup(&target_id);
@@ -261,7 +321,7 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
                 &format!("failed targetId=\"{}\" error=\"{}\"", target_id, error),
             );
             let _ = app.emit(event, payload);
-            Err(error.to_string())
+            clean_command_failure(&error)
         }
     }
 }

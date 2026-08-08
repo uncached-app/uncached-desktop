@@ -37,7 +37,7 @@ import {
   validateScanFinished,
   validateScanProgress,
   validateScanStartResult,
-  validateScanStarted,
+   validateScanStarted,
 } from "../utils/apiContract";
 import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
@@ -155,8 +155,8 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     normalize?: (payload: T) => PendingScanEvent["payload"],
   ) {
     try {
-      const payload = unwrapV1<T>(envelope, normalize as ((value: unknown) => T) | undefined);
-      handleScanEvent({ kind, payload: normalize ? normalize(payload) : payload } as PendingScanEvent);
+       const payload = unwrapV1<T>(envelope, normalize as ((value: unknown) => T) | undefined);
+       handleScanEvent({ kind, payload } as PendingScanEvent);
     } catch (contractError) {
       const message = contractError instanceof ApiContractError
         ? toUiError(contractError.info).message
@@ -230,7 +230,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
         if (disposed) return;
         const message = capabilityError instanceof ApiContractError
           ? toUiError(capabilityError.info).message
-          : `IPC contract error: ${capabilityError instanceof Error ? capabilityError.message : String(capabilityError)}`;
+          : "IPC contract error";
         setError(message);
       });
     return () => {
@@ -343,14 +343,14 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     setError(null);
     setCleaningTargetIds((current) => new Set(current).add(targetId));
     try {
-      const rawResult = await invoke<RawCommandResult<CleanResult>>("clean_target", {
+       const envelope = await invoke<ApiEnvelope<CleanResult>>("clean_target", {
         request: {
           targetId,
           mode: cleanMode,
           confirmation,
         },
       });
-      const result = validateCleanResult(rawResult);
+       const result = unwrapV1(envelope, validateCleanResult);
       setTargets((current) => current.filter((target) => target.id !== targetId));
       setCleanupSummary((current) => ({
         removed: current.removed + 1,
@@ -360,7 +360,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       if (targets.length === 1) setStep(4);
       return result;
     } catch (cleanError) {
-      setError(String(cleanError));
+      setError(cleanError instanceof ApiContractError ? toUiError(cleanError.info).message : "IPC contract error");
       return null;
     } finally {
       setCleaningTargetIds((current) => {

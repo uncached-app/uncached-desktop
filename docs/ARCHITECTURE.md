@@ -24,7 +24,7 @@ uncached-core contract, scanners, cleaners, filesystem models
 
 `uncached-core::contract::v1` owns the envelope, platform values, public error DTO, capabilities DTO, and transport DTOs. The envelope always contains `apiVersion`, `platform`, `data`, and `error`; exactly one of `data` or `error` is non-null. CamelCase is the serialized field convention. `FileIdentity` stays backend-only.
 
-The Desktop frontend unwraps and validates v1 event envelopes before state changes. `start_scan`, `cancel_scan`, `retry_target_size`, `clean_target`, `cancel_cleanup`, settings commands, and app-info commands currently retain raw Tauri command responses. `cleanup_capabilities` is the envelope-wrapped command because it is part of the shared public contract.
+The Desktop frontend unwraps and validates v1 event envelopes before state changes. `clean_target` and `cleanup_capabilities` return v1 command envelopes; other commands retain their documented raw Tauri result shapes. Command failures crossing the v1 boundary are sanitized Core errors, never raw strings.
 
 Unknown versions are rejected by the frontend. A future v2 requires an explicit adapter and must not be silently consumed by v1 code. The CLI remains on its current command shape until separately migrated.
 

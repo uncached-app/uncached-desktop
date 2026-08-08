@@ -21,7 +21,9 @@ The frontend accepts only `apiVersion: "v1"`. Unknown versions fail explicitly a
 
 ## Commands
 
-Unless explicitly shown as an envelope below, Tauri commands currently return raw command results. Callers validate each result before using it.
+Commands return their documented result shape. Commands that cross the Core
+public contract boundary return v1 envelopes; failures are envelope `error`
+objects, never raw Rust `String` errors or native error details.
 
 ### `start_scan`
 
@@ -78,20 +80,27 @@ Request:
 
 `mode` is `Trash` or `Permanent`. `Permanent` requires exact confirmation `"Nuke"`. The backend resolves `targetId` from its in-memory registry; a frontend path is not accepted as authority.
 
-Raw response:
+Response is a v1 envelope. Success data contains the command result; failure
+uses `data: null` and sanitized Core `error` information.
 
 ```json
 {
-  "success": true,
-  "targetPath": "C:\\Users\\User\\Projects\\my-app\\node_modules",
-  "freedBytes": 524288000,
-  "sizeHasErrors": false,
-  "modeUsed": "Trash",
-  "message": null
+  "apiVersion": "v1",
+  "platform": "windows",
+  "data": {
+    "success": true,
+    "targetPath": "C:\\Users\\User\\Projects\\my-app\\node_modules",
+    "freedBytes": 524288000,
+    "sizeHasErrors": false,
+    "modeUsed": "Trash",
+    "message": null
+  },
+  "error": null
 }
 ```
 
-`targetPath` and `message` are command-level fields. Cleanup events intentionally publish the narrower `CleanupResultDto` and never publish `targetPath`.
+`targetPath` and `message` are command-level fields. Cleanup events use a
+separate Desktop event DTO and intentionally omit `targetPath`.
 
 ### `cancel_cleanup`
 
@@ -101,18 +110,18 @@ Raw response: `{ "cancelled": true }`. Cancellation only wins before cleanup exe
 
 ### `cleanup_capabilities`
 
-Response is a v1 success envelope containing:
+Response is a v1 envelope containing:
 
 ```json
 {
   "apiVersion": "v1",
   "platform": "windows",
-  "data": { "permanent": true, "trash": false, "secureIdentity": true },
+  "data": { "permanentCleanup": true, "moveToTrash": false, "secureIdentity": true },
   "error": null
 }
 ```
 
-`permanent` and `trash` gate available cleanup modes. `secureIdentity` reports whether platform identity checks are supported. These booleans are capability facts, not authorization; the backend still performs the final target and policy checks.
+`permanentCleanup` and `moveToTrash` gate available cleanup modes. `secureIdentity` reports whether platform identity checks are supported. These booleans are capability facts, not authorization; the backend still performs the final target and policy checks.
 
 ### Settings and app info
 

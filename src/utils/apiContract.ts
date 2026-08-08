@@ -246,18 +246,11 @@ export function validateScanCancelled(value: unknown): ScanCancelled {
   return value as ScanCancelled;
 }
 
-export function validateScanFailed(value: unknown): { scanId: string; message: string } {
-  if (!isRecord(value) || !isNonEmptyString(value.scanId) || !isNonEmptyString(value.message)) {
-    throw new Error("Invalid scan failed payload");
-  }
-  return value as { scanId: string; message: string };
-}
-
 export function validateCapabilities(value: unknown): CleanupCapabilities {
   if (
     !isRecord(value) ||
-    typeof value.permanent !== "boolean" ||
-    typeof value.trash !== "boolean" ||
+    typeof value.permanentCleanup !== "boolean" ||
+    typeof value.moveToTrash !== "boolean" ||
     typeof value.secureIdentity !== "boolean"
   ) {
     throw new Error("Invalid capabilities payload");
@@ -348,5 +341,5 @@ export function toUiError(error: CoreErrorInfo): UiError {
 }
 
 export function canUseCleanupMode(capabilities: CleanupCapabilities | null, mode: "Trash" | "Permanent") {
-  return capabilities !== null && (mode === "Permanent" ? capabilities.permanent : capabilities.trash);
+  return capabilities !== null && (mode === "Permanent" ? capabilities.permanentCleanup : capabilities.moveToTrash);
 }

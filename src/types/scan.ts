@@ -23,8 +23,8 @@ export type CleanResult = {
 };
 
 export type CleanupCapabilities = {
-  permanent: boolean;
-  trash: boolean;
+  permanentCleanup: boolean;
+  moveToTrash: boolean;
   secureIdentity: boolean;
 };
 
