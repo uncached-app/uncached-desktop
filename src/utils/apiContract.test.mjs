@@ -6,6 +6,7 @@ import {
   isCurrentScanRequest,
   normalizeTargetFound,
   normalizeTargetSized,
+  shouldIgnoreScanFailure,
   toUiError,
   unwrapV1,
   validateCapabilities,
@@ -189,6 +190,12 @@ test("ignores stale cancel scan rejection after ownership changes", () => {
   assert.equal(isCurrentScanRequest(1, 2, "scan-1", "scan-2"), false);
   assert.equal(isCurrentScanRequest(2, 2, "scan-2", "scan-3"), false);
   assert.equal(isCurrentScanRequest(2, 2, "scan-2", null), false);
+});
+
+test("buffers failure correlated to pending start, but ignores stale or idle failures", () => {
+  assert.equal(shouldIgnoreScanFailure("scan-1", null, true), false);
+  assert.equal(shouldIgnoreScanFailure("scan-old", "scan-2", false), true);
+  assert.equal(shouldIgnoreScanFailure("scan-idle", null, false), true);
 });
 
 test("normalizes settled target size without rendering measured zero as pending", () => {

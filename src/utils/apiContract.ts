@@ -205,6 +205,14 @@ export function isCurrentScanRequest(
   return generation === currentGeneration && activeScanId === scanId;
 }
 
+export function shouldIgnoreScanFailure(
+  scanId: string,
+  activeScanId: string | null,
+  pendingScan: boolean,
+): boolean {
+  return activeScanId === null ? !pendingScan : activeScanId !== scanId;
+}
+
 export function validateScanStarted(value: unknown): ScanStarted {
   if (!isRecord(value) || !isNonEmptyString(value.scanId) || !isNonEmptyString(value.rootPath)) {
     throw new Error("Invalid scan started payload");

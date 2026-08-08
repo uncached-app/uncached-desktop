@@ -38,7 +38,8 @@ import {
   validateScanFailed,
   validateScanProgress,
   validateScanStartResult,
-   validateScanStarted,
+  validateScanStarted,
+  shouldIgnoreScanFailure,
 } from "../utils/apiContract";
 import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
@@ -208,7 +209,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
         const scanId = data && typeof data === "object" && data !== null && "scanId" in data
           ? (data as { scanId?: unknown }).scanId
           : null;
-        if (typeof scanId === "string" && !acceptsScanEvent(scanId)) return;
+        if (typeof scanId === "string" && shouldIgnoreScanFailure(scanId, activeScanId.current, pendingScan.current)) return;
         handleEnvelope("failed", payload, validateScanFailed);
       }),
     ]);
