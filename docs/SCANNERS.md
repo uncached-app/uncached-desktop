@@ -1,6 +1,6 @@
 # Scanners
 
-Scanner é plugin stateless e thread-safe que identifica diretórios descartáveis. O traversal é centralizado em `ScanService`.
+`uncached_core::Scanner` é trait de plugin stateless e thread-safe que identifica diretórios descartáveis. O traversal é centralizado em `ScanService`.
 
 Providers are modular and candidate-directed. `ProviderSet` owns registration and lookup; the shared walker asks providers about the current directory, returns a confirmed candidate, and prunes terminal artifacts before entering their contents. Providers must not perform independent tree traversals.
 
@@ -9,7 +9,6 @@ pub trait Scanner: Send + Sync {
     fn category(&self) -> Category;
     fn matches(&self, dir_name: &str) -> bool;
     fn confirm_context(&self, dir_path: &Path) -> bool;
-    fn create_target(&self, dir_path: &Path) -> Option<ScanTarget>;
 }
 ```
 
@@ -32,9 +31,9 @@ pub trait Scanner: Send + Sync {
 
 1. Criar módulo em `src-tauri/src/scanner/`.
 2. Implementar `Scanner` e confirmação contextual necessária.
-3. Registrar em `get_default_scanners()`.
+3. Registrar em `get_default_providers()`.
 4. Adicionar testes para nomes e contexto.
 
-Não é necessário alterar `ScanService` nem o frontend para categorias que já possam ser serializadas pelo modelo.
+Não é necessário alterar `ScanService` nem o frontend ao adicionar ou alterar provider para categorias que já possam ser serializadas pelo modelo. Novas categorias podem exigir alterações no mapeamento de categorias, no modelo ou na UI do Desktop.
 
 Provider confirmation must stay cheap and contextual. A name match alone is a candidate; `confirm_context` decides whether it is a confirmed target. Once confirmed, discovery registers it for bounded asynchronous sizing and stops descending into that terminal directory.

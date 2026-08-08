@@ -33,7 +33,7 @@ Walker poda subárvores quando scanner identifica target. Isso evita percorrer o
 
 ### Candidate discovery and sizing
 
-Discovery is candidate-directed: the shared traversal evaluates registered providers on each directory, emits only confirmed candidates, and prunes terminal artifact subtrees immediately. Terminal contents are therefore not traversed merely to discover the artifact. Provider implementations remain isolated behind `ProviderSet`; adding or changing a provider does not create a second traversal or require frontend changes.
+Discovery is candidate-directed: the shared traversal may invoke its callback for every directory it visits, but target discovery and target events emit only confirmed candidates. Terminal artifact subtrees are pruned immediately, so their contents are not traversed merely to discover the artifact. Provider implementations remain isolated behind `ProviderSet`; adding or changing a provider does not create a second traversal.
 
 Target sizing starts when a candidate is registered. A bounded controller uses `available_parallelism().clamp(1, 8)` workers and a bounded channel, so sizing cannot create an unbounded queue. Each target is marked pending until its sizing job settles. `scan:finished` is emitted only after traversal has finished and every sizing job has settled; its `durationMs` covers this settling lifecycle.
 
@@ -51,7 +51,7 @@ Targets ficam em registro de memória. Reiniciar aplicativo invalida targets ant
 
 ## Traits
 
-`Scanner` define `category`, `matches`, `confirm_context` e `create_target`. O traversal pertence ao `ScanService`; scanners não percorrem árvores individualmente.
+`Scanner` define `category`, `matches` e `confirm_context`. O traversal pertence ao `ScanService`; scanners não percorrem árvores individualmente.
 
 `Cleaner` recebe um path já autorizado e retorna `NukeResult<u64>`. A autorização não pertence ao cleaner, mas cleaners também mantêm validação defensiva.
 
