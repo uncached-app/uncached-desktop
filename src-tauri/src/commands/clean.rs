@@ -9,6 +9,13 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     let mode = request.mode;
     let confirmation = request.confirmation.clone();
     let registered = ScanService::claim_target(&target_id).map_err(|error| error.to_string())?;
+    let settings = match crate::commands::settings::load_settings(&app) {
+        Ok(settings) => settings,
+        Err(error) => {
+            ScanService::release_target(&target_id);
+            return Err(error);
+        }
+    };
     crate::logging::info(
         "clean",
         &format!("started targetId=\"{}\" mode=\"{:?}\"", target_id, mode),
@@ -19,7 +26,7 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     );
 
     let result = tauri::async_runtime::spawn_blocking(move || {
-        CleanService::clean_registered_target(registered, mode, confirmation)
+        CleanService::clean_registered_target(registered, &settings, mode, confirmation)
     })
     .await
     .map_err(|error| {

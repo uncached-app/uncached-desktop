@@ -595,7 +595,13 @@ mod tests {
         );
 
         let registered = ScanService::claim_target(&target_id).unwrap();
-        assert!(CleanService::clean_registered_target(registered, CleanMode::Trash, None).is_err());
+        assert!(CleanService::clean_registered_target(
+            registered,
+            &crate::commands::settings::AppSettings::default(),
+            CleanMode::Trash,
+            None,
+        )
+        .is_err());
         ScanService::release_target(&target_id);
         assert!(ScanService::get_target(&target_id).is_ok());
         ScanService::remove_target(&target_id).unwrap();
