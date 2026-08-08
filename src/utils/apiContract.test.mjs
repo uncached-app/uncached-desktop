@@ -9,6 +9,7 @@ import {
   toUiError,
   unwrapV1,
   validateCapabilities,
+  validateScanFailed,
   validateScanFinished,
 } from "./apiContract.ts";
 
@@ -129,6 +130,26 @@ test("rejects malformed finished payloads before UI state can consume them", () 
       validateScanFinished,
     ),
     /finished payload/,
+  );
+});
+
+test("validates correlated scan failures and nested sanitized errors", () => {
+  const failure = validateScanFailed({
+    scanId: "scan-2",
+    error: { code: "target_identity_changed", message: "target identity changed", path: "target", operation: null },
+  });
+  assert.equal(failure.scanId, "scan-2");
+  assert.equal(failure.error.code, "target_identity_changed");
+  assert.throws(
+    () => validateScanFailed({
+      scanId: "scan-2",
+      error: { code: "permission_denied", message: "Access denied", path: null, operation: null },
+    }),
+    /unknown error code/,
+  );
+  assert.throws(
+    () => validateScanFailed({ scanId: "scan-2", error: { code: "io", message: "I/O error", path: null } }),
+    /error shape/,
   );
 });
 

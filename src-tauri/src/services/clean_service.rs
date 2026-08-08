@@ -89,7 +89,7 @@ fn map_core_error(error: uncached_core::CoreError) -> crate::errors::NukeError {
             crate::errors::NukeError::RecycleBinTooLarge
         }
         uncached_core::CoreError::Trash(message) => crate::errors::NukeError::Trash(message),
-        other => crate::errors::NukeError::PermissionDenied(other.to_string()),
+        other => crate::errors::NukeError::Core(other.public_info()),
     }
 }
 
@@ -213,8 +213,8 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(crate::errors::NukeError::PermissionDenied(message))
-                if message == "secure Trash is unavailable"
+            Err(crate::errors::NukeError::Core(info))
+                if info.code == uncached_core::CoreErrorCode::SecureTrashUnavailable
         ));
         assert!(target_path.exists());
         let _ = std::fs::remove_dir_all(root);
@@ -293,8 +293,8 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(crate::errors::NukeError::PermissionDenied(message))
-                if message == "secure Trash is unavailable"
+            Err(crate::errors::NukeError::Core(info))
+                if info.code == uncached_core::CoreErrorCode::SecureTrashUnavailable
         ));
         assert!(target_path.exists());
         let _ = std::fs::remove_dir_all(root);

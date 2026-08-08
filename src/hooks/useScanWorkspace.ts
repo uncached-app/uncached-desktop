@@ -35,6 +35,7 @@ import {
   validateRetryTargetSizeResult,
   validateScanCancelled,
   validateScanFinished,
+  validateScanFailed,
   validateScanProgress,
   validateScanStartResult,
    validateScanStarted,
@@ -145,7 +146,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       setStatus("Scan cancelled");
       setStep(1);
     } else {
-      failScan(event.payload.message);
+      failScan(event.payload.error.message);
     }
   }
 
@@ -201,7 +202,14 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
         handleEnvelope("cancelled", payload, validateScanCancelled);
       }),
       listen<ApiEnvelope<unknown>>("scan:failed", ({ payload }) => {
-        handleEnvelope("failed", payload);
+        const data = payload && typeof payload === "object" && "data" in payload
+          ? (payload as { data?: unknown }).data
+          : null;
+        const scanId = data && typeof data === "object" && data !== null && "scanId" in data
+          ? (data as { scanId?: unknown }).scanId
+          : null;
+        if (typeof scanId === "string" && !acceptsScanEvent(scanId)) return;
+        handleEnvelope("failed", payload, validateScanFailed);
       }),
     ]);
 

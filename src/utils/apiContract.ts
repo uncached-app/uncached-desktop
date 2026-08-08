@@ -3,6 +3,7 @@ import type {
   CleanupCapabilities,
   ScanCancelled,
   ScanFinished,
+  ScanFailed,
   ScanProgress,
   ScanStarted,
   ScanStartResult,
@@ -76,6 +77,8 @@ export type RawTargetSized = {
   formattedSize: string;
 };
 
+export type RawScanFailed = ScanFailed;
+
 export type UiError = {
   code: string;
   message: string;
@@ -122,6 +125,7 @@ function isNullableString(value: unknown): value is string | null {
 
 function isCoreErrorInfo(value: unknown): value is CoreErrorInfo {
   return isRecord(value) &&
+    Object.keys(value).sort().join(",") === "code,message,operation,path" &&
     hasOwn(value, "code") && isCoreErrorCode(value.code) &&
     hasOwn(value, "message") && typeof value.message === "string" &&
     hasOwn(value, "path") && isNullableString(value.path) &&
@@ -232,6 +236,15 @@ export function validateScanFinished(value: unknown): ScanFinished {
     throw new Error("Invalid scan finished payload");
   }
   return value as ScanFinished;
+}
+
+export function validateScanFailed(value: unknown): ScanFailed {
+  if (!isRecord(value) || !isNonEmptyString(value.scanId) || !isRecord(value.error)) {
+    throw new Error("Invalid scan failed payload");
+  }
+  if (!isCoreErrorCode(value.error.code)) throw new Error("unknown error code in scan failed payload");
+  if (!isCoreErrorInfo(value.error)) throw new Error("Invalid scan failed error shape");
+  return value as ScanFailed;
 }
 
 export function validateScanCancelled(value: unknown): ScanCancelled {

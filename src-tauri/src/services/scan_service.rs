@@ -202,6 +202,7 @@ pub fn platform() -> uncached_core::contract::v1::Platform {
 
 pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorInfo {
     let core_error = match error {
+        NukeError::Core(info) => return info.clone(),
         NukeError::Io(error) => {
             uncached_core::CoreError::Io(std::io::Error::new(error.kind(), "desktop I/O error"))
         }
@@ -221,6 +222,19 @@ pub fn error_event(
     error: &NukeError,
 ) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
     uncached_core::contract::v1::ApiEnvelope::failure(platform(), public_error_info(error))
+}
+
+pub fn scan_failed_event(
+    scan_id: &str,
+    error: &NukeError,
+) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::ScanFailedDto> {
+    uncached_core::contract::v1::ApiEnvelope::success(
+        platform(),
+        uncached_core::contract::v1::ScanFailedDto {
+            scan_id: scan_id.to_owned(),
+            error: public_error_info(error),
+        },
+    )
 }
 
 fn value_event(
@@ -684,7 +698,10 @@ impl ScanService {
                     sizing.finish();
                     let _ = app_handle.emit(
                         "scan:failed",
-                        error_event(&NukeError::Internal("scan traversal failed".into())),
+                        scan_failed_event(
+                            &worker_scan_id,
+                            &NukeError::Internal("scan traversal failed".into()),
+                        ),
                     );
                     return;
                 }
@@ -1115,9 +1132,9 @@ fn scan_id_from_target_id(target_id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        error_event, platform, providers_for_scan, registry, scan_finished_event,
-        target_found_event, target_sized_event, CleanupControl, RegisteredTarget, ScanService,
-        ScanStartResult, SizingController, SizingJob, NEXT_SCAN_ID,
+        error_event, platform, providers_for_scan, registry, scan_failed_event,
+        scan_finished_event, target_found_event, target_sized_event, CleanupControl,
+        RegisteredTarget, ScanService, ScanStartResult, SizingController, SizingJob, NEXT_SCAN_ID,
     };
     use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
@@ -1182,18 +1199,47 @@ mod tests {
     }
 
     #[test]
-    fn scan_failed_event_has_v1_error_and_null_data() {
-        let value = serde_json::to_value(error_event(&NukeError::Io(std::io::Error::other(
-            "private native detail",
-        ))))
+    fn scan_failed_event_has_correlated_v1_data_and_sanitized_error() {
+        let value = serde_json::to_value(scan_failed_event(
+            "scan-1",
+            &NukeError::Io(std::io::Error::other("private native detail")),
+        ))
         .unwrap();
 
         assert_eq!(value["apiVersion"], "v1");
         assert_eq!(value["platform"], serde_json::to_value(platform()).unwrap());
-        assert!(value["data"].is_null());
-        assert_eq!(value["error"]["code"], "io");
-        assert_eq!(value["error"]["message"], "I/O error");
+        assert_eq!(value["data"]["scanId"], "scan-1");
+        assert_eq!(value["data"]["error"]["code"], "io");
+        assert!(value["error"].is_null());
         assert!(!value.to_string().contains("private native detail"));
+    }
+
+    #[test]
+    fn cleanup_core_error_identity_is_preserved_in_public_info() {
+        let cases = [
+            uncached_core::CoreError::TargetIdentityChanged {
+                path: "target".into(),
+            },
+            uncached_core::CoreError::TargetIdentityUnavailable {
+                path: "target".into(),
+            },
+            uncached_core::CoreError::TargetReparsePoint {
+                path: "target".into(),
+            },
+            uncached_core::CoreError::SecureTrashUnavailable,
+        ];
+        let expected = [
+            "target_identity_changed",
+            "target_identity_unavailable",
+            "target_reparse_point",
+            "secure_trash_unavailable",
+        ];
+
+        for (error, code) in cases.into_iter().zip(expected) {
+            let value =
+                serde_json::to_value(error_event(&NukeError::Core(error.public_info()))).unwrap();
+            assert_eq!(value["error"]["code"], code);
+        }
     }
 
     #[test]

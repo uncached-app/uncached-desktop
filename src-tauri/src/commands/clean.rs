@@ -189,6 +189,35 @@ mod tests {
     }
 
     #[test]
+    fn cleanup_command_preserves_core_error_codes() {
+        let errors = [
+            uncached_core::CoreError::TargetIdentityChanged {
+                path: "target".into(),
+            },
+            uncached_core::CoreError::TargetIdentityUnavailable {
+                path: "target".into(),
+            },
+            uncached_core::CoreError::TargetReparsePoint {
+                path: "target".into(),
+            },
+            uncached_core::CoreError::SecureTrashUnavailable,
+        ];
+        let codes = [
+            "target_identity_changed",
+            "target_identity_unavailable",
+            "target_reparse_point",
+            "secure_trash_unavailable",
+        ];
+
+        for (error, code) in errors.into_iter().zip(codes) {
+            let value =
+                serde_json::to_value(clean_command_failure(&NukeError::Core(error.public_info())))
+                    .unwrap();
+            assert_eq!(value["error"]["code"], code);
+        }
+    }
+
+    #[test]
     fn permanent_cleanup_does_not_load_settings() {
         let result =
             settings_for_clean(CleanMode::Permanent, || Err("invalid settings".to_string()));

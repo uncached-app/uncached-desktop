@@ -2,6 +2,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum NukeError {
+    #[error("Core contract error")]
+    Core(uncached_core::CoreErrorInfo),
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 

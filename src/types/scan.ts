@@ -71,10 +71,20 @@ export type ScanCancelled = {
   totalBytesFound: number;
 };
 
+export type ScanFailed = {
+  scanId: string;
+  error: {
+    code: string;
+    message: string;
+    path: string | null;
+    operation: string | null;
+  };
+};
+
 export type PendingScanEvent =
   | { kind: "target"; payload: TargetFound }
   | { kind: "sized"; payload: TargetSized }
   | { kind: "progress"; payload: ScanProgress }
   | { kind: "finished"; payload: ScanFinished }
   | { kind: "cancelled"; payload: ScanCancelled }
-  | { kind: "failed"; payload: { scanId: string; message: string } };
+  | { kind: "failed"; payload: ScanFailed };
