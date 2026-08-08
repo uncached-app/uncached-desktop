@@ -27,6 +27,42 @@ test("rejects envelopes with invalid data and error shape", () => {
   assert.throws(() => unwrapV1({ apiVersion: "v1", platform: "windows", data: undefined, error: null }), /exactly one/);
 });
 
+test("rejects unknown public error codes", () => {
+  assert.throws(
+    () => unwrapV1({
+      apiVersion: "v1",
+      platform: "windows",
+      data: null,
+      error: { code: "permission_denied", message: "Access denied", path: null, operation: null },
+    }),
+    /unknown error code/,
+  );
+});
+
+test("requires nullable path and operation fields on public errors", () => {
+  const base = { code: "io", message: "I/O error", path: null, operation: null };
+  assert.throws(
+    () => unwrapV1({ apiVersion: "v1", platform: "windows", data: null, error: { ...base, path: undefined } }),
+    /invalid error shape/,
+  );
+  assert.throws(
+    () => unwrapV1({ apiVersion: "v1", platform: "windows", data: null, error: { ...base, operation: undefined } }),
+    /invalid error shape/,
+  );
+});
+
+test("requires string public error messages", () => {
+  assert.throws(
+    () => unwrapV1({
+      apiVersion: "v1",
+      platform: "windows",
+      data: null,
+      error: { code: "io", message: 42, path: null, operation: null },
+    }),
+    /invalid error shape/,
+  );
+});
+
 test("rejects malformed envelope metadata and payloads", () => {
   assert.throws(() => unwrapV1({ platform: "windows", data: {}, error: null }), /apiVersion/);
   assert.throws(() => unwrapV1({ apiVersion: "v1", platform: "ios", data: {}, error: null }), /platform/);
@@ -151,8 +187,8 @@ test("normalizes settled target size without rendering measured zero as pending"
 
 test("converts core errors into explicit UI errors", () => {
   assert.deepEqual(
-    toUiError({ code: "permission_denied", message: "Access denied", path: null, operation: "scan" }),
-    { code: "permission_denied", message: "Access denied" },
+    toUiError({ code: "io", message: "Access denied", path: null, operation: "scan" }),
+    { code: "io", message: "Access denied" },
   );
 });
 

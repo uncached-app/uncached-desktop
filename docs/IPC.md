@@ -143,7 +143,13 @@ Cleanup success is named `clean:finished`, not `clean:success`. Cleanup failure 
 
 ## Error handling and migration
 
-Envelope errors contain `code`, `message`, and nullable `path` and `operation`. Error codes are stable snake_case values defined in `uncached-core/CONTRACT_V1.md`. Native sources and private error details are excluded. The frontend converts a valid envelope error to `ApiContractError`; malformed envelopes and unknown versions become explicit IPC contract failures.
+Envelope errors contain exactly `code`, `message`, `path`, and `operation`.
+`code` must be one of the stable snake_case values defined in
+`uncached-core/CONTRACT_V1.md`; `message` must be a string; `path` and
+`operation` are required keys whose values may be strings or null. Native
+sources and private error details are excluded. The frontend converts a valid
+envelope error to `ApiContractError`; malformed envelopes, unknown error codes,
+and unknown versions become explicit IPC contract failures.
 
 v2 must use an explicit versioned contract and adapter. v1 consumers must reject v2 rather than silently accepting changed fields or semantics. Add v2 support only after both producer and consumer have a deliberate migration path.
 

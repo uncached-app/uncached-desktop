@@ -11,18 +11,41 @@ import type {
 
 export type Platform = "windows" | "linux" | "macos" | "android" | "unsupported";
 
+export type CoreErrorCode =
+  | "invalid_workspace"
+  | "invalid_target"
+  | "io"
+  | "trash"
+  | "recycle_bin_too_large"
+  | "target_identity_unavailable"
+  | "target_identity_changed"
+  | "target_reparse_point"
+  | "secure_operation_unsupported"
+  | "secure_target_open_failed"
+  | "secure_enumeration_failed"
+  | "secure_handle_query_failed"
+  | "secure_deletion_failed"
+  | "secure_trash_unavailable";
+
 export type CoreErrorInfo = {
-  code: string;
+  code: CoreErrorCode;
   message: string;
-  path?: string | null;
-  operation?: string | null;
+  path: string | null;
+  operation: string | null;
 };
 
 export type ApiEnvelope<T> = {
-  apiVersion: "v1" | string;
+  apiVersion: "v1";
   platform: Platform;
   data: T | null;
   error: CoreErrorInfo | null;
+};
+
+export type RawApiEnvelope = {
+  apiVersion: unknown;
+  platform: unknown;
+  data: unknown;
+  error: unknown;
 };
 
 // Desktop commands intentionally return raw results. Their call sites must run
@@ -76,13 +99,38 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
+function isCoreErrorCode(value: unknown): value is CoreErrorCode {
+  return value === "invalid_workspace" ||
+    value === "invalid_target" ||
+    value === "io" ||
+    value === "trash" ||
+    value === "recycle_bin_too_large" ||
+    value === "target_identity_unavailable" ||
+    value === "target_identity_changed" ||
+    value === "target_reparse_point" ||
+    value === "secure_operation_unsupported" ||
+    value === "secure_target_open_failed" ||
+    value === "secure_enumeration_failed" ||
+    value === "secure_handle_query_failed" ||
+    value === "secure_deletion_failed" ||
+    value === "secure_trash_unavailable";
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
 function isCoreErrorInfo(value: unknown): value is CoreErrorInfo {
-  return isRecord(value) && typeof value.code === "string" && typeof value.message === "string";
+  return isRecord(value) &&
+    hasOwn(value, "code") && isCoreErrorCode(value.code) &&
+    hasOwn(value, "message") && typeof value.message === "string" &&
+    hasOwn(value, "path") && isNullableString(value.path) &&
+    hasOwn(value, "operation") && isNullableString(value.operation);
 }
 
 type PayloadValidator<T> = (value: unknown) => T;
 
-export function unwrapV1<T>(envelope: unknown, validate?: PayloadValidator<T>): T {
+export function unwrapV1<T>(envelope: RawApiEnvelope, validate?: PayloadValidator<T>): T {
   if (!isRecord(envelope) || !hasOwn(envelope, "apiVersion")) {
     throw new Error("API envelope is missing apiVersion");
   }
@@ -109,6 +157,8 @@ export function unwrapV1<T>(envelope: unknown, validate?: PayloadValidator<T>): 
     throw new Error("API envelope must contain exactly one of data or error");
   }
   if (hasError) {
+    if (!isRecord(envelope.error)) throw new Error("API envelope contains invalid error shape");
+    if (!isCoreErrorCode(envelope.error.code)) throw new Error("API envelope contains unknown error code");
     if (!isCoreErrorInfo(envelope.error)) throw new Error("API envelope contains invalid error shape");
     throw new ApiContractError(envelope.error);
   }

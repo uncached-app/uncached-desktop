@@ -34,7 +34,6 @@ import {
   validateCleanResult,
   validateRetryTargetSizeResult,
   validateScanCancelled,
-  validateScanFailed,
   validateScanFinished,
   validateScanProgress,
   validateScanStartResult,
@@ -201,8 +200,8 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       listen<ApiEnvelope<ScanCancelled>>("scan:cancelled", ({ payload }) => {
         handleEnvelope("cancelled", payload, validateScanCancelled);
       }),
-      listen<ApiEnvelope<{ scanId: string; message: string }>>("scan:failed", ({ payload }) => {
-        handleEnvelope("failed", payload, validateScanFailed);
+      listen<ApiEnvelope<unknown>>("scan:failed", ({ payload }) => {
+        handleEnvelope("failed", payload);
       }),
     ]);
 
