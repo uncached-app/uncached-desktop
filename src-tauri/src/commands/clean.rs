@@ -17,9 +17,13 @@ where
     }
 }
 
+fn should_record_cleanup(mode: crate::models::action::CleanMode) -> bool {
+    mode == crate::models::action::CleanMode::Trash
+}
+
 #[cfg(test)]
 mod tests {
-    use super::settings_for_clean;
+    use super::{settings_for_clean, should_record_cleanup};
     use crate::models::action::CleanMode;
 
     #[test]
@@ -35,6 +39,12 @@ mod tests {
         let result = settings_for_clean(CleanMode::Trash, || Err("invalid settings".to_string()));
 
         assert_eq!(result.unwrap_err(), "invalid settings");
+    }
+
+    #[test]
+    fn cleanup_history_is_recorded_only_for_trash() {
+        assert!(should_record_cleanup(CleanMode::Trash));
+        assert!(!should_record_cleanup(CleanMode::Permanent));
     }
 }
 
@@ -73,13 +83,15 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     match result {
         Ok(clean_result) => {
             let _ = ScanService::remove_target(&target_id);
-            if let Err(error) =
-                crate::commands::settings::record_cleanup(&app, clean_result.freed_bytes)
-            {
-                crate::logging::warn(
-                    "settings",
-                    &format!("failed to persist cleanup history error=\"{}\"", error),
-                );
+            if should_record_cleanup(mode) {
+                if let Err(error) =
+                    crate::commands::settings::record_cleanup(&app, clean_result.freed_bytes)
+                {
+                    crate::logging::warn(
+                        "settings",
+                        &format!("failed to persist cleanup history error=\"{}\"", error),
+                    );
+                }
             }
             crate::logging::info(
                 "clean",
