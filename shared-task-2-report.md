@@ -59,3 +59,22 @@ Date: 2026-08-08
 | Desktop `cargo clippy --all-targets -- -D warnings` with local core override | PASS |
 
 Full-test failures remain `active_non_node_modules_category_uses_core_trash_cleanup` and `node_modules_cleanup_preserves_existing_size_error`; both fail because secure Windows Trash is unavailable in this environment.
+
+## Final Cleanup Cancellation Ordering Review Fix
+
+Date: 2026-08-08
+
+- `ScanService::finish_cleanup` now retrieves and finishes the `CleanupControl` before removing cleanup control and target authorization.
+- Added lifecycle coverage proving a retained control rejects cancellation after `finish_cleanup`, even when it was still in `Preparing`.
+- Scan behavior and post-execution cancellation semantics remain unchanged.
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| Focused cleanup lifecycle tests with local core override | PASS |
+| Desktop `cargo fmt --all -- --check` | PASS |
+| Desktop `cargo clippy --all-targets --config 'patch."ssh://git@github.com/uncached-app/uncached-core.git".uncached-core.path="../uncached-core"' -- -D warnings` | PASS |
+| Desktop full `cargo test` with local core override | 55 passed, 2 pre-existing environment-dependent secure Trash failures |
+
+Full-test failures remain `active_non_node_modules_category_uses_core_trash_cleanup` and `node_modules_cleanup_preserves_existing_size_error`; both fail because secure Windows Trash is unavailable in this environment.

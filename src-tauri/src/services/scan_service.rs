@@ -558,6 +558,9 @@ impl ScanService {
 
     pub fn finish_cleanup(target_id: &str) {
         let mut registry = registry().lock().unwrap();
+        if let Some(control) = registry.cleanup_controls.get(target_id) {
+            control.finish();
+        }
         release_claim(&mut registry, target_id);
         registry.targets.remove(target_id);
     }
@@ -858,7 +861,19 @@ mod tests {
         assert!(!ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
 
         ScanService::finish_cleanup(&target_id);
+        assert!(!control.request_cancel());
         assert!(ScanService::get_target(&target_id).is_err());
+    }
+
+    #[test]
+    fn cleanup_finish_marks_control_finished_before_removal() {
+        let target_id = format!("cleanup-finish-target-{}", std::process::id());
+        insert_test_target(&target_id);
+
+        let (_, control) = ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        ScanService::finish_cleanup(&target_id);
+
+        assert!(!control.request_cancel());
     }
 
     #[test]
