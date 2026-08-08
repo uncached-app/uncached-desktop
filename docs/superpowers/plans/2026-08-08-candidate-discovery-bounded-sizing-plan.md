@@ -93,20 +93,23 @@ Expected: current tests pass and public symbols are recorded before the module m
 
 Move each provider struct and its `Scanner` implementation into its named module. Each module must expose its provider type with the existing name. Keep provider rules exact, including NodeModules nested/tooling rejection and the existing context checks.
 
-`providers/mod.rs` must register providers in the same order:
+`providers/mod.rs` declarations and re-exports should follow rustfmt's lexical
+order. Runtime registration order remains explicit and deterministic in
+`ProviderSet::all()` and must stay NodeModules, CargoTarget, NextJs, Turbo,
+PyCache, Gradle:
 
 ```rust
 pub(crate) mod cargo_target;
 pub(crate) mod gradle;
-pub(crate) mod node_modules;
 pub(crate) mod next;
+pub(crate) mod node_modules;
 pub(crate) mod python_cache;
 pub(crate) mod turbo;
 
 pub use cargo_target::CargoTargetScanner;
 pub use gradle::GradleScanner;
-pub use node_modules::NodeModulesScanner;
 pub use next::NextCacheScanner;
+pub use node_modules::NodeModulesScanner;
 pub use python_cache::PyCacheScanner;
 pub use turbo::TurboCacheScanner;
 ```
