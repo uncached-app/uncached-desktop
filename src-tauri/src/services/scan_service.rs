@@ -6,6 +6,7 @@ use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::mpsc::{sync_channel, SyncSender};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter};
@@ -132,6 +133,8 @@ struct ScanSession {
     cancel_token: Arc<AtomicBool>,
     cancelled: bool,
     finished: bool,
+    walk_finished: bool,
+    pending_sizes: usize,
     target_ids: HashSet<String>,
 }
 
@@ -141,7 +144,83 @@ impl ScanSession {
             cancel_token: Arc::new(AtomicBool::new(false)),
             cancelled: false,
             finished: false,
+            walk_finished: false,
+            pending_sizes: 0,
             target_ids: HashSet::new(),
+        }
+    }
+}
+
+struct SizingJob {
+    scan_id: String,
+    target_id: String,
+    path: PathBuf,
+}
+
+struct SizingController {
+    sender: Option<SyncSender<SizingJob>>,
+    workers: Vec<std::thread::JoinHandle<()>>,
+}
+
+fn sizing_worker_count() -> usize {
+    std::thread::available_parallelism()
+        .map(|count| count.get().clamp(1, 8))
+        .unwrap_or(1)
+}
+
+impl SizingController {
+    fn new(app: &AppHandle, stats: &Arc<Mutex<ScanStats>>, started_at: Instant) -> Self {
+        let workers = sizing_worker_count();
+        let (sender, receiver) = sync_channel::<SizingJob>(workers * 2);
+        let receiver = Arc::new(Mutex::new(receiver));
+        let mut worker_handles = Vec::with_capacity(workers);
+
+        for _ in 0..workers {
+            let app = app.clone();
+            let receiver = Arc::clone(&receiver);
+            let stats = Arc::clone(stats);
+            worker_handles.push(std::thread::spawn(move || loop {
+                let job = receiver.lock().unwrap().recv();
+                let Ok(job) = job else {
+                    break;
+                };
+                let report = crate::filesystem::size::calculate_dir_size_report(&job.path);
+                if let Some(update) =
+                    apply_target_size_for_session(&job.scan_id, &job.target_id, report)
+                {
+                    crate::logging::info(
+                        "size",
+                        &format!(
+                            "targetPath=\"{}\" bytes={} errors={}",
+                            job.path.display(),
+                            report.bytes,
+                            report.errors
+                        ),
+                    );
+                    let _ = app.emit("scan:target_sized", update);
+                } else {
+                    crate::logging::info(
+                        "size",
+                        &format!(
+                            "discarded targetId=\"{}\" scanId=\"{}\"",
+                            job.target_id, job.scan_id
+                        ),
+                    );
+                }
+                settle_size_job(&app, &job.scan_id, &stats, started_at);
+            }));
+        }
+
+        Self {
+            sender: Some(sender),
+            workers: worker_handles,
+        }
+    }
+
+    fn finish(mut self) {
+        self.sender.take();
+        for worker in self.workers {
+            let _ = worker.join();
         }
     }
 }
@@ -223,6 +302,8 @@ impl ScanService {
             let providers = Arc::new(providers_for_scan(&settings));
             let target_event_handle = app_handle.clone();
             let stats = Arc::new(Mutex::new(ScanStats::default()));
+            let sizing = SizingController::new(&app_handle, &stats, started_at);
+            let sizing_sender = sizing.sender.as_ref().unwrap().clone();
             let stats_for_callback = Arc::clone(&stats);
             let registry_for_callback = Arc::clone(registry());
             let callback_scan_id = worker_scan_id.clone();
@@ -264,6 +345,7 @@ impl ScanService {
                                 false
                             } else {
                                 session.target_ids.insert(target.id.clone());
+                                session.pending_sizes += 1;
                                 true
                             }
                         };
@@ -294,12 +376,13 @@ impl ScanService {
                                 target.path.display()
                             ),
                         );
-                        ScanService::start_target_size(
-                            &target_event_handle,
-                            &callback_event_scan_id,
-                            &target.id,
-                            &target.path,
-                        );
+                        sizing_sender
+                            .send(SizingJob {
+                                scan_id: callback_event_scan_id.clone(),
+                                target_id: target.id.clone(),
+                                path: target.path.clone(),
+                            })
+                            .unwrap();
                         return uncached_core::TraversalControl::Prune;
                     }
 
@@ -322,6 +405,7 @@ impl ScanService {
                         &format!("cancelled scanId=\"{}\"", worker_scan_id),
                     );
                     let _ = ScanService::end_session(&worker_scan_id);
+                    sizing.finish();
                     let _ = app_handle.emit(
                         "scan:cancelled",
                         serde_json::json!({
@@ -338,6 +422,7 @@ impl ScanService {
                         &format!("scanId=\"{}\" error=\"{}\"", worker_scan_id, error),
                     );
                     if !ScanService::end_session(&worker_scan_id) {
+                        sizing.finish();
                         if cancel_token.load(Ordering::Acquire) {
                             let _ = app_handle.emit(
                                 "scan:cancelled",
@@ -350,6 +435,7 @@ impl ScanService {
                         }
                         return;
                     }
+                    sizing.finish();
                     let _ = app_handle.emit(
                         "scan:failed",
                         serde_json::json!({
@@ -362,7 +448,7 @@ impl ScanService {
                 Ok(uncached_core::TraversalOutcome::Completed) => {}
             }
 
-            if !ScanService::end_session(&worker_scan_id) {
+            if !ScanService::mark_walk_finished(&worker_scan_id, &app_handle, &stats, started_at) {
                 if cancel_token.load(Ordering::Acquire) {
                     let _ = app_handle.emit(
                         "scan:cancelled",
@@ -375,6 +461,7 @@ impl ScanService {
                 }
                 return;
             }
+            sizing.finish();
             let stats = stats.lock().unwrap();
             crate::logging::info(
                 "scan",
@@ -386,15 +473,6 @@ impl ScanService {
                     stats.total_bytes_found,
                     started_at.elapsed().as_millis()
                 ),
-            );
-            let _ = app_handle.emit(
-                "scan:finished",
-                serde_json::json!({
-                    "scanId": worker_scan_id,
-                    "totalTargets": stats.targets_found,
-                    "totalBytesFound": stats.total_bytes_found,
-                    "durationMs": started_at.elapsed().as_millis()
-                }),
             );
         });
 
@@ -413,39 +491,17 @@ impl ScanService {
             .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))
     }
 
-    pub fn start_target_size(app: &AppHandle, scan_id: &str, target_id: &str, path: &Path) {
-        let app = app.clone();
-        let scan_id = scan_id.to_string();
-        let target_id = target_id.to_string();
-        let path = path.to_path_buf();
-        std::thread::spawn(move || {
-            let report = crate::filesystem::size::calculate_dir_size_report(&path);
-            if let Some(update) = Self::apply_target_size(&target_id, report) {
-                crate::logging::info(
-                    "size",
-                    &format!(
-                        "targetPath=\"{}\" bytes={} errors={}",
-                        path.display(),
-                        report.bytes,
-                        report.errors
-                    ),
-                );
-                let _ = app.emit("scan:target_sized", update);
-            } else {
-                crate::logging::info(
-                    "size",
-                    &format!(
-                        "discarded targetId=\"{}\" scanId=\"{}\"",
-                        target_id, scan_id
-                    ),
-                );
-            }
-        });
-    }
-
     pub fn refresh_target_size(target_id: &str) -> NukeResult<TargetSizeUpdate> {
-        let registered = Self::get_target(target_id)?;
-        let report = crate::filesystem::size::calculate_dir_size_report(&registered.target.path);
+        let path = {
+            let mut registry = registry().lock().unwrap();
+            let registered = registry
+                .targets
+                .get_mut(target_id)
+                .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))?;
+            registered.target.size_pending = true;
+            registered.target.path.clone()
+        };
+        let report = crate::filesystem::size::calculate_dir_size_report(&path);
         Self::apply_target_size(target_id, report)
             .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))
     }
@@ -465,6 +521,33 @@ impl ScanService {
             size_pending: registered.target.size_pending,
             formatted_size: registered.target.formatted_size.clone(),
         })
+    }
+
+    fn mark_walk_finished(
+        scan_id: &str,
+        app: &AppHandle,
+        stats: &Arc<Mutex<ScanStats>>,
+        started_at: Instant,
+    ) -> bool {
+        let should_finish = {
+            let mut registry = registry().lock().unwrap();
+            let Some(session) = registry.sessions.get_mut(scan_id) else {
+                return false;
+            };
+            session.walk_finished = true;
+            if session_can_finish(session.walk_finished, session.pending_sizes) && !session.finished
+            {
+                session.finished = true;
+                registry.sessions.remove(scan_id);
+                true
+            } else {
+                false
+            }
+        };
+        if should_finish {
+            emit_finished(app, scan_id, stats, started_at);
+        }
+        true
     }
 
     pub fn cancel_scan(scan_id: &str) -> NukeResult<CancelScanResult> {
@@ -585,6 +668,75 @@ impl ScanService {
     }
 }
 
+fn session_can_finish(walk_finished: bool, pending_sizes: usize) -> bool {
+    walk_finished && pending_sizes == 0
+}
+
+fn apply_target_size_for_session(
+    scan_id: &str,
+    target_id: &str,
+    report: crate::filesystem::size::DirSize,
+) -> Option<TargetSizeUpdate> {
+    let mut registry = registry().lock().unwrap();
+    let session = registry.sessions.get(scan_id)?;
+    if !session.target_ids.contains(target_id) {
+        return None;
+    }
+    let registered = registry.targets.get_mut(target_id)?;
+    registered.target.set_size(report.bytes, report.errors > 0);
+    Some(TargetSizeUpdate {
+        scan_id: scan_id.to_string(),
+        target_id: target_id.to_string(),
+        size_bytes: registered.target.size_bytes,
+        size_has_errors: registered.target.size_has_errors,
+        size_pending: registered.target.size_pending,
+        formatted_size: registered.target.formatted_size.clone(),
+    })
+}
+
+fn settle_size_job(
+    app: &AppHandle,
+    scan_id: &str,
+    stats: &Arc<Mutex<ScanStats>>,
+    started_at: Instant,
+) {
+    let should_finish = {
+        let mut registry = registry().lock().unwrap();
+        let Some(session) = registry.sessions.get_mut(scan_id) else {
+            return;
+        };
+        session.pending_sizes = session.pending_sizes.saturating_sub(1);
+        if session_can_finish(session.walk_finished, session.pending_sizes) && !session.finished {
+            session.finished = true;
+            registry.sessions.remove(scan_id);
+            true
+        } else {
+            false
+        }
+    };
+    if should_finish {
+        emit_finished(app, scan_id, stats, started_at);
+    }
+}
+
+fn emit_finished(
+    app: &AppHandle,
+    scan_id: &str,
+    stats: &Arc<Mutex<ScanStats>>,
+    started_at: Instant,
+) {
+    let stats = stats.lock().unwrap();
+    let _ = app.emit(
+        "scan:finished",
+        serde_json::json!({
+            "scanId": scan_id,
+            "totalTargets": stats.targets_found,
+            "totalBytesFound": stats.total_bytes_found,
+            "durationMs": started_at.elapsed().as_millis()
+        }),
+    );
+}
+
 fn scan_id_from_target_id(target_id: &str) -> String {
     let mut parts = target_id.splitn(3, '-');
     match (parts.next(), parts.next()) {
@@ -601,6 +753,7 @@ mod tests {
     };
     use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
+    use crate::filesystem::size::DirSize;
     use crate::models::action::CleanMode;
     use crate::models::category::Category;
     use crate::models::target::ScanTarget;
@@ -608,6 +761,75 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::{mpsc, Arc, Barrier};
     use std::thread;
+
+    #[test]
+    fn session_can_finish_only_after_walk_and_sizes_settle() {
+        assert!(!super::session_can_finish(true, 1));
+        assert!(super::session_can_finish(true, 0));
+        assert!(!super::session_can_finish(false, 0));
+    }
+
+    #[test]
+    fn sizing_worker_count_is_bounded() {
+        assert!((1..=8).contains(&super::sizing_worker_count()));
+    }
+
+    #[test]
+    fn sizing_error_settles_visible_target_with_error_flag() {
+        let scan_id = format!("size-error-{}", std::process::id());
+        let target_id = format!("{scan_id}-target");
+        insert_test_target(&target_id);
+        let mut registry_guard = registry().lock().unwrap();
+        let session = super::ScanSession::new();
+        registry_guard.sessions.insert(scan_id.clone(), session);
+        registry_guard
+            .sessions
+            .get_mut(&scan_id)
+            .unwrap()
+            .target_ids
+            .insert(target_id.clone());
+        drop(registry_guard);
+
+        let update = super::apply_target_size_for_session(
+            &scan_id,
+            &target_id,
+            DirSize {
+                bytes: 0,
+                errors: 1,
+            },
+        )
+        .unwrap();
+
+        assert!(!update.size_pending);
+        assert!(update.size_has_errors);
+        ScanService::remove_target(&target_id).unwrap();
+        registry().lock().unwrap().sessions.remove(&scan_id);
+    }
+
+    #[test]
+    fn late_size_update_for_removed_target_does_not_recreate_registry_state() {
+        let scan_id = format!("late-size-{}", std::process::id());
+        let target_id = format!("{scan_id}-target");
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), super::ScanSession::new());
+        insert_test_target(&target_id);
+        registry().lock().unwrap().targets.remove(&target_id);
+
+        assert!(super::apply_target_size_for_session(
+            &scan_id,
+            &target_id,
+            DirSize {
+                bytes: 1,
+                errors: 0
+            },
+        )
+        .is_none());
+        assert!(!registry().lock().unwrap().targets.contains_key(&target_id));
+        registry().lock().unwrap().sessions.remove(&scan_id);
+    }
 
     #[test]
     fn cleanup_control_cancel_wins_only_during_preparing() {
