@@ -526,7 +526,8 @@ mod tests {
             ..AppSettings::default()
         };
         let providers = std::sync::Arc::new(providers_for_scan(&settings));
-        let mut target = ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false, None);
+        let mut target =
+            ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false, None);
         target.identity = uncached_core::filesystem::file_identity(&target_path);
         let registered = RegisteredTarget {
             target,

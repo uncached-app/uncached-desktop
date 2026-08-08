@@ -160,7 +160,8 @@ mod tests {
             b"[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n",
         )
         .unwrap();
-        let mut target = ScanTarget::new(target_path.clone(), Category::CargoTarget, 4, false, None);
+        let mut target =
+            ScanTarget::new(target_path.clone(), Category::CargoTarget, 4, false, None);
         target.identity = uncached_core::filesystem::file_identity(&target_path);
 
         let result = CleanService::clean_registered_target(
