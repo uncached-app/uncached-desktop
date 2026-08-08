@@ -16,7 +16,7 @@ import type {
   TargetSized,
 } from "../types/scan";
 import type { CleanMode } from "../types/settings";
-import { canOpenReview } from "../utils/scanReview.mjs";
+import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
 export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   const [rootPath, setRootPath] = useState("");
@@ -157,10 +157,10 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   }, []);
 
   useEffect(() => {
-    if (canOpenReview(scanFinished, scanTargetCount, targets)) {
+    if (shouldOpenReview(step, scanFinished, scanTargetCount, targets)) {
       setStep(3);
     }
-  }, [scanFinished, scanTargetCount, targets]);
+  }, [scanFinished, scanTargetCount, step, targets]);
 
   async function startScan(event: FormEvent) {
     event.preventDefault();
@@ -317,7 +317,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     setCleanupMode("Trash");
   }
 
-  const sizesReady = targets.length > 0 && targets.every((target) => !target.sizePending && !target.sizeHasErrors);
+  const sizesReady = targets.length > 0 && getCleanupReadyTargets(targets).length === targets.length;
   const deleteAllDisabled = scanning || deletingAll || !sizesReady;
   const deleteAllLoading = scanning || deletingAll || targets.some((target) => target.sizePending);
 

@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { CleanResult, ScanTarget, Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import { formatBytes } from "../../utils/format";
+import { getCleanupReadyTargets } from "../../utils/scanReview.mjs";
 import { TargetCard } from "./TargetCard";
 
 interface FindingsSectionProps {
@@ -35,7 +36,7 @@ export function FindingsSection({
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmation, setConfirmation] = useState("");
-  const readyTargets = targets.filter((target) => !target.sizePending && !target.sizeHasErrors);
+  const readyTargets = getCleanupReadyTargets(targets);
   const selectedTargets = readyTargets.filter((target) => selectedIds.has(target.id));
   const allSelected = readyTargets.length > 0 && selectedTargets.length === readyTargets.length;
   const deleteDisabled = scanning || confirming || deleting || selectedTargets.length === 0;
