@@ -20,6 +20,9 @@ pub enum NukeError {
     #[error("Scan cancelled by user")]
     ScanCancelled,
 
+    #[error("Cleanup cancelled before deletion")]
+    CleanupCancelled,
+
     #[error("Internal error: {0}")]
     Internal(String),
 }
