@@ -33,10 +33,11 @@ pub struct TargetSizeUpdate {
     pub formatted_size: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RegisteredTarget {
     pub target: ScanTarget,
     pub root_path: PathBuf,
+    pub providers: Arc<uncached_core::ProviderSet>,
 }
 
 #[derive(Default)]
@@ -134,7 +135,7 @@ impl ScanService {
             let started_at = Instant::now();
             let settings =
                 crate::commands::settings::load_settings(&app_handle).unwrap_or_default();
-            let providers = providers_for_scan(&settings);
+            let providers = Arc::new(providers_for_scan(&settings));
             let target_event_handle = app_handle.clone();
             let stats = Arc::new(Mutex::new(ScanStats::default()));
             let stats_for_callback = Arc::clone(&stats);
@@ -143,6 +144,7 @@ impl ScanService {
             let callback_event_scan_id = worker_scan_id.clone();
             let callback_root = canonical_root.clone();
             let callback_cancel_token = Arc::clone(&cancel_token);
+            let callback_providers = Arc::clone(&providers);
 
             let core_cancel_token = Arc::clone(&cancel_token);
             let walk_result = uncached_core::traverse_workspace(
@@ -188,6 +190,7 @@ impl ScanService {
                             RegisteredTarget {
                                 target: target.clone(),
                                 root_path: callback_root.clone(),
+                                providers: Arc::clone(&callback_providers),
                             },
                         );
                         drop(registry);
@@ -461,6 +464,7 @@ mod tests {
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use std::path::PathBuf;
+    use std::sync::Arc;
 
     #[test]
     fn converts_core_target_preserving_scan_fields_and_pending_state() {
@@ -509,6 +513,46 @@ mod tests {
     }
 
     #[test]
+    fn registered_target_retains_provider_snapshot_for_permanent_cleanup_without_settings() {
+        let root =
+            std::env::temp_dir().join(format!("uncached-provider-snapshot-{}", std::process::id()));
+        let target_path = root.join("project/node_modules");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&target_path).unwrap();
+        std::fs::write(root.join("project/package.json"), b"{}").unwrap();
+
+        let settings = AppSettings {
+            detect_cargo_target: false,
+            ..AppSettings::default()
+        };
+        let providers = std::sync::Arc::new(providers_for_scan(&settings));
+        let target = ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false, None);
+        let registered = RegisteredTarget {
+            target,
+            root_path: root.clone(),
+            providers: std::sync::Arc::clone(&providers),
+        };
+
+        assert!(registered
+            .providers
+            .scanner_for(uncached_core::Category::CargoTarget)
+            .is_none());
+        assert!(registered
+            .providers
+            .scanner_for(uncached_core::Category::NodeModules)
+            .is_some());
+        assert!(CleanService::clean_registered_target(
+            registered,
+            None,
+            CleanMode::Permanent,
+            Some("Nuke".to_string()),
+        )
+        .is_ok());
+        assert!(!target_path.exists());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn scan_path_removes_extended_prefix() {
         assert_eq!(
             super::scan_path(std::path::Path::new(r"\\?\D:\Downloads\project")),
@@ -541,6 +585,7 @@ mod tests {
             RegisteredTarget {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
+                providers: Arc::new(providers_for_scan(&AppSettings::default())),
             },
         );
 
@@ -566,6 +611,7 @@ mod tests {
             RegisteredTarget {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
+                providers: Arc::new(providers_for_scan(&AppSettings::default())),
             },
         );
 
@@ -591,6 +637,7 @@ mod tests {
             RegisteredTarget {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
+                providers: Arc::new(providers_for_scan(&AppSettings::default())),
             },
         );
 
@@ -627,6 +674,7 @@ mod tests {
             RegisteredTarget {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
+                providers: Arc::new(providers_for_scan(&AppSettings::default())),
             },
         );
         registry

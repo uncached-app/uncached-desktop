@@ -1,5 +1,3 @@
-use crate::cleaner::permanent::PermanentCleaner;
-use crate::cleaner::Cleaner;
 use crate::commands::settings::AppSettings;
 use crate::errors::NukeResult;
 use crate::filesystem::paths::{canonicalize_target, is_within_root};
@@ -24,31 +22,42 @@ impl CleanService {
             ));
         }
 
+        let target = uncached_core::ScanTarget::new(
+            registered.target.path.clone(),
+            core_category(&registered.target.category),
+            registered.target.size_bytes,
+        )
+        .with_identity(registered.target.identity);
+
         let clean_report = match mode {
             CleanMode::Trash => {
-                let settings = settings.ok_or_else(|| {
+                let _settings = settings.ok_or_else(|| {
                     crate::errors::NukeError::PermissionDenied(
                         "Trash cleanup requires settings".to_string(),
                     )
                 })?;
-                let target = uncached_core::ScanTarget::new(
-                    registered.target.path.clone(),
-                    core_category(&registered.target.category),
-                    registered.target.size_bytes,
+                let report = uncached_core::clean_to_trash(
+                    &registered.root_path,
+                    &registered.providers,
+                    &target,
                 )
-                .with_identity(registered.target.identity);
-                let providers = crate::scanner::get_default_providers(settings);
-                let report =
-                    uncached_core::clean_to_trash(&registered.root_path, &providers, &target)
-                        .map_err(map_core_error)?;
+                .map_err(map_core_error)?;
                 crate::cleaner::CleanReport {
                     freed_bytes: report.freed_bytes,
                     size_has_errors: registered.target.size_has_errors || report.size_has_errors,
                 }
             }
             CleanMode::Permanent => {
-                let cleaner = PermanentCleaner;
-                cleaner.clean(&target_path)?
+                let report = uncached_core::clean_permanently(
+                    &registered.root_path,
+                    &registered.providers,
+                    &target,
+                )
+                .map_err(map_core_error)?;
+                crate::cleaner::CleanReport {
+                    freed_bytes: report.freed_bytes,
+                    size_has_errors: registered.target.size_has_errors || report.size_has_errors,
+                }
             }
         };
 
@@ -107,6 +116,19 @@ mod tests {
     use crate::models::category::Category;
     use crate::models::target::ScanTarget;
     use crate::services::scan_service::RegisteredTarget;
+    use std::path::PathBuf;
+
+    fn registered_target(
+        target: ScanTarget,
+        root_path: PathBuf,
+        settings: &AppSettings,
+    ) -> RegisteredTarget {
+        RegisteredTarget {
+            target,
+            root_path,
+            providers: std::sync::Arc::new(crate::scanner::get_default_providers(settings)),
+        }
+    }
 
     #[test]
     fn permanent_mode_requires_exact_nuke_confirmation() {
@@ -129,10 +151,7 @@ mod tests {
         let target = ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false, None);
 
         let result = CleanService::clean_registered_target(
-            RegisteredTarget {
-                target,
-                root_path: root.clone(),
-            },
+            registered_target(target, root.clone(), &AppSettings::default()),
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
@@ -159,10 +178,7 @@ mod tests {
         let target = ScanTarget::new(target_path, Category::CargoTarget, 4, false, None);
 
         let result = CleanService::clean_registered_target(
-            RegisteredTarget {
-                target,
-                root_path: root.clone(),
-            },
+            registered_target(target, root.clone(), &AppSettings::default()),
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
@@ -191,10 +207,7 @@ mod tests {
         };
 
         let result = CleanService::clean_registered_target(
-            RegisteredTarget {
-                target,
-                root_path: root.clone(),
-            },
+            registered_target(target, root.clone(), &settings),
             Some(&settings),
             CleanMode::Trash,
             None,
@@ -215,10 +228,7 @@ mod tests {
         let target = ScanTarget::new(target_path.clone(), Category::NextJs, 0, false, None);
 
         let result = CleanService::clean_registered_target(
-            RegisteredTarget {
-                target,
-                root_path: root.clone(),
-            },
+            registered_target(target, root.clone(), &AppSettings::default()),
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
@@ -239,10 +249,7 @@ mod tests {
         let target = ScanTarget::new(target_path, Category::NodeModules, 0, true, None);
 
         let result = CleanService::clean_registered_target(
-            RegisteredTarget {
-                target,
-                root_path: root.clone(),
-            },
+            registered_target(target, root.clone(), &AppSettings::default()),
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
