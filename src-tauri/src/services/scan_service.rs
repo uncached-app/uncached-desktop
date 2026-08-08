@@ -160,6 +160,11 @@ fn registry() -> &'static Arc<Mutex<ScanRegistry>> {
     REGISTRY.get_or_init(|| Arc::new(Mutex::new(ScanRegistry::default())))
 }
 
+fn release_claim(registry: &mut ScanRegistry, target_id: &str) {
+    registry.in_flight.remove(target_id);
+    registry.cleanup_controls.remove(target_id);
+}
+
 fn scan_path(path: &Path) -> PathBuf {
     strip_extended_prefix(path)
 }
@@ -553,27 +558,23 @@ impl ScanService {
 
     pub fn finish_cleanup(target_id: &str) {
         let mut registry = registry().lock().unwrap();
-        registry.in_flight.remove(target_id);
-        if let Some(control) = registry.cleanup_controls.remove(target_id) {
-            control.finish();
-        }
+        release_claim(&mut registry, target_id);
         registry.targets.remove(target_id);
     }
 
     pub fn release_cleanup(target_id: &str) {
         let mut registry = registry().lock().unwrap();
-        registry.in_flight.remove(target_id);
-        registry.cleanup_controls.remove(target_id);
+        release_claim(&mut registry, target_id);
     }
 
     pub fn release_target(target_id: &str) {
         let mut registry = registry().lock().unwrap();
-        registry.in_flight.remove(target_id);
+        release_claim(&mut registry, target_id);
     }
 
     pub fn remove_target(target_id: &str) -> NukeResult<RegisteredTarget> {
         let mut registry = registry().lock().unwrap();
-        registry.in_flight.remove(target_id);
+        release_claim(&mut registry, target_id);
         registry
             .targets
             .remove(target_id)
@@ -887,6 +888,29 @@ mod tests {
 
         ScanService::release_cleanup(&target_id);
         ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn legacy_release_target_clears_active_cleanup_control() {
+        let target_id = format!("legacy-release-cleanup-{}", std::process::id());
+        insert_test_target(&target_id);
+
+        ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        ScanService::release_target(&target_id);
+
+        assert!(!ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
+        ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn legacy_remove_target_clears_active_cleanup_control() {
+        let target_id = format!("legacy-remove-cleanup-{}", std::process::id());
+        insert_test_target(&target_id);
+
+        ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        ScanService::remove_target(&target_id).unwrap();
+
+        assert!(!ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
     }
 
     #[test]

@@ -38,3 +38,24 @@ Date: 2026-08-08
 | Desktop full `cargo test` with local core override | 49 passed, 2 pre-existing environment-dependent cleanup failures |
 
 Full-test failures are `active_non_node_modules_category_uses_core_trash_cleanup` and `node_modules_cleanup_preserves_existing_size_error`; both require Windows secure Trash behavior unavailable in this environment.
+
+## Final Cleanup Cancellation Review Fix
+
+Date: 2026-08-08
+
+- `clean_target` now maps `NukeError::CleanupCancelled` to `clean:failed` with `cancelled: true`, preserving `targetId` and message. Success is emitted only for successful service results.
+- All cleanup failures now include explicit `cancelled: false` unless they are cancellation errors. IPC documentation reflects the schema.
+- `release_target` and `remove_target` now share claim-release cleanup with cleanup-specific lifecycle methods, preventing stale `cleanup_controls` while preserving scan cancellation behavior.
+- Added deterministic command/service event coverage and legacy release/remove registry coverage. No sleeps or changes to scan cancellation or mid-execution semantics.
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| Focused cancellation event test with local core override | PASS |
+| Focused legacy cleanup-control tests with local core override | PASS: 2 tests |
+| `cargo fmt --all -- --check` | PASS |
+| Desktop full `cargo test` with local core override | 54 passed, 2 pre-existing environment-dependent secure Trash failures |
+| Desktop `cargo clippy --all-targets -- -D warnings` with local core override | PASS |
+
+Full-test failures remain `active_non_node_modules_category_uses_core_trash_cleanup` and `node_modules_cleanup_preserves_existing_size_error`; both fail because secure Windows Trash is unavailable in this environment.

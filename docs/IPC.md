@@ -149,5 +149,12 @@ Esse evento substitui `scan:finished` quando scan é cancelado.
 ### `clean:failed`
 
 ```json
-{ "targetId": "scan-1-abc123", "message": "Permission denied" }
+{
+  "targetId": "scan-1-abc123",
+  "message": "Permission denied",
+  "cancelled": false
+}
 ```
+
+Cleanup cancellation uses the same event with `cancelled: true` and never emits
+`clean:success`.
