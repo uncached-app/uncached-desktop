@@ -23,7 +23,7 @@ pub trait Scanner: Send + Sync {
 | `NextJs` | `.next` | `package.json` no pai |
 | `Turbo` | `.turbo` | `package.json` ou `turbo.json` no pai |
 
-`get_default_scanners()` recebe `AppSettings` e registra condicionalmente: `NodeModules`, `CargoTarget`, `Gradle`, `NextJs` e `Turbo` dependem do toggle correspondente em Settings § Scanning. `PyCache` é sempre registrado e não tem toggle.
+`get_default_providers()` recebe `AppSettings` e registra condicionalmente: `NodeModules`, `CargoTarget`, `Gradle`, `NextJs` e `Turbo` dependem do toggle correspondente em Settings § Scanning. `PyCache` é sempre registrado e não tem toggle.
 
 `.NET`, Docker e `.venv` estão representados no modelo de categorias, mas ainda não possuem scanner implementado.
 
