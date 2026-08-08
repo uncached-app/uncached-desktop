@@ -137,6 +137,7 @@ struct ScanSession {
     pending_sizes: usize,
     pending_size_ids: HashSet<String>,
     target_ids: HashSet<String>,
+    publishing_target_ids: HashSet<String>,
 }
 
 impl ScanSession {
@@ -149,6 +150,7 @@ impl ScanSession {
             pending_sizes: 0,
             pending_size_ids: HashSet::new(),
             target_ids: HashSet::new(),
+            publishing_target_ids: HashSet::new(),
         }
     }
 
@@ -170,7 +172,9 @@ impl ScanSession {
     }
 
     fn can_finish(&self) -> bool {
-        session_can_finish(self.walk_finished, self.pending_sizes) && !self.finished
+        session_can_finish(self.walk_finished, self.pending_sizes)
+            && !self.finished
+            && !self.cancelled
     }
 }
 
@@ -258,17 +262,17 @@ impl SizingController {
                         &stats,
                         started_at,
                         &event_sink,
+                        None,
                     );
                     continue;
                 }
-                if apply_target_size_and_emit_for_session(
+                let applied = apply_target_size_and_emit_for_session(
                     &job.scan_id,
                     &job.target_id,
                     report,
                     &event_sink,
-                )
-                .is_some()
-                {
+                );
+                if applied.is_some() {
                     crate::logging::info(
                         "size",
                         &format!(
@@ -293,6 +297,7 @@ impl SizingController {
                     &stats,
                     started_at,
                     &event_sink,
+                    (applied.is_some() && report.errors == 0).then_some(report.bytes),
                 );
             }));
         }
@@ -480,8 +485,6 @@ impl ScanService {
                             return uncached_core::TraversalControl::Cancel;
                         }
                         stats.targets_found += 1;
-                        stats.total_bytes_found =
-                            stats.total_bytes_found.saturating_add(target.size_bytes);
 
                         let mut registry = registry_for_callback.lock().unwrap();
                         let accepted = {
@@ -591,6 +594,7 @@ impl ScanService {
             }
 
             if !ScanService::mark_walk_finished(&worker_scan_id, &app_handle, &stats, started_at) {
+                sizing.finish();
                 if cancel_token.load(Ordering::Acquire) {
                     let _ = app_handle.emit(
                         "scan:cancelled",
@@ -697,19 +701,28 @@ impl ScanService {
 
     pub fn cancel_scan(scan_id: &str) -> NukeResult<CancelScanResult> {
         let mut registry = registry().lock().unwrap();
-        let Some(mut session) = registry.sessions.remove(scan_id) else {
-            return Ok(CancelScanResult { cancelled: false });
-        };
-        if session.cancelled || session.finished {
-            return Ok(CancelScanResult { cancelled: false });
-        }
+        let target_ids = {
+            let Some(session) = registry.sessions.get_mut(scan_id) else {
+                return Ok(CancelScanResult { cancelled: false });
+            };
+            if session.cancelled || session.finished {
+                return Ok(CancelScanResult { cancelled: false });
+            }
 
-        session.cancel_token.store(true, Ordering::Release);
-        session.cancelled = true;
-        let target_ids = session.target_ids.drain().collect::<Vec<_>>();
-        for target_id in target_ids {
-            registry.in_flight.remove(&target_id);
-            registry.targets.remove(&target_id);
+            session.cancel_token.store(true, Ordering::Release);
+            session.cancelled = true;
+            if session.publishing_target_ids.is_empty() {
+                Some(session.target_ids.drain().collect::<Vec<_>>())
+            } else {
+                None
+            }
+        };
+        if let Some(target_ids) = target_ids {
+            registry.sessions.remove(scan_id);
+            for target_id in target_ids {
+                registry.in_flight.remove(&target_id);
+                registry.targets.remove(&target_id);
+            }
         }
 
         Ok(CancelScanResult { cancelled: true })
@@ -823,23 +836,47 @@ fn apply_target_size_and_emit_for_session(
     report: crate::filesystem::size::DirSize,
     event_sink: &EventSink,
 ) -> Option<TargetSizeUpdate> {
-    let mut registry = registry().lock().unwrap();
-    let session = registry.sessions.get(scan_id)?;
-    if !session.target_ids.contains(target_id) {
-        return None;
-    }
-    let registered = registry.targets.get_mut(target_id)?;
-    registered.target.set_size(report.bytes, report.errors > 0);
-    let update = TargetSizeUpdate {
-        scan_id: scan_id.to_string(),
-        target_id: target_id.to_string(),
-        size_bytes: registered.target.size_bytes,
-        size_has_errors: registered.target.size_has_errors,
-        size_pending: registered.target.size_pending,
-        formatted_size: registered.target.formatted_size.clone(),
+    let update = {
+        let mut registry = registry().lock().unwrap();
+        let accepted = registry
+            .sessions
+            .get(scan_id)
+            .is_some_and(|session| !session.cancelled && session.target_ids.contains(target_id));
+        if !accepted {
+            return None;
+        }
+        registry
+            .sessions
+            .get_mut(scan_id)
+            .unwrap()
+            .publishing_target_ids
+            .insert(target_id.to_string());
+        let registered = match registry.targets.get_mut(target_id) {
+            Some(registered) => registered,
+            None => {
+                registry
+                    .sessions
+                    .get_mut(scan_id)
+                    .unwrap()
+                    .publishing_target_ids
+                    .remove(target_id);
+                return None;
+            }
+        };
+        registered.target.set_size(report.bytes, report.errors > 0);
+        TargetSizeUpdate {
+            scan_id: scan_id.to_string(),
+            target_id: target_id.to_string(),
+            size_bytes: registered.target.size_bytes,
+            size_has_errors: registered.target.size_has_errors,
+            size_pending: registered.target.size_pending,
+            formatted_size: registered.target.formatted_size.clone(),
+        }
     };
-    // Keep cancellation from removing this target between its update and event publication.
+    // Cancellation defers target removal while this barrier is active. The sink runs outside
+    // the registry lock, so sinks may safely call registry lifecycle methods.
     event_sink("scan:target_sized", serde_json::to_value(&update).unwrap());
+    complete_target_publication(scan_id, target_id);
     Some(update)
 }
 
@@ -872,6 +909,7 @@ fn settle_size_job(
     stats: &Arc<Mutex<ScanStats>>,
     started_at: Instant,
     event_sink: &EventSink,
+    measured_bytes: Option<u64>,
 ) {
     let should_finish = {
         let mut registry = registry().lock().unwrap();
@@ -889,9 +927,49 @@ fn settle_size_job(
             false
         }
     };
+    if let Some(bytes) = measured_bytes {
+        let mut stats = stats.lock().unwrap();
+        stats.total_bytes_found = stats.total_bytes_found.saturating_add(bytes);
+    }
+    emit_progress(event_sink, scan_id, stats);
     if should_finish {
         emit_finished(event_sink, scan_id, stats, started_at);
     }
+}
+
+fn complete_target_publication(scan_id: &str, target_id: &str) {
+    let mut registry = registry().lock().unwrap();
+    let target_ids = {
+        let Some(session) = registry.sessions.get_mut(scan_id) else {
+            return;
+        };
+        session.publishing_target_ids.remove(target_id);
+        if session.cancelled && session.publishing_target_ids.is_empty() {
+            Some(session.target_ids.drain().collect::<Vec<_>>())
+        } else {
+            None
+        }
+    };
+    if let Some(target_ids) = target_ids {
+        registry.sessions.remove(scan_id);
+        for target_id in target_ids {
+            registry.in_flight.remove(&target_id);
+            registry.targets.remove(&target_id);
+        }
+    }
+}
+
+fn emit_progress(event_sink: &EventSink, scan_id: &str, stats: &Arc<Mutex<ScanStats>>) {
+    let stats = stats.lock().unwrap();
+    event_sink(
+        "scan:progress",
+        serde_json::json!({
+            "scanId": scan_id,
+            "directoriesScanned": stats.directories_scanned,
+            "targetsFound": stats.targets_found,
+            "totalBytesFound": stats.total_bytes_found
+        }),
+    );
 }
 
 fn emit_finished(
@@ -958,16 +1036,6 @@ mod tests {
     #[test]
     fn sizing_worker_count_is_bounded() {
         assert!((1..=8).contains(&super::sizing_worker_count()));
-    }
-
-    #[test]
-    fn target_found_is_observed_before_target_sized() {
-        let (sender, receiver) = mpsc::channel();
-        sender.send("scan:target_found").unwrap();
-        sender.send("scan:target_sized").unwrap();
-
-        assert_eq!(receiver.recv().unwrap(), "scan:target_found");
-        assert_eq!(receiver.recv().unwrap(), "scan:target_sized");
     }
 
     #[test]
@@ -1702,6 +1770,14 @@ mod tests {
         let scan_id = format!("scan-controller-{}", std::process::id());
         let target_id = format!("{scan_id}-target");
         insert_test_target(&target_id);
+        registry()
+            .lock()
+            .unwrap()
+            .targets
+            .get_mut(&target_id)
+            .unwrap()
+            .target
+            .size_pending = true;
         let mut session = super::ScanSession::new();
         session.target_ids.insert(target_id.clone());
         session.register_size_job(target_id.clone());
@@ -1712,10 +1788,15 @@ mod tests {
             .sessions
             .insert(scan_id.clone(), session);
 
-        let events = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let events = Arc::new(std::sync::Mutex::new(
+            Vec::<(String, serde_json::Value)>::new(),
+        ));
         let events_for_sink = Arc::clone(&events);
-        let sink: super::EventSink = Arc::new(move |event: &str, _: serde_json::Value| {
-            events_for_sink.lock().unwrap().push(event.to_string());
+        let sink: super::EventSink = Arc::new(move |event: &str, payload: serde_json::Value| {
+            events_for_sink
+                .lock()
+                .unwrap()
+                .push((event.to_string(), payload));
         });
         super::emit_target_found(
             &sink,
@@ -1745,10 +1826,23 @@ mod tests {
             7
         );
         assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));
+        let events = events.lock().unwrap();
         assert_eq!(
-            events.lock().unwrap().as_slice(),
-            &["scan:target_found", "scan:target_sized", "scan:finished"]
+            events
+                .iter()
+                .map(|(event, _)| event.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "scan:target_found",
+                "scan:target_sized",
+                "scan:progress",
+                "scan:finished"
+            ]
         );
+        assert_eq!(events[0].1["target"]["sizePending"], true);
+        assert_eq!(events[1].1["sizeBytes"], 7);
+        assert_eq!(events[2].1["totalBytesFound"], 7);
+        assert_eq!(events[3].1["totalBytesFound"], 7);
         ScanService::remove_target(&target_id).unwrap();
     }
 
@@ -1774,7 +1868,16 @@ mod tests {
             .sessions
             .insert(scan_id.clone(), session);
 
-        let (events, sink) = event_sink();
+        let events = Arc::new(std::sync::Mutex::new(
+            Vec::<(String, serde_json::Value)>::new(),
+        ));
+        let events_for_sink = Arc::clone(&events);
+        let sink: super::EventSink = Arc::new(move |event: &str, payload: serde_json::Value| {
+            events_for_sink
+                .lock()
+                .unwrap()
+                .push((event.to_string(), payload));
+        });
         let (started_sender, started_receiver) = mpsc::channel();
         let (release_sender, release_receiver) = mpsc::channel();
         let release_receiver = Arc::new(std::sync::Mutex::new(release_receiver));
@@ -1803,7 +1906,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .iter()
-                .filter(|event| event.as_str() == "scan:finished")
+                .filter(|(event, _)| event == "scan:finished")
                 .count(),
             0
         );
@@ -1816,7 +1919,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .iter()
-                .filter(|event| event.as_str() == "scan:finished")
+                .filter(|(event, _)| event == "scan:finished")
                 .count(),
             1
         );
@@ -1843,7 +1946,16 @@ mod tests {
             .sessions
             .insert(scan_id.clone(), session);
 
-        let (events, sink) = event_sink();
+        let events = Arc::new(std::sync::Mutex::new(
+            Vec::<(String, serde_json::Value)>::new(),
+        ));
+        let events_for_sink = Arc::clone(&events);
+        let sink: super::EventSink = Arc::new(move |event: &str, payload: serde_json::Value| {
+            events_for_sink
+                .lock()
+                .unwrap()
+                .push((event.to_string(), payload));
+        });
         let controller = SizingController::for_test(
             1,
             Arc::new(|_: &std::path::Path| DirSize {
@@ -1867,15 +1979,25 @@ mod tests {
             .lock()
             .unwrap()
             .iter()
-            .any(|event| event == "scan:failed"));
+            .any(|(event, _)| event == "scan:failed"));
         assert_eq!(
             events
                 .lock()
                 .unwrap()
                 .iter()
-                .filter(|event| event.as_str() == "scan:finished")
+                .filter(|(event, _)| event == "scan:finished")
                 .count(),
             1
+        );
+        assert_eq!(
+            events
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|(event, _)| event == "scan:finished")
+                .unwrap()
+                .1["totalBytesFound"],
+            0
         );
         assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));
         ScanService::remove_target(&target_id).unwrap();
@@ -1986,9 +2108,10 @@ mod tests {
         assert!(
             cancellation_result_receiver
                 .recv_timeout(std::time::Duration::from_millis(50))
-                .is_err(),
-            "cancellation must wait for target-sized publication"
+                .unwrap()
+                .cancelled
         );
+        assert!(ScanService::get_target(&target_id).is_ok());
         publication_release_sender.send(()).unwrap();
         assert!(cancellation.join().is_ok());
         controller.finish();
