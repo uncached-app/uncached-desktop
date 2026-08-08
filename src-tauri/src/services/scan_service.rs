@@ -135,6 +135,7 @@ struct ScanSession {
     finished: bool,
     walk_finished: bool,
     pending_sizes: usize,
+    pending_size_ids: HashSet<String>,
     target_ids: HashSet<String>,
 }
 
@@ -146,8 +147,30 @@ impl ScanSession {
             finished: false,
             walk_finished: false,
             pending_sizes: 0,
+            pending_size_ids: HashSet::new(),
             target_ids: HashSet::new(),
         }
+    }
+
+    fn register_size_job(&mut self, target_id: String) {
+        if self.pending_size_ids.insert(target_id) {
+            self.pending_sizes += 1;
+        }
+    }
+
+    fn settle_size_job(&mut self, target_id: &str) -> bool {
+        if !self.pending_size_ids.remove(target_id) {
+            return false;
+        }
+        self.pending_sizes = self
+            .pending_sizes
+            .checked_sub(1)
+            .expect("pending size job set and count must agree");
+        true
+    }
+
+    fn can_finish(&self) -> bool {
+        session_can_finish(self.walk_finished, self.pending_sizes) && !self.finished
     }
 }
 
@@ -207,7 +230,7 @@ impl SizingController {
                         ),
                     );
                 }
-                settle_size_job(&app, &job.scan_id, &stats, started_at);
+                settle_size_job(&app, &job.scan_id, &job.target_id, &stats, started_at);
             }));
         }
 
@@ -345,7 +368,7 @@ impl ScanService {
                                 false
                             } else {
                                 session.target_ids.insert(target.id.clone());
-                                session.pending_sizes += 1;
+                                session.register_size_job(target.id.clone());
                                 true
                             }
                         };
@@ -535,8 +558,7 @@ impl ScanService {
                 return false;
             };
             session.walk_finished = true;
-            if session_can_finish(session.walk_finished, session.pending_sizes) && !session.finished
-            {
+            if session.can_finish() {
                 session.finished = true;
                 registry.sessions.remove(scan_id);
                 true
@@ -697,6 +719,7 @@ fn apply_target_size_for_session(
 fn settle_size_job(
     app: &AppHandle,
     scan_id: &str,
+    target_id: &str,
     stats: &Arc<Mutex<ScanStats>>,
     started_at: Instant,
 ) {
@@ -705,8 +728,10 @@ fn settle_size_job(
         let Some(session) = registry.sessions.get_mut(scan_id) else {
             return;
         };
-        session.pending_sizes = session.pending_sizes.saturating_sub(1);
-        if session_can_finish(session.walk_finished, session.pending_sizes) && !session.finished {
+        if !session.settle_size_job(target_id) {
+            return;
+        }
+        if session.can_finish() {
             session.finished = true;
             registry.sessions.remove(scan_id);
             true
@@ -759,6 +784,7 @@ mod tests {
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use std::path::PathBuf;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{mpsc, Arc, Barrier};
     use std::thread;
 
@@ -772,6 +798,157 @@ mod tests {
     #[test]
     fn sizing_worker_count_is_bounded() {
         assert!((1..=8).contains(&super::sizing_worker_count()));
+    }
+
+    #[test]
+    fn sizing_pool_never_exceeds_worker_limit() {
+        let limit = 2;
+        let (sender, receiver) = mpsc::sync_channel::<bool>(limit);
+        let receiver = Arc::new(std::sync::Mutex::new(receiver));
+        let active = Arc::new(AtomicUsize::new(0));
+        let maximum = Arc::new(AtomicUsize::new(0));
+        let barrier = Arc::new(Barrier::new(limit + 1));
+        let mut workers = Vec::new();
+
+        for _ in 0..limit {
+            let receiver = Arc::clone(&receiver);
+            let active = Arc::clone(&active);
+            let maximum = Arc::clone(&maximum);
+            let barrier = Arc::clone(&barrier);
+            workers.push(thread::spawn(move || loop {
+                let received = receiver.lock().unwrap().recv();
+                let Ok(first_batch) = received else {
+                    break;
+                };
+                let current = active.fetch_add(1, Ordering::AcqRel) + 1;
+                maximum.fetch_max(current, Ordering::AcqRel);
+                if first_batch {
+                    barrier.wait();
+                }
+                active.fetch_sub(1, Ordering::AcqRel);
+            }));
+        }
+
+        for _ in 0..limit {
+            sender.send(true).unwrap();
+        }
+        barrier.wait();
+        for _ in 0..limit {
+            sender.send(false).unwrap();
+        }
+        drop(sender);
+        for worker in workers {
+            worker.join().unwrap();
+        }
+
+        assert_eq!(maximum.load(Ordering::Acquire), limit);
+    }
+
+    #[test]
+    fn target_found_is_observed_before_target_sized() {
+        let (sender, receiver) = mpsc::channel();
+        sender.send("scan:target_found").unwrap();
+        sender.send("scan:target_sized").unwrap();
+
+        assert_eq!(receiver.recv().unwrap(), "scan:target_found");
+        assert_eq!(receiver.recv().unwrap(), "scan:target_sized");
+    }
+
+    #[test]
+    fn finished_waits_for_every_registered_size_job() {
+        let mut session = super::ScanSession::new();
+        session.register_size_job("target-1".to_string());
+        session.register_size_job("target-2".to_string());
+        session.walk_finished = true;
+
+        assert!(session.settle_size_job("target-1"));
+        assert!(!session.can_finish());
+        assert!(session.settle_size_job("target-2"));
+        assert!(session.can_finish());
+    }
+
+    #[test]
+    fn worker_completion_before_walk_end_does_not_finish_session() {
+        let mut session = super::ScanSession::new();
+        session.register_size_job("target-1".to_string());
+
+        assert!(session.settle_size_job("target-1"));
+        assert!(!session.can_finish());
+        session.walk_finished = true;
+        assert!(session.can_finish());
+    }
+
+    #[test]
+    fn sizing_error_settles_target_without_scan_failure() {
+        let mut session = super::ScanSession::new();
+        session.register_size_job("target-1".to_string());
+        session.walk_finished = true;
+
+        let update = super::TargetSizeUpdate {
+            scan_id: "scan-1".to_string(),
+            target_id: "target-1".to_string(),
+            size_bytes: 0,
+            size_has_errors: true,
+            size_pending: false,
+            formatted_size: "0 B".to_string(),
+        };
+
+        assert!(update.size_has_errors);
+        assert!(!update.size_pending);
+        assert!(session.settle_size_job("target-1"));
+        assert!(session.can_finish());
+    }
+
+    #[test]
+    fn duplicate_settlement_cannot_finish_session_early() {
+        let mut session = super::ScanSession::new();
+        session.register_size_job("target-1".to_string());
+        session.register_size_job("target-2".to_string());
+        session.walk_finished = true;
+
+        assert!(session.settle_size_job("target-1"));
+        assert!(!session.settle_size_job("target-1"));
+        assert!(!session.can_finish());
+        assert!(session.settle_size_job("target-2"));
+        assert!(session.can_finish());
+    }
+
+    #[test]
+    fn cancellation_discards_late_updates() {
+        let scan_id = format!("cancel-late-{}", std::process::id());
+        let target_id = format!("{scan_id}-target");
+        let mut session = super::ScanSession::new();
+        session.target_ids.insert(target_id.clone());
+        session.register_size_job(target_id.clone());
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
+        insert_test_target(&target_id);
+
+        ScanService::cancel_scan(&scan_id).unwrap();
+        assert!(super::apply_target_size_for_session(
+            &scan_id,
+            &target_id,
+            DirSize {
+                bytes: 1,
+                errors: 0
+            },
+        )
+        .is_none());
+        assert!(!registry().lock().unwrap().targets.contains_key(&target_id));
+    }
+
+    #[test]
+    fn empty_scan_finishes_without_sizing_jobs() {
+        let mut session = super::ScanSession::new();
+
+        session.walk_finished = true;
+
+        assert!(session.can_finish());
+        assert_eq!(session.pending_sizes, 0);
+        assert!(session.pending_size_ids.is_empty());
     }
 
     #[test]
