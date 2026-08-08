@@ -1462,6 +1462,53 @@ mod tests {
     }
 
     #[test]
+    fn cleanup_claim_rejects_pending_target() {
+        let target_id = format!("cleanup-pending-target-{}", std::process::id());
+        let mut target = ScanTarget::new(
+            PathBuf::from("C:\\workspace\\node_modules"),
+            Category::NodeModules,
+            0,
+            false,
+            None,
+        );
+        target.size_pending = true;
+        registry().lock().unwrap().targets.insert(
+            target_id.clone(),
+            RegisteredTarget {
+                target,
+                root_path: PathBuf::from("C:\\workspace"),
+                providers: Arc::new(providers_for_scan(&AppSettings::default())),
+            },
+        );
+
+        assert!(ScanService::claim_target_for_cleanup(&target_id).is_err());
+        ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn cleanup_claim_rejects_sizing_error_target() {
+        let target_id = format!("cleanup-error-target-{}", std::process::id());
+        let target = ScanTarget::new(
+            PathBuf::from("C:\\workspace\\node_modules"),
+            Category::NodeModules,
+            0,
+            true,
+            None,
+        );
+        registry().lock().unwrap().targets.insert(
+            target_id.clone(),
+            RegisteredTarget {
+                target,
+                root_path: PathBuf::from("C:\\workspace"),
+                providers: Arc::new(providers_for_scan(&AppSettings::default())),
+            },
+        );
+
+        assert!(ScanService::claim_target_for_cleanup(&target_id).is_err());
+        ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
     fn legacy_release_target_clears_active_cleanup_control() {
         let target_id = format!("legacy-release-cleanup-{}", std::process::id());
         insert_test_target(&target_id);

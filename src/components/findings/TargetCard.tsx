@@ -82,17 +82,20 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
               <LoaderCircle size={16} className="animate-spin text-sage-400" aria-hidden="true" /> Loading size
             </span>
           ) : target.sizeHasErrors ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRefreshSize(target.id);
-              }}
-              className="inline-flex items-center gap-2 rounded-lg bg-forest-800 px-2.5 py-1 text-xs font-medium text-amber-300 hover:bg-forest-850"
-              aria-label={`Size failed for ${target.name}. Retry measurement`}
-            >
-              <RefreshCw size={13} aria-hidden="true" /> Retry
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-xs font-medium text-amber-300">Size unavailable</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRefreshSize(target.id);
+                }}
+                className="inline-flex items-center gap-2 rounded-lg bg-forest-800 px-2.5 py-1 text-xs font-medium text-amber-300 hover:bg-forest-850"
+                aria-label={`Size failed for ${target.name}. Retry measurement`}
+              >
+                <RefreshCw size={13} aria-hidden="true" /> Retry
+              </button>
+            </div>
           ) : (
             <strong className={`block text-lg font-semibold ${selected ? "text-mist-100" : "text-mist-300"}`}>
               {target.formattedSize}

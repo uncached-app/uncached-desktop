@@ -16,6 +16,7 @@ import type {
   TargetSized,
 } from "../types/scan";
 import type { CleanMode } from "../types/settings";
+import { canOpenReview } from "../utils/scanReview.mjs";
 
 export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   const [rootPath, setRootPath] = useState("");
@@ -156,12 +157,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   }, []);
 
   useEffect(() => {
-    if (
-      scanFinished &&
-      scanTargetCount !== null &&
-      targets.length >= scanTargetCount &&
-      targets.every((target) => !target.sizePending)
-    ) {
+    if (canOpenReview(scanFinished, scanTargetCount, targets)) {
       setStep(3);
     }
   }, [scanFinished, scanTargetCount, targets]);
