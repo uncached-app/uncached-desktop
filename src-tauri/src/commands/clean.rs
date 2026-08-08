@@ -1,8 +1,48 @@
 use crate::commands::settings::AppSettings;
 use crate::models::action::{CleanRequest, CleanResult};
 use crate::services::clean_service::CleanService;
-use crate::services::scan_service::ScanService;
+use crate::services::scan_service::{error_event, platform, ScanService};
 use tauri::{AppHandle, Emitter};
+
+fn clean_started_event(
+    target_id: &str,
+    mode: crate::models::action::CleanMode,
+) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
+    uncached_core::contract::v1::ApiEnvelope::success(
+        platform(),
+        serde_json::json!({ "targetId": target_id, "mode": mode }),
+    )
+}
+
+fn clean_finished_event(
+    target_id: &str,
+    result: &CleanResult,
+) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::CleanupResultDto> {
+    uncached_core::contract::v1::ApiEnvelope::success(
+        platform(),
+        uncached_core::contract::v1::CleanupResultDto {
+            target_id: target_id.to_owned(),
+            freed_bytes: result.freed_bytes,
+            size_has_errors: result.size_has_errors,
+        },
+    )
+}
+
+fn clean_failed_event(
+    _target_id: &str,
+    error: &crate::errors::NukeError,
+) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
+    error_event(error)
+}
+
+#[tauri::command]
+pub fn cleanup_capabilities(
+) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::CleanupCapabilities> {
+    uncached_core::contract::v1::ApiEnvelope::success(
+        platform(),
+        uncached_core::cleanup_capabilities(),
+    )
+}
 
 fn clean_event_for_result(
     target_id: &str,
@@ -10,16 +50,12 @@ fn clean_event_for_result(
 ) -> (&'static str, serde_json::Value) {
     match result {
         Ok(clean_result) => (
-            "clean:success",
-            serde_json::json!({ "targetId": target_id, "result": clean_result }),
+            "clean:finished",
+            serde_json::to_value(clean_finished_event(target_id, clean_result)).unwrap(),
         ),
         Err(error) => (
             "clean:failed",
-            serde_json::json!({
-                "targetId": target_id,
-                "message": error.to_string(),
-                "cancelled": matches!(error, crate::errors::NukeError::CleanupCancelled),
-            }),
+            serde_json::to_value(clean_failed_event(target_id, error)).unwrap(),
         ),
     }
 }
@@ -43,17 +79,64 @@ fn should_record_cleanup(mode: crate::models::action::CleanMode) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{clean_event_for_result, settings_for_clean, should_record_cleanup};
+    use super::{
+        clean_event_for_result, clean_failed_event, clean_finished_event, clean_started_event,
+        settings_for_clean, should_record_cleanup,
+    };
     use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
-    use crate::models::action::CleanMode;
+    use crate::models::action::{CleanMode, CleanResult};
     use crate::models::category::Category;
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use crate::services::scan_service::{CleanupControl, RegisteredTarget};
-    use serde_json::json;
     use std::path::PathBuf;
     use std::sync::Arc;
+
+    #[test]
+    fn clean_started_event_serializes_as_v1() {
+        let value =
+            serde_json::to_value(clean_started_event("target-1", CleanMode::Trash)).unwrap();
+
+        assert_eq!(value["apiVersion"], "v1");
+        assert!(value["platform"].is_string());
+        assert_eq!(value["data"]["targetId"], "target-1");
+        assert_eq!(value["data"]["mode"], "Trash");
+        assert!(value["error"].is_null());
+    }
+
+    #[test]
+    fn clean_finished_event_serializes_cleanup_dto() {
+        let result = CleanResult {
+            success: true,
+            target_path: r"C:\workspace\target".into(),
+            freed_bytes: 42,
+            size_has_errors: false,
+            mode_used: CleanMode::Permanent,
+            message: None,
+        };
+        let value = serde_json::to_value(clean_finished_event("target-1", &result)).unwrap();
+
+        assert_eq!(value["apiVersion"], "v1");
+        assert_eq!(value["data"]["targetId"], "target-1");
+        assert_eq!(value["data"]["freedBytes"], 42);
+        assert_eq!(value["data"]["sizeHasErrors"], false);
+        assert!(value["data"].get("targetPath").is_none());
+        assert!(value["error"].is_null());
+    }
+
+    #[test]
+    fn clean_failed_event_has_v1_error_and_null_data() {
+        let value =
+            serde_json::to_value(clean_failed_event("target-1", &NukeError::CleanupCancelled))
+                .unwrap();
+
+        assert_eq!(value["apiVersion"], "v1");
+        assert!(value["data"].is_null());
+        assert_eq!(value["error"]["code"], "invalid_target");
+        assert_eq!(value["error"]["message"], "invalid scan target");
+        assert!(!value.to_string().contains("Cleanup cancelled"));
+    }
 
     #[test]
     fn permanent_cleanup_does_not_load_settings() {
@@ -104,14 +187,9 @@ mod tests {
         let (event, payload) = clean_event_for_result(target_id, &result);
 
         assert_eq!(event, "clean:failed");
-        assert_eq!(
-            payload,
-            json!({
-                "targetId": "target-1",
-                "message": "Cleanup cancelled before deletion",
-                "cancelled": true,
-            })
-        );
+        assert_eq!(payload["apiVersion"], "v1");
+        assert!(payload["data"].is_null());
+        assert_eq!(payload["error"]["code"], "invalid_target");
     }
 }
 
@@ -134,10 +212,7 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
         "clean",
         &format!("started targetId=\"{}\" mode=\"{:?}\"", target_id, mode),
     );
-    let _ = app.emit(
-        "clean:started",
-        serde_json::json!({ "targetId": target_id, "mode": mode }),
-    );
+    let _ = app.emit("clean:started", clean_started_event(&target_id, mode));
 
     let result = tauri::async_runtime::spawn_blocking(move || {
         CleanService::clean_registered_target(

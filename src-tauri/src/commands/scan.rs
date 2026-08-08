@@ -1,4 +1,6 @@
-use crate::services::scan_service::{ScanService, ScanStartResult, TargetSizeUpdate};
+use crate::services::scan_service::{
+    target_sized_event, ScanService, ScanStartResult, TargetSizeUpdate,
+};
 use std::path::PathBuf;
 use tauri::AppHandle;
 
@@ -19,6 +21,6 @@ pub async fn retry_target_size(
     .await
     .map_err(|error| error.to_string())??;
     use tauri::Emitter;
-    let _ = app.emit("scan:target_sized", update.clone());
+    let _ = app.emit("scan:target_sized", target_sized_event(&update));
     Ok(update)
 }

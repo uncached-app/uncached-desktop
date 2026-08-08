@@ -10,6 +10,7 @@ pub use uncached_core as shared_core;
 
 use commands::cancel::{cancel_cleanup, cancel_scan};
 use commands::clean::clean_target;
+use commands::cleanup_capabilities;
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{get_app_info, get_settings, update_settings};
 
@@ -24,6 +25,7 @@ pub fn run() {
             start_scan,
             retry_target_size,
             clean_target,
+            cleanup_capabilities,
             get_settings,
             update_settings,
             get_app_info

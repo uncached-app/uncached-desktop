@@ -187,6 +187,94 @@ struct SizingJob {
 type SizeCalculator = Arc<dyn Fn(&Path) -> crate::filesystem::size::DirSize + Send + Sync>;
 type EventSink = Arc<dyn Fn(&str, serde_json::Value) + Send + Sync>;
 
+pub fn platform() -> uncached_core::contract::v1::Platform {
+    #[cfg(target_os = "windows")]
+    return uncached_core::contract::v1::Platform::Windows;
+    #[cfg(target_os = "macos")]
+    return uncached_core::contract::v1::Platform::Macos;
+    #[cfg(target_os = "linux")]
+    return uncached_core::contract::v1::Platform::Linux;
+    #[cfg(target_os = "android")]
+    return uncached_core::contract::v1::Platform::Android;
+    #[allow(unreachable_code)]
+    uncached_core::contract::v1::Platform::Unsupported
+}
+
+fn core_error_info(error: &NukeError) -> uncached_core::CoreErrorInfo {
+    let core_error = match error {
+        NukeError::Io(error) => {
+            uncached_core::CoreError::Io(std::io::Error::new(error.kind(), "desktop I/O error"))
+        }
+        NukeError::Trash(_) => uncached_core::CoreError::Trash("desktop trash error".into()),
+        NukeError::RecycleBinTooLarge => uncached_core::CoreError::RecycleBinTooLarge,
+        NukeError::NotFound(message) | NukeError::PermissionDenied(message) => {
+            uncached_core::CoreError::InvalidTarget(message.clone())
+        }
+        NukeError::ScanCancelled | NukeError::CleanupCancelled | NukeError::Internal(_) => {
+            uncached_core::CoreError::InvalidTarget("operation failed".into())
+        }
+    };
+    core_error.public_info()
+}
+
+pub fn error_event(
+    error: &NukeError,
+) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
+    uncached_core::contract::v1::ApiEnvelope::failure(platform(), core_error_info(error))
+}
+
+fn value_event(
+    data: serde_json::Value,
+) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
+    uncached_core::contract::v1::ApiEnvelope::success(platform(), data)
+}
+
+pub fn target_found_event(
+    scan_id: &str,
+    target: &ScanTarget,
+) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::TargetFoundDto> {
+    uncached_core::contract::v1::ApiEnvelope::success(
+        platform(),
+        uncached_core::contract::v1::TargetFoundDto {
+            scan_id: scan_id.to_owned(),
+            target: target.to_core_dto(),
+        },
+    )
+}
+
+pub fn target_sized_event(
+    update: &TargetSizeUpdate,
+) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::TargetSizedDto> {
+    uncached_core::contract::v1::ApiEnvelope::success(
+        platform(),
+        uncached_core::contract::v1::TargetSizedDto {
+            scan_id: update.scan_id.clone(),
+            target_id: update.target_id.clone(),
+            size_bytes: update.size_bytes,
+            size_pending: update.size_pending,
+            size_has_errors: update.size_has_errors,
+            formatted_size: update.formatted_size.clone(),
+        },
+    )
+}
+
+pub fn scan_finished_event(
+    scan_id: &str,
+    total_targets: u64,
+    total_bytes: u64,
+    duration_ms: u128,
+) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::ScanFinishedDto> {
+    uncached_core::contract::v1::ApiEnvelope::success(
+        platform(),
+        uncached_core::contract::v1::ScanFinishedDto {
+            scan_id: scan_id.to_owned(),
+            total_targets,
+            total_bytes_found: total_bytes,
+            duration_ms,
+        },
+    )
+}
+
 struct SizingController {
     sender: Option<SyncSender<SizingJob>>,
     workers: Vec<std::thread::JoinHandle<()>>,
@@ -437,7 +525,7 @@ impl ScanService {
         let app_handle = app.clone();
         let _ = app.emit(
             "scan:started",
-            serde_json::json!({ "scanId": scan_id, "rootPath": scan_root.clone() }),
+            value_event(serde_json::json!({ "scanId": scan_id, "rootPath": scan_root.clone() })),
         );
 
         std::thread::spawn(move || {
@@ -537,7 +625,10 @@ impl ScanService {
                         "totalBytesFound": stats.total_bytes_found
                     });
                     drop(stats);
-                    target_event_sink("scan:progress", snapshot);
+                    target_event_sink(
+                        "scan:progress",
+                        serde_json::to_value(value_event(snapshot)).unwrap(),
+                    );
                     uncached_core::TraversalControl::Continue
                 },
             );
@@ -553,11 +644,11 @@ impl ScanService {
                     sizing.finish();
                     let _ = app_handle.emit(
                         "scan:cancelled",
-                        serde_json::json!({
+                        value_event(serde_json::json!({
                             "scanId": worker_scan_id,
                             "totalTargets": 0,
                             "totalBytesFound": 0
-                        }),
+                        })),
                     );
                     return;
                 }
@@ -571,11 +662,11 @@ impl ScanService {
                         if cancel_token.load(Ordering::Acquire) {
                             let _ = app_handle.emit(
                                 "scan:cancelled",
-                                serde_json::json!({
+                                value_event(serde_json::json!({
                                     "scanId": worker_scan_id,
                                     "totalTargets": 0,
                                     "totalBytesFound": 0
-                                }),
+                                })),
                             );
                         }
                         return;
@@ -583,10 +674,7 @@ impl ScanService {
                     sizing.finish();
                     let _ = app_handle.emit(
                         "scan:failed",
-                        serde_json::json!({
-                            "scanId": worker_scan_id,
-                            "message": error.to_string()
-                        }),
+                        error_event(&NukeError::Internal("scan traversal failed".into())),
                     );
                     return;
                 }
@@ -598,11 +686,11 @@ impl ScanService {
                 if cancel_token.load(Ordering::Acquire) {
                     let _ = app_handle.emit(
                         "scan:cancelled",
-                        serde_json::json!({
+                        value_event(serde_json::json!({
                             "scanId": worker_scan_id,
                             "totalTargets": 0,
                             "totalBytesFound": 0
-                        }),
+                        })),
                     );
                 }
                 return;
@@ -875,7 +963,10 @@ fn apply_target_size_and_emit_for_session(
     };
     // Cancellation defers target removal while this barrier is active. The sink runs outside
     // the registry lock, so sinks may safely call registry lifecycle methods.
-    event_sink("scan:target_sized", serde_json::to_value(&update).unwrap());
+    event_sink(
+        "scan:target_sized",
+        serde_json::to_value(target_sized_event(&update)).unwrap(),
+    );
     complete_target_publication(scan_id, target_id);
     Some(update)
 }
@@ -967,12 +1058,13 @@ fn emit_progress(event_sink: &EventSink, scan_id: &str, stats: &Arc<Mutex<ScanSt
     let stats = stats.lock().unwrap();
     event_sink(
         "scan:progress",
-        serde_json::json!({
+        serde_json::to_value(value_event(serde_json::json!({
             "scanId": scan_id,
             "directoriesScanned": stats.directories_scanned,
             "targetsFound": stats.targets_found,
             "totalBytesFound": stats.total_bytes_found
-        }),
+        })))
+        .unwrap(),
     );
 }
 
@@ -985,22 +1077,20 @@ fn emit_finished(
     let stats = stats.lock().unwrap();
     event_sink(
         "scan:finished",
-        serde_json::json!({
-            "scanId": scan_id,
-            "totalTargets": stats.targets_found,
-            "totalBytesFound": stats.total_bytes_found,
-            "durationMs": started_at.elapsed().as_millis()
-        }),
+        serde_json::to_value(scan_finished_event(
+            scan_id,
+            stats.targets_found,
+            stats.total_bytes_found,
+            started_at.elapsed().as_millis(),
+        ))
+        .unwrap(),
     );
 }
 
 fn emit_target_found(event_sink: &EventSink, scan_id: &str, target: &ScanTarget) {
     event_sink(
         "scan:target_found",
-        serde_json::json!({
-            "scanId": scan_id,
-            "target": target,
-        }),
+        serde_json::to_value(target_found_event(scan_id, target)).unwrap(),
     );
 }
 
@@ -1015,7 +1105,8 @@ fn scan_id_from_target_id(target_id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        providers_for_scan, registry, CleanupControl, RegisteredTarget, ScanService,
+        error_event, platform, providers_for_scan, registry, scan_finished_event,
+        target_found_event, target_sized_event, CleanupControl, RegisteredTarget, ScanService,
         ScanStartResult, SizingController, SizingJob, NEXT_SCAN_ID,
     };
     use crate::commands::settings::AppSettings;
@@ -1029,6 +1120,71 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{mpsc, Arc, Barrier};
     use std::thread;
+
+    #[test]
+    fn target_found_event_serializes_as_v1_without_identity() {
+        let target = ScanTarget::new(
+            PathBuf::from(r"C:\workspace\node_modules"),
+            Category::NodeModules,
+            12,
+            false,
+            None,
+        );
+        let value = serde_json::to_value(target_found_event("scan-1", &target)).unwrap();
+
+        assert_eq!(value["apiVersion"], "v1");
+        assert!(value["platform"].is_string());
+        assert_eq!(value["data"]["scanId"], "scan-1");
+        assert_eq!(value["data"]["target"]["sizeBytes"], 12);
+        assert!(value["data"]["target"].get("identity").is_none());
+        assert!(value["error"].is_null());
+    }
+
+    #[test]
+    fn target_sized_event_serializes_camel_case_v1_data() {
+        let update = super::TargetSizeUpdate {
+            scan_id: "scan-1".into(),
+            target_id: "target-1".into(),
+            size_bytes: 42,
+            size_has_errors: true,
+            size_pending: false,
+            formatted_size: "42 B".into(),
+        };
+        let value = serde_json::to_value(target_sized_event(&update)).unwrap();
+
+        assert_eq!(value["apiVersion"], "v1");
+        assert_eq!(value["data"]["targetId"], "target-1");
+        assert_eq!(value["data"]["sizeHasErrors"], true);
+        assert_eq!(value["data"]["formattedSize"], "42 B");
+        assert!(value["error"].is_null());
+    }
+
+    #[test]
+    fn scan_finished_event_serializes_settled_totals() {
+        let value = serde_json::to_value(scan_finished_event("scan-1", 3, 99, 7)).unwrap();
+
+        assert_eq!(value["apiVersion"], "v1");
+        assert_eq!(value["data"]["scanId"], "scan-1");
+        assert_eq!(value["data"]["totalTargets"], 3);
+        assert_eq!(value["data"]["totalBytesFound"], 99);
+        assert_eq!(value["data"]["durationMs"], 7);
+        assert!(value["error"].is_null());
+    }
+
+    #[test]
+    fn scan_failed_event_has_v1_error_and_null_data() {
+        let value = serde_json::to_value(error_event(&NukeError::Io(std::io::Error::other(
+            "private native detail",
+        ))))
+        .unwrap();
+
+        assert_eq!(value["apiVersion"], "v1");
+        assert_eq!(value["platform"], serde_json::to_value(platform()).unwrap());
+        assert!(value["data"].is_null());
+        assert_eq!(value["error"]["code"], "io");
+        assert_eq!(value["error"]["message"], "I/O error");
+        assert!(!value.to_string().contains("private native detail"));
+    }
 
     #[test]
     fn session_can_finish_only_after_walk_and_sizes_settle() {
@@ -1843,10 +1999,10 @@ mod tests {
                 "scan:finished"
             ]
         );
-        assert_eq!(events[0].1["target"]["sizePending"], true);
-        assert_eq!(events[1].1["sizeBytes"], 7);
-        assert_eq!(events[2].1["totalBytesFound"], 7);
-        assert_eq!(events[3].1["totalBytesFound"], 7);
+        assert_eq!(events[0].1["data"]["target"]["sizePending"], true);
+        assert_eq!(events[1].1["data"]["sizeBytes"], 7);
+        assert_eq!(events[2].1["data"]["totalBytesFound"], 7);
+        assert_eq!(events[3].1["data"]["totalBytesFound"], 7);
         ScanService::remove_target(&target_id).unwrap();
     }
 
@@ -2000,7 +2156,7 @@ mod tests {
                 .iter()
                 .find(|(event, _)| event == "scan:finished")
                 .unwrap()
-                .1["totalBytesFound"],
+                .1["data"]["totalBytesFound"],
             0
         );
         assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));

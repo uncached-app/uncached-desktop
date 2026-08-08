@@ -82,6 +82,16 @@ impl ScanTarget {
         self.size_pending = false;
         self.formatted_size = format_size(size_bytes);
     }
+
+    pub fn to_core_dto(&self) -> uncached_core::contract::v1::ScanTargetDto {
+        uncached_core::contract::v1::ScanTargetDto {
+            path: self.path.to_string_lossy().into_owned(),
+            category: category_to_core(&self.category),
+            size_bytes: self.size_bytes,
+            size_pending: self.size_pending,
+            size_has_errors: self.size_has_errors,
+        }
+    }
 }
 
 fn category_from_core(category: uncached_core::Category) -> Category {
@@ -95,6 +105,20 @@ fn category_from_core(category: uncached_core::Category) -> Category {
         uncached_core::Category::DotNetObj => Category::DotNetObj,
         uncached_core::Category::Docker => Category::Docker,
         uncached_core::Category::Custom(name) => Category::Custom(name),
+    }
+}
+
+fn category_to_core(category: &Category) -> uncached_core::Category {
+    match category {
+        Category::NodeModules => uncached_core::Category::NodeModules,
+        Category::CargoTarget => uncached_core::Category::CargoTarget,
+        Category::NextJs => uncached_core::Category::NextJs,
+        Category::Turbo => uncached_core::Category::Turbo,
+        Category::PyCache => uncached_core::Category::PyCache,
+        Category::Gradle => uncached_core::Category::Gradle,
+        Category::DotNetObj => uncached_core::Category::DotNetObj,
+        Category::Docker => uncached_core::Category::Docker,
+        Category::Custom(name) => uncached_core::Category::Custom(name.clone()),
     }
 }
 
