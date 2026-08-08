@@ -562,6 +562,7 @@ mod tests {
         assert!(!control.request_cancel());
         assert!(!control.begin_execution());
         control.finish();
+        assert!(!control.request_cancel());
         assert!(!control.is_cancelled());
     }
 
