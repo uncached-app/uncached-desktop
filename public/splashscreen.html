@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uncached</title>
+  <style>
+    :root {
+      --theme-forest-950: #f4f6f1;
+      --theme-forest-900: #ffffff;
+      --theme-forest-850: #eef2eb;
+      --theme-forest-800: #dfe7dc;
+      --theme-sage-300: #3d5c2d;
+      --theme-sage-400: #567a3d;
+      --theme-sage-500: #6f9252;
+      --theme-mist-100: #182018;
+      --theme-mist-300: #354336;
+      --theme-mist-500: #637064;
+      --theme-coral-300: #b64d3f;
+      color-scheme: light;
+    }
+
+    [data-theme="dark"] {
+      --theme-forest-950: #101311;
+      --theme-forest-900: #151b17;
+      --theme-forest-850: #1a211c;
+      --theme-forest-800: #222b24;
+      --theme-sage-300: #d1eca9;
+      --theme-sage-400: #b9d98d;
+      --theme-sage-500: #a8c982;
+      --theme-mist-100: #edf0eb;
+      --theme-mist-300: #c7d0c1;
+      --theme-mist-500: #8e998e;
+      --theme-coral-300: #ffc2b5;
+      color-scheme: dark;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --theme-forest-950: #101311;
+        --theme-forest-900: #151b17;
+        --theme-forest-850: #1a211c;
+        --theme-forest-800: #222b24;
+        --theme-sage-300: #d1eca9;
+        --theme-sage-400: #b9d98d;
+        --theme-sage-500: #a8c982;
+        --theme-mist-100: #edf0eb;
+        --theme-mist-300: #c7d0c1;
+        --theme-mist-500: #8e998e;
+        --theme-coral-300: #ffc2b5;
+        color-scheme: dark;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--theme-forest-950);
+      color: var(--theme-mist-100);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='4' numOctaves='8' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    .app-window {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Clean header without logo or stepper - drag region with window controls */
+    header.titlebar {
+      display: flex;
+      height: 48px;
+      shrink: 0;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 16px;
+      background: var(--theme-forest-950);
+      -webkit-app-region: drag;
+    }
+
+    .window-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      -webkit-app-region: no-drag;
+    }
+
+    .win-btn {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      background: var(--theme-forest-800);
+      color: var(--theme-mist-500);
+      cursor: pointer;
+      transition: background-color 160ms ease, color 160ms ease;
+    }
+
+    .win-btn:hover {
+      background: var(--theme-forest-850);
+      color: var(--theme-mist-100);
+    }
+
+    .win-btn.close-btn:hover {
+      background: var(--theme-coral-300);
+      color: #101311;
+    }
+
+    .win-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 2;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    /* Centered Content: Only Logo + Spinner */
+    main.content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+      padding: 24px;
+    }
+
+    .center-logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+
+    .logo {
+      height: 44px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .logo-dark-theme {
+      display: none;
+    }
+
+    .logo-light-theme {
+      display: block;
+    }
+
+    [data-theme="dark"] .logo-light-theme {
+      display: none;
+    }
+
+    [data-theme="dark"] .logo-dark-theme {
+      display: block;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .logo-light-theme {
+        display: none;
+      }
+      :root:not([data-theme="light"]) .logo-dark-theme {
+        display: block;
+      }
+    }
+
+    /* Clean Spinner without text */
+    .spinner-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid var(--theme-forest-800);
+      border-top-color: var(--theme-sage-400);
+      border-radius: 50%;
+      animation: spin 0.8s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-window">
+    <header class="titlebar">
+      <div class="window-controls">
+        <button type="button" class="win-btn" onclick="minimizeWindow()" aria-label="Minimize window">
+          <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <button type="button" class="win-btn" onclick="toggleMaximizeWindow()" aria-label="Maximize window">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+        </button>
+        <button type="button" class="win-btn close-btn" onclick="closeApp()" aria-label="Close window">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="center-logo-container">
+        <img src="/brand/UNCACHED-LOGO-DARK-NOBG.svg" alt="Uncached" class="logo logo-light-theme" />
+        <img src="/brand/UNCACHED-LOGO-LIGHT-NOBG.svg" alt="Uncached" class="logo logo-dark-theme" />
+      </div>
+
+      <div class="spinner-container">
+        <div class="spinner"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Load app theme setting from Tauri settings store
+    function initTheme() {
+      if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
+        window.__TAURI_INTERNALS__.invoke('get_settings').then(function(settings) {
+          if (settings && settings.appearance) {
+            var appearance = settings.appearance;
+            if (appearance === 'dark') {
+              document.documentElement.dataset.theme = 'dark';
+            } else if (appearance === 'light') {
+              document.documentElement.dataset.theme = 'light';
+            } else if (appearance === 'system') {
+              var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+            }
+          }
+        }).catch(function(err) {
+          console.error(err);
+        });
+      }
+    }
+
+    initTheme();
+
+    function invokeCommand(cmd) {
+      if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
+        window.__TAURI_INTERNALS__.invoke(cmd).catch(console.error);
+      }
+    }
+
+    function minimizeWindow() {
+      invokeCommand('minimize_splashscreen');
+    }
+
+    function toggleMaximizeWindow() {
+      invokeCommand('toggle_maximize_splashscreen');
+    }
+
+    function closeApp() {
+      invokeCommand('close_app');
+    }
+  </script>
+</body>
+</html>

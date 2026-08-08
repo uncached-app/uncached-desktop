@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { isTauri } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CompletionView } from "./components/completion/CompletionView";
 import { FindingsSection } from "./components/findings/FindingsSection";
 import { Footer } from "./components/layout/Footer";
@@ -37,6 +39,22 @@ function App() {
     resetScan,
   } = useScanWorkspace(cleanMode);
   useTheme(settings.settings?.appearance);
+
+  useEffect(() => {
+    if (!settings.loading && listenersReady) {
+      if (isTauri()) {
+        const appWindow = getCurrentWindow();
+        void appWindow.show();
+        void appWindow.setFocus();
+      }
+      const splash = document.getElementById("app-splashscreen");
+      if (splash) {
+        splash.classList.add("splash-fade-out");
+        const timer = setTimeout(() => splash.remove(), 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [settings.loading, listenersReady]);
 
   function goBackStep() {
     if (step === 2 && scanning) return;

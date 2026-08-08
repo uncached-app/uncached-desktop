@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Uncached",
         "width": 1080,
         "height": 800,
@@ -22,7 +23,9 @@
         "minHeight": 600,
         "minimizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "visible": true,
+        "backgroundColor": "#f4f6f1"
       }
     ],
     "security": {
