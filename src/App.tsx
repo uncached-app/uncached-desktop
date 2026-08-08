@@ -36,6 +36,7 @@ function App() {
     cancelScan,
     cleanTarget,
     refreshTargetSize,
+    cleanupModeSupported,
     resetScan,
   } = useScanWorkspace(cleanMode);
   useTheme(settings.settings?.appearance);
@@ -103,6 +104,7 @@ function App() {
             onBack={goBackStep}
             cleanTarget={cleanTarget}
             refreshTargetSize={refreshTargetSize}
+            cleanupModeSupported={cleanupModeSupported}
           />
 
           <CompletionView

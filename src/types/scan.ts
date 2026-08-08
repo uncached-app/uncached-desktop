@@ -22,6 +22,12 @@ export type CleanResult = {
   modeUsed: CleanMode;
 };
 
+export type CleanupCapabilities = {
+  permanent: boolean;
+  trash: boolean;
+  secureIdentity: boolean;
+};
+
 export type ScanStartResult = {
   scanId: string;
 };

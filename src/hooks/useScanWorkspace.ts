@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type {
   CleanResult,
+  CleanupCapabilities,
   PendingScanEvent,
   ScanCancelled,
   ScanFinished,
@@ -16,6 +17,7 @@ import type {
   TargetSized,
 } from "../types/scan";
 import type { CleanMode } from "../types/settings";
+import { ApiContractError, type ApiEnvelope, canUseCleanupMode, toUiError, unwrapV1 } from "../utils/apiContract";
 import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
 export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
@@ -34,6 +36,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   const [cleanupMode, setCleanupMode] = useState<CleanMode>("Trash");
   const [scanFinished, setScanFinished] = useState(false);
   const [scanTargetCount, setScanTargetCount] = useState<number | null>(null);
+  const [capabilities, setCapabilities] = useState<CleanupCapabilities | null>(null);
 
   const activeScanId = useRef<string | null>(null);
   const pendingScan = useRef(false);
@@ -110,6 +113,20 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     }
   }
 
+  function handleEnvelope<T>(kind: PendingScanEvent["kind"], envelope: ApiEnvelope<T>) {
+    try {
+      handleScanEvent({ kind, payload: unwrapV1(envelope) } as PendingScanEvent);
+    } catch (contractError) {
+      pendingScan.current = false;
+      setScanning(false);
+      const message = contractError instanceof ApiContractError
+        ? toUiError(contractError.info).message
+        : `IPC contract error: ${contractError instanceof Error ? contractError.message : String(contractError)}`;
+      setStatus("Scan failed");
+      setError(message);
+    }
+  }
+
   useEffect(() => {
     let disposed = false;
 
@@ -119,26 +136,36 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     }
 
     const listeners = Promise.all([
-      listen<ScanStarted>("scan:started", ({ payload }) => {
-        if (acceptsScanEvent(payload.scanId)) setStatus("Scanning workspace...");
+      listen<ApiEnvelope<ScanStarted>>("scan:started", ({ payload }) => {
+        try {
+          const started = unwrapV1(payload);
+          if (acceptsScanEvent(started.scanId)) setStatus("Scanning workspace...");
+        } catch (contractError) {
+          pendingScan.current = false;
+          setScanning(false);
+          const message = contractError instanceof ApiContractError
+            ? toUiError(contractError.info).message
+            : `IPC contract error: ${contractError instanceof Error ? contractError.message : String(contractError)}`;
+          setError(message);
+        }
       }),
-      listen<TargetFound>("scan:target_found", ({ payload }) => {
-        handleScanEvent({ kind: "target", payload });
+      listen<ApiEnvelope<TargetFound>>("scan:target_found", ({ payload }) => {
+        handleEnvelope("target", payload);
       }),
-      listen<TargetSized>("scan:target_sized", ({ payload }) => {
-        handleScanEvent({ kind: "sized", payload });
+      listen<ApiEnvelope<TargetSized>>("scan:target_sized", ({ payload }) => {
+        handleEnvelope("sized", payload);
       }),
-      listen<ScanProgress>("scan:progress", ({ payload }) => {
-        handleScanEvent({ kind: "progress", payload });
+      listen<ApiEnvelope<ScanProgress>>("scan:progress", ({ payload }) => {
+        handleEnvelope("progress", payload);
       }),
-      listen<ScanFinished>("scan:finished", ({ payload }) => {
-        handleScanEvent({ kind: "finished", payload });
+      listen<ApiEnvelope<ScanFinished>>("scan:finished", ({ payload }) => {
+        handleEnvelope("finished", payload);
       }),
-      listen<ScanCancelled>("scan:cancelled", ({ payload }) => {
-        handleScanEvent({ kind: "cancelled", payload });
+      listen<ApiEnvelope<ScanCancelled>>("scan:cancelled", ({ payload }) => {
+        handleEnvelope("cancelled", payload);
       }),
-      listen<{ scanId: string; message: string }>("scan:failed", ({ payload }) => {
-        handleScanEvent({ kind: "failed", payload });
+      listen<ApiEnvelope<{ scanId: string; message: string }>>("scan:failed", ({ payload }) => {
+        handleEnvelope("failed", payload);
       }),
     ]);
 
@@ -154,6 +181,18 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       disposed = true;
       listeners.then((unlisten) => unlisten.forEach((stop) => stop()));
     };
+  }, []);
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    invoke<ApiEnvelope<CleanupCapabilities>>("cleanup_capabilities")
+      .then((envelope) => setCapabilities(unwrapV1(envelope)))
+      .catch((capabilityError) => {
+        const message = capabilityError instanceof ApiContractError
+          ? toUiError(capabilityError.info).message
+          : `IPC contract error: ${capabilityError instanceof Error ? capabilityError.message : String(capabilityError)}`;
+        setError(message);
+      });
   }, []);
 
   useEffect(() => {
@@ -320,6 +359,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   const sizesReady = targets.length > 0 && getCleanupReadyTargets(targets).length === targets.length;
   const deleteAllDisabled = scanning || deletingAll || !sizesReady;
   const deleteAllLoading = scanning || deletingAll || targets.some((target) => target.sizePending);
+  const cleanupModeSupported = canUseCleanupMode(capabilities, cleanMode);
 
   return {
     rootPath,
@@ -339,6 +379,8 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     cleanupMode,
     deleteAllDisabled,
     deleteAllLoading,
+    capabilities,
+    cleanupModeSupported,
     startScan,
     pickFolder,
     cancelScan,

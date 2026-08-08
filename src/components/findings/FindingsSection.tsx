@@ -18,6 +18,7 @@ interface FindingsSectionProps {
   onDone: () => void;
   cleanTarget: (targetId: string, confirmation?: string | null) => Promise<CleanResult | null>;
   refreshTargetSize: (targetId: string) => void;
+  cleanupModeSupported: boolean;
   onBack: () => void;
 }
 
@@ -31,6 +32,7 @@ export function FindingsSection({
   cleanTarget,
   refreshTargetSize,
   onBack,
+  cleanupModeSupported,
 }: FindingsSectionProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
@@ -39,7 +41,7 @@ export function FindingsSection({
   const readyTargets = getCleanupReadyTargets(targets);
   const selectedTargets = readyTargets.filter((target) => selectedIds.has(target.id));
   const allSelected = readyTargets.length > 0 && selectedTargets.length === readyTargets.length;
-  const deleteDisabled = scanning || confirming || deleting || selectedTargets.length === 0;
+  const deleteDisabled = scanning || confirming || deleting || selectedTargets.length === 0 || !cleanupModeSupported;
   const reducedMotion = useReducedMotion();
   const permanent = cleanMode === "Permanent";
   const confirmationReady = !permanent || confirmation === "Nuke";
@@ -289,7 +291,7 @@ export function FindingsSection({
                 <button
                   type="button"
                    onClick={confirmDelete}
-                   disabled={!confirmationReady || selectedTargets.length === 0}
+                   disabled={!confirmationReady || selectedTargets.length === 0 || !cleanupModeSupported}
                    className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:bg-coral-200 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
                  >
                    {permanent ? "Delete permanently" : "Move to Recycle Bin"}
