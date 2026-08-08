@@ -476,7 +476,6 @@ impl ScanService {
         let target_ids = session.target_ids.drain().collect::<Vec<_>>();
         for target_id in target_ids {
             registry.in_flight.remove(&target_id);
-            registry.cleanup_controls.remove(&target_id);
             registry.targets.remove(&target_id);
         }
 
@@ -570,13 +569,11 @@ impl ScanService {
     pub fn release_target(target_id: &str) {
         let mut registry = registry().lock().unwrap();
         registry.in_flight.remove(target_id);
-        registry.cleanup_controls.remove(target_id);
     }
 
     pub fn remove_target(target_id: &str) -> NukeResult<RegisteredTarget> {
         let mut registry = registry().lock().unwrap();
         registry.in_flight.remove(target_id);
-        registry.cleanup_controls.remove(target_id);
         registry
             .targets
             .remove(target_id)
@@ -889,6 +886,68 @@ mod tests {
 
         ScanService::release_cleanup(&target_id);
         ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn concurrent_cleanup_claims_have_one_winner() {
+        let target_id = format!("cleanup-concurrent-target-{}", std::process::id());
+        insert_test_target(&target_id);
+
+        let barrier = Arc::new(Barrier::new(3));
+        let (sender, receiver) = mpsc::channel();
+        let mut threads = Vec::new();
+
+        for _ in 0..2 {
+            let barrier = Arc::clone(&barrier);
+            let sender = sender.clone();
+            let target_id = target_id.clone();
+            threads.push(thread::spawn(move || {
+                barrier.wait();
+                sender
+                    .send(ScanService::claim_target_for_cleanup(&target_id).is_ok())
+                    .unwrap();
+            }));
+        }
+
+        barrier.wait();
+        let results = [receiver.recv().unwrap(), receiver.recv().unwrap()];
+        for thread in threads {
+            thread.join().unwrap();
+        }
+
+        assert_eq!(results.iter().filter(|won| **won).count(), 1);
+        assert_eq!(results.iter().filter(|won| !**won).count(), 1);
+
+        ScanService::release_cleanup(&target_id);
+        ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn scan_cancellation_does_not_remove_active_cleanup_control() {
+        let scan_id = format!("cancel-active-cleanup-{}", std::process::id());
+        let target_id = format!("{scan_id}-target");
+        insert_test_target(&target_id);
+
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), super::ScanSession::new());
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .get_mut(&scan_id)
+            .unwrap()
+            .target_ids
+            .insert(target_id.clone());
+        ScanService::claim_target_for_cleanup(&target_id).unwrap();
+
+        assert!(ScanService::cancel_scan(&scan_id).unwrap().cancelled);
+        assert!(ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
+
+        ScanService::release_cleanup(&target_id);
+        assert!(ScanService::get_target(&target_id).is_err());
     }
 
     fn insert_test_target(target_id: &str) {
