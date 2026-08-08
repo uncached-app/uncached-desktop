@@ -1,7 +1,7 @@
 use crate::errors::{NukeError, NukeResult};
 use crate::filesystem::paths::strip_extended_prefix;
 use crate::models::target::ScanTarget;
-use crate::scanner::get_default_scanners;
+use crate::scanner::get_default_providers;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -83,6 +83,12 @@ fn scan_path(path: &Path) -> PathBuf {
     strip_extended_prefix(path)
 }
 
+fn providers_for_scan(
+    settings: &crate::commands::settings::AppSettings,
+) -> uncached_core::ProviderSet {
+    get_default_providers(settings)
+}
+
 pub struct ScanService;
 
 impl ScanService {
@@ -128,7 +134,7 @@ impl ScanService {
             let started_at = Instant::now();
             let settings =
                 crate::commands::settings::load_settings(&app_handle).unwrap_or_default();
-            let scanners = get_default_scanners(&settings);
+            let providers = providers_for_scan(&settings);
             let target_event_handle = app_handle.clone();
             let stats = Arc::new(Mutex::new(ScanStats::default()));
             let stats_for_callback = Arc::clone(&stats);
@@ -141,87 +147,72 @@ impl ScanService {
             let core_cancel_token = Arc::clone(&cancel_token);
             let walk_result = uncached_core::traverse_workspace(
                 &scan_root,
-                &uncached_core::ProviderSet::free(),
+                &providers,
                 &core_cancel_token,
                 move |entry| {
-                    let dir_path = &entry.path;
-                    let dir_name = &entry.name;
                     if callback_cancel_token.load(Ordering::Acquire) {
                         return uncached_core::TraversalControl::Cancel;
                     }
                     let mut stats = stats_for_callback.lock().unwrap();
                     stats.directories_scanned += 1;
 
-                    for scanner in &scanners {
-                        let core_node_modules =
-                            entry.category == Some(uncached_core::Category::NodeModules);
-                        if (scanner.category() == crate::models::category::Category::NodeModules
-                            && core_node_modules)
-                            || scanner.matches(dir_name)
-                        {
-                            if let Some(mut target) = scanner.create_target(dir_path) {
-                                if core_node_modules {
-                                    target.identity = entry.identity;
-                                }
-                                if callback_cancel_token.load(Ordering::Acquire) {
-                                    return uncached_core::TraversalControl::Cancel;
-                                }
-                                target.id = format!("{}-{}", callback_scan_id, target.id);
-                                stats.targets_found += 1;
-                                stats.total_bytes_found =
-                                    stats.total_bytes_found.saturating_add(target.size_bytes);
-
-                                let mut registry = registry_for_callback.lock().unwrap();
-                                let accepted = {
-                                    let Some(session) =
-                                        registry.sessions.get_mut(&callback_scan_id)
-                                    else {
-                                        return uncached_core::TraversalControl::Cancel;
-                                    };
-                                    if session.cancelled
-                                        || session.cancel_token.load(Ordering::Acquire)
-                                    {
-                                        false
-                                    } else {
-                                        session.target_ids.insert(target.id.clone());
-                                        true
-                                    }
-                                };
-                                if !accepted {
-                                    return uncached_core::TraversalControl::Cancel;
-                                }
-                                registry.targets.insert(
-                                    target.id.clone(),
-                                    RegisteredTarget {
-                                        target: target.clone(),
-                                        root_path: callback_root.clone(),
-                                    },
-                                );
-                                drop(registry);
-                                let _ = target_event_handle.emit(
-                                    "scan:target_found",
-                                    serde_json::json!({
-                                        "scanId": callback_event_scan_id,
-                                        "target": target
-                                    }),
-                                );
-                                crate::logging::info(
-                                    "scan",
-                                    &format!(
-                                        "target scanId=\"{}\" path=\"{}\" pending=true",
-                                        callback_event_scan_id,
-                                        target.path.display()
-                                    ),
-                                );
-                                ScanService::start_target_size(
-                                    &target_event_handle,
-                                    &callback_event_scan_id,
-                                    &target.id,
-                                    &target.path,
-                                );
-                                return uncached_core::TraversalControl::Prune;
-                            }
+                    if let Some(category) = entry.category.clone() {
+                        let core_target =
+                            uncached_core::ScanTarget::new(entry.path.clone(), category, 0)
+                                .with_identity(entry.identity);
+                        let target = ScanTarget::from_core(&callback_scan_id, core_target);
+                        if callback_cancel_token.load(Ordering::Acquire) {
+                            return uncached_core::TraversalControl::Cancel;
                         }
+                        stats.targets_found += 1;
+                        stats.total_bytes_found =
+                            stats.total_bytes_found.saturating_add(target.size_bytes);
+
+                        let mut registry = registry_for_callback.lock().unwrap();
+                        let accepted = {
+                            let Some(session) = registry.sessions.get_mut(&callback_scan_id) else {
+                                return uncached_core::TraversalControl::Cancel;
+                            };
+                            if session.cancelled || session.cancel_token.load(Ordering::Acquire) {
+                                false
+                            } else {
+                                session.target_ids.insert(target.id.clone());
+                                true
+                            }
+                        };
+                        if !accepted {
+                            return uncached_core::TraversalControl::Cancel;
+                        }
+                        registry.targets.insert(
+                            target.id.clone(),
+                            RegisteredTarget {
+                                target: target.clone(),
+                                root_path: callback_root.clone(),
+                            },
+                        );
+                        drop(registry);
+                        let _ = target_event_handle.emit(
+                            "scan:target_found",
+                            serde_json::json!({
+                                "scanId": callback_event_scan_id,
+                                "target": target
+                            }),
+                        );
+                        crate::logging::info(
+                            "scan",
+                            &format!(
+                                "target scanId=\"{}\" path=\"{}\" pending=true",
+                                callback_event_scan_id,
+                                target.path.display()
+                            ),
+                        );
+                        ScanService::start_target_size(
+                            &target_event_handle,
+                            &callback_event_scan_id,
+                            &target.id,
+                            &target.path,
+                        );
+                        return uncached_core::TraversalControl::Prune;
                     }
 
                     let snapshot = serde_json::json!({
@@ -463,12 +454,59 @@ fn scan_id_from_target_id(target_id: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{registry, RegisteredTarget, ScanService, ScanStartResult};
+    use super::{providers_for_scan, registry, RegisteredTarget, ScanService, ScanStartResult};
+    use crate::commands::settings::AppSettings;
     use crate::models::action::CleanMode;
     use crate::models::category::Category;
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use std::path::PathBuf;
+
+    #[test]
+    fn converts_core_target_preserving_scan_fields_and_pending_state() {
+        let identity = Some(uncached_core::FileIdentity {
+            first: 17,
+            second: 29,
+        });
+        let categories = [
+            (uncached_core::Category::NodeModules, Category::NodeModules),
+            (uncached_core::Category::CargoTarget, Category::CargoTarget),
+            (uncached_core::Category::NextJs, Category::NextJs),
+            (uncached_core::Category::Turbo, Category::Turbo),
+            (uncached_core::Category::PyCache, Category::PyCache),
+            (uncached_core::Category::Gradle, Category::Gradle),
+        ];
+
+        for (index, (core_category, ui_category)) in categories.into_iter().enumerate() {
+            let path = PathBuf::from(format!(r"C:\workspace\target-{index}"));
+            let core_target = uncached_core::ScanTarget::new(path.clone(), core_category, 4096)
+                .with_identity(identity);
+
+            let target = ScanTarget::from_core("scan-1", core_target);
+
+            assert_eq!(target.path, path);
+            assert_eq!(target.category, ui_category);
+            assert_eq!(target.size_bytes, 4096);
+            assert_eq!(target.identity, identity);
+            assert!(target.size_pending);
+        }
+    }
+
+    #[test]
+    fn scan_providers_use_configured_settings_not_free_provider_set() {
+        let providers = providers_for_scan(&AppSettings::default());
+
+        assert_eq!(providers.len(), 6);
+        assert!(providers
+            .scanner_for(uncached_core::Category::CargoTarget)
+            .is_some());
+        assert!(providers
+            .scanner_for(uncached_core::Category::NodeModules)
+            .is_some());
+        assert!(uncached_core::ProviderSet::free()
+            .scanner_for(uncached_core::Category::CargoTarget)
+            .is_none());
+    }
 
     #[test]
     fn scan_path_removes_extended_prefix() {

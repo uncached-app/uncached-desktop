@@ -20,6 +20,23 @@ pub struct ScanTarget {
 }
 
 impl ScanTarget {
+    pub fn from_core(scan_id: &str, target: uncached_core::ScanTarget) -> Self {
+        let last_modified = std::fs::metadata(&target.path)
+            .ok()
+            .and_then(|metadata| metadata.modified().ok())
+            .map(DateTime::<Utc>::from);
+        let mut ui_target = Self::pending(
+            target.path,
+            category_from_core(target.category),
+            last_modified,
+        );
+        ui_target.id = format!("{scan_id}-{}", ui_target.id);
+        ui_target.size_bytes = target.size_bytes;
+        ui_target.formatted_size = format_size(target.size_bytes);
+        ui_target.identity = target.identity;
+        ui_target
+    }
+
     pub fn new(
         path: PathBuf,
         category: Category,
@@ -64,6 +81,20 @@ impl ScanTarget {
         self.size_has_errors = size_has_errors;
         self.size_pending = false;
         self.formatted_size = format_size(size_bytes);
+    }
+}
+
+fn category_from_core(category: uncached_core::Category) -> Category {
+    match category {
+        uncached_core::Category::NodeModules => Category::NodeModules,
+        uncached_core::Category::CargoTarget => Category::CargoTarget,
+        uncached_core::Category::NextJs => Category::NextJs,
+        uncached_core::Category::Turbo => Category::Turbo,
+        uncached_core::Category::PyCache => Category::PyCache,
+        uncached_core::Category::Gradle => Category::Gradle,
+        uncached_core::Category::DotNetObj => Category::DotNetObj,
+        uncached_core::Category::Docker => Category::Docker,
+        uncached_core::Category::Custom(name) => Category::Custom(name),
     }
 }
 
