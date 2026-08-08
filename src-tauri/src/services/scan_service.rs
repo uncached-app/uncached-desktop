@@ -236,45 +236,51 @@ impl ScanService {
                 },
             );
 
-            if cancel_token.load(Ordering::Acquire) {
-                crate::logging::info("scan", &format!("cancelled scanId=\"{}\"", worker_scan_id));
-                let _ = app_handle.emit(
-                    "scan:cancelled",
-                    serde_json::json!({
-                        "scanId": worker_scan_id,
-                        "totalTargets": 0,
-                        "totalBytesFound": 0
-                    }),
-                );
-                return;
-            }
-
-            if let Err(error) = walk_result {
-                crate::logging::warn(
-                    "walker",
-                    &format!("scanId=\"{}\" error=\"{}\"", worker_scan_id, error),
-                );
-                if !ScanService::end_session(&worker_scan_id) {
-                    if cancel_token.load(Ordering::Acquire) {
-                        let _ = app_handle.emit(
-                            "scan:cancelled",
-                            serde_json::json!({
-                                "scanId": worker_scan_id,
-                                "totalTargets": 0,
-                                "totalBytesFound": 0
-                            }),
-                        );
-                    }
+            match walk_result {
+                Ok(uncached_core::TraversalOutcome::Cancelled) => {
+                    crate::logging::info(
+                        "scan",
+                        &format!("cancelled scanId=\"{}\"", worker_scan_id),
+                    );
+                    let _ = ScanService::end_session(&worker_scan_id);
+                    let _ = app_handle.emit(
+                        "scan:cancelled",
+                        serde_json::json!({
+                            "scanId": worker_scan_id,
+                            "totalTargets": 0,
+                            "totalBytesFound": 0
+                        }),
+                    );
                     return;
                 }
-                let _ = app_handle.emit(
-                    "scan:failed",
-                    serde_json::json!({
-                        "scanId": worker_scan_id,
-                        "message": error.to_string()
-                    }),
-                );
-                return;
+                Err(error) => {
+                    crate::logging::warn(
+                        "walker",
+                        &format!("scanId=\"{}\" error=\"{}\"", worker_scan_id, error),
+                    );
+                    if !ScanService::end_session(&worker_scan_id) {
+                        if cancel_token.load(Ordering::Acquire) {
+                            let _ = app_handle.emit(
+                                "scan:cancelled",
+                                serde_json::json!({
+                                    "scanId": worker_scan_id,
+                                    "totalTargets": 0,
+                                    "totalBytesFound": 0
+                                }),
+                            );
+                        }
+                        return;
+                    }
+                    let _ = app_handle.emit(
+                        "scan:failed",
+                        serde_json::json!({
+                            "scanId": worker_scan_id,
+                            "message": error.to_string()
+                        }),
+                    );
+                    return;
+                }
+                Ok(uncached_core::TraversalOutcome::Completed) => {}
             }
 
             if !ScanService::end_session(&worker_scan_id) {
