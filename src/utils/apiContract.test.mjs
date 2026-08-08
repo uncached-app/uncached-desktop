@@ -46,6 +46,31 @@ test("normalizes v1 target DTOs without losing backend identity", () => {
   assert.equal(target.target.lastModified, null);
 });
 
+test("rejects malformed target display fields", () => {
+  const baseTarget = {
+    id: "scan-1-target-1",
+    path: "C:\\workspace\\node_modules",
+    category: "NodeModules",
+    sizeBytes: 0,
+    sizePending: false,
+    sizeHasErrors: false,
+    formattedSize: "0 B",
+  };
+
+  assert.throws(
+    () => normalizeTargetFound({ scanId: "scan-1", target: { ...baseTarget, name: "" } }),
+    /target payload shape/,
+  );
+  assert.throws(
+    () => normalizeTargetFound({ scanId: "scan-1", target: { ...baseTarget, name: 42 } }),
+    /target payload shape/,
+  );
+  assert.throws(
+    () => normalizeTargetFound({ scanId: "scan-1", target: { ...baseTarget, lastModified: 42 } }),
+    /target payload shape/,
+  );
+});
+
 test("normalizes settled target size without rendering measured zero as pending", () => {
   const update = normalizeTargetSized({
     scanId: "scan-1",

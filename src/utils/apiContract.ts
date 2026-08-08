@@ -132,6 +132,12 @@ export function normalizeTargetFound(payload: RawTargetFound) {
   ) {
     throw new Error("Invalid target payload shape");
   }
+  if (hasOwn(target, "name") && (typeof target.name !== "string" || target.name.length === 0)) {
+    throw new Error("Invalid target payload shape");
+  }
+  if (hasOwn(target, "lastModified") && target.lastModified !== null && typeof target.lastModified !== "string") {
+    throw new Error("Invalid target payload shape");
+  }
   return {
     scanId: payload.scanId,
     target: {
