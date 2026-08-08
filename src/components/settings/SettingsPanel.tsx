@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppSettings, Appearance } from "../../types/settings";
+import { openExternalUrl } from "../../utils/externalLink";
 
 type SettingsPanelProps = {
   open: boolean;
@@ -74,6 +75,9 @@ function SettingsContent({ section, settings, updateSettings, onRequestPermanent
 }
 
 function AboutContent({ appInfo }: { appInfo: { name: string; version: string; website: string } | null }) {
+  const websiteUrl = appInfo?.website ?? "https://uncached.app";
+  const eulaUrl = "https://uncached.app/eula";
+
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-20" />
@@ -82,10 +86,18 @@ function AboutContent({ appInfo }: { appInfo: { name: string; version: string; w
       <p className="mt-2 text-sm text-mist-500">Reclaim disk from build artifacts.</p>
       <p className="mt-6 font-mono text-xs text-mist-500">Version {appInfo?.version ?? "..."}</p>
       <div className="mt-5 flex flex-col items-center gap-2">
-        <a href={appInfo?.website ?? "https://uncached.app"} target="_blank" rel="noreferrer" className="text-sm text-sage-300 hover:text-sage-200">
+        <a
+          href={websiteUrl}
+          onClick={(e) => openExternalUrl(websiteUrl, e)}
+          className="text-sm text-sage-300 hover:text-sage-200"
+        >
           uncached.app
         </a>
-        <a href="https://uncached.app/eula" target="_blank" rel="noreferrer" className="text-xs text-mist-500 hover:text-mist-300 underline">
+        <a
+          href={eulaUrl}
+          onClick={(e) => openExternalUrl(eulaUrl, e)}
+          className="text-xs text-mist-500 hover:text-mist-300 underline"
+        >
           End User License Agreement (EULA)
         </a>
       </div>

@@ -8,7 +8,20 @@
     <meta property="og:description" content="Reclaim disk from build artifacts. Uncached scans a workspace for dependency, build, and cache directories your toolchains can regenerate, then moves them to the Recycle Bin." />
     <meta property="og:url" content="https://uncached.app" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/brand/UNCACHED-ICON-LIGHT-BGWHITE.svg" />
+    <link id="app-favicon" rel="icon" type="image/svg+xml" href="/brand/UNCACHED-ICON-LIGHT-BGWHITE.svg" />
+    <script>
+      (function() {
+        try {
+          var appearance = localStorage.getItem("uncached_appearance") || "system";
+          var isDark = appearance === "dark" || (appearance === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = isDark ? "dark" : "light";
+          var favicon = document.getElementById("app-favicon");
+          if (favicon) {
+            favicon.href = isDark ? "/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" : "/brand/UNCACHED-ICON-LIGHT-BGWHITE.svg";
+          }
+        } catch (e) {}
+      })();
+    </script>
     <title>Uncached</title>
     <style>
       #app-splashscreen {

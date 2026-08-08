@@ -16,7 +16,12 @@ export function useSettings() {
     }
 
     invoke<AppSettings>("get_settings")
-      .then(setSettings)
+      .then((data) => {
+        if (data?.appearance) {
+          localStorage.setItem("uncached_appearance", data.appearance);
+        }
+        setSettings(data);
+      })
       .catch((settingsError) => setError(String(settingsError)))
       .finally(() => setLoading(false));
   }, []);
@@ -26,6 +31,9 @@ export function useSettings() {
     setSaving(true);
     setError(null);
     try {
+      if (patch.appearance) {
+        localStorage.setItem("uncached_appearance", patch.appearance);
+      }
       const updated = await invoke<AppSettings>("update_settings", {
         settings: { ...settings, ...patch },
       });

@@ -5,14 +5,29 @@ export function useTheme(appearance: Appearance | undefined) {
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
-      // Before settings resolve, hold the default theme rather than probing the
-      // OS: guessing dark here would flash and then correct itself.
-      const theme = !appearance
-        ? "light"
-        : appearance === "system"
-          ? (media.matches ? "dark" : "light")
-          : appearance;
+      const stored = (localStorage.getItem("uncached_appearance") as Appearance | null) ?? "system";
+      const activeAppearance = appearance ?? stored;
+
+      const theme =
+        activeAppearance === "system"
+          ? media.matches
+            ? "dark"
+            : "light"
+          : activeAppearance;
+
       document.documentElement.dataset.theme = theme;
+
+      if (appearance) {
+        localStorage.setItem("uncached_appearance", appearance);
+      }
+
+      const favicon = document.getElementById("app-favicon") as HTMLLinkElement | null;
+      if (favicon) {
+        favicon.href =
+          theme === "dark"
+            ? "/brand/UNCACHED-ICON-LIGHT-BGDARK.svg"
+            : "/brand/UNCACHED-ICON-LIGHT-BGWHITE.svg";
+      }
     };
 
     apply();
