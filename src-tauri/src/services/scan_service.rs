@@ -6,7 +6,7 @@ use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
-use std::sync::mpsc::{sync_channel, SyncSender};
+use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter};
@@ -180,9 +180,19 @@ struct SizingJob {
     path: PathBuf,
 }
 
+type SizeCalculator = Arc<dyn Fn(&Path) -> crate::filesystem::size::DirSize + Send + Sync>;
+type EventSink = Arc<dyn Fn(&str, serde_json::Value) + Send + Sync>;
+
 struct SizingController {
     sender: Option<SyncSender<SizingJob>>,
     workers: Vec<std::thread::JoinHandle<()>>,
+    cancel_token: Arc<AtomicBool>,
+}
+
+#[derive(Clone)]
+struct SizingSubmitter {
+    sender: SyncSender<SizingJob>,
+    cancel_token: Arc<AtomicBool>,
 }
 
 fn sizing_worker_count() -> usize {
@@ -193,21 +203,60 @@ fn sizing_worker_count() -> usize {
 
 impl SizingController {
     fn new(app: &AppHandle, stats: &Arc<Mutex<ScanStats>>, started_at: Instant) -> Self {
-        let workers = sizing_worker_count();
+        let cancel_token = Arc::new(AtomicBool::new(false));
+        let event_sink = {
+            let app = app.clone();
+            Arc::new(move |event: &str, payload: serde_json::Value| {
+                let _ = app.emit(event, payload);
+            })
+        };
+        Self::with_hooks(
+            sizing_worker_count(),
+            Arc::new(crate::filesystem::size::calculate_dir_size_report),
+            event_sink,
+            cancel_token,
+            stats,
+            started_at,
+        )
+    }
+
+    fn with_hooks(
+        workers: usize,
+        calculator: SizeCalculator,
+        event_sink: EventSink,
+        cancel_token: Arc<AtomicBool>,
+        stats: &Arc<Mutex<ScanStats>>,
+        started_at: Instant,
+    ) -> Self {
         let (sender, receiver) = sync_channel::<SizingJob>(workers * 2);
         let receiver = Arc::new(Mutex::new(receiver));
         let mut worker_handles = Vec::with_capacity(workers);
 
         for _ in 0..workers {
-            let app = app.clone();
             let receiver = Arc::clone(&receiver);
             let stats = Arc::clone(stats);
+            let calculator = Arc::clone(&calculator);
+            let event_sink = Arc::clone(&event_sink);
+            let cancel_token = Arc::clone(&cancel_token);
             worker_handles.push(std::thread::spawn(move || loop {
                 let job = receiver.lock().unwrap().recv();
                 let Ok(job) = job else {
                     break;
                 };
-                let report = crate::filesystem::size::calculate_dir_size_report(&job.path);
+                if cancel_token.load(Ordering::Acquire) {
+                    break;
+                }
+                let report = calculator(&job.path);
+                if cancel_token.load(Ordering::Acquire) {
+                    settle_size_job(
+                        &job.scan_id,
+                        &job.target_id,
+                        &stats,
+                        started_at,
+                        &event_sink,
+                    );
+                    continue;
+                }
                 if let Some(update) =
                     apply_target_size_for_session(&job.scan_id, &job.target_id, report)
                 {
@@ -220,7 +269,7 @@ impl SizingController {
                             report.errors
                         ),
                     );
-                    let _ = app.emit("scan:target_sized", update);
+                    event_sink("scan:target_sized", serde_json::to_value(update).unwrap());
                 } else {
                     crate::logging::info(
                         "size",
@@ -230,20 +279,83 @@ impl SizingController {
                         ),
                     );
                 }
-                settle_size_job(&app, &job.scan_id, &job.target_id, &stats, started_at);
+                settle_size_job(
+                    &job.scan_id,
+                    &job.target_id,
+                    &stats,
+                    started_at,
+                    &event_sink,
+                );
             }));
         }
 
         Self {
             sender: Some(sender),
             workers: worker_handles,
+            cancel_token,
+        }
+    }
+
+    fn submitter(&self) -> SizingSubmitter {
+        SizingSubmitter {
+            sender: self.sender.as_ref().unwrap().clone(),
+            cancel_token: Arc::clone(&self.cancel_token),
         }
     }
 
     fn finish(mut self) {
         self.sender.take();
+        if self.cancel_token.load(Ordering::Acquire) {
+            return;
+        }
         for worker in self.workers {
             let _ = worker.join();
+        }
+    }
+
+    #[cfg(test)]
+    fn for_test(workers: usize, calculator: SizeCalculator, event_sink: EventSink) -> Self {
+        Self::for_test_with_cancel(
+            workers,
+            calculator,
+            event_sink,
+            Arc::new(AtomicBool::new(false)),
+        )
+    }
+
+    #[cfg(test)]
+    fn for_test_with_cancel(
+        workers: usize,
+        calculator: SizeCalculator,
+        event_sink: EventSink,
+        cancel_token: Arc<AtomicBool>,
+    ) -> Self {
+        let stats = Arc::new(Mutex::new(ScanStats::default()));
+        Self::with_hooks(
+            workers,
+            calculator,
+            event_sink,
+            cancel_token,
+            &stats,
+            Instant::now(),
+        )
+    }
+}
+
+impl SizingSubmitter {
+    fn submit(&self, mut job: SizingJob) -> bool {
+        loop {
+            match self.sender.try_send(job) {
+                Ok(()) => return true,
+                Err(TrySendError::Disconnected(_)) => return false,
+                Err(TrySendError::Full(returned)) => {
+                    if self.cancel_token.load(Ordering::Acquire) {
+                        return false;
+                    }
+                    job = returned;
+                    std::thread::yield_now();
+                }
+            }
         }
     }
 }
@@ -323,10 +435,16 @@ impl ScanService {
             let settings =
                 crate::commands::settings::load_settings(&app_handle).unwrap_or_default();
             let providers = Arc::new(providers_for_scan(&settings));
-            let target_event_handle = app_handle.clone();
+            let target_event_sink: EventSink = {
+                let app = app_handle.clone();
+                Arc::new(move |event, payload| {
+                    let _ = app.emit(event, payload);
+                })
+            };
             let stats = Arc::new(Mutex::new(ScanStats::default()));
             let sizing = SizingController::new(&app_handle, &stats, started_at);
-            let sizing_sender = sizing.sender.as_ref().unwrap().clone();
+            let sizing_submitter = sizing.submitter();
+            let callback_sizing_submitter = sizing_submitter.clone();
             let stats_for_callback = Arc::clone(&stats);
             let registry_for_callback = Arc::clone(registry());
             let callback_scan_id = worker_scan_id.clone();
@@ -384,13 +502,7 @@ impl ScanService {
                             },
                         );
                         drop(registry);
-                        let _ = target_event_handle.emit(
-                            "scan:target_found",
-                            serde_json::json!({
-                                "scanId": callback_event_scan_id,
-                                "target": target
-                            }),
-                        );
+                        emit_target_found(&target_event_sink, &callback_event_scan_id, &target);
                         crate::logging::info(
                             "scan",
                             &format!(
@@ -399,13 +511,13 @@ impl ScanService {
                                 target.path.display()
                             ),
                         );
-                        sizing_sender
-                            .send(SizingJob {
-                                scan_id: callback_event_scan_id.clone(),
-                                target_id: target.id.clone(),
-                                path: target.path.clone(),
-                            })
-                            .unwrap();
+                        if !callback_sizing_submitter.submit(SizingJob {
+                            scan_id: callback_event_scan_id.clone(),
+                            target_id: target.id.clone(),
+                            path: target.path.clone(),
+                        }) {
+                            return uncached_core::TraversalControl::Cancel;
+                        }
                         return uncached_core::TraversalControl::Prune;
                     }
 
@@ -416,10 +528,11 @@ impl ScanService {
                         "totalBytesFound": stats.total_bytes_found
                     });
                     drop(stats);
-                    let _ = target_event_handle.emit("scan:progress", snapshot);
+                    target_event_sink("scan:progress", snapshot);
                     uncached_core::TraversalControl::Continue
                 },
             );
+            drop(sizing_submitter);
 
             match walk_result {
                 Ok(uncached_core::TraversalOutcome::Cancelled) => {
@@ -567,7 +680,11 @@ impl ScanService {
             }
         };
         if should_finish {
-            emit_finished(app, scan_id, stats, started_at);
+            let app = app.clone();
+            let event_sink: EventSink = Arc::new(move |event, payload| {
+                let _ = app.emit(event, payload);
+            });
+            emit_finished(&event_sink, scan_id, stats, started_at);
         }
         true
     }
@@ -717,11 +834,11 @@ fn apply_target_size_for_session(
 }
 
 fn settle_size_job(
-    app: &AppHandle,
     scan_id: &str,
     target_id: &str,
     stats: &Arc<Mutex<ScanStats>>,
     started_at: Instant,
+    event_sink: &EventSink,
 ) {
     let should_finish = {
         let mut registry = registry().lock().unwrap();
@@ -740,24 +857,34 @@ fn settle_size_job(
         }
     };
     if should_finish {
-        emit_finished(app, scan_id, stats, started_at);
+        emit_finished(event_sink, scan_id, stats, started_at);
     }
 }
 
 fn emit_finished(
-    app: &AppHandle,
+    event_sink: &EventSink,
     scan_id: &str,
     stats: &Arc<Mutex<ScanStats>>,
     started_at: Instant,
 ) {
     let stats = stats.lock().unwrap();
-    let _ = app.emit(
+    event_sink(
         "scan:finished",
         serde_json::json!({
             "scanId": scan_id,
             "totalTargets": stats.targets_found,
             "totalBytesFound": stats.total_bytes_found,
             "durationMs": started_at.elapsed().as_millis()
+        }),
+    );
+}
+
+fn emit_target_found(event_sink: &EventSink, scan_id: &str, target: &ScanTarget) {
+    event_sink(
+        "scan:target_found",
+        serde_json::json!({
+            "scanId": scan_id,
+            "target": target,
         }),
     );
 }
@@ -774,7 +901,7 @@ fn scan_id_from_target_id(target_id: &str) -> String {
 mod tests {
     use super::{
         providers_for_scan, registry, CleanupControl, RegisteredTarget, ScanService,
-        ScanStartResult,
+        ScanStartResult, SizingController, SizingJob,
     };
     use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
@@ -784,7 +911,7 @@ mod tests {
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use std::path::PathBuf;
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::atomic::Ordering;
     use std::sync::{mpsc, Arc, Barrier};
     use std::thread;
 
@@ -798,50 +925,6 @@ mod tests {
     #[test]
     fn sizing_worker_count_is_bounded() {
         assert!((1..=8).contains(&super::sizing_worker_count()));
-    }
-
-    #[test]
-    fn sizing_pool_never_exceeds_worker_limit() {
-        let limit = 2;
-        let (sender, receiver) = mpsc::sync_channel::<bool>(limit);
-        let receiver = Arc::new(std::sync::Mutex::new(receiver));
-        let active = Arc::new(AtomicUsize::new(0));
-        let maximum = Arc::new(AtomicUsize::new(0));
-        let barrier = Arc::new(Barrier::new(limit + 1));
-        let mut workers = Vec::new();
-
-        for _ in 0..limit {
-            let receiver = Arc::clone(&receiver);
-            let active = Arc::clone(&active);
-            let maximum = Arc::clone(&maximum);
-            let barrier = Arc::clone(&barrier);
-            workers.push(thread::spawn(move || loop {
-                let received = receiver.lock().unwrap().recv();
-                let Ok(first_batch) = received else {
-                    break;
-                };
-                let current = active.fetch_add(1, Ordering::AcqRel) + 1;
-                maximum.fetch_max(current, Ordering::AcqRel);
-                if first_batch {
-                    barrier.wait();
-                }
-                active.fetch_sub(1, Ordering::AcqRel);
-            }));
-        }
-
-        for _ in 0..limit {
-            sender.send(true).unwrap();
-        }
-        barrier.wait();
-        for _ in 0..limit {
-            sender.send(false).unwrap();
-        }
-        drop(sender);
-        for worker in workers {
-            worker.join().unwrap();
-        }
-
-        assert_eq!(maximum.load(Ordering::Acquire), limit);
     }
 
     #[test]
@@ -1205,6 +1288,47 @@ mod tests {
     }
 
     #[test]
+    fn sizing_controller_respects_injected_worker_limit() {
+        let active = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let maximum = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (started_sender, started_receiver) = mpsc::channel();
+        let (release_sender, release_receiver) = mpsc::channel();
+        let release_receiver = Arc::new(std::sync::Mutex::new(release_receiver));
+        let active_for_calculator = Arc::clone(&active);
+        let maximum_for_calculator = Arc::clone(&maximum);
+        let calculator = Arc::new(move |_: &std::path::Path| {
+            let current = active_for_calculator.fetch_add(1, Ordering::AcqRel) + 1;
+            maximum_for_calculator.fetch_max(current, Ordering::AcqRel);
+            started_sender.send(()).unwrap();
+            release_receiver.lock().unwrap().recv().unwrap();
+            active_for_calculator.fetch_sub(1, Ordering::AcqRel);
+            DirSize {
+                bytes: 0,
+                errors: 0,
+            }
+        });
+        let (_, sink) = event_sink();
+        let controller = SizingController::for_test(2, calculator, sink);
+        let submitter = controller.submitter();
+        for index in 0..3 {
+            assert!(submitter.submit(SizingJob {
+                scan_id: format!("scan-limit-{index}"),
+                target_id: format!("target-limit-{index}"),
+                path: PathBuf::from("C:\\workspace"),
+            }));
+        }
+        started_receiver.recv().unwrap();
+        started_receiver.recv().unwrap();
+        assert!(started_receiver.try_recv().is_err());
+        for _ in 0..3 {
+            release_sender.send(()).unwrap();
+        }
+        drop(submitter);
+        controller.finish();
+        assert_eq!(maximum.load(Ordering::Acquire), 2);
+    }
+
+    #[test]
     fn claim_blocks_duplicate_cleanup_and_release_allows_retry() {
         let target_id = format!("claim-target-{}", std::process::id());
         let target = ScanTarget::new(
@@ -1407,6 +1531,15 @@ mod tests {
         );
     }
 
+    fn event_sink() -> (Arc<std::sync::Mutex<Vec<String>>>, super::EventSink) {
+        let events = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let events_for_sink = Arc::clone(&events);
+        let sink: super::EventSink = Arc::new(move |event: &str, _: serde_json::Value| {
+            events_for_sink.lock().unwrap().push(event.to_string());
+        });
+        (events, sink)
+    }
+
     #[test]
     fn failed_cleanup_can_be_retried_with_same_target() {
         let target_id = format!("failed-clean-target-{}", std::process::id());
@@ -1482,6 +1615,109 @@ mod tests {
         let result = super::CancelScanResult { cancelled: true };
         let value = serde_json::to_value(result).unwrap();
         assert_eq!(value["cancelled"], true);
+    }
+
+    #[test]
+    fn sizing_controller_uses_real_workers_and_settlement_path() {
+        let scan_id = format!("scan-controller-{}", std::process::id());
+        let target_id = format!("{scan_id}-target");
+        insert_test_target(&target_id);
+        let mut session = super::ScanSession::new();
+        session.target_ids.insert(target_id.clone());
+        session.register_size_job(target_id.clone());
+        session.walk_finished = true;
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
+
+        let events = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let events_for_sink = Arc::clone(&events);
+        let sink: super::EventSink = Arc::new(move |event: &str, _: serde_json::Value| {
+            events_for_sink.lock().unwrap().push(event.to_string());
+        });
+        super::emit_target_found(
+            &sink,
+            &scan_id,
+            &ScanService::get_target(&target_id).unwrap().target,
+        );
+        let controller = SizingController::for_test(
+            1,
+            Arc::new(|_: &std::path::Path| DirSize {
+                bytes: 7,
+                errors: 0,
+            }),
+            sink,
+        );
+        controller.submitter().submit(SizingJob {
+            scan_id: scan_id.clone(),
+            target_id: target_id.clone(),
+            path: PathBuf::from("C:\\workspace"),
+        });
+        controller.finish();
+
+        assert_eq!(
+            ScanService::get_target(&target_id)
+                .unwrap()
+                .target
+                .size_bytes,
+            7
+        );
+        assert_eq!(registry().lock().unwrap().sessions.len(), 0);
+        assert_eq!(
+            events.lock().unwrap().as_slice(),
+            &["scan:target_found", "scan:target_sized", "scan:finished"]
+        );
+        ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn sizing_controller_cancellation_detaches_active_worker_without_late_events() {
+        let scan_id = format!("scan-controller-cancel-{}", std::process::id());
+        let target_id = format!("{scan_id}-target");
+        insert_test_target(&target_id);
+        let mut session = super::ScanSession::new();
+        session.target_ids.insert(target_id.clone());
+        session.register_size_job(target_id.clone());
+        let cancel_token = Arc::clone(&session.cancel_token);
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
+
+        let (started_sender, started_receiver) = mpsc::channel();
+        let (release_sender, release_receiver) = mpsc::channel();
+        let release_receiver = Arc::new(std::sync::Mutex::new(release_receiver));
+        let calculator = Arc::new(move |_: &std::path::Path| {
+            started_sender.send(()).unwrap();
+            release_receiver.lock().unwrap().recv().unwrap();
+            DirSize {
+                bytes: 9,
+                errors: 0,
+            }
+        });
+        let events = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let events_for_sink = Arc::clone(&events);
+        let sink = Arc::new(move |event: &str, _: serde_json::Value| {
+            events_for_sink.lock().unwrap().push(event.to_string());
+        });
+        let controller =
+            SizingController::for_test_with_cancel(1, calculator, sink, cancel_token.clone());
+        controller.submitter().submit(SizingJob {
+            scan_id: scan_id.clone(),
+            target_id: target_id.clone(),
+            path: PathBuf::from("C:\\workspace"),
+        });
+        started_receiver.recv().unwrap();
+        cancel_token.store(true, Ordering::Release);
+        assert!(ScanService::cancel_scan(&scan_id).unwrap().cancelled);
+        controller.finish();
+        release_sender.send(()).unwrap();
+
+        assert!(events.lock().unwrap().is_empty());
+        assert!(ScanService::get_target(&target_id).is_err());
     }
 
     #[test]
