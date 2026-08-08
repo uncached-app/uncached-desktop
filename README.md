@@ -11,7 +11,6 @@
   <a href="https://tauri.app"><img src="https://img.shields.io/badge/Tauri-v2.0-24c8db?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri v2" /></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-Backend-orange?style=for-the-badge&logo=rust&logoColor=white" alt="Rust" /></a>
   <a href="https://react.dev"><img src="https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black" alt="React 19" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" /></a>
 </p>
 
 ---
@@ -133,13 +132,7 @@ uncached/
     └── tauri.conf.json           # Tauri v2 App Configuration
 ```
 
----
 
-## 📄 License
-
-Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
-
----
 
 <p align="center">
   Crafted with care by <a href="https://github.com/natanvianasp">Natan Viana</a> · <a href="https://uncached.app">uncached.app</a>

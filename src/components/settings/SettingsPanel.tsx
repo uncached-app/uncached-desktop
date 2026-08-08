@@ -74,7 +74,23 @@ function SettingsContent({ section, settings, updateSettings, onRequestPermanent
 }
 
 function AboutContent({ appInfo }: { appInfo: { name: string; version: string; website: string } | null }) {
-  return <div className="flex h-full flex-col items-center justify-center text-center"><img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-20" /><img src="/brand/UNCACHED-ICON-DARK-NOBG.svg" alt="" className="theme-logo-dark size-20" /><h3 className="mt-6 text-2xl font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3><p className="mt-2 text-sm text-mist-500">Reclaim disk from build artifacts.</p><p className="mt-6 font-mono text-xs text-mist-500">Version {appInfo?.version ?? "..."}</p><a href={appInfo?.website ?? "https://uncached.app"} className="mt-5 text-sm text-sage-300 hover:text-sage-200">uncached.app</a></div>;
+  return (
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-20" />
+      <img src="/brand/UNCACHED-ICON-DARK-NOBG.svg" alt="" className="theme-logo-dark size-20" />
+      <h3 className="mt-6 text-2xl font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
+      <p className="mt-2 text-sm text-mist-500">Reclaim disk from build artifacts.</p>
+      <p className="mt-6 font-mono text-xs text-mist-500">Version {appInfo?.version ?? "..."}</p>
+      <div className="mt-5 flex flex-col items-center gap-2">
+        <a href={appInfo?.website ?? "https://uncached.app"} target="_blank" rel="noreferrer" className="text-sm text-sage-300 hover:text-sage-200">
+          uncached.app
+        </a>
+        <a href="https://uncached.app/eula" target="_blank" rel="noreferrer" className="text-xs text-mist-500 hover:text-mist-300 underline">
+          End User License Agreement (EULA)
+        </a>
+      </div>
+    </div>
+  );
 }
 
 function SettingsGroup({ children }: { children: ReactNode }) { return <div className="divide-y divide-forest-800">{children}</div>; }
