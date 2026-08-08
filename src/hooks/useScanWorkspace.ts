@@ -22,11 +22,22 @@ import {
   canUseCleanupMode,
   normalizeTargetFound,
   normalizeTargetSized,
+  isCurrentScanGeneration,
   type RawTargetFound,
   type RawTargetSized,
   type RawCommandResult,
   toUiError,
   unwrapV1,
+  validateCancelResult,
+  validateCapabilities,
+  validateCleanResult,
+  validateRetryTargetSizeResult,
+  validateScanCancelled,
+  validateScanFailed,
+  validateScanFinished,
+  validateScanProgress,
+  validateScanStartResult,
+  validateScanStarted,
 } from "../utils/apiContract";
 import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
@@ -49,6 +60,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   const [capabilities, setCapabilities] = useState<CleanupCapabilities | null>(null);
 
   const activeScanId = useRef<string | null>(null);
+  const scanGeneration = useRef(0);
   const pendingScan = useRef(false);
   const pendingEvents = useRef<PendingScanEvent[]>([]);
   const pendingSizeUpdates = useRef<Map<string, TargetSized>>(new Map());
@@ -58,6 +70,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   }
 
   function failScan(message: string) {
+    scanGeneration.current += 1;
     activeScanId.current = null;
     pendingScan.current = false;
     pendingEvents.current = [];
@@ -142,7 +155,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     normalize?: (payload: T) => PendingScanEvent["payload"],
   ) {
     try {
-      const payload = unwrapV1<T>(envelope);
+      const payload = unwrapV1<T>(envelope, normalize as ((value: unknown) => T) | undefined);
       handleScanEvent({ kind, payload: normalize ? normalize(payload) : payload } as PendingScanEvent);
     } catch (contractError) {
       const message = contractError instanceof ApiContractError
@@ -163,7 +176,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     const listeners = Promise.all([
       listen<ApiEnvelope<ScanStarted>>("scan:started", ({ payload }) => {
         try {
-          const started = unwrapV1<ScanStarted>(payload);
+          const started = unwrapV1(payload, validateScanStarted);
           if (acceptsScanEvent(started.scanId)) setStatus("Scanning workspace...");
         } catch (contractError) {
           const message = contractError instanceof ApiContractError
@@ -179,16 +192,16 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
         handleEnvelope("sized", payload, normalizeTargetSized);
       }),
       listen<ApiEnvelope<ScanProgress>>("scan:progress", ({ payload }) => {
-        handleEnvelope("progress", payload);
+        handleEnvelope("progress", payload, validateScanProgress);
       }),
       listen<ApiEnvelope<ScanFinished>>("scan:finished", ({ payload }) => {
-        handleEnvelope("finished", payload);
+        handleEnvelope("finished", payload, validateScanFinished);
       }),
       listen<ApiEnvelope<ScanCancelled>>("scan:cancelled", ({ payload }) => {
-        handleEnvelope("cancelled", payload);
+        handleEnvelope("cancelled", payload, validateScanCancelled);
       }),
       listen<ApiEnvelope<{ scanId: string; message: string }>>("scan:failed", ({ payload }) => {
-        handleEnvelope("failed", payload);
+        handleEnvelope("failed", payload, validateScanFailed);
       }),
     ]);
 
@@ -211,7 +224,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     if (!isTauri()) return;
     invoke<ApiEnvelope<CleanupCapabilities>>("cleanup_capabilities")
       .then((envelope) => {
-        if (!disposed) setCapabilities(unwrapV1(envelope));
+        if (!disposed) setCapabilities(unwrapV1(envelope, validateCapabilities));
       })
       .catch((capabilityError) => {
         if (disposed) return;
@@ -245,14 +258,17 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     setScanning(true);
     setStep(2);
     setStatus("Scanning workspace...");
+    const generation = ++scanGeneration.current;
     activeScanId.current = null;
     pendingScan.current = true;
     pendingEvents.current = [];
 
     try {
-      const result = await invoke<RawCommandResult<ScanStartResult>>("start_scan", {
+      const rawResult = await invoke<RawCommandResult<ScanStartResult>>("start_scan", {
         path: rootPath.trim(),
       });
+      if (!isCurrentScanGeneration(generation, scanGeneration.current, pendingScan.current)) return;
+      const result = validateScanStartResult(rawResult);
       activeScanId.current = result.scanId;
       pendingScan.current = false;
       const events = pendingEvents.current;
@@ -286,8 +302,12 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     setError(null);
     setStatus("Cancelling scan...");
     try {
-      const result = await invoke<RawCommandResult<{ cancelled: boolean }>>("cancel_scan", { scanId });
+      const generation = scanGeneration.current;
+      const rawResult = await invoke<RawCommandResult<{ cancelled: boolean }>>("cancel_scan", { scanId });
+      if (generation !== scanGeneration.current || activeScanId.current !== scanId) return;
+      const result = validateCancelResult(rawResult);
       if (result.cancelled) {
+        scanGeneration.current += 1;
         activeScanId.current = null;
         pendingScan.current = false;
         pendingEvents.current = [];
@@ -319,13 +339,14 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     setError(null);
     setCleaningTargetIds((current) => new Set(current).add(targetId));
     try {
-      const result = await invoke<RawCommandResult<CleanResult>>("clean_target", {
+      const rawResult = await invoke<RawCommandResult<CleanResult>>("clean_target", {
         request: {
           targetId,
           mode: cleanMode,
           confirmation,
         },
       });
+      const result = validateCleanResult(rawResult);
       setTargets((current) => current.filter((target) => target.id !== targetId));
       setCleanupSummary((current) => ({
         removed: current.removed + 1,
@@ -358,7 +379,8 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       ),
     );
     try {
-      await invoke<RawCommandResult<TargetSized>>("retry_target_size", { targetId });
+      const result = await invoke<RawCommandResult<TargetSized>>("retry_target_size", { targetId });
+      validateRetryTargetSizeResult(result);
     } catch (sizeError) {
       setTargets((current) =>
         current.map((target) =>
@@ -382,6 +404,10 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   }
 
   function resetScan() {
+    scanGeneration.current += 1;
+    activeScanId.current = null;
+    pendingScan.current = false;
+    pendingEvents.current = [];
     setTargets([]);
     setStep(1);
     setScanFinished(false);

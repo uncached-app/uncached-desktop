@@ -1,6 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canUseCleanupMode, normalizeTargetFound, normalizeTargetSized, toUiError, unwrapV1 } from "./apiContract.ts";
+import {
+  canUseCleanupMode,
+  isCurrentScanGeneration,
+  normalizeTargetFound,
+  normalizeTargetSized,
+  toUiError,
+  unwrapV1,
+  validateCapabilities,
+  validateScanFinished,
+} from "./apiContract.ts";
 
 test("unwraps a successful v1 envelope", () => {
   assert.equal(unwrapV1({ apiVersion: "v1", platform: "windows", data: { value: 1 }, error: null }).value, 1);
@@ -69,6 +78,52 @@ test("rejects malformed target display fields", () => {
     () => normalizeTargetFound({ scanId: "scan-1", target: { ...baseTarget, lastModified: 42 } }),
     /target payload shape/,
   );
+});
+
+test("rejects malformed finished payloads before UI state can consume them", () => {
+  assert.throws(
+    () => unwrapV1(
+      {
+        apiVersion: "v1",
+        platform: "windows",
+        data: { scanId: "scan-1", totalTargets: "1", totalBytesFound: 10, durationMs: 5 },
+        error: null,
+      },
+      validateScanFinished,
+    ),
+    /finished payload/,
+  );
+});
+
+test("rejects malformed capability payloads before action gating", () => {
+  assert.throws(
+    () => unwrapV1(
+      { apiVersion: "v1", platform: "windows", data: { permanent: true, trash: "yes", secureIdentity: false }, error: null },
+      validateCapabilities,
+    ),
+    /capabilities payload/,
+  );
+});
+
+test("rejects malformed target identity payloads before normalization", () => {
+  assert.throws(
+    () => unwrapV1(
+      {
+        apiVersion: "v1",
+        platform: "windows",
+        data: { scanId: "scan-1", target: { id: "", path: "C:\\temp", category: "Cache", sizeBytes: 1, sizePending: false, sizeHasErrors: false, formattedSize: "1 B" } },
+        error: null,
+      },
+      normalizeTargetFound,
+    ),
+    /target identity/,
+  );
+});
+
+test("accepts start response only for current pending scan generation", () => {
+  assert.equal(isCurrentScanGeneration(2, 2, true), true);
+  assert.equal(isCurrentScanGeneration(1, 2, true), false);
+  assert.equal(isCurrentScanGeneration(2, 2, false), false);
 });
 
 test("normalizes settled target size without rendering measured zero as pending", () => {

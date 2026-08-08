@@ -1,4 +1,13 @@
-import type { CleanupCapabilities } from "../types/scan";
+import type {
+  CleanResult,
+  CleanupCapabilities,
+  ScanCancelled,
+  ScanFinished,
+  ScanProgress,
+  ScanStarted,
+  ScanStartResult,
+  TargetSized,
+} from "../types/scan";
 
 export type Platform = "windows" | "linux" | "macos" | "android" | "unsupported";
 
@@ -16,8 +25,8 @@ export type ApiEnvelope<T> = {
   error: CoreErrorInfo | null;
 };
 
-// Desktop commands intentionally return raw results. Only events and capability
-// responses use ApiEnvelope, matching the Rust command signatures.
+// Desktop commands intentionally return raw results. Their call sites must run
+// the matching validator before using any field, matching Rust command signatures.
 export type RawCommandResult<T> = T;
 
 export type RawTargetFound = {
@@ -71,7 +80,9 @@ function isCoreErrorInfo(value: unknown): value is CoreErrorInfo {
   return isRecord(value) && typeof value.code === "string" && typeof value.message === "string";
 }
 
-export function unwrapV1<T>(envelope: unknown): T {
+type PayloadValidator<T> = (value: unknown) => T;
+
+export function unwrapV1<T>(envelope: unknown, validate?: PayloadValidator<T>): T {
   if (!isRecord(envelope) || !hasOwn(envelope, "apiVersion")) {
     throw new Error("API envelope is missing apiVersion");
   }
@@ -104,7 +115,7 @@ export function unwrapV1<T>(envelope: unknown): T {
   if (hasData && !isRecord(envelope.data)) {
     throw new Error("API envelope contains invalid payload shape");
   }
-  return envelope.data as T;
+  return validate ? validate(envelope.data) : envelope.data as T;
 }
 
 function isPlatform(value: unknown): value is Platform {
@@ -115,17 +126,119 @@ function targetName(path: string): string {
   return path.replace(/[\\/]$/, "").split(/[\\/]/).pop() || "unknown";
 }
 
+function isFiniteNonNegativeNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return isFiniteNonNegativeNumber(value) && Number.isInteger(value);
+}
+
+export function isCurrentScanGeneration(generation: number, currentGeneration: number, pending: boolean): boolean {
+  return pending && generation === currentGeneration;
+}
+
+export function validateScanStarted(value: unknown): ScanStarted {
+  if (!isRecord(value) || !isNonEmptyString(value.scanId) || !isNonEmptyString(value.rootPath)) {
+    throw new Error("Invalid scan started payload");
+  }
+  return value as ScanStarted;
+}
+
+export function validateScanProgress(value: unknown): ScanProgress {
+  if (
+    !isRecord(value) ||
+    !isNonEmptyString(value.scanId) ||
+    !isNonNegativeInteger(value.directoriesScanned) ||
+    !isNonNegativeInteger(value.targetsFound) ||
+    !isFiniteNonNegativeNumber(value.totalBytesFound)
+  ) {
+    throw new Error("Invalid scan progress payload");
+  }
+  return value as ScanProgress;
+}
+
+export function validateScanFinished(value: unknown): ScanFinished {
+  if (
+    !isRecord(value) ||
+    !isNonEmptyString(value.scanId) ||
+    !isNonNegativeInteger(value.totalTargets) ||
+    !isFiniteNonNegativeNumber(value.totalBytesFound) ||
+    !isFiniteNonNegativeNumber(value.durationMs)
+  ) {
+    throw new Error("Invalid scan finished payload");
+  }
+  return value as ScanFinished;
+}
+
+export function validateScanCancelled(value: unknown): ScanCancelled {
+  if (
+    !isRecord(value) ||
+    !isNonEmptyString(value.scanId) ||
+    !isNonNegativeInteger(value.totalTargets) ||
+    !isFiniteNonNegativeNumber(value.totalBytesFound)
+  ) {
+    throw new Error("Invalid scan cancelled payload");
+  }
+  return value as ScanCancelled;
+}
+
+export function validateScanFailed(value: unknown): { scanId: string; message: string } {
+  if (!isRecord(value) || !isNonEmptyString(value.scanId) || !isNonEmptyString(value.message)) {
+    throw new Error("Invalid scan failed payload");
+  }
+  return value as { scanId: string; message: string };
+}
+
+export function validateCapabilities(value: unknown): CleanupCapabilities {
+  if (
+    !isRecord(value) ||
+    typeof value.permanent !== "boolean" ||
+    typeof value.trash !== "boolean" ||
+    typeof value.secureIdentity !== "boolean"
+  ) {
+    throw new Error("Invalid capabilities payload");
+  }
+  return value as CleanupCapabilities;
+}
+
+export function validateScanStartResult(value: unknown): ScanStartResult {
+  if (!isRecord(value) || !isNonEmptyString(value.scanId)) throw new Error("Invalid start scan result");
+  return value as ScanStartResult;
+}
+
+export function validateCancelResult(value: unknown): { cancelled: boolean } {
+  if (!isRecord(value) || typeof value.cancelled !== "boolean") throw new Error("Invalid cancel scan result");
+  return value as { cancelled: boolean };
+}
+
+export function validateCleanResult(value: unknown): CleanResult {
+  if (
+    !isRecord(value) ||
+    !isFiniteNonNegativeNumber(value.freedBytes) ||
+    typeof value.sizeHasErrors !== "boolean" ||
+    (value.modeUsed !== "Trash" && value.modeUsed !== "Permanent")
+  ) {
+    throw new Error("Invalid clean result");
+  }
+  return value as CleanResult;
+}
+
 export function normalizeTargetFound(payload: RawTargetFound) {
-  if (!isRecord(payload) || typeof payload.scanId !== "string" || !isRecord(payload.target)) {
+  if (!isRecord(payload) || !isNonEmptyString(payload.scanId) || !isRecord(payload.target)) {
     throw new Error("Invalid target found payload");
   }
   const target = payload.target;
-  if (typeof target.id !== "string" || target.id.length === 0 || typeof target.path !== "string") {
+  if (!isNonEmptyString(target.id) || !isNonEmptyString(target.path)) {
     throw new Error("Invalid target identity payload");
   }
   if (
-    typeof target.category !== "string" ||
-    typeof target.sizeBytes !== "number" ||
+    !isNonEmptyString(target.category) ||
+    !isFiniteNonNegativeNumber(target.sizeBytes) ||
     typeof target.sizePending !== "boolean" ||
     typeof target.sizeHasErrors !== "boolean" ||
     typeof target.formattedSize !== "string"
@@ -150,11 +263,11 @@ export function normalizeTargetFound(payload: RawTargetFound) {
 }
 
 export function normalizeTargetSized(payload: RawTargetSized): RawTargetSized {
-  if (!isRecord(payload) || typeof payload.scanId !== "string" || typeof payload.targetId !== "string" || payload.targetId.length === 0) {
+  if (!isRecord(payload) || !isNonEmptyString(payload.scanId) || !isNonEmptyString(payload.targetId)) {
     throw new Error("Invalid target sized payload");
   }
   if (
-    typeof payload.sizeBytes !== "number" ||
+    !isFiniteNonNegativeNumber(payload.sizeBytes) ||
     typeof payload.sizePending !== "boolean" ||
     typeof payload.sizeHasErrors !== "boolean" ||
     typeof payload.formattedSize !== "string"
@@ -165,6 +278,10 @@ export function normalizeTargetSized(payload: RawTargetSized): RawTargetSized {
     ...payload,
     formattedSize: payload.sizePending ? "" : payload.formattedSize,
   };
+}
+
+export function validateRetryTargetSizeResult(value: unknown): TargetSized {
+  return normalizeTargetSized(value as RawTargetSized);
 }
 
 export function toUiError(error: CoreErrorInfo): UiError {
