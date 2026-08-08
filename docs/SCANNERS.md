@@ -2,6 +2,8 @@
 
 Scanner é plugin stateless e thread-safe que identifica diretórios descartáveis. O traversal é centralizado em `ScanService`.
 
+Providers are modular and candidate-directed. `ProviderSet` owns registration and lookup; the shared walker asks providers about the current directory, returns a confirmed candidate, and prunes terminal artifacts before entering their contents. Providers must not perform independent tree traversals.
+
 ```rust
 pub trait Scanner: Send + Sync {
     fn category(&self) -> Category;
@@ -34,3 +36,5 @@ pub trait Scanner: Send + Sync {
 4. Adicionar testes para nomes e contexto.
 
 Não é necessário alterar `ScanService` nem o frontend para categorias que já possam ser serializadas pelo modelo.
+
+Provider confirmation must stay cheap and contextual. A name match alone is a candidate; `confirm_context` decides whether it is a confirmed target. Once confirmed, discovery registers it for bounded asynchronous sizing and stops descending into that terminal directory.

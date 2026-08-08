@@ -31,6 +31,14 @@ filesystem + models + errors
 
 Walker poda subárvores quando scanner identifica target. Isso evita percorrer o conteúdo interno de `node_modules`, `target` e caches.
 
+### Candidate discovery and sizing
+
+Discovery is candidate-directed: the shared traversal evaluates registered providers on each directory, emits only confirmed candidates, and prunes terminal artifact subtrees immediately. Terminal contents are therefore not traversed merely to discover the artifact. Provider implementations remain isolated behind `ProviderSet`; adding or changing a provider does not create a second traversal or require frontend changes.
+
+Target sizing starts when a candidate is registered. A bounded controller uses `available_parallelism().clamp(1, 8)` workers and a bounded channel, so sizing cannot create an unbounded queue. Each target is marked pending until its sizing job settles. `scan:finished` is emitted only after traversal has finished and every sizing job has settled; its `durationMs` covers this settling lifecycle.
+
+Sizing errors are retained on the target and remain visible to Review. They settle the sizing job, so Review can open after all targets settle, but cleanup claims reject targets with `size_has_errors` (and pending targets) until a successful retry completes.
+
 ## Clean flow
 
 1. Frontend envia `targetId`, modo e confirmação.
