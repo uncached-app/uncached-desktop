@@ -1,6 +1,5 @@
 use crate::commands::settings::AppSettings;
 use crate::errors::NukeResult;
-use crate::filesystem::paths::{canonicalize_target, is_within_root};
 use crate::models::action::{CleanMode, CleanResult};
 use crate::services::scan_service::RegisteredTarget;
 
@@ -14,11 +13,9 @@ impl CleanService {
         confirmation: Option<String>,
     ) -> NukeResult<CleanResult> {
         validate_confirmation(mode, confirmation.as_deref())?;
-
-        let target_path = canonicalize_target(&registered.target.path)?;
-        if !is_within_root(&registered.root_path, &target_path) {
+        if mode == CleanMode::Trash && settings.is_none() {
             return Err(crate::errors::NukeError::PermissionDenied(
-                "Target is outside its scan root".to_string(),
+                "Trash cleanup requires settings".to_string(),
             ));
         }
 
@@ -29,43 +26,31 @@ impl CleanService {
         )
         .with_identity(registered.target.identity);
 
+        let target_path = uncached_core::validate_clean_target(
+            &registered.root_path,
+            &registered.providers,
+            &target,
+        )
+        .map_err(map_core_error)?;
+
         let clean_report = match mode {
             CleanMode::Trash => {
-                let _settings = settings.ok_or_else(|| {
-                    crate::errors::NukeError::PermissionDenied(
-                        "Trash cleanup requires settings".to_string(),
-                    )
-                })?;
-                let report = uncached_core::clean_to_trash(
-                    &registered.root_path,
-                    &registered.providers,
-                    &target,
-                )
-                .map_err(map_core_error)?;
-                crate::cleaner::CleanReport {
-                    freed_bytes: report.freed_bytes,
-                    size_has_errors: registered.target.size_has_errors || report.size_has_errors,
-                }
+                uncached_core::clean_to_trash(&registered.root_path, &registered.providers, &target)
+                    .map_err(map_core_error)?
             }
-            CleanMode::Permanent => {
-                let report = uncached_core::clean_permanently(
-                    &registered.root_path,
-                    &registered.providers,
-                    &target,
-                )
-                .map_err(map_core_error)?;
-                crate::cleaner::CleanReport {
-                    freed_bytes: report.freed_bytes,
-                    size_has_errors: registered.target.size_has_errors || report.size_has_errors,
-                }
-            }
+            CleanMode::Permanent => uncached_core::clean_permanently(
+                &registered.root_path,
+                &registered.providers,
+                &target,
+            )
+            .map_err(map_core_error)?,
         };
 
         Ok(CleanResult {
             success: true,
             target_path: target_path.to_string_lossy().to_string(),
             freed_bytes: clean_report.freed_bytes,
-            size_has_errors: clean_report.size_has_errors,
+            size_has_errors: registered.target.size_has_errors || clean_report.size_has_errors,
             mode_used: mode,
             message: None,
         })
