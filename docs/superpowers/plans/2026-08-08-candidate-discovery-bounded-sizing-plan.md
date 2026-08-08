@@ -205,9 +205,15 @@ assert!(!visited.iter().any(|path| path.ends_with("package.bin")));
 
 Add fixtures containing a confirmed `node_modules` with nested files and an ignored `.git` directory containing a fake candidate. Assert the confirmed artifact's children and ignored subtree are absent from visited paths, while a valid nested project outside those directories is found.
 
-- [ ] **Step 2: Add provider false-positive tests**
+- [ ] **Step 2: Add provider false-positive and permissive-provider tests**
 
-For each configured provider, add one valid context and one same-basename invalid context. Assert only valid contexts become candidates. Preserve existing NodeModules tooling/nested tests.
+For each provider with contextual validation, add one valid context and one
+same-basename invalid context. Assert only valid contexts become candidates.
+For intentionally context-free providers such as Python cache and Gradle, add
+reachable same-basename fixtures and assert they are accepted by design; do
+not place those fixtures under ignored directories and call that a context
+rejection test. Preserve existing NodeModules tooling/nested tests and keep
+ignored-directory pruning as a separate assertion.
 
 - [ ] **Step 3: Add candidate-count benchmark fixture**
 
