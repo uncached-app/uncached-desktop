@@ -911,7 +911,7 @@ fn settle_size_job(
     event_sink: &EventSink,
     measured_bytes: Option<u64>,
 ) {
-    let should_finish = {
+    let (cancelled, should_finish) = {
         let mut registry = registry().lock().unwrap();
         let Some(session) = registry.sessions.get_mut(scan_id) else {
             return;
@@ -919,14 +919,18 @@ fn settle_size_job(
         if !session.settle_size_job(target_id) {
             return;
         }
+        let cancelled = session.cancelled;
         if session.can_finish() {
             session.finished = true;
             registry.sessions.remove(scan_id);
-            true
+            (cancelled, true)
         } else {
-            false
+            (cancelled, false)
         }
     };
+    if cancelled {
+        return;
+    }
     if let Some(bytes) = measured_bytes {
         let mut stats = stats.lock().unwrap();
         stats.total_bytes_found = stats.total_bytes_found.saturating_add(bytes);
@@ -1022,7 +1026,7 @@ mod tests {
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use std::path::PathBuf;
-    use std::sync::atomic::Ordering;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{mpsc, Arc, Barrier};
     use std::thread;
 
@@ -2049,6 +2053,86 @@ mod tests {
 
         assert!(events.lock().unwrap().is_empty());
         assert!(ScanService::get_target(&target_id).is_err());
+    }
+
+    #[test]
+    fn cancelled_worker_cannot_emit_events_while_publication_barrier_keeps_session_alive() {
+        let scan_id = format!(
+            "scan-controller-cancel-barrier-{}",
+            NEXT_SCAN_ID.fetch_add(1, Ordering::Relaxed)
+        );
+        let first_target_id = format!("{scan_id}-first");
+        let second_target_id = format!("{scan_id}-second");
+        insert_test_target(&first_target_id);
+        insert_test_target(&second_target_id);
+        let mut session = super::ScanSession::new();
+        for target_id in [&first_target_id, &second_target_id] {
+            session.target_ids.insert(target_id.to_string());
+            session.register_size_job(target_id.to_string());
+        }
+        let cancel_token = Arc::clone(&session.cancel_token);
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
+
+        let (calculator_started_sender, calculator_started_receiver) = mpsc::channel();
+        let calculator_calls = Arc::new(AtomicUsize::new(0));
+        let calculator_calls_for_worker = Arc::clone(&calculator_calls);
+        let (calculator_release_sender, calculator_release_receiver) = mpsc::channel();
+        let calculator_release_receiver =
+            Arc::new(std::sync::Mutex::new(calculator_release_receiver));
+        let calculator = Arc::new(move |_: &std::path::Path| {
+            let call = calculator_calls_for_worker.fetch_add(1, Ordering::AcqRel);
+            calculator_started_sender.send(()).unwrap();
+            if call == 1 {
+                calculator_release_receiver.lock().unwrap().recv().unwrap();
+            }
+            DirSize {
+                bytes: 9,
+                errors: 0,
+            }
+        });
+        let (publication_started_sender, publication_started_receiver) = mpsc::channel();
+        let (publication_release_sender, publication_release_receiver) = mpsc::channel();
+        let publication_release_receiver =
+            Arc::new(std::sync::Mutex::new(publication_release_receiver));
+        let events = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let events_for_sink = Arc::clone(&events);
+        let sink: super::EventSink = Arc::new(move |event: &str, _: serde_json::Value| {
+            events_for_sink.lock().unwrap().push(event.to_string());
+            if event == "scan:target_sized" {
+                publication_started_sender.send(()).unwrap();
+                publication_release_receiver.lock().unwrap().recv().unwrap();
+            }
+        });
+        let controller =
+            SizingController::for_test_with_cancel(2, calculator, sink, Arc::clone(&cancel_token));
+        let submitter = controller.submitter();
+        for target_id in [&first_target_id, &second_target_id] {
+            assert!(submitter.submit(SizingJob {
+                scan_id: scan_id.clone(),
+                target_id: target_id.to_string(),
+                path: PathBuf::from("C:\\workspace"),
+            }));
+        }
+        calculator_started_receiver.recv().unwrap();
+        calculator_started_receiver.recv().unwrap();
+        publication_started_receiver.recv().unwrap();
+
+        assert!(ScanService::cancel_scan(&scan_id).unwrap().cancelled);
+        let event_count_at_cancel = events.lock().unwrap().len();
+        calculator_release_sender.send(()).unwrap();
+        publication_release_sender.send(()).unwrap();
+        drop(submitter);
+        controller.finish();
+
+        let events = events.lock().unwrap();
+        assert_eq!(&events[..event_count_at_cancel], &["scan:target_sized"]);
+        assert!(events[event_count_at_cancel..].is_empty());
+        assert!(ScanService::get_target(&first_target_id).is_err());
+        assert!(ScanService::get_target(&second_target_id).is_err());
     }
 
     #[test]
