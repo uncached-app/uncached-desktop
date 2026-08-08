@@ -142,6 +142,15 @@ export function isCurrentScanGeneration(generation: number, currentGeneration: n
   return pending && generation === currentGeneration;
 }
 
+export function isCurrentScanRequest(
+  generation: number,
+  currentGeneration: number,
+  scanId: string,
+  activeScanId: string | null,
+): boolean {
+  return generation === currentGeneration && activeScanId === scanId;
+}
+
 export function validateScanStarted(value: unknown): ScanStarted {
   if (!isRecord(value) || !isNonEmptyString(value.scanId) || !isNonEmptyString(value.rootPath)) {
     throw new Error("Invalid scan started payload");

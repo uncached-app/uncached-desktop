@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   canUseCleanupMode,
   isCurrentScanGeneration,
+  isCurrentScanRequest,
   normalizeTargetFound,
   normalizeTargetSized,
   toUiError,
@@ -120,10 +121,17 @@ test("rejects malformed target identity payloads before normalization", () => {
   );
 });
 
-test("accepts start response only for current pending scan generation", () => {
+test("ignores stale start scan rejection after newer pending scan generation", () => {
   assert.equal(isCurrentScanGeneration(2, 2, true), true);
   assert.equal(isCurrentScanGeneration(1, 2, true), false);
   assert.equal(isCurrentScanGeneration(2, 2, false), false);
+});
+
+test("ignores stale cancel scan rejection after ownership changes", () => {
+  assert.equal(isCurrentScanRequest(2, 2, "scan-2", "scan-2"), true);
+  assert.equal(isCurrentScanRequest(1, 2, "scan-1", "scan-2"), false);
+  assert.equal(isCurrentScanRequest(2, 2, "scan-2", "scan-3"), false);
+  assert.equal(isCurrentScanRequest(2, 2, "scan-2", null), false);
 });
 
 test("normalizes settled target size without rendering measured zero as pending", () => {

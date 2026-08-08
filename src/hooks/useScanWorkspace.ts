@@ -23,6 +23,7 @@ import {
   normalizeTargetFound,
   normalizeTargetSized,
   isCurrentScanGeneration,
+  isCurrentScanRequest,
   type RawTargetFound,
   type RawTargetSized,
   type RawCommandResult,
@@ -275,7 +276,9 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       pendingEvents.current = [];
       events.forEach(handleScanEvent);
     } catch (scanError) {
-      failScan(String(scanError));
+      if (isCurrentScanGeneration(generation, scanGeneration.current, pendingScan.current)) {
+        failScan(String(scanError));
+      }
     }
   }
 
@@ -297,12 +300,12 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   async function cancelScan() {
     const scanId = activeScanId.current;
     if (!scanId || !scanning || cancelling) return;
+    const generation = scanGeneration.current;
 
     setCancelling(true);
     setError(null);
     setStatus("Cancelling scan...");
     try {
-      const generation = scanGeneration.current;
       const rawResult = await invoke<RawCommandResult<{ cancelled: boolean }>>("cancel_scan", { scanId });
       if (generation !== scanGeneration.current || activeScanId.current !== scanId) return;
       const result = validateCancelResult(rawResult);
@@ -325,8 +328,10 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
         setStatus("Scan already complete");
       }
     } catch (cancelError) {
-      setCancelling(false);
-      setError(String(cancelError));
+      if (isCurrentScanRequest(generation, scanGeneration.current, scanId, activeScanId.current)) {
+        setCancelling(false);
+        setError(String(cancelError));
+      }
     }
   }
 
