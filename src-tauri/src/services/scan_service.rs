@@ -261,8 +261,13 @@ impl SizingController {
                     );
                     continue;
                 }
-                if let Some(update) =
-                    apply_target_size_for_session(&job.scan_id, &job.target_id, report)
+                if apply_target_size_and_emit_for_session(
+                    &job.scan_id,
+                    &job.target_id,
+                    report,
+                    &event_sink,
+                )
+                .is_some()
                 {
                     crate::logging::info(
                         "size",
@@ -273,7 +278,6 @@ impl SizingController {
                             report.errors
                         ),
                     );
-                    event_sink("scan:target_sized", serde_json::to_value(update).unwrap());
                 } else {
                     crate::logging::info(
                         "size",
@@ -309,9 +313,6 @@ impl SizingController {
 
     fn finish(mut self) {
         self.sender.take();
-        if self.cancel_token.load(Ordering::Acquire) {
-            return;
-        }
         for worker in self.workers {
             let _ = worker.join();
         }
@@ -816,6 +817,33 @@ fn session_can_finish(walk_finished: bool, pending_sizes: usize) -> bool {
     walk_finished && pending_sizes == 0
 }
 
+fn apply_target_size_and_emit_for_session(
+    scan_id: &str,
+    target_id: &str,
+    report: crate::filesystem::size::DirSize,
+    event_sink: &EventSink,
+) -> Option<TargetSizeUpdate> {
+    let mut registry = registry().lock().unwrap();
+    let session = registry.sessions.get(scan_id)?;
+    if !session.target_ids.contains(target_id) {
+        return None;
+    }
+    let registered = registry.targets.get_mut(target_id)?;
+    registered.target.set_size(report.bytes, report.errors > 0);
+    let update = TargetSizeUpdate {
+        scan_id: scan_id.to_string(),
+        target_id: target_id.to_string(),
+        size_bytes: registered.target.size_bytes,
+        size_has_errors: registered.target.size_has_errors,
+        size_pending: registered.target.size_pending,
+        formatted_size: registered.target.formatted_size.clone(),
+    };
+    // Keep cancellation from removing this target between its update and event publication.
+    event_sink("scan:target_sized", serde_json::to_value(&update).unwrap());
+    Some(update)
+}
+
+#[cfg(test)]
 fn apply_target_size_for_session(
     scan_id: &str,
     target_id: &str,
@@ -1807,7 +1835,7 @@ mod tests {
     }
 
     #[test]
-    fn sizing_controller_cancellation_detaches_active_worker_without_late_events() {
+    fn sizing_controller_cancellation_joins_active_worker_without_late_events() {
         let scan_id = format!("scan-controller-cancel-{}", std::process::id());
         let target_id = format!("{scan_id}-target");
         insert_test_target(&target_id);
@@ -1847,10 +1875,78 @@ mod tests {
         started_receiver.recv().unwrap();
         cancel_token.store(true, Ordering::Release);
         assert!(ScanService::cancel_scan(&scan_id).unwrap().cancelled);
-        controller.finish();
         release_sender.send(()).unwrap();
+        controller.finish();
 
         assert!(events.lock().unwrap().is_empty());
+        assert!(ScanService::get_target(&target_id).is_err());
+    }
+
+    #[test]
+    fn cancellation_cannot_remove_target_before_sized_event_publication() {
+        let scan_id = format!(
+            "scan-publication-race-{}",
+            NEXT_SCAN_ID.fetch_add(1, Ordering::Relaxed)
+        );
+        let target_id = format!("{scan_id}-target");
+        insert_test_target(&target_id);
+        let mut session = super::ScanSession::new();
+        session.target_ids.insert(target_id.clone());
+        session.register_size_job(target_id.clone());
+        let cancel_token = Arc::clone(&session.cancel_token);
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
+
+        let (publication_started_sender, publication_started_receiver) = mpsc::channel();
+        let (publication_release_sender, publication_release_receiver) = mpsc::channel();
+        let publication_release_receiver =
+            Arc::new(std::sync::Mutex::new(publication_release_receiver));
+        let events = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let events_for_sink = Arc::clone(&events);
+        let sink: super::EventSink = Arc::new(move |event: &str, payload: serde_json::Value| {
+            if event == "scan:target_sized" {
+                publication_started_sender.send(()).unwrap();
+                publication_release_receiver.lock().unwrap().recv().unwrap();
+            }
+            events_for_sink.lock().unwrap().push(event.to_string());
+            let _ = payload;
+        });
+        let controller = SizingController::for_test_with_cancel(
+            1,
+            Arc::new(|_: &std::path::Path| DirSize {
+                bytes: 9,
+                errors: 0,
+            }),
+            sink,
+            cancel_token,
+        );
+        assert!(controller.submitter().submit(SizingJob {
+            scan_id: scan_id.clone(),
+            target_id: target_id.clone(),
+            path: PathBuf::from("C:\\workspace"),
+        }));
+        publication_started_receiver.recv().unwrap();
+
+        let (cancellation_result_sender, cancellation_result_receiver) = mpsc::channel();
+        let cancellation = thread::spawn(move || {
+            cancellation_result_sender
+                .send(ScanService::cancel_scan(&scan_id).unwrap())
+                .unwrap();
+        });
+        assert!(
+            cancellation_result_receiver
+                .recv_timeout(std::time::Duration::from_millis(50))
+                .is_err(),
+            "cancellation must wait for target-sized publication"
+        );
+        publication_release_sender.send(()).unwrap();
+        assert!(cancellation.join().is_ok());
+        controller.finish();
+
+        assert_eq!(events.lock().unwrap().as_slice(), &["scan:target_sized"]);
         assert!(ScanService::get_target(&target_id).is_err());
     }
 
@@ -1904,9 +2000,8 @@ mod tests {
         started_receiver.recv().unwrap();
         assert!(ScanService::cancel_scan(&scan_id).unwrap().cancelled);
         drop(submitter);
-        controller.finish();
         release_sender.send(()).unwrap();
-        thread::sleep(std::time::Duration::from_millis(10));
+        controller.finish();
 
         assert!(events.lock().unwrap().is_empty());
         assert!(ScanService::get_target(&active_target_id).is_err());
