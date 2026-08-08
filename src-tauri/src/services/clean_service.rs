@@ -160,7 +160,8 @@ mod tests {
             b"[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n",
         )
         .unwrap();
-        let target = ScanTarget::new(target_path, Category::CargoTarget, 4, false, None);
+        let mut target = ScanTarget::new(target_path.clone(), Category::CargoTarget, 4, false, None);
+        target.identity = uncached_core::filesystem::file_identity(&target_path);
 
         let result = CleanService::clean_registered_target(
             registered_target(target, root.clone(), &AppSettings::default()),
@@ -231,7 +232,8 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&target_path).unwrap();
         std::fs::write(root.join("project/package.json"), b"{}").unwrap();
-        let target = ScanTarget::new(target_path, Category::NodeModules, 0, true, None);
+        let mut target = ScanTarget::new(target_path.clone(), Category::NodeModules, 0, true, None);
+        target.identity = uncached_core::filesystem::file_identity(&target_path);
 
         let result = CleanService::clean_registered_target(
             registered_target(target, root.clone(), &AppSettings::default()),

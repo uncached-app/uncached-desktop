@@ -469,8 +469,8 @@ mod tests {
     #[test]
     fn converts_core_target_preserving_scan_fields_and_pending_state() {
         let identity = Some(uncached_core::FileIdentity {
-            first: 17,
-            second: 29,
+            volume_serial: 17,
+            file_id: [29; 16],
         });
         let categories = [
             (uncached_core::Category::NodeModules, Category::NodeModules),
@@ -526,7 +526,8 @@ mod tests {
             ..AppSettings::default()
         };
         let providers = std::sync::Arc::new(providers_for_scan(&settings));
-        let target = ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false, None);
+        let mut target = ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false, None);
+        target.identity = uncached_core::filesystem::file_identity(&target_path);
         let registered = RegisteredTarget {
             target,
             root_path: root.clone(),

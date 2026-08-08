@@ -4093,12 +4093,13 @@ dependencies = [
 [[package]]
 name = "uncached-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/uncached-app/uncached-core.git?rev=337c544#337c54438ac8b902bcb958f0dc14eeab50f80bf4"
+source = "git+ssh://git@github.com/uncached-app/uncached-core.git?rev=a2fab43155030ef6ba3d85bf8e050a9e7149c1aa#a2fab43155030ef6ba3d85bf8e050a9e7149c1aa"
 dependencies = [
  "jwalk",
  "serde",
  "thiserror 2.0.19",
  "trash",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
