@@ -13,11 +13,21 @@ import type {
   ScanStartResult,
   ScanTarget,
   Step,
-  TargetFound,
   TargetSized,
 } from "../types/scan";
 import type { CleanMode } from "../types/settings";
-import { ApiContractError, type ApiEnvelope, canUseCleanupMode, toUiError, unwrapV1 } from "../utils/apiContract";
+import {
+  ApiContractError,
+  type ApiEnvelope,
+  canUseCleanupMode,
+  normalizeTargetFound,
+  normalizeTargetSized,
+  type RawTargetFound,
+  type RawTargetSized,
+  type RawCommandResult,
+  toUiError,
+  unwrapV1,
+} from "../utils/apiContract";
 import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
 export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
@@ -45,6 +55,22 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
 
   function acceptsScanEvent(scanId: string) {
     return activeScanId.current === scanId;
+  }
+
+  function failScan(message: string) {
+    activeScanId.current = null;
+    pendingScan.current = false;
+    pendingEvents.current = [];
+    pendingSizeUpdates.current.clear();
+    setScanning(false);
+    setCancelling(false);
+    setTargets([]);
+    setProgress(null);
+    setScanFinished(false);
+    setScanTargetCount(null);
+    setStep(1);
+    setStatus("Scan failed");
+    setError(message);
   }
 
   function handleScanEvent(event: PendingScanEvent) {
@@ -106,24 +132,23 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       setStatus("Scan cancelled");
       setStep(1);
     } else {
-      pendingScan.current = false;
-      setScanning(false);
-      setStatus("Scan failed");
-      setError(event.payload.message);
+      failScan(event.payload.message);
     }
   }
 
-  function handleEnvelope<T>(kind: PendingScanEvent["kind"], envelope: ApiEnvelope<T>) {
+  function handleEnvelope<T>(
+    kind: PendingScanEvent["kind"],
+    envelope: ApiEnvelope<T>,
+    normalize?: (payload: T) => PendingScanEvent["payload"],
+  ) {
     try {
-      handleScanEvent({ kind, payload: unwrapV1(envelope) } as PendingScanEvent);
+      const payload = unwrapV1<T>(envelope);
+      handleScanEvent({ kind, payload: normalize ? normalize(payload) : payload } as PendingScanEvent);
     } catch (contractError) {
-      pendingScan.current = false;
-      setScanning(false);
       const message = contractError instanceof ApiContractError
         ? toUiError(contractError.info).message
         : `IPC contract error: ${contractError instanceof Error ? contractError.message : String(contractError)}`;
-      setStatus("Scan failed");
-      setError(message);
+      failScan(message);
     }
   }
 
@@ -138,22 +163,20 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     const listeners = Promise.all([
       listen<ApiEnvelope<ScanStarted>>("scan:started", ({ payload }) => {
         try {
-          const started = unwrapV1(payload);
+          const started = unwrapV1<ScanStarted>(payload);
           if (acceptsScanEvent(started.scanId)) setStatus("Scanning workspace...");
         } catch (contractError) {
-          pendingScan.current = false;
-          setScanning(false);
           const message = contractError instanceof ApiContractError
             ? toUiError(contractError.info).message
             : `IPC contract error: ${contractError instanceof Error ? contractError.message : String(contractError)}`;
-          setError(message);
+          failScan(message);
         }
       }),
-      listen<ApiEnvelope<TargetFound>>("scan:target_found", ({ payload }) => {
-        handleEnvelope("target", payload);
+      listen<ApiEnvelope<RawTargetFound>>("scan:target_found", ({ payload }) => {
+        handleEnvelope("target", payload, normalizeTargetFound);
       }),
-      listen<ApiEnvelope<TargetSized>>("scan:target_sized", ({ payload }) => {
-        handleEnvelope("sized", payload);
+      listen<ApiEnvelope<RawTargetSized>>("scan:target_sized", ({ payload }) => {
+        handleEnvelope("sized", payload, normalizeTargetSized);
       }),
       listen<ApiEnvelope<ScanProgress>>("scan:progress", ({ payload }) => {
         handleEnvelope("progress", payload);
@@ -184,15 +207,22 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   }, []);
 
   useEffect(() => {
+    let disposed = false;
     if (!isTauri()) return;
     invoke<ApiEnvelope<CleanupCapabilities>>("cleanup_capabilities")
-      .then((envelope) => setCapabilities(unwrapV1(envelope)))
+      .then((envelope) => {
+        if (!disposed) setCapabilities(unwrapV1(envelope));
+      })
       .catch((capabilityError) => {
+        if (disposed) return;
         const message = capabilityError instanceof ApiContractError
           ? toUiError(capabilityError.info).message
           : `IPC contract error: ${capabilityError instanceof Error ? capabilityError.message : String(capabilityError)}`;
         setError(message);
       });
+    return () => {
+      disposed = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -220,7 +250,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     pendingEvents.current = [];
 
     try {
-      const result = await invoke<ScanStartResult>("start_scan", {
+      const result = await invoke<RawCommandResult<ScanStartResult>>("start_scan", {
         path: rootPath.trim(),
       });
       activeScanId.current = result.scanId;
@@ -229,11 +259,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       pendingEvents.current = [];
       events.forEach(handleScanEvent);
     } catch (scanError) {
-      setScanning(false);
-      activeScanId.current = null;
-      pendingScan.current = false;
-      pendingEvents.current = [];
-      setError(String(scanError));
+      failScan(String(scanError));
     }
   }
 
@@ -260,7 +286,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     setError(null);
     setStatus("Cancelling scan...");
     try {
-      const result = await invoke<{ cancelled: boolean }>("cancel_scan", { scanId });
+      const result = await invoke<RawCommandResult<{ cancelled: boolean }>>("cancel_scan", { scanId });
       if (result.cancelled) {
         activeScanId.current = null;
         pendingScan.current = false;
@@ -285,11 +311,15 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   }
 
   async function cleanTarget(targetId: string, confirmation: string | null = null): Promise<CleanResult | null> {
+    if (!targetId) {
+      setError("Cannot clean target without an ID");
+      return null;
+    }
     if (cleaningTargetIds.has(targetId)) return null;
     setError(null);
     setCleaningTargetIds((current) => new Set(current).add(targetId));
     try {
-      const result = await invoke<CleanResult>("clean_target", {
+      const result = await invoke<RawCommandResult<CleanResult>>("clean_target", {
         request: {
           targetId,
           mode: cleanMode,
@@ -317,6 +347,10 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   }
 
   async function refreshTargetSize(targetId: string) {
+    if (!targetId) {
+      setError("Cannot retry target size without an ID");
+      return;
+    }
     setError(null);
     setTargets((current) =>
       current.map((target) =>
@@ -324,7 +358,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
       ),
     );
     try {
-      await invoke("retry_target_size", { targetId });
+      await invoke<RawCommandResult<TargetSized>>("retry_target_size", { targetId });
     } catch (sizeError) {
       setTargets((current) =>
         current.map((target) =>

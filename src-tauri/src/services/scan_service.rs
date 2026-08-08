@@ -232,13 +232,23 @@ fn value_event(
 pub fn target_found_event(
     scan_id: &str,
     target: &ScanTarget,
-) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::TargetFoundDto> {
+) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
     uncached_core::contract::v1::ApiEnvelope::success(
         platform(),
-        uncached_core::contract::v1::TargetFoundDto {
-            scan_id: scan_id.to_owned(),
-            target: target.to_core_dto(),
-        },
+        serde_json::json!({
+            "scanId": scan_id,
+            "target": {
+                "id": target.id,
+                "path": target.path.to_string_lossy(),
+                "name": target.name,
+                "category": target.category,
+                "sizeBytes": target.size_bytes,
+                "sizePending": target.size_pending,
+                "sizeHasErrors": target.size_has_errors,
+                "formattedSize": target.formatted_size,
+                "lastModified": target.last_modified,
+            }
+        }),
     )
 }
 
