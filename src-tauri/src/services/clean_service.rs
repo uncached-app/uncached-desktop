@@ -187,7 +187,7 @@ mod tests {
     }
 
     #[test]
-    fn active_non_node_modules_category_uses_core_trash_cleanup() {
+    fn active_non_node_modules_category_reports_secure_trash_unavailable() {
         let root =
             std::env::temp_dir().join(format!("uncached-clean-desktop-{}", std::process::id()));
         let target_path = root.join("project/target");
@@ -211,7 +211,12 @@ mod tests {
             None,
         );
 
-        assert!(result.is_ok());
+        assert!(matches!(
+            result,
+            Err(crate::errors::NukeError::PermissionDenied(message))
+                if message == "secure Trash is unavailable"
+        ));
+        assert!(target_path.exists());
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -284,9 +289,14 @@ mod tests {
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
-        )
-        .unwrap();
+        );
 
-        assert!(result.size_has_errors);
+        assert!(matches!(
+            result,
+            Err(crate::errors::NukeError::PermissionDenied(message))
+                if message == "secure Trash is unavailable"
+        ));
+        assert!(target_path.exists());
+        let _ = std::fs::remove_dir_all(root);
     }
 }
