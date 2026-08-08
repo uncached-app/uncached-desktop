@@ -202,8 +202,12 @@ fn sizing_worker_count() -> usize {
 }
 
 impl SizingController {
-    fn new(app: &AppHandle, stats: &Arc<Mutex<ScanStats>>, started_at: Instant) -> Self {
-        let cancel_token = Arc::new(AtomicBool::new(false));
+    fn new(
+        app: &AppHandle,
+        stats: &Arc<Mutex<ScanStats>>,
+        started_at: Instant,
+        cancel_token: Arc<AtomicBool>,
+    ) -> Self {
         let event_sink = {
             let app = app.clone();
             Arc::new(move |event: &str, payload: serde_json::Value| {
@@ -442,7 +446,8 @@ impl ScanService {
                 })
             };
             let stats = Arc::new(Mutex::new(ScanStats::default()));
-            let sizing = SizingController::new(&app_handle, &stats, started_at);
+            let sizing =
+                SizingController::new(&app_handle, &stats, started_at, Arc::clone(&cancel_token));
             let sizing_submitter = sizing.submitter();
             let callback_sizing_submitter = sizing_submitter.clone();
             let stats_for_callback = Arc::clone(&stats);
@@ -901,7 +906,7 @@ fn scan_id_from_target_id(target_id: &str) -> String {
 mod tests {
     use super::{
         providers_for_scan, registry, CleanupControl, RegisteredTarget, ScanService,
-        ScanStartResult, SizingController, SizingJob,
+        ScanStartResult, SizingController, SizingJob, NEXT_SCAN_ID,
     };
     use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
@@ -1664,11 +1669,140 @@ mod tests {
                 .size_bytes,
             7
         );
-        assert_eq!(registry().lock().unwrap().sessions.len(), 0);
+        assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));
         assert_eq!(
             events.lock().unwrap().as_slice(),
             &["scan:target_found", "scan:target_sized", "scan:finished"]
         );
+        ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn sizing_controller_waits_for_all_jobs_and_emits_finished_once() {
+        let scan_id = format!(
+            "scan-controller-wait-{}",
+            NEXT_SCAN_ID.fetch_add(1, Ordering::Relaxed)
+        );
+        let first_target_id = format!("{scan_id}-first");
+        let second_target_id = format!("{scan_id}-second");
+        insert_test_target(&first_target_id);
+        insert_test_target(&second_target_id);
+        let mut session = super::ScanSession::new();
+        for target_id in [&first_target_id, &second_target_id] {
+            session.target_ids.insert(target_id.to_string());
+            session.register_size_job(target_id.to_string());
+        }
+        session.walk_finished = true;
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
+
+        let (events, sink) = event_sink();
+        let (started_sender, started_receiver) = mpsc::channel();
+        let (release_sender, release_receiver) = mpsc::channel();
+        let release_receiver = Arc::new(std::sync::Mutex::new(release_receiver));
+        let calculator = Arc::new(move |_: &std::path::Path| {
+            started_sender.send(()).unwrap();
+            release_receiver.lock().unwrap().recv().unwrap();
+            DirSize {
+                bytes: 1,
+                errors: 0,
+            }
+        });
+        let controller = SizingController::for_test(1, calculator, sink);
+        let submitter = controller.submitter();
+        for target_id in [&first_target_id, &second_target_id] {
+            assert!(submitter.submit(SizingJob {
+                scan_id: scan_id.clone(),
+                target_id: target_id.clone(),
+                path: PathBuf::from("C:\\workspace"),
+            }));
+        }
+        started_receiver.recv().unwrap();
+        release_sender.send(()).unwrap();
+        started_receiver.recv().unwrap();
+        assert_eq!(
+            events
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|event| event.as_str() == "scan:finished")
+                .count(),
+            0
+        );
+        release_sender.send(()).unwrap();
+        drop(submitter);
+        controller.finish();
+
+        assert_eq!(
+            events
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|event| event.as_str() == "scan:finished")
+                .count(),
+            1
+        );
+        assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));
+        ScanService::remove_target(&first_target_id).unwrap();
+        ScanService::remove_target(&second_target_id).unwrap();
+    }
+
+    #[test]
+    fn sizing_controller_settles_real_error_without_scan_failure() {
+        let scan_id = format!(
+            "scan-controller-error-{}",
+            NEXT_SCAN_ID.fetch_add(1, Ordering::Relaxed)
+        );
+        let target_id = format!("{scan_id}-target");
+        insert_test_target(&target_id);
+        let mut session = super::ScanSession::new();
+        session.target_ids.insert(target_id.clone());
+        session.register_size_job(target_id.clone());
+        session.walk_finished = true;
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
+
+        let (events, sink) = event_sink();
+        let controller = SizingController::for_test(
+            1,
+            Arc::new(|_: &std::path::Path| DirSize {
+                bytes: 3,
+                errors: 1,
+            }),
+            sink,
+        );
+        assert!(controller.submitter().submit(SizingJob {
+            scan_id: scan_id.clone(),
+            target_id: target_id.clone(),
+            path: PathBuf::from("C:\\workspace"),
+        }));
+        controller.finish();
+
+        let target = ScanService::get_target(&target_id).unwrap();
+        assert_eq!(target.target.size_bytes, 3);
+        assert!(target.target.size_has_errors);
+        assert!(!target.target.size_pending);
+        assert!(!events
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|event| event == "scan:failed"));
+        assert_eq!(
+            events
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|event| event.as_str() == "scan:finished")
+                .count(),
+            1
+        );
+        assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));
         ScanService::remove_target(&target_id).unwrap();
     }
 
@@ -1718,6 +1852,65 @@ mod tests {
 
         assert!(events.lock().unwrap().is_empty());
         assert!(ScanService::get_target(&target_id).is_err());
+    }
+
+    #[test]
+    fn sizing_controller_cancellation_discards_queued_and_active_jobs() {
+        let scan_id = format!(
+            "scan-controller-queue-cancel-{}",
+            NEXT_SCAN_ID.fetch_add(1, Ordering::Relaxed)
+        );
+        let active_target_id = format!("{scan_id}-active");
+        let queued_target_id = format!("{scan_id}-queued");
+        insert_test_target(&active_target_id);
+        insert_test_target(&queued_target_id);
+        let mut session = super::ScanSession::new();
+        for target_id in [&active_target_id, &queued_target_id] {
+            session.target_ids.insert(target_id.to_string());
+            session.register_size_job(target_id.to_string());
+        }
+        let cancel_token = Arc::clone(&session.cancel_token);
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), session);
+
+        let (started_sender, started_receiver) = mpsc::channel();
+        let (release_sender, release_receiver) = mpsc::channel();
+        let release_receiver = Arc::new(std::sync::Mutex::new(release_receiver));
+        let calculator = Arc::new(move |_: &std::path::Path| {
+            started_sender.send(()).unwrap();
+            release_receiver.lock().unwrap().recv().unwrap();
+            DirSize {
+                bytes: 9,
+                errors: 0,
+            }
+        });
+        let (events, sink) = event_sink();
+        let controller =
+            SizingController::for_test_with_cancel(1, calculator, sink, Arc::clone(&cancel_token));
+        let submitter = controller.submitter();
+        assert!(submitter.submit(SizingJob {
+            scan_id: scan_id.clone(),
+            target_id: active_target_id.clone(),
+            path: PathBuf::from("C:\\workspace"),
+        }));
+        assert!(submitter.submit(SizingJob {
+            scan_id: scan_id.clone(),
+            target_id: queued_target_id.clone(),
+            path: PathBuf::from("C:\\workspace"),
+        }));
+        started_receiver.recv().unwrap();
+        assert!(ScanService::cancel_scan(&scan_id).unwrap().cancelled);
+        drop(submitter);
+        controller.finish();
+        release_sender.send(()).unwrap();
+        thread::sleep(std::time::Duration::from_millis(10));
+
+        assert!(events.lock().unwrap().is_empty());
+        assert!(ScanService::get_target(&active_target_id).is_err());
+        assert!(ScanService::get_target(&queued_target_id).is_err());
     }
 
     #[test]
