@@ -24,6 +24,12 @@ pub struct CancelScanResult {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CancelCleanupResult {
+    pub cancelled: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TargetSizeUpdate {
     pub scan_id: String,
     pub target_id: String,
@@ -117,6 +123,7 @@ impl Default for CleanupControl {
 struct ScanRegistry {
     targets: HashMap<String, RegisteredTarget>,
     in_flight: HashSet<String>,
+    cleanup_controls: HashMap<String, Arc<CleanupControl>>,
     sessions: HashMap<String, ScanSession>,
 }
 
@@ -469,6 +476,7 @@ impl ScanService {
         let target_ids = session.target_ids.drain().collect::<Vec<_>>();
         for target_id in target_ids {
             registry.in_flight.remove(&target_id);
+            registry.cleanup_controls.remove(&target_id);
             registry.targets.remove(&target_id);
         }
 
@@ -506,13 +514,69 @@ impl ScanService {
         Ok(target)
     }
 
+    pub fn claim_target_for_cleanup(
+        target_id: &str,
+    ) -> NukeResult<(RegisteredTarget, Arc<CleanupControl>)> {
+        let mut registry = registry().lock().unwrap();
+        if registry.in_flight.contains(target_id) {
+            return Err(NukeError::PermissionDenied(
+                "Target cleanup is already in progress".to_string(),
+            ));
+        }
+
+        let target = registry
+            .targets
+            .get(target_id)
+            .cloned()
+            .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))?;
+        if target.target.size_pending || target.target.size_has_errors {
+            return Err(NukeError::PermissionDenied(
+                "Target size is not ready".to_string(),
+            ));
+        }
+
+        let control = Arc::new(CleanupControl::new());
+        registry.in_flight.insert(target_id.to_string());
+        registry
+            .cleanup_controls
+            .insert(target_id.to_string(), Arc::clone(&control));
+        Ok((target, control))
+    }
+
+    pub fn cancel_cleanup(target_id: &str) -> NukeResult<CancelCleanupResult> {
+        let registry = registry().lock().unwrap();
+        let cancelled = registry
+            .cleanup_controls
+            .get(target_id)
+            .is_some_and(|control| control.request_cancel());
+        Ok(CancelCleanupResult { cancelled })
+    }
+
+    pub fn finish_cleanup(target_id: &str) {
+        let mut registry = registry().lock().unwrap();
+        registry.in_flight.remove(target_id);
+        if let Some(control) = registry.cleanup_controls.remove(target_id) {
+            control.finish();
+        }
+        registry.targets.remove(target_id);
+    }
+
+    pub fn release_cleanup(target_id: &str) {
+        let mut registry = registry().lock().unwrap();
+        registry.in_flight.remove(target_id);
+        registry.cleanup_controls.remove(target_id);
+    }
+
     pub fn release_target(target_id: &str) {
-        registry().lock().unwrap().in_flight.remove(target_id);
+        let mut registry = registry().lock().unwrap();
+        registry.in_flight.remove(target_id);
+        registry.cleanup_controls.remove(target_id);
     }
 
     pub fn remove_target(target_id: &str) -> NukeResult<RegisteredTarget> {
         let mut registry = registry().lock().unwrap();
         registry.in_flight.remove(target_id);
+        registry.cleanup_controls.remove(target_id);
         registry
             .targets
             .remove(target_id)
@@ -763,6 +827,86 @@ mod tests {
         ScanService::release_target(&target_id);
         ScanService::claim_target(&target_id).unwrap();
         ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn claim_target_for_cleanup_returns_control_and_cancel_preserves_target() {
+        let target_id = format!("cleanup-control-target-{}", std::process::id());
+        insert_test_target(&target_id);
+
+        let (registered, control) = ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        assert_eq!(
+            registered.target.path,
+            PathBuf::from("C:\\workspace\\node_modules")
+        );
+        assert!(!control.is_cancelled());
+
+        assert!(ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
+        assert!(!ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
+        assert!(ScanService::get_target(&target_id).is_ok());
+
+        ScanService::release_cleanup(&target_id);
+        ScanService::remove_target(&target_id).unwrap();
+    }
+
+    #[test]
+    fn cleanup_execution_blocks_cancellation() {
+        let target_id = format!("cleanup-execution-target-{}", std::process::id());
+        insert_test_target(&target_id);
+
+        let (_, control) = ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        assert!(control.begin_execution());
+        assert!(!ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
+
+        ScanService::finish_cleanup(&target_id);
+        assert!(ScanService::get_target(&target_id).is_err());
+    }
+
+    #[test]
+    fn cleanup_release_preserves_target_for_retry_and_finish_removes_authorization() {
+        let target_id = format!("cleanup-lifecycle-target-{}", std::process::id());
+        insert_test_target(&target_id);
+
+        let (_, first_control) = ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        assert!(first_control.request_cancel());
+        ScanService::release_cleanup(&target_id);
+
+        let (_, second_control) = ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        assert!(!second_control.is_cancelled());
+        ScanService::finish_cleanup(&target_id);
+
+        assert!(ScanService::get_target(&target_id).is_err());
+        assert!(!ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
+    }
+
+    #[test]
+    fn cleanup_claim_rejects_duplicate_claim() {
+        let target_id = format!("cleanup-duplicate-target-{}", std::process::id());
+        insert_test_target(&target_id);
+
+        ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        assert!(ScanService::claim_target_for_cleanup(&target_id).is_err());
+
+        ScanService::release_cleanup(&target_id);
+        ScanService::remove_target(&target_id).unwrap();
+    }
+
+    fn insert_test_target(target_id: &str) {
+        let target = ScanTarget::new(
+            PathBuf::from("C:\\workspace\\node_modules"),
+            Category::NodeModules,
+            1,
+            false,
+            None,
+        );
+        registry().lock().unwrap().targets.insert(
+            target_id.to_string(),
+            RegisteredTarget {
+                target,
+                root_path: PathBuf::from("C:\\workspace"),
+                providers: Arc::new(providers_for_scan(&AppSettings::default())),
+            },
+        );
     }
 
     #[test]
