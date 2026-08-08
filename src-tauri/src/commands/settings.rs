@@ -72,9 +72,16 @@ fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 pub fn load_settings(app: &AppHandle) -> Result<AppSettings, String> {
-    let path = settings_path(app)?;
-    let Ok(contents) = fs::read_to_string(path) else {
-        return Ok(AppSettings::default());
+    load_settings_from_path(&settings_path(app)?)
+}
+
+fn load_settings_from_path(path: &std::path::Path) -> Result<AppSettings, String> {
+    let contents = match fs::read_to_string(path) {
+        Ok(contents) => contents,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(AppSettings::default());
+        }
+        Err(error) => return Err(error.to_string()),
     };
     serde_json::from_str(&contents).map_err(|error| error.to_string())
 }
@@ -126,7 +133,7 @@ pub fn record_cleanup(app: &AppHandle, freed_bytes: u64) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{AppSettings, Appearance};
+    use super::{load_settings_from_path, AppSettings, Appearance};
     use crate::models::action::CleanMode;
 
     #[test]
@@ -143,5 +150,47 @@ mod tests {
         assert!(value.get("rememberLastWorkspace").is_some());
         assert!(value.get("defaultCleanMode").is_some());
         assert!(value.get("remember_last_workspace").is_none());
+    }
+
+    #[test]
+    fn missing_settings_file_uses_defaults() {
+        let path = std::env::temp_dir().join(format!(
+            "uncached-missing-settings-{}.json",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+
+        let settings = load_settings_from_path(&path).unwrap();
+
+        assert!(settings.detect_node_modules);
+    }
+
+    #[test]
+    fn settings_read_error_does_not_use_defaults() {
+        let path = std::env::temp_dir().join(format!(
+            "uncached-settings-directory-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir_all(&path).unwrap();
+
+        let result = load_settings_from_path(&path);
+
+        assert!(result.is_err());
+        let _ = std::fs::remove_dir_all(path);
+    }
+
+    #[test]
+    fn invalid_settings_file_does_not_use_defaults() {
+        let path = std::env::temp_dir().join(format!(
+            "uncached-invalid-settings-{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&path, b"not-json").unwrap();
+
+        let result = load_settings_from_path(&path);
+
+        assert!(result.is_err());
+        let _ = std::fs::remove_file(path);
     }
 }

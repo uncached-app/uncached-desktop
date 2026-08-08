@@ -597,7 +597,7 @@ mod tests {
         let registered = ScanService::claim_target(&target_id).unwrap();
         assert!(CleanService::clean_registered_target(
             registered,
-            &crate::commands::settings::AppSettings::default(),
+            Some(&crate::commands::settings::AppSettings::default()),
             CleanMode::Trash,
             None,
         )

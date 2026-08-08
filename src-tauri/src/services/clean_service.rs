@@ -11,7 +11,7 @@ pub struct CleanService;
 impl CleanService {
     pub fn clean_registered_target(
         registered: RegisteredTarget,
-        settings: &AppSettings,
+        settings: Option<&AppSettings>,
         mode: CleanMode,
         confirmation: Option<String>,
     ) -> NukeResult<CleanResult> {
@@ -26,6 +26,11 @@ impl CleanService {
 
         let clean_report = match mode {
             CleanMode::Trash => {
+                let settings = settings.ok_or_else(|| {
+                    crate::errors::NukeError::PermissionDenied(
+                        "Trash cleanup requires settings".to_string(),
+                    )
+                })?;
                 let target = uncached_core::ScanTarget::new(
                     registered.target.path.clone(),
                     core_category(&registered.target.category),
@@ -128,7 +133,7 @@ mod tests {
                 target,
                 root_path: root.clone(),
             },
-            &AppSettings::default(),
+            Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
         );
@@ -158,7 +163,7 @@ mod tests {
                 target,
                 root_path: root.clone(),
             },
-            &AppSettings::default(),
+            Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
         );
@@ -190,7 +195,7 @@ mod tests {
                 target,
                 root_path: root.clone(),
             },
-            &settings,
+            Some(&settings),
             CleanMode::Trash,
             None,
         );
@@ -214,7 +219,7 @@ mod tests {
                 target,
                 root_path: root.clone(),
             },
-            &AppSettings::default(),
+            Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
         );
@@ -238,7 +243,7 @@ mod tests {
                 target,
                 root_path: root.clone(),
             },
-            &AppSettings::default(),
+            Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
         )
