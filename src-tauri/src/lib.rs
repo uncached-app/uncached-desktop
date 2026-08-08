@@ -8,7 +8,7 @@ pub mod services;
 
 pub use uncached_core as shared_core;
 
-use commands::cancel::cancel_scan;
+use commands::cancel::{cancel_cleanup, cancel_scan};
 use commands::clean::clean_target;
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{get_app_info, get_settings, update_settings};
@@ -20,6 +20,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             cancel_scan,
+            cancel_cleanup,
             start_scan,
             retry_target_size,
             clean_target,

@@ -53,12 +53,13 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     let target_id = request.target_id.clone();
     let mode = request.mode;
     let confirmation = request.confirmation.clone();
-    let registered = ScanService::claim_target(&target_id).map_err(|error| error.to_string())?;
+    let (registered, control) =
+        ScanService::claim_target_for_cleanup(&target_id).map_err(|error| error.to_string())?;
     let settings = match settings_for_clean(mode, || crate::commands::settings::load_settings(&app))
     {
         Ok(settings) => settings,
         Err(error) => {
-            ScanService::release_target(&target_id);
+            ScanService::release_cleanup(&target_id);
             return Err(error);
         }
     };
@@ -72,17 +73,23 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
     );
 
     let result = tauri::async_runtime::spawn_blocking(move || {
-        CleanService::clean_registered_target(registered, settings.as_ref(), mode, confirmation)
+        CleanService::clean_registered_target(
+            registered,
+            control,
+            settings.as_ref(),
+            mode,
+            confirmation,
+        )
     })
     .await
     .map_err(|error| {
-        ScanService::release_target(&target_id);
+        ScanService::release_cleanup(&target_id);
         error.to_string()
     })?;
 
     match result {
         Ok(clean_result) => {
-            let _ = ScanService::remove_target(&target_id);
+            ScanService::finish_cleanup(&target_id);
             if should_record_cleanup(mode) {
                 if let Err(error) =
                     crate::commands::settings::record_cleanup(&app, clean_result.freed_bytes)
@@ -107,7 +114,7 @@ pub async fn clean_target(app: AppHandle, request: CleanRequest) -> Result<Clean
             Ok(clean_result)
         }
         Err(error) => {
-            ScanService::release_target(&target_id);
+            ScanService::release_cleanup(&target_id);
             crate::logging::error(
                 "clean",
                 &format!("failed targetId=\"{}\" error=\"{}\"", target_id, error),

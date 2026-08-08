@@ -1,13 +1,15 @@
 use crate::commands::settings::AppSettings;
 use crate::errors::NukeResult;
 use crate::models::action::{CleanMode, CleanResult};
-use crate::services::scan_service::RegisteredTarget;
+use crate::services::scan_service::{CleanupControl, RegisteredTarget};
+use std::sync::Arc;
 
 pub struct CleanService;
 
 impl CleanService {
     pub fn clean_registered_target(
         registered: RegisteredTarget,
+        control: Arc<CleanupControl>,
         settings: Option<&AppSettings>,
         mode: CleanMode,
         confirmation: Option<String>,
@@ -17,6 +19,9 @@ impl CleanService {
             return Err(crate::errors::NukeError::PermissionDenied(
                 "Trash cleanup requires settings".to_string(),
             ));
+        }
+        if control.is_cancelled() {
+            return Err(crate::errors::NukeError::CleanupCancelled);
         }
 
         let target = uncached_core::ScanTarget::new(
@@ -32,6 +37,10 @@ impl CleanService {
             &target,
         )
         .map_err(map_core_error)?;
+
+        if !control.begin_execution() {
+            return Err(crate::errors::NukeError::CleanupCancelled);
+        }
 
         let clean_report = match mode {
             CleanMode::Trash => {
@@ -100,7 +109,7 @@ mod tests {
     use crate::models::action::CleanMode;
     use crate::models::category::Category;
     use crate::models::target::ScanTarget;
-    use crate::services::scan_service::RegisteredTarget;
+    use crate::services::scan_service::{CleanupControl, RegisteredTarget};
     use std::path::PathBuf;
 
     fn registered_target(
@@ -113,6 +122,35 @@ mod tests {
             root_path,
             providers: std::sync::Arc::new(crate::scanner::get_default_providers(settings)),
         }
+    }
+
+    #[test]
+    fn clean_registered_target_rejects_cancellation_before_secure_preparation() {
+        let root = std::env::temp_dir().join(format!(
+            "uncached-clean-cancel-before-preparation-{}",
+            std::process::id()
+        ));
+        let target_path = root.join("project/node_modules");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&target_path).unwrap();
+        let target = ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false, None);
+        let control = std::sync::Arc::new(CleanupControl::new());
+        assert!(control.request_cancel());
+
+        let result = CleanService::clean_registered_target(
+            registered_target(target, root.clone(), &AppSettings::default()),
+            control,
+            Some(&AppSettings::default()),
+            CleanMode::Trash,
+            None,
+        );
+
+        assert!(matches!(
+            result,
+            Err(crate::errors::NukeError::CleanupCancelled)
+        ));
+        assert!(target_path.exists());
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]
@@ -137,6 +175,7 @@ mod tests {
 
         let result = CleanService::clean_registered_target(
             registered_target(target, root.clone(), &AppSettings::default()),
+            std::sync::Arc::new(CleanupControl::new()),
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
@@ -166,6 +205,7 @@ mod tests {
 
         let result = CleanService::clean_registered_target(
             registered_target(target, root.clone(), &AppSettings::default()),
+            std::sync::Arc::new(CleanupControl::new()),
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
@@ -195,6 +235,7 @@ mod tests {
 
         let result = CleanService::clean_registered_target(
             registered_target(target, root.clone(), &settings),
+            std::sync::Arc::new(CleanupControl::new()),
             Some(&settings),
             CleanMode::Trash,
             None,
@@ -216,6 +257,7 @@ mod tests {
 
         let result = CleanService::clean_registered_target(
             registered_target(target, root.clone(), &AppSettings::default()),
+            std::sync::Arc::new(CleanupControl::new()),
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,
@@ -238,6 +280,7 @@ mod tests {
 
         let result = CleanService::clean_registered_target(
             registered_target(target, root.clone(), &AppSettings::default()),
+            std::sync::Arc::new(CleanupControl::new()),
             Some(&AppSettings::default()),
             CleanMode::Trash,
             None,

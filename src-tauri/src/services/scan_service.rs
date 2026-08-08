@@ -747,6 +747,7 @@ mod tests {
             .is_some());
         assert!(CleanService::clean_registered_target(
             registered,
+            Arc::new(CleanupControl::new()),
             None,
             CleanMode::Permanent,
             Some("Nuke".to_string()),
@@ -990,6 +991,7 @@ mod tests {
         let registered = ScanService::claim_target(&target_id).unwrap();
         assert!(CleanService::clean_registered_target(
             registered,
+            Arc::new(CleanupControl::new()),
             Some(&crate::commands::settings::AppSettings::default()),
             CleanMode::Trash,
             None,
