@@ -2,63 +2,62 @@
 
 ## Principles
 
-1. Rust concentra regras, validação de caminhos e operações de filesystem.
-2. React apresenta estado; não decide se um caminho é seguro para apagar.
-3. Scanners e cleaners dependem de traits pequenos e testáveis.
-4. Operações longas emitem eventos e não bloqueiam o comando IPC.
+1. Rust concentrates rules, path validation, authorization, and filesystem operations.
+2. React presents state and validates transport data; it does not decide whether an arbitrary path is safe to delete.
+3. Scanners and cleaners depend on small, testable traits and services.
+4. Long operations run outside the IPC command call and publish events.
+5. Core Contract v1 is the public shape for event envelopes and capability data, not a replacement for raw command DTOs.
 
 ## Layers
 
 ```text
 React / Vite
     |
-Tauri commands + events
+Tauri commands + v1 event envelopes
     |
 ScanService / CleanService
-    |              |
-Scanner trait     Cleaner trait
-    |              |
-filesystem + models + errors
+    |
+uncached-core contract, scanners, cleaners, filesystem models
 ```
+
+## Contract boundary
+
+`uncached-core::contract::v1` owns the envelope, platform values, public error DTO, capabilities DTO, and transport DTOs. The envelope always contains `apiVersion`, `platform`, `data`, and `error`; exactly one of `data` or `error` is non-null. CamelCase is the serialized field convention. `FileIdentity` stays backend-only.
+
+The Desktop frontend unwraps and validates v1 event envelopes before state changes. `start_scan`, `cancel_scan`, `retry_target_size`, `clean_target`, `cancel_cleanup`, settings commands, and app-info commands currently retain raw Tauri command responses. `cleanup_capabilities` is the envelope-wrapped command because it is part of the shared public contract.
+
+Unknown versions are rejected by the frontend. A future v2 requires an explicit adapter and must not be silently consumed by v1 code. The CLI remains on its current command shape until separately migrated.
 
 ## Scan flow
 
-1. Frontend chama `start_scan(path)`.
-2. Backend canonicaliza a raiz e cria `scanId`.
-3. Worker usa `DiskWalker` e scanners registrados.
-4. Cada target encontrado recebe ID da sessão e é registrado no backend.
-5. Eventos `scan:started`, `scan:target_found`, `scan:progress` e `scan:finished` atualizam a UI.
+1. Frontend invokes `start_scan` with a path.
+2. Backend rejects missing, non-directory, or symlink roots, canonicalizes the root, creates `scanId`, and returns the raw start result.
+3. Worker loads settings, creates the configured provider set, and uses Core traversal.
+4. Each confirmed target receives a session-scoped ID, backend registration, and a `scan:target_found` event.
+5. Bounded sizing workers publish `scan:target_sized` and `scan:progress`.
+6. `scan:finished` is emitted only after traversal and every sizing job settle.
 
-Walker poda subárvores quando scanner identifica target. Isso evita percorrer o conteúdo interno de `node_modules`, `target` e caches.
+Walker pruning prevents traversal into terminal target subtrees. Providers remain behind one `ProviderSet`; adding a provider does not create a second traversal.
 
-### Candidate discovery and sizing
+Sizing uses `available_parallelism().clamp(1, 8)` workers and a bounded channel. Pending targets remain visible. Sizing errors settle the job and remain visible through `sizeHasErrors`; cleanup rejects pending or errored targets until retry succeeds.
 
-Discovery is candidate-directed: the shared traversal may invoke its callback for every directory it visits, but target discovery and target events emit only confirmed candidates. Terminal artifact subtrees are pruned immediately, so their contents are not traversed merely to discover the artifact. Provider implementations remain isolated behind `ProviderSet`; adding or changing a provider does not create a second traversal.
-
-Target sizing starts when a candidate is registered. A bounded controller uses `available_parallelism().clamp(1, 8)` workers and a bounded channel, so sizing cannot create an unbounded queue. Each target is marked pending until its sizing job settles. `scan:finished` is emitted only after traversal has finished and every sizing job has settled; its `durationMs` covers this settling lifecycle.
-
-Sizing errors are retained on the target and remain visible to Review. They settle the sizing job, so Review can open after all targets settle, but cleanup claims reject targets with `size_has_errors` (and pending targets) until a successful retry completes.
+Cancellation invalidates the session and removes its targets after publication barriers settle. It emits `scan:cancelled` instead of `scan:finished`.
 
 ## Clean flow
 
-1. Frontend envia `targetId`, modo e confirmação.
-2. Backend recupera target da sessão; path enviado pelo frontend não é autoridade.
-3. Backend canonicaliza novamente, rejeita links, raízes, diretórios críticos e targets fora da raiz da sessão.
-4. `TrashCleaner` ou `PermanentCleaner` executa operação fora do executor assíncrono.
-5. Eventos `clean:started`, `clean:success` ou `clean:failed` são emitidos.
+1. Frontend invokes `clean_target` with `targetId`, `mode`, and optional confirmation.
+2. Backend claims the registered target; the frontend never supplies an authoritative path.
+3. Backend canonicalizes again, rejects links, roots, critical directories, outside-root targets, invalid provider context, missing identity, and identity changes.
+4. `TrashCleaner` or `PermanentCleaner` runs in a blocking worker after policy checks.
+5. Backend emits `clean:started`, then `clean:finished` or `clean:failed`.
 
-Targets ficam em registro de memória. Reiniciar aplicativo invalida targets anteriores.
-
-## Traits
-
-`Scanner` define `category`, `matches` e `confirm_context`. O traversal pertence ao `ScanService`; scanners não percorrem árvores individualmente.
-
-`Cleaner` recebe um path já autorizado e retorna `NukeResult<u64>`. A autorização não pertence ao cleaner, mas cleaners também mantêm validação defensiva.
+`Permanent` requires exact `Nuke` confirmation. Cleanup capabilities gate UI actions but do not replace backend authorization. Targets and cleanup claims live in memory; restarting the application invalidates prior targets.
 
 ## Platform safety
 
-- `canonicalize_target` rejeita symlinks e diretórios que não sejam reais.
-- `is_within_root` impede sair da raiz da sessão.
-- raízes de volume e diretórios críticos são bloqueados.
-- Windows usa prefixo `\\?\` para caminhos longos após canonicalização.
-- atributos read-only são removidos com propagação de erros.
+- `canonicalize_target` rejects symlinks and non-real directories.
+- `is_within_root` prevents escaping the scan root.
+- Volume roots and critical directories are blocked.
+- Windows uses the extended path prefix after canonicalization where required.
+- Read-only attributes are removed with propagated errors.
+- Public errors map to stable Core codes and omit native source details.
