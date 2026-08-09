@@ -14,7 +14,10 @@ Shell namespace before or during the operation. Ambiguous identity or
 postcondition results fail closed. This residual race remains and validation
 must not be weakened to hide it.
 
-On non-Windows platforms, v1 reports `moveToTrash: false` and returns typed
-`secure_trash_unavailable` without mutating the target. Permanent cleanup uses
-the platform-specific secure backend separately; native HRESULTs and other
-private native details never cross the public IPC contract.
+On Windows, v1 reports `moveToTrash` from a runtime Shell activation probe and
+returns typed `secure_trash_unavailable` without mutating the target when that
+backend is unavailable. On non-Windows platforms, v1 reports
+`moveToTrash: false` and returns the same typed error without mutating the
+target. Permanent cleanup uses the platform-specific secure backend separately;
+native HRESULTs and other private native details never cross the public IPC
+contract.

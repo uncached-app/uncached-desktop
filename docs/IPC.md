@@ -116,12 +116,17 @@ Response is a v1 envelope containing:
 {
   "apiVersion": "v1",
   "platform": "windows",
-  "data": { "permanentCleanup": true, "moveToTrash": false, "secureIdentity": true },
+  "data": { "permanentCleanup": true, "moveToTrash": true, "secureIdentity": true },
   "error": null
 }
 ```
 
-`permanentCleanup` and `moveToTrash` gate available cleanup modes. `secureIdentity` reports whether platform identity checks are supported. These booleans are capability facts, not authorization; the backend still performs the final target and policy checks.
+`permanentCleanup` and `moveToTrash` gate available cleanup modes. On Windows,
+`moveToTrash` is runtime-probed: it is `true` when Shell `IFileOperation`
+activation succeeds and `false` when that backend is unavailable. It remains
+`false` on non-Windows platforms. `secureIdentity` reports whether platform
+identity checks are supported. These booleans are capability facts, not
+authorization; the backend still performs the final target and policy checks.
 
 ### Settings and app info
 

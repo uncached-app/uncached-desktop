@@ -106,7 +106,8 @@ fn should_record_cleanup(mode: crate::models::action::CleanMode) -> bool {
 mod tests {
     use super::{
         clean_command_failure, clean_event_for_result, clean_failed_event, clean_finished_event,
-        clean_started_event, internal_command_failure, settings_for_clean, should_record_cleanup,
+        clean_started_event, cleanup_capabilities, internal_command_failure, platform,
+        settings_for_clean, should_record_cleanup,
     };
     use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
@@ -128,6 +129,20 @@ mod tests {
         assert_eq!(value["data"]["targetId"], "target-1");
         assert_eq!(value["data"]["mode"], "Trash");
         assert!(value["error"].is_null());
+    }
+
+    #[test]
+    fn cleanup_capabilities_preserve_core_runtime_probe() {
+        let envelope = cleanup_capabilities();
+        let capabilities = uncached_core::cleanup_capabilities();
+        let value = serde_json::to_value(envelope).unwrap();
+
+        assert_eq!(value["platform"], serde_json::to_value(platform()).unwrap());
+        assert_eq!(value["data"], serde_json::to_value(&capabilities).unwrap());
+        assert!(value["error"].is_null());
+        if !cfg!(windows) {
+            assert!(!capabilities.move_to_trash);
+        }
     }
 
     #[test]

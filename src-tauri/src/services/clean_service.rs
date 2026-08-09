@@ -187,7 +187,7 @@ mod tests {
     }
 
     #[test]
-    fn active_non_node_modules_category_reports_secure_trash_unavailable() {
+    fn active_non_node_modules_category_handles_runtime_trash_result() {
         let root =
             std::env::temp_dir().join(format!("uncached-clean-desktop-{}", std::process::id()));
         let target_path = root.join("project/target");
@@ -211,12 +211,21 @@ mod tests {
             None,
         );
 
-        assert!(matches!(
-            result,
-            Err(crate::errors::NukeError::Core(info))
-                if info.code == uncached_core::CoreErrorCode::SecureTrashUnavailable
-        ));
-        assert!(target_path.exists());
+        match result {
+            Ok(_) => assert!(!target_path.exists()),
+            Err(crate::errors::NukeError::Core(info)) => {
+                assert!(matches!(
+                    info.code,
+                    uncached_core::CoreErrorCode::SecureTrashUnavailable
+                        | uncached_core::CoreErrorCode::SecureTrashInitializationFailed
+                        | uncached_core::CoreErrorCode::SecureTrashOperationFailed
+                        | uncached_core::CoreErrorCode::SecureTrashAborted
+                        | uncached_core::CoreErrorCode::SecureTrashPostconditionFailed
+                ));
+                assert!(target_path.exists());
+            }
+            Err(error) => panic!("unexpected typed Trash result: {error:?}"),
+        }
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -274,7 +283,7 @@ mod tests {
     }
 
     #[test]
-    fn node_modules_cleanup_preserves_existing_size_error() {
+    fn node_modules_cleanup_preserves_existing_size_error_across_runtime_trash_result() {
         let root = std::env::temp_dir().join(format!("uncached-clean-size-{}", std::process::id()));
         let target_path = root.join("project/node_modules");
         let _ = std::fs::remove_dir_all(&root);
@@ -291,12 +300,24 @@ mod tests {
             None,
         );
 
-        assert!(matches!(
-            result,
-            Err(crate::errors::NukeError::Core(info))
-                if info.code == uncached_core::CoreErrorCode::SecureTrashUnavailable
-        ));
-        assert!(target_path.exists());
+        match result {
+            Ok(clean_result) => {
+                assert!(!target_path.exists());
+                assert!(clean_result.size_has_errors);
+            }
+            Err(crate::errors::NukeError::Core(info)) => {
+                assert!(matches!(
+                    info.code,
+                    uncached_core::CoreErrorCode::SecureTrashUnavailable
+                        | uncached_core::CoreErrorCode::SecureTrashInitializationFailed
+                        | uncached_core::CoreErrorCode::SecureTrashOperationFailed
+                        | uncached_core::CoreErrorCode::SecureTrashAborted
+                        | uncached_core::CoreErrorCode::SecureTrashPostconditionFailed
+                ));
+                assert!(target_path.exists());
+            }
+            Err(error) => panic!("unexpected typed Trash result: {error:?}"),
+        }
         let _ = std::fs::remove_dir_all(root);
     }
 }
