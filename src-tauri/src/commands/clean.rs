@@ -170,7 +170,7 @@ mod tests {
         for error in [
             NukeError::NotFound("native target detail".into()),
             NukeError::CleanupCancelled,
-            NukeError::Trash("native trash detail".into()),
+            NukeError::PermissionDenied("native permission detail".into()),
         ] {
             let value = serde_json::to_value(clean_command_failure(&error)).unwrap();
             assert_eq!(value["apiVersion"], "v1");
@@ -198,8 +198,8 @@ mod tests {
 
         assert_eq!(value["apiVersion"], "v1");
         assert!(value["data"].is_null());
-        assert_eq!(value["error"]["code"], "invalid_target");
-        assert_eq!(value["error"]["message"], "invalid scan target");
+        assert_eq!(value["error"]["code"], "io");
+        assert_eq!(value["error"]["message"], "I/O error");
         assert!(!value.to_string().contains("Cleanup cancelled"));
     }
 
@@ -283,7 +283,7 @@ mod tests {
         assert_eq!(event, "clean:failed");
         assert_eq!(payload["apiVersion"], "v1");
         assert!(payload["data"].is_null());
-        assert_eq!(payload["error"]["code"], "invalid_target");
+        assert_eq!(payload["error"]["code"], "io");
     }
 }
 

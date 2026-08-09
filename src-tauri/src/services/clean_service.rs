@@ -83,12 +83,13 @@ fn core_category(category: &crate::models::category::Category) -> uncached_core:
 }
 
 fn map_core_error(error: uncached_core::CoreError) -> crate::errors::NukeError {
+    // The native cause is dropped by `public_info` before the error can cross
+    // IPC, so record it in the local log first. Without this a cleanup failure
+    // is only ever visible as its sanitized code.
+    crate::logging::error("clean", &format!("core error=\"{error}\""));
     match error {
         uncached_core::CoreError::Io(error) => crate::errors::NukeError::Io(error),
-        uncached_core::CoreError::RecycleBinTooLarge => {
-            crate::errors::NukeError::RecycleBinTooLarge
-        }
-        uncached_core::CoreError::Trash(message) => crate::errors::NukeError::Trash(message),
+        // Every other Core failure is already a typed, sanitized contract error.
         other => crate::errors::NukeError::Core(other.public_info()),
     }
 }

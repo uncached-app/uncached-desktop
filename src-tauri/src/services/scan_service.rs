@@ -206,13 +206,17 @@ pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorIn
         NukeError::Io(error) => {
             uncached_core::CoreError::Io(std::io::Error::new(error.kind(), "desktop I/O error"))
         }
-        NukeError::Trash(_) => uncached_core::CoreError::Trash("desktop trash error".into()),
-        NukeError::RecycleBinTooLarge => uncached_core::CoreError::RecycleBinTooLarge,
-        NukeError::NotFound(message) | NukeError::PermissionDenied(message) => {
-            uncached_core::CoreError::InvalidTarget(message.clone())
-        }
+        // The Desktop message may be a path or an internal target id, so it never
+        // crosses into the contract; only the typed code does.
+        NukeError::NotFound(_) => uncached_core::CoreError::TargetMissing {
+            path: std::path::PathBuf::new(),
+        },
+        NukeError::PermissionDenied(_) => uncached_core::CoreError::Io(std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "desktop permission denied",
+        )),
         NukeError::ScanCancelled | NukeError::CleanupCancelled | NukeError::Internal(_) => {
-            uncached_core::CoreError::InvalidTarget("operation failed".into())
+            uncached_core::CoreError::Io(std::io::Error::other("operation failed"))
         }
     };
     core_error.public_info()
@@ -1507,13 +1511,13 @@ mod tests {
 
         assert_eq!(providers.len(), 6);
         assert!(providers
-            .scanner_for(uncached_core::Category::CargoTarget)
+            .scanner_for(&uncached_core::Category::CargoTarget)
             .is_some());
         assert!(providers
-            .scanner_for(uncached_core::Category::NodeModules)
+            .scanner_for(&uncached_core::Category::NodeModules)
             .is_some());
         assert!(uncached_core::ProviderSet::free()
-            .scanner_for(uncached_core::Category::CargoTarget)
+            .scanner_for(&uncached_core::Category::CargoTarget)
             .is_none());
     }
 
@@ -1542,11 +1546,11 @@ mod tests {
 
         assert!(registered
             .providers
-            .scanner_for(uncached_core::Category::CargoTarget)
+            .scanner_for(&uncached_core::Category::CargoTarget)
             .is_none());
         assert!(registered
             .providers
-            .scanner_for(uncached_core::Category::NodeModules)
+            .scanner_for(&uncached_core::Category::NodeModules)
             .is_some());
         assert!(CleanService::clean_registered_target(
             registered,
