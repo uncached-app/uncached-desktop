@@ -343,9 +343,22 @@ impl SizingController {
                 let _ = app.emit(event, payload);
             })
         };
+        let sizing_cancel_token = Arc::clone(&cancel_token);
+        let calculator: SizeCalculator = Arc::new(move |path| {
+            match uncached_core::filesystem::directory_size_report_with_cancel(
+                path,
+                &sizing_cancel_token,
+            ) {
+                Ok(Some(report)) => report,
+                Ok(None) | Err(_) => crate::filesystem::size::DirSize {
+                    bytes: 0,
+                    errors: 1,
+                },
+            }
+        });
         Self::with_hooks(
             sizing_worker_count(),
-            Arc::new(crate::filesystem::size::calculate_dir_size_report),
+            calculator,
             event_sink,
             cancel_token,
             stats,
