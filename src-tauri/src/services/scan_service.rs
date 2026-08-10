@@ -206,13 +206,26 @@ pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorIn
         NukeError::Io(error) => {
             uncached_core::CoreError::Io(std::io::Error::new(error.kind(), "desktop I/O error"))
         }
-        NukeError::Trash(_) => uncached_core::CoreError::Trash("desktop trash error".into()),
-        NukeError::RecycleBinTooLarge => uncached_core::CoreError::RecycleBinTooLarge,
-        NukeError::NotFound(message) | NukeError::PermissionDenied(message) => {
-            uncached_core::CoreError::InvalidTarget(message.clone())
-        }
+        // These variants are retained for desktop-local validation paths. Map them
+        // to stable core errors instead of exposing their private messages.
+        NukeError::Trash(_) => uncached_core::CoreError::SecureTrashOperationFailed {
+            path: "target".into(),
+            operation: "trash".into(),
+            source: std::io::Error::other("desktop Trash operation failed"),
+        },
+        NukeError::RecycleBinTooLarge => uncached_core::CoreError::SecureTargetTooLarge {
+            path: "target".into(),
+            limit: 0,
+        },
+        NukeError::NotFound(_) => uncached_core::CoreError::TargetMissing {
+            path: "target".into(),
+        },
+        NukeError::PermissionDenied(_) => uncached_core::CoreError::SecureDeletionFailed {
+            path: "target".into(),
+            source: std::io::Error::other("desktop permission denied"),
+        },
         NukeError::ScanCancelled | NukeError::CleanupCancelled | NukeError::Internal(_) => {
-            uncached_core::CoreError::InvalidTarget("operation failed".into())
+            uncached_core::CoreError::Io(std::io::Error::other("desktop operation failed"))
         }
     };
     core_error.public_info()
@@ -1507,13 +1520,13 @@ mod tests {
 
         assert_eq!(providers.len(), 6);
         assert!(providers
-            .scanner_for(uncached_core::Category::CargoTarget)
+            .scanner_for(&uncached_core::Category::CargoTarget)
             .is_some());
         assert!(providers
-            .scanner_for(uncached_core::Category::NodeModules)
+            .scanner_for(&uncached_core::Category::NodeModules)
             .is_some());
         assert!(uncached_core::ProviderSet::free()
-            .scanner_for(uncached_core::Category::CargoTarget)
+            .scanner_for(&uncached_core::Category::CargoTarget)
             .is_none());
     }
 
@@ -1542,11 +1555,11 @@ mod tests {
 
         assert!(registered
             .providers
-            .scanner_for(uncached_core::Category::CargoTarget)
+            .scanner_for(&uncached_core::Category::CargoTarget)
             .is_none());
         assert!(registered
             .providers
-            .scanner_for(uncached_core::Category::NodeModules)
+            .scanner_for(&uncached_core::Category::NodeModules)
             .is_some());
         assert!(CleanService::clean_registered_target(
             registered,

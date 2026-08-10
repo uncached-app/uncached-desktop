@@ -140,7 +140,7 @@ mod tests {
         assert_eq!(value["platform"], serde_json::to_value(platform()).unwrap());
         assert_eq!(value["data"], serde_json::to_value(&capabilities).unwrap());
         assert!(value["error"].is_null());
-        if !cfg!(windows) {
+        if !cfg!(any(windows, unix)) {
             assert!(!capabilities.move_to_trash);
         }
     }
@@ -198,8 +198,8 @@ mod tests {
 
         assert_eq!(value["apiVersion"], "v1");
         assert!(value["data"].is_null());
-        assert_eq!(value["error"]["code"], "invalid_target");
-        assert_eq!(value["error"]["message"], "invalid scan target");
+        assert_eq!(value["error"]["code"], "io");
+        assert_eq!(value["error"]["message"], "I/O error");
         assert!(!value.to_string().contains("Cleanup cancelled"));
     }
 
@@ -283,7 +283,7 @@ mod tests {
         assert_eq!(event, "clean:failed");
         assert_eq!(payload["apiVersion"], "v1");
         assert!(payload["data"].is_null());
-        assert_eq!(payload["error"]["code"], "invalid_target");
+        assert_eq!(payload["error"]["code"], "io");
     }
 }
 

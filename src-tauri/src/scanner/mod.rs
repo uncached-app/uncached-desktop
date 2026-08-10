@@ -89,9 +89,9 @@ mod tests {
 
             assert_eq!(providers.len(), 5, "{name} provider count");
             assert_eq!(categories.len(), 5, "{name} active categories");
-            assert!(providers.scanner_for(Category::PyCache).is_some());
+            assert!(providers.scanner_for(&Category::PyCache).is_some());
             assert!(
-                providers.scanner_for(removed).is_none(),
+                providers.scanner_for(&removed).is_none(),
                 "{name} should be removed"
             );
         }

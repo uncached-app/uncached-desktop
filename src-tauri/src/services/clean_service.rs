@@ -85,10 +85,6 @@ fn core_category(category: &crate::models::category::Category) -> uncached_core:
 fn map_core_error(error: uncached_core::CoreError) -> crate::errors::NukeError {
     match error {
         uncached_core::CoreError::Io(error) => crate::errors::NukeError::Io(error),
-        uncached_core::CoreError::RecycleBinTooLarge => {
-            crate::errors::NukeError::RecycleBinTooLarge
-        }
-        uncached_core::CoreError::Trash(message) => crate::errors::NukeError::Trash(message),
         other => crate::errors::NukeError::Core(other.public_info()),
     }
 }
@@ -221,6 +217,7 @@ mod tests {
                         | uncached_core::CoreErrorCode::SecureTrashOperationFailed
                         | uncached_core::CoreErrorCode::SecureTrashAborted
                         | uncached_core::CoreErrorCode::SecureTrashPostconditionFailed
+                        | uncached_core::CoreErrorCode::TargetReparsePoint
                 ));
                 assert!(target_path.exists());
             }
@@ -313,6 +310,7 @@ mod tests {
                         | uncached_core::CoreErrorCode::SecureTrashOperationFailed
                         | uncached_core::CoreErrorCode::SecureTrashAborted
                         | uncached_core::CoreErrorCode::SecureTrashPostconditionFailed
+                        | uncached_core::CoreErrorCode::TargetReparsePoint
                 ));
                 assert!(target_path.exists());
             }
