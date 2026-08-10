@@ -1561,14 +1561,14 @@ mod tests {
             .providers
             .scanner_for(&uncached_core::Category::NodeModules)
             .is_some());
-        assert!(CleanService::clean_registered_target(
+        let cleanup_result = CleanService::clean_registered_target(
             registered,
             Arc::new(CleanupControl::new()),
             None,
             CleanMode::Permanent,
             Some("Nuke".to_string()),
-        )
-        .is_ok());
+        );
+        assert!(cleanup_result.is_ok(), "cleanup failed: {cleanup_result:?}");
         assert!(!target_path.exists());
         let _ = std::fs::remove_dir_all(root);
     }
