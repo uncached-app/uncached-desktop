@@ -27,4 +27,4 @@ chrono = { version = "0.4", features = ["serde"] }
 trash = "5.2"
 thiserror = "2.0"
 tauri-plugin-dialog = "2"
-uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "028107a", package = "uncached-core" }
+uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "b503206", package = "uncached-core" }
