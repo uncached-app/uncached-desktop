@@ -170,7 +170,7 @@ mod tests {
         for error in [
             NukeError::NotFound("native target detail".into()),
             NukeError::CleanupCancelled,
-            NukeError::Trash("native trash detail".into()),
+            NukeError::PermissionDenied("native permission detail".into()),
         ] {
             let value = serde_json::to_value(clean_command_failure(&error)).unwrap();
             assert_eq!(value["apiVersion"], "v1");

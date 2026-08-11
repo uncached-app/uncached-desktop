@@ -12,21 +12,34 @@ import type {
 
 export type Platform = "windows" | "linux" | "macos" | "android" | "unsupported";
 
-export type CoreErrorCode =
-  | "invalid_workspace"
-  | "invalid_target"
-  | "io"
-  | "trash"
-  | "recycle_bin_too_large"
-  | "target_identity_unavailable"
-  | "target_identity_changed"
-  | "target_reparse_point"
-  | "secure_operation_unsupported"
-  | "secure_target_open_failed"
-  | "secure_enumeration_failed"
-  | "secure_handle_query_failed"
-  | "secure_deletion_failed"
-  | "secure_trash_unavailable";
+export const CORE_ERROR_CODES = [
+  "invalid_workspace",
+  "io",
+  "provider_unavailable",
+  "target_missing",
+  "target_not_directory",
+  "target_name_unsupported",
+  "target_provider_mismatch",
+  "target_context_invalid",
+  "target_outside_workspace",
+  "target_identity_unavailable",
+  "target_identity_changed",
+  "target_reparse_point",
+  "secure_operation_unsupported",
+  "secure_target_open_failed",
+  "secure_target_too_large",
+  "secure_target_too_deep",
+  "secure_enumeration_failed",
+  "secure_handle_query_failed",
+  "secure_deletion_failed",
+  "secure_trash_unavailable",
+  "secure_trash_initialization_failed",
+  "secure_trash_operation_failed",
+  "secure_trash_aborted",
+  "secure_trash_postcondition_failed",
+] as const;
+
+export type CoreErrorCode = (typeof CORE_ERROR_CODES)[number];
 
 export type CoreErrorInfo = {
   code: CoreErrorCode;
@@ -102,21 +115,11 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
+// Single source of truth: the guard reads the same list the type is built from,
+// so a new Core code cannot be accepted by the type and rejected at runtime.
 function isCoreErrorCode(value: unknown): value is CoreErrorCode {
-  return value === "invalid_workspace" ||
-    value === "invalid_target" ||
-    value === "io" ||
-    value === "trash" ||
-    value === "recycle_bin_too_large" ||
-    value === "target_identity_unavailable" ||
-    value === "target_identity_changed" ||
-    value === "target_reparse_point" ||
-    value === "secure_operation_unsupported" ||
-    value === "secure_target_open_failed" ||
-    value === "secure_enumeration_failed" ||
-    value === "secure_handle_query_failed" ||
-    value === "secure_deletion_failed" ||
-    value === "secure_trash_unavailable";
+  return typeof value === "string" &&
+    (CORE_ERROR_CODES as readonly string[]).includes(value);
 }
 
 function isNullableString(value: unknown): value is string | null {

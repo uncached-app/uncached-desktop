@@ -208,15 +208,6 @@ pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorIn
         }
         // These variants are retained for desktop-local validation paths. Map them
         // to stable core errors instead of exposing their private messages.
-        NukeError::Trash(_) => uncached_core::CoreError::SecureTrashOperationFailed {
-            path: "target".into(),
-            operation: "trash".into(),
-            source: std::io::Error::other("desktop Trash operation failed"),
-        },
-        NukeError::RecycleBinTooLarge => uncached_core::CoreError::SecureTargetTooLarge {
-            path: "target".into(),
-            limit: 0,
-        },
         NukeError::NotFound(_) => uncached_core::CoreError::TargetMissing {
             path: "target".into(),
         },

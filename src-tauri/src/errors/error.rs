@@ -8,12 +8,6 @@ pub enum NukeError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("Recycle Bin error: {0}")]
-    Trash(String),
-
-    #[error("Target is too large for the Recycle Bin. Switch to permanent deletion in Settings to remove it.")]
-    RecycleBinTooLarge,
-
     #[error("Path not found: {0}")]
     NotFound(String),
 

@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # src-tauri/.cargo/config.toml patches uncached-core to ../../uncached-core,
+  # so CI checks out the private core repository as a sibling of this one.
+  CORE_REPOSITORY: uncached-app/uncached-core
+  CORE_REF: main
+
+defaults:
+  run:
+    working-directory: uncached-desktop
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout desktop
+        uses: actions/checkout@v4
+        with:
+          path: uncached-desktop
+
+      - name: Reject fork pull request without private-core access
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork
+        shell: bash
+        run: |
+          echo "Fork pull requests cannot receive UNCACHED_CORE_DEPLOY_KEY; run this check from a branch in the main repository or use a trusted maintainer-triggered workflow." >&2
+          exit 1
+
+      - name: Require private core deploy key
+        shell: bash
+        env:
+          UNCACHED_CORE_DEPLOY_KEY: ${{ secrets.UNCACHED_CORE_DEPLOY_KEY }}
+        run: |
+          if [ -z "$UNCACHED_CORE_DEPLOY_KEY" ]; then
+            echo "Missing Actions secret UNCACHED_CORE_DEPLOY_KEY; configure a read-only deploy key for $CORE_REPOSITORY." >&2
+            exit 1
+          fi
+
+      - name: Checkout core as a sibling repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CORE_REPOSITORY }}
+          ref: ${{ env.CORE_REF }}
+          ssh-key: ${{ secrets.UNCACHED_CORE_DEPLOY_KEY }}
+          path: uncached-core
+          fetch-depth: 0
+
+      - name: Report pinned core revision drift
+        shell: bash
+        run: |
+          pinned=$(sed -n 's/.*rev = "\([0-9a-f]\{40\}\)".*/\1/p' src-tauri/Cargo.toml)
+          test -n "$pinned" || { echo "src-tauri/Cargo.toml has no pinned uncached-core revision" >&2; exit 1; }
+          checked_out=$(git -C "$GITHUB_WORKSPACE/uncached-core" rev-parse HEAD)
+          echo "Pinned core revision:      $pinned"
+          echo "Checked out core revision: $checked_out"
+          if [ "$pinned" != "$checked_out" ]; then
+            echo "::warning::src-tauri/.cargo/config.toml patches uncached-core by path, so this run tests $checked_out while Cargo.toml pins $pinned. Bump the pin before releasing."
+          fi
+
+      - name: Install Linux Tauri dependencies
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            patchelf \
+            build-essential \
+            file
+
+      - name: Configure pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Configure Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: uncached-desktop/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend tests
+        run: pnpm test
+
+      - name: Build frontend
+        # tauri.conf.json points frontendDist at ../dist, so the Rust build
+        # below needs this to have run first.
+        run: pnpm build
+
+      - name: Configure Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: uncached-desktop
+          key: ${{ matrix.os }}
+
+      # The uncached-core patch lives in src-tauri/.cargo/config.toml, so cargo
+      # only picks it up when it runs from src-tauri. Running from the workspace
+      # root resolves the pinned git revision instead and fails to compile.
+      - name: Check formatting
+        run: cargo fmt --check
+        working-directory: uncached-desktop/src-tauri
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: uncached-desktop/src-tauri
+
+      - name: Run Rust tests
+        run: cargo test
+        working-directory: uncached-desktop/src-tauri
