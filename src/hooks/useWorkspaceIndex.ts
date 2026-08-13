@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { WorkspaceIndex } from "../types/workspace";
 
 /**
@@ -28,6 +29,19 @@ export function useWorkspaceIndex() {
     }
     setError(null);
     setRoots((current) => (current.includes(trimmed) ? current : [...current, trimmed]));
+  }
+
+  async function pickAdditionalRoot() {
+    if (!isTauri()) {
+      setError("Tauri runtime unavailable. Start the app with `pnpm dev`.");
+      return;
+    }
+    try {
+      const selected = await open({ directory: true, multiple: false });
+      if (typeof selected === "string") addRoot(selected);
+    } catch (pickerError) {
+      setError(String(pickerError));
+    }
   }
 
   function removeRoot(path: string) {
@@ -60,5 +74,5 @@ export function useWorkspaceIndex() {
     }
   }
 
-  return { roots, addRoot, removeRoot, clearRoots, index, loading, error, scanRoots };
+  return { roots, addRoot, pickAdditionalRoot, removeRoot, clearRoots, index, loading, error, scanRoots };
 }

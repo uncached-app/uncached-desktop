@@ -305,19 +305,30 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     }
   }
 
-  async function pickFolder() {
+  async function pickFolderPath(): Promise<string | null> {
     setError(null);
     if (!isTauri()) {
-      setError("Tauri runtime unavailable. Start the app with `pnpm tauri dev`.");
-      return;
+      setError("Tauri runtime unavailable. Start the app with `pnpm dev`.");
+      return null;
     }
 
     try {
       const selected = await open({ directory: true, multiple: false });
-      if (typeof selected === "string") setRootPath(selected);
+      return typeof selected === "string" ? selected : null;
     } catch (pickerError) {
       setError(String(pickerError));
+      return null;
     }
+  }
+
+  async function pickFolder() {
+    const selected = await pickFolderPath();
+    if (selected) setRootPath(selected);
+  }
+
+  async function pickAdditionalRoot() {
+    const selected = await pickFolderPath();
+    if (selected) addRoot(selected);
   }
 
   async function cancelScan() {
@@ -454,6 +465,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     extraRoots,
     addRoot,
     removeRoot,
+    pickAdditionalRoot,
     setRootPath,
     targets,
     progress,

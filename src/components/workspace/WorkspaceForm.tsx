@@ -11,8 +11,8 @@ interface WorkspaceFormProps {
   rootPath: string;
   setRootPath: (path: string) => void;
   extraRoots: string[];
-  addRoot: (path: string) => void;
   removeRoot: (path: string) => void;
+  pickAdditionalRoot: () => void;
   proEnabled: boolean;
   startScan: (event: FormEvent) => void;
   pickFolder: () => void;
@@ -31,8 +31,8 @@ export function WorkspaceForm({
   rootPath,
   setRootPath,
   extraRoots,
-  addRoot,
   removeRoot,
+  pickAdditionalRoot,
   proEnabled,
   startScan,
   pickFolder,
@@ -97,16 +97,17 @@ export function WorkspaceForm({
               <span>Browse</span>
             </button>
 
-            <ProLockButton
-              label="Add another folder"
-              reason="Scanning several folders at once is part of Pro"
-              locked={!proEnabled}
-              disabled={!rootPath.trim()}
-              onClick={() => addRoot(rootPath)}
-              className="size-10 rounded-xl"
-            >
-              <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
-            </ProLockButton>
+            {(rootPath.trim() || extraRoots.length > 0) && (
+              <ProLockButton
+                label="Add another folder"
+                reason="Scanning several folders at once is part of Pro"
+                locked={!proEnabled}
+                onClick={pickAdditionalRoot}
+                className="size-10 rounded-xl"
+              >
+                <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
+              </ProLockButton>
+            )}
           </div>
 
           {extraRoots.length > 0 && (

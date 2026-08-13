@@ -31,8 +31,8 @@ function App() {
   const {
     rootPath,
     extraRoots,
-    addRoot,
     removeRoot,
+    pickAdditionalRoot,
     setRootPath,
     targets,
     progress,
@@ -92,8 +92,8 @@ function App() {
             rootPath={rootPath}
             setRootPath={setRootPath}
             extraRoots={extraRoots}
-            addRoot={addRoot}
             removeRoot={removeRoot}
+            pickAdditionalRoot={pickAdditionalRoot}
             proEnabled={entitlement.proEnabled}
             startScan={startScan}
             pickFolder={pickFolder}

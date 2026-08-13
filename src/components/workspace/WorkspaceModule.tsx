@@ -16,7 +16,7 @@ type WorkspaceModuleProps = {
 
 export function WorkspaceModule({ proEnabled, rootPath, setRootPath, pickFolder }: WorkspaceModuleProps) {
   const reducedMotion = useReducedMotion();
-  const { roots, addRoot, removeRoot, clearRoots, index, loading, error, scanRoots } = useWorkspaceIndex();
+  const { roots, pickAdditionalRoot, removeRoot, clearRoots, index, loading, error, scanRoots } = useWorkspaceIndex();
   const [actionError, setActionError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -34,7 +34,7 @@ export function WorkspaceModule({ proEnabled, rootPath, setRootPath, pickFolder 
 
   return <motion.section initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="flex h-full w-full min-h-0 flex-col overflow-hidden" aria-labelledby="workspace-title">
     {!index
-      ? <WorkspaceEntry proEnabled={proEnabled} rootPath={rootPath} setRootPath={setRootPath} pickFolder={pickFolder} roots={roots} addRoot={addRoot} removeRoot={removeRoot} loading={loading} error={error} onScan={(picked) => void scanRoots(picked)} />
+      ? <WorkspaceEntry proEnabled={proEnabled} rootPath={rootPath} setRootPath={setRootPath} pickFolder={pickFolder} roots={roots} pickAdditionalRoot={pickAdditionalRoot} removeRoot={removeRoot} loading={loading} error={error} onScan={(picked) => void scanRoots(picked)} />
       : <WorkspaceMap index={index} loading={loading} query={query} onQueryChange={setQuery} onScan={() => void scanRoots()} onChangeFolder={() => { clearRoots(); setQuery(""); }} onOpenProject={(path) => void openProject(path)} onRevealProject={(path) => void revealProject(path)} proEnabled={proEnabled} />}
     {index && (error || actionError) && <p className="mt-3 flex items-center gap-2 text-sm text-coral-300"><CircleAlert size={15} />{error ?? actionError}</p>}
   </motion.section>;
@@ -46,14 +46,14 @@ type WorkspaceEntryProps = {
   setRootPath: (path: string) => void;
   pickFolder: () => void;
   roots: string[];
-  addRoot: (path: string) => void;
+  pickAdditionalRoot: () => void;
   removeRoot: (path: string) => void;
   loading: boolean;
   error: string | null;
   onScan: (roots: string[]) => void;
 };
 
-function WorkspaceEntry({ proEnabled, rootPath, setRootPath, pickFolder, roots, addRoot, removeRoot, loading, error, onScan }: WorkspaceEntryProps) {
+function WorkspaceEntry({ proEnabled, rootPath, setRootPath, pickFolder, roots, pickAdditionalRoot, removeRoot, loading, error, onScan }: WorkspaceEntryProps) {
   const pending = rootPath.trim();
   // The field counts as a root, so one folder needs no list and no `+`.
   const pickedRoots = pending && !roots.includes(pending) ? [...roots, pending] : roots;
@@ -73,16 +73,17 @@ function WorkspaceEntry({ proEnabled, rootPath, setRootPath, pickFolder, roots, 
           spellCheck={false}
         />
         <button type="button" onClick={pickFolder} className="rounded-lg bg-forest-800 px-3 py-2 text-xs font-medium text-mist-300 hover:text-sage-300">Browse</button>
-        <ProLockButton
-          label="Add another workspace"
-          reason="Mapping several workspaces at once is part of Pro"
-          locked={!proEnabled}
-          disabled={!pending}
-          onClick={() => { addRoot(pending); setRootPath(""); }}
-          className="size-9 rounded-lg"
-        >
-          <Plus size={15} />
-        </ProLockButton>
+        {(pending || roots.length > 0) && (
+          <ProLockButton
+            label="Add another workspace"
+            reason="Mapping several workspaces at once is part of Pro"
+            locked={!proEnabled}
+            onClick={pickAdditionalRoot}
+            className="size-9 rounded-lg"
+          >
+            <Plus size={15} />
+          </ProLockButton>
+        )}
       </div>
     </form>
 
