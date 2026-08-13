@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { isTauri } from "@tauri-apps/api/core";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { Box, Check, Copy, Folder, FolderOpen, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw, Terminal } from "lucide-react";
+import { Box, Check, Copy, Folder, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw } from "lucide-react";
 import type { ScanTarget } from "../../types/scan";
 
 interface TargetCardProps {
@@ -15,19 +13,8 @@ interface TargetCardProps {
 
 export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSize, proEnabled }: TargetCardProps) {
   const [copiedPath, setCopiedPath] = useState(false);
-  const [copiedCommand, setCopiedCommand] = useState(false);
   const proLocked = target.plan === "pro" && !proEnabled;
   const disabled = isCleaning || target.sizePending || target.sizeHasErrors || proLocked;
-
-  function getDeleteCommand(path: string): string {
-    const isWindows =
-      typeof window !== "undefined" &&
-      (navigator.platform?.toLowerCase().includes("win") || navigator.userAgent?.toLowerCase().includes("win"));
-    if (isWindows) {
-      return `Remove-Item -Recurse -Force -LiteralPath "${path}"`;
-    }
-    return `rm -rf "${path}"`;
-  }
 
   async function handleCopyPath(e: React.MouseEvent) {
     e.stopPropagation();
@@ -37,29 +24,6 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
       setTimeout(() => setCopiedPath(false), 2000);
     } catch (err) {
       console.error("Failed to copy path", err);
-    }
-  }
-
-  async function handleCopyCommand(e: React.MouseEvent) {
-    e.stopPropagation();
-    const cmd = getDeleteCommand(target.path);
-    try {
-      await navigator.clipboard.writeText(cmd);
-      setCopiedCommand(true);
-      setTimeout(() => setCopiedCommand(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy command", err);
-    }
-  }
-
-  async function handleRevealFolder(e: React.MouseEvent) {
-    e.stopPropagation();
-    try {
-      if (isTauri()) {
-        await revealItemInDir(target.path);
-      }
-    } catch (err) {
-      console.error("Failed to reveal folder", err);
     }
   }
 
@@ -122,57 +86,36 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
             )}
           </div>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <div className="group/path relative mt-1.5">
             <p
-              className="min-w-0 flex-1 truncate font-mono text-xs leading-5 text-mist-500"
+              onClick={handleCopyPath}
+              className="truncate font-mono text-xs leading-5 text-mist-500 cursor-pointer transition-colors hover:text-mist-300"
               title={target.path}
             >
               {target.path}
             </p>
 
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                onClick={handleCopyPath}
-                className="inline-flex items-center gap-1 rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium text-mist-300 transition-colors hover:border-sage-400/50 hover:bg-forest-800 hover:text-sage-300"
-                title="Copy folder path to clipboard"
-                aria-label="Copy folder path"
-              >
-                {copiedPath ? (
+            {/* Centered Tooltip over path text */}
+            <span
+              className={`pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium shadow-xl transition-all duration-200 ${
+                copiedPath
+                  ? "scale-100 opacity-100 border-sage-400/50 text-sage-300"
+                  : "scale-95 opacity-0 text-mist-100 group-hover/path:scale-100 group-hover/path:opacity-100"
+              }`}
+            >
+              {copiedPath ? (
+                <>
                   <Check size={11} className="text-sage-300" strokeWidth={2.5} aria-hidden="true" />
-                ) : (
-                  <Copy size={11} aria-hidden="true" />
-                )}
-                <span>{copiedPath ? "Copied" : "Path"}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCopyCommand}
-                className="inline-flex items-center gap-1 rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium text-mist-300 transition-colors hover:border-sage-400/50 hover:bg-forest-800 hover:text-sage-300"
-                title={`Copy terminal delete command: ${getDeleteCommand(target.path)}`}
-                aria-label="Copy terminal delete command"
-              >
-                {copiedCommand ? (
-                  <Check size={11} className="text-sage-300" strokeWidth={2.5} aria-hidden="true" />
-                ) : (
-                  <Terminal size={11} aria-hidden="true" />
-                )}
-                <span>{copiedCommand ? "Copied" : "rm cmd"}</span>
-              </button>
-
-              {isTauri() && (
-                <button
-                  type="button"
-                  onClick={handleRevealFolder}
-                  className="inline-flex items-center gap-1 rounded-md border border-forest-800 bg-forest-850 px-1.5 py-0.5 font-sans text-[11px] font-medium text-mist-300 transition-colors hover:border-sage-400/50 hover:bg-forest-800 hover:text-sage-300"
-                  title="Reveal in Finder / Explorer"
-                  aria-label="Reveal in Finder or Explorer"
-                >
-                  <FolderOpen size={11} aria-hidden="true" />
-                </button>
+                  <span>Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={11} className="text-mist-500" aria-hidden="true" />
+                  <span>Copy</span>
+                </>
               )}
-            </div>
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-x-4 border-t-4 border-x-transparent border-t-forest-800" />
+            </span>
           </div>
         </div>
       </div>
@@ -212,4 +155,5 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
     </article>
   );
 }
+
 
