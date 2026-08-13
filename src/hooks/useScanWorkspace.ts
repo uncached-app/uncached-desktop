@@ -43,7 +43,11 @@ import {
 } from "../utils/apiContract";
 import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
-export function useScanWorkspace(cleanMode: CleanMode = "Trash", indexRoots: (roots: string[]) => void = () => {}) {
+export function useScanWorkspace(
+  cleanMode: CleanMode = "Trash",
+  indexRoots: (roots: string[]) => void = () => {},
+  persistRoots: (roots: string[]) => void = () => {},
+) {
   const [extraRoots, setExtraRoots] = useState<string[]>([]);
   const [targets, setTargets] = useState<ScanTarget[]>([]);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -258,11 +262,24 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash", indexRoots: (ro
   async function addRoots(paths: string[]) {
     const next = [...extraRoots, ...paths.map((path) => path.trim()).filter(Boolean)];
     if (next.length === extraRoots.length) return;
-    setExtraRoots(isTauri() ? await invoke<string[]>("normalize_workspace_roots", { paths: next }) : next);
+    const collapsed = isTauri()
+      ? await invoke<string[]>("normalize_workspace_roots", { paths: next })
+      : next;
+    setExtraRoots(collapsed);
+    persistRoots(collapsed);
   }
 
   function removeRoot(path: string) {
-    setExtraRoots((current) => current.filter((root) => root !== path));
+    setExtraRoots((current) => {
+      const next = current.filter((root) => root !== path);
+      persistRoots(next);
+      return next;
+    });
+  }
+
+  /// Restores a saved selection without persisting it back.
+  function restoreRoots(paths: string[]) {
+    setExtraRoots(paths);
   }
 
   async function startScan(event: FormEvent) {
@@ -459,6 +476,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash", indexRoots: (ro
   return {
     extraRoots,
     removeRoot,
+    restoreRoots,
     pickRoot,
     targets,
     progress,

@@ -13,6 +13,8 @@ export type AppSettings = {
   defaultCleanMode: CleanMode;
   /** Paths to leave alone, one rule per line, in .gitignore syntax. */
   ignoreRules: string;
+  /** Folders the user last chose to scan. */
+  workspaceRoots: string[];
   appearance: Appearance;
   lastCleanup: LastCleanup | null;
 };

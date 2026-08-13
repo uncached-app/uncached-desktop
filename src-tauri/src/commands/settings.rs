@@ -32,6 +32,9 @@ pub struct AppSettings {
     /// fails to compile has to survive a round trip so it can be fixed.
     #[serde(default)]
     pub ignore_rules: String,
+    /// Folders the user last chose to scan, so the app opens on them.
+    #[serde(default)]
+    pub workspace_roots: Vec<String>,
     pub appearance: Appearance,
     #[serde(default)]
     pub last_cleanup: Option<LastCleanup>,
@@ -65,6 +68,7 @@ impl Default for AppSettings {
             detect_turbo_cache: true,
             default_clean_mode: CleanMode::Trash,
             ignore_rules: String::new(),
+            workspace_roots: Vec::new(),
             appearance: Appearance::Light,
             last_cleanup: None,
         }

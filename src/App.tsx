@@ -19,7 +19,11 @@ function App() {
   useTheme(settings.settings?.appearance);
 
   return (
-    <PurgeFlowProvider cleanMode={cleanMode}>
+    <PurgeFlowProvider
+      cleanMode={cleanMode}
+      savedRoots={settings.settings?.workspaceRoots ?? null}
+      onRootsChange={(roots) => void settings.updateSettings({ workspaceRoots: roots })}
+    >
       <AppLayout
         activeModule={activeModule}
         onModuleChange={setActiveModule}
