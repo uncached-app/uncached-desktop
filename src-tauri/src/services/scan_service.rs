@@ -247,27 +247,24 @@ fn value_event(
     uncached_core::contract::v1::ApiEnvelope::success(platform(), data)
 }
 
-pub fn target_found_event(
-    scan_id: &str,
-    target: &ScanTarget,
-) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
+/// Serializes the target itself instead of mirroring its fields. A payload
+/// spelled out by hand drifts from the model in silence: a field added to
+/// `ScanTarget` simply never reaches the UI. `identity` stays out of the wire
+/// through `#[serde(skip)]` on the model, which is where that decision belongs.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetFoundEvent<'a> {
+    pub scan_id: &'a str,
+    pub target: &'a ScanTarget,
+}
+
+pub fn target_found_event<'a>(
+    scan_id: &'a str,
+    target: &'a ScanTarget,
+) -> uncached_core::contract::v1::ApiEnvelope<TargetFoundEvent<'a>> {
     uncached_core::contract::v1::ApiEnvelope::success(
         platform(),
-        serde_json::json!({
-            "scanId": scan_id,
-            "target": {
-                "id": target.id,
-                "path": target.path.to_string_lossy(),
-                "name": target.name,
-                "category": target.category,
-                "plan": target.plan,
-                "sizeBytes": target.size_bytes,
-                "sizePending": target.size_pending,
-                "sizeHasErrors": target.size_has_errors,
-                "formattedSize": target.formatted_size,
-                "lastModified": target.last_modified,
-            }
-        }),
+        TargetFoundEvent { scan_id, target },
     )
 }
 

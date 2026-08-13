@@ -2,12 +2,23 @@ use crate::commands::entitlements::{plan_for_category, Plan};
 use crate::models::category::Category;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+/// Paths are not guaranteed to be UTF-8. Serializing lossily keeps a target
+/// with an undecodable name visible in the UI, where the default `PathBuf`
+/// serializer would fail the whole event instead.
+fn serialize_path_lossy<S>(path: &Path, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&path.to_string_lossy())
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanTarget {
     pub id: String,
+    #[serde(serialize_with = "serialize_path_lossy")]
     pub path: PathBuf,
     pub name: String,
     pub category: Category,
@@ -173,6 +184,23 @@ mod tests {
         assert_eq!(wire(Category::NodeModules)["plan"], "free");
         assert_eq!(wire(Category::CargoTarget)["plan"], "pro");
         assert_eq!(wire(Category::Custom("unknown".to_string()))["plan"], "pro");
+    }
+
+    // The event used to spell the path out with `to_string_lossy`. Serializing
+    // the struct keeps that behaviour: the default `PathBuf` serializer errors
+    // on non-UTF-8, which would drop the target from the scan entirely.
+    #[cfg(unix)]
+    #[test]
+    fn a_path_that_is_not_utf8_still_reaches_the_wire() {
+        use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;
+
+        let path = PathBuf::from(OsStr::from_bytes(b"/workspace/pro\xffject/node_modules"));
+        let value =
+            serde_json::to_value(ScanTarget::new(path, Category::NodeModules, 1, false, None))
+                .unwrap();
+
+        assert!(value["path"].as_str().unwrap().ends_with("/node_modules"));
     }
 
     #[test]
