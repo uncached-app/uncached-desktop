@@ -26,15 +26,17 @@ export function PurgeFlowProvider({
   cleanMode,
   savedRoots,
   onRootsChange,
+  proEnabled,
   children,
 }: {
   cleanMode: CleanMode;
   savedRoots: string[] | null;
   onRootsChange: (roots: string[]) => void;
+  proEnabled: boolean;
   children: ReactNode;
 }) {
   const index = useWorkspaceIndex();
-  const flow = useScanWorkspace(cleanMode, index.scanRoots, onRootsChange);
+  const flow = useScanWorkspace(cleanMode, index.scanRoots, onRootsChange, proEnabled);
   const projects = index.index?.projects ?? NO_PROJECTS;
   const { footprints, measuring } = useWorkspaceFootprints(projects);
   const verdicts = useWorkspaceVerdicts(projects, footprints);

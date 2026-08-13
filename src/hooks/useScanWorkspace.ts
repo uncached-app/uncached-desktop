@@ -47,6 +47,7 @@ export function useScanWorkspace(
   cleanMode: CleanMode = "Trash",
   indexRoots: (roots: string[]) => void = () => {},
   persistRoots: (roots: string[]) => void = () => {},
+  proEnabled = false,
 ) {
   const [extraRoots, setExtraRoots] = useState<string[]>([]);
   const [targets, setTargets] = useState<ScanTarget[]>([]);
@@ -323,25 +324,28 @@ export function useScanWorkspace(
     }
   }
 
-  async function pickFolderPath(): Promise<string | null> {
+  /// Multi-select follows the plan, so the dialog never accepts folders the
+  /// scan would then drop.
+  async function pickFolderPaths(): Promise<string[]> {
     setError(null);
     if (!isTauri()) {
       setError("Tauri runtime unavailable. Start the app with `pnpm dev`.");
-      return null;
+      return [];
     }
 
     try {
-      const selected = await open({ directory: true, multiple: false });
-      return typeof selected === "string" ? selected : null;
+      const selected = await open({ directory: true, multiple: proEnabled });
+      if (Array.isArray(selected)) return selected;
+      return typeof selected === "string" ? [selected] : [];
     } catch (pickerError) {
       setError(String(pickerError));
-      return null;
+      return [];
     }
   }
 
   async function pickRoot() {
-    const selected = await pickFolderPath();
-    if (selected) await addRoots([selected]);
+    const selected = await pickFolderPaths();
+    if (selected.length > 0) await addRoots(selected);
   }
 
   async function cancelScan() {

@@ -23,6 +23,7 @@ function App() {
       cleanMode={cleanMode}
       savedRoots={settings.settings?.workspaceRoots ?? null}
       onRootsChange={(roots) => void settings.updateSettings({ workspaceRoots: roots })}
+      proEnabled={entitlement.proEnabled}
     >
       <AppLayout
         activeModule={activeModule}
