@@ -42,7 +42,7 @@ export function Titlebar({ step, activeModule, onOpenSettings }: { step: Step; a
     <header
       data-tauri-drag-region
       onDoubleClick={toggleMaximize}
-      className={`relative flex h-12 shrink-0 items-center bg-forest-950 px-4 select-none ${isMac ? "justify-start gap-5" : "justify-between"}`}
+      className={`relative flex h-12 shrink-0 items-center border-b border-forest-800 bg-forest-950 px-4 select-none ${isMac ? "justify-start gap-5" : "justify-between"}`}
     >
       {isMac && <WindowControls isMac={isMac} focused={focused} maximized={maximized} minimize={minimize} toggleMaximize={toggleMaximize} close={close} />}
       {!isMac && <div className="order-1">

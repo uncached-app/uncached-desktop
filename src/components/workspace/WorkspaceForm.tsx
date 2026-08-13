@@ -37,7 +37,6 @@ export function WorkspaceForm({
   error,
 }: WorkspaceFormProps) {
   const reducedMotion = useReducedMotion();
-  const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
 
   const lastRun = cleanupSummary.removed > 0 ? cleanupSummary : lastCleanup;
   const statusLine = scanning
@@ -58,12 +57,6 @@ export function WorkspaceForm({
       className="flex h-full w-full flex-col items-center justify-center text-center px-4 py-8"
     >
       <div className="flex w-full max-w-3xl flex-col items-center">
-        {isMac && (
-          <div className="mb-7">
-            <img src="/brand/UNCACHED-LOGO-LIGHT-NOBG.svg" alt="Uncached" className="theme-logo-light h-7 w-auto object-contain" />
-            <img src="/brand/UNCACHED-LOGO-DARK-NOBG.svg" alt="" className="theme-logo-dark h-7 w-auto object-contain" />
-          </div>
-        )}
         <h1 className="text-5xl font-semibold leading-[1.05] tracking-tighter text-mist-100">
           Reclaim disk from build artifacts.
         </h1>

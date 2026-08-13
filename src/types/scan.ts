@@ -2,6 +2,15 @@ import type { CleanMode } from "./settings";
 
 export type Category = string;
 export type Plan = "free" | "pro";
+export type ConfidenceLevel = "high" | "medium" | "review";
+
+/** Reason codes emitted by the core. Unknown codes are rendered as-is. */
+export type ConfidenceSignal = string;
+
+export type Confidence = {
+  level: ConfidenceLevel;
+  signals: ConfidenceSignal[];
+};
 
 export type ScanTarget = {
   id: string;
@@ -9,6 +18,7 @@ export type ScanTarget = {
   name: string;
   category: Category;
   plan: Plan;
+  confidence: Confidence;
   sizeBytes: number;
   sizeHasErrors: boolean;
   sizePending: boolean;

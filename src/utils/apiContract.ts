@@ -1,6 +1,8 @@
 import type {
   CleanResult,
   CleanupCapabilities,
+  Confidence,
+  ConfidenceLevel,
   Plan,
   ScanCancelled,
   ScanFinished,
@@ -75,6 +77,7 @@ export type RawTargetFound = {
     name?: string;
     category: string;
     plan: Plan;
+    confidence: Confidence;
     sizeBytes: number;
     sizePending: boolean;
     sizeHasErrors: boolean;
@@ -191,6 +194,19 @@ function isFiniteNonNegativeNumber(value: unknown): value is number {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
+}
+
+const CONFIDENCE_LEVELS: readonly ConfidenceLevel[] = ["high", "medium", "review"];
+
+// The level and its reasons are decided in Rust. The UI renders them and never
+// derives one from the other.
+function isConfidence(value: unknown): value is Confidence {
+  return (
+    isRecord(value) &&
+    (CONFIDENCE_LEVELS as readonly string[]).includes(value.level as string) &&
+    Array.isArray(value.signals) &&
+    value.signals.every((signal) => isNonEmptyString(signal))
+  );
 }
 
 function isNonNegativeInteger(value: unknown): value is number {
@@ -318,6 +334,7 @@ export function normalizeTargetFound(payload: RawTargetFound) {
     !isNonEmptyString(target.category) ||
     // The plan is decided in Rust; the UI reads it and never recomputes it.
     (target.plan !== "free" && target.plan !== "pro") ||
+    !isConfidence(target.confidence) ||
     !isFiniteNonNegativeNumber(target.sizeBytes) ||
     typeof target.sizePending !== "boolean" ||
     typeof target.sizeHasErrors !== "boolean" ||

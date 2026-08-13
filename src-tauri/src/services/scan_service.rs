@@ -1208,6 +1208,7 @@ mod tests {
                 keys,
                 [
                     "category",
+                    "confidence",
                     "formattedSize",
                     "id",
                     "lastModified",
@@ -1220,6 +1221,8 @@ mod tests {
                 ]
             );
             assert_eq!(emitted["plan"], expected_plan);
+            assert!(emitted["confidence"]["level"].is_string());
+            assert!(emitted["confidence"]["signals"].is_array());
         }
     }
 

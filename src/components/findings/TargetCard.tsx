@@ -1,6 +1,27 @@
 import { useState } from "react";
-import { Box, Check, Copy, Folder, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw } from "lucide-react";
-import type { ScanTarget } from "../../types/scan";
+import { Box, Check, Copy, Folder, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
+import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
+
+// The level is decided in Rust and arrives as a reason code. The wording is
+// presentation, so it lives here; an unknown code renders as itself rather
+// than disappearing.
+const CONFIDENCE_REASONS: Record<string, string> = {
+  knownArtifact: "Recognized build artifact",
+  projectManifest: "Project manifest found alongside it",
+  lockfile: "Lockfile found, contents are reproducible",
+  declaredDisposable: "Declared disposable by the project's .gitignore",
+  versionControlled: "Tracked by Git, so it is not a build output",
+  versionManagerPath: "Version manager directory, holds globally installed packages",
+  systemPath: "Belongs to the operating system, not to a project",
+  recentlyModified: "Written to in the last day",
+  noProjectContext: "No project found around it",
+};
+
+const CONFIDENCE_PRESENTATION: Record<ConfidenceLevel, { label: string; className: string; icon: typeof ShieldCheck }> = {
+  high: { label: "High confidence", className: "border-forest-800 bg-forest-850 text-sage-300", icon: ShieldCheck },
+  medium: { label: "Medium confidence", className: "border-amber-300/30 bg-forest-850 text-amber-300", icon: TriangleAlert },
+  review: { label: "Review", className: "border-forest-700 bg-forest-850 text-mist-300", icon: ShieldQuestion },
+};
 
 interface TargetCardProps {
   target: ScanTarget;
@@ -9,6 +30,42 @@ interface TargetCardProps {
   onToggle: (targetId: string) => void;
   onRefreshSize: (targetId: string) => void;
   proEnabled: boolean;
+}
+
+function ConfidenceBadge({ target }: { target: ScanTarget }) {
+  const [expanded, setExpanded] = useState(false);
+  const presentation = CONFIDENCE_PRESENTATION[target.confidence.level];
+  const Icon = presentation.icon;
+  const reasons = target.confidence.signals.map((signal) => CONFIDENCE_REASONS[signal] ?? signal);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          setExpanded((open) => !open);
+        }}
+        aria-expanded={expanded}
+        title={reasons.join("\n")}
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium transition-colors hover:border-sage-400/50 ${presentation.className}`}
+      >
+        <Icon size={11} aria-hidden="true" />
+        {presentation.label}
+      </button>
+
+      {expanded && (
+        <ul className="mt-2 w-full space-y-1 border-t border-forest-800 pt-2">
+          {reasons.map((reason) => (
+            <li key={reason} className="flex items-start gap-2 text-[11px] leading-5 text-mist-500">
+              <span aria-hidden="true" className="mt-1.5 size-1 shrink-0 rounded-full bg-mist-500" />
+              {reason}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
 }
 
 export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSize, proEnabled }: TargetCardProps) {
@@ -79,6 +136,7 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
               {target.category}
             </span>
             <span className="text-xs font-medium text-mist-500">{target.name}</span>
+            <ConfidenceBadge target={target} />
             {proLocked && (
               <span className="inline-flex items-center gap-1 rounded-md border border-pro-200/30 bg-pro-surface px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pro-100">
                 <LockKeyhole size={10} aria-hidden="true" /> Pro

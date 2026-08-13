@@ -1,4 +1,4 @@
-import { BrainCircuit, FolderKanban, PackageOpen } from "lucide-react";
+import { Bot, Folders, Sparkles, Trash2 } from "lucide-react";
 import type React from "react";
 import type { AppModule } from "../../types/module";
 
@@ -10,18 +10,22 @@ type ModuleBarProps = {
 
 export function ModuleBar({ activeModule, onChange, proEnabled }: ModuleBarProps) {
   return (
-    <nav className="flex shrink-0 items-center justify-center gap-1 border-t border-forest-800 bg-forest-950 px-3 py-2 sm:gap-2" aria-label="Uncached modules">
+    <nav className="flex shrink-0 items-center justify-center gap-1.5 border-t border-forest-800 bg-forest-950 px-4 py-3 sm:gap-2 sm:px-6" aria-label="Uncached modules">
       <ModuleButton active={activeModule === "purge"} label="Uncached Purge" onClick={() => onChange("purge")}>
-        <PackageOpen size={16} strokeWidth={1.8} aria-hidden="true" />
+        <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
         <span>Reclaim</span>
       </ModuleButton>
       <ModuleButton active={activeModule === "workspace"} label={proEnabled ? "Uncached Workspace" : "Uncached Workspace (Pro)"} onClick={() => onChange("workspace")}>
-        <FolderKanban size={16} strokeWidth={1.8} aria-hidden="true" />
+        <Folders size={16} strokeWidth={1.8} aria-hidden="true" />
         <span>Workspace</span>
       </ModuleButton>
       <ModuleButton active={false} label="Uncached Intelligence (Pro)" disabled>
-        <BrainCircuit size={16} strokeWidth={1.8} aria-hidden="true" />
+        <Bot size={16} strokeWidth={1.8} aria-hidden="true" />
         <span className="hidden sm:inline">Intelligence</span>
+      </ModuleButton>
+      <ModuleButton active={false} label="Uncached Insights (Pro)" disabled>
+        <Sparkles size={16} strokeWidth={1.8} aria-hidden="true" />
+        <span className="hidden sm:inline">Insights</span>
       </ModuleButton>
     </nav>
   );

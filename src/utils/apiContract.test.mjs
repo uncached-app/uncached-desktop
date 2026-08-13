@@ -80,6 +80,7 @@ test("normalizes v1 target DTOs without losing backend identity", () => {
       path: "C:\\workspace\\node_modules",
       category: "NodeModules",
       plan: "free",
+      confidence: { level: "high", signals: ["knownArtifact", "projectManifest"] },
       sizeBytes: 0,
       sizePending: true,
       sizeHasErrors: false,
@@ -104,6 +105,7 @@ test("keeps the plan the native layer sent instead of deriving it", () => {
       path: "C:\\workspace\\node_modules",
       category: "NodeModules",
       plan: "pro",
+      confidence: { level: "review", signals: ["versionManagerPath"] },
       sizeBytes: 1,
       sizePending: false,
       sizeHasErrors: false,
@@ -112,6 +114,55 @@ test("keeps the plan the native layer sent instead of deriving it", () => {
   });
 
   assert.equal(target.target.plan, "pro");
+});
+
+test("rejects a target whose confidence is missing or malformed", () => {
+  const baseTarget = {
+    id: "scan-1-target-1",
+    path: "C:\\workspace\\node_modules",
+    category: "NodeModules",
+    plan: "free",
+    sizeBytes: 0,
+    sizePending: false,
+    sizeHasErrors: false,
+    formattedSize: "0 B",
+  };
+
+  for (const confidence of [
+    undefined,
+    null,
+    "high",
+    { level: "high" },
+    { level: "HIGH", signals: [] },
+    { level: "certain", signals: [] },
+    { level: "high", signals: "knownArtifact" },
+    { level: "high", signals: [""] },
+  ]) {
+    assert.throws(
+      () => normalizeTargetFound({ scanId: "scan-1", target: { ...baseTarget, confidence } }),
+      /target payload shape/,
+    );
+  }
+});
+
+test("keeps the confidence the native layer sent", () => {
+  const target = normalizeTargetFound({
+    scanId: "scan-1",
+    target: {
+      id: "scan-1-target-1",
+      path: "C:\\workspace\\node_modules",
+      category: "NodeModules",
+      plan: "free",
+      confidence: { level: "review", signals: ["versionManagerPath"] },
+      sizeBytes: 1,
+      sizePending: false,
+      sizeHasErrors: false,
+      formattedSize: "1 B",
+    },
+  });
+
+  assert.equal(target.target.confidence.level, "review");
+  assert.deepEqual(target.target.confidence.signals, ["versionManagerPath"]);
 });
 
 test("rejects a target without a usable plan", () => {
@@ -139,6 +190,7 @@ test("rejects malformed target display fields", () => {
     path: "C:\\workspace\\node_modules",
     category: "NodeModules",
     plan: "free",
+    confidence: { level: "high", signals: ["knownArtifact"] },
     sizeBytes: 0,
     sizePending: false,
     sizeHasErrors: false,
@@ -210,7 +262,7 @@ test("rejects malformed target identity payloads before normalization", () => {
       {
         apiVersion: "v1",
         platform: "windows",
-        data: { scanId: "scan-1", target: { id: "", path: "C:\\temp", category: "Cache", plan: "pro", sizeBytes: 1, sizePending: false, sizeHasErrors: false, formattedSize: "1 B" } },
+        data: { scanId: "scan-1", target: { id: "", path: "C:\\temp", category: "Cache", plan: "pro", confidence: { level: "review", signals: [] }, sizeBytes: 1, sizePending: false, sizeHasErrors: false, formattedSize: "1 B" } },
         error: null,
       },
       normalizeTargetFound,

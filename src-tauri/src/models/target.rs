@@ -24,6 +24,9 @@ pub struct ScanTarget {
     pub category: Category,
     /// Stamped by the native layer so the UI never has to decide what is Free.
     pub plan: Plan,
+    /// How sure the core is that this is a disposable artifact, with the
+    /// reasons behind it. Decided in Rust for the same reason as `plan`.
+    pub confidence: uncached_core::Confidence,
     pub size_bytes: u64,
     pub size_has_errors: bool,
     pub size_pending: bool,
@@ -66,6 +69,9 @@ impl ScanTarget {
         let id = simple_hash(&path.to_string_lossy());
         let formatted_size = format_size(size_bytes);
         let plan = plan_for_category(&category);
+        // A target only exists because a provider matched and confirmed its
+        // context, which is exactly what `known_artifact` means.
+        let confidence = uncached_core::assess(uncached_core::collect_signals(&path, true));
 
         Self {
             id,
@@ -73,6 +79,7 @@ impl ScanTarget {
             name,
             category,
             plan,
+            confidence,
             size_bytes,
             size_has_errors,
             size_pending: false,
