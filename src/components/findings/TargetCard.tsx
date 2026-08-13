@@ -17,10 +17,13 @@ const CONFIDENCE_REASONS: Record<string, string> = {
   noProjectContext: "No project found around it",
 };
 
-const CONFIDENCE_PRESENTATION: Record<ConfidenceLevel, { label: string; className: string; icon: typeof ShieldCheck }> = {
-  high: { label: "High confidence", className: "border-forest-800 bg-forest-850 text-sage-300", icon: ShieldCheck },
-  medium: { label: "Medium confidence", className: "border-amber-300/30 bg-forest-850 text-amber-300", icon: TriangleAlert },
-  review: { label: "Review", className: "border-forest-700 bg-forest-850 text-mist-300", icon: ShieldQuestion },
+const CONFIDENCE_PRESENTATION: Record<
+  ConfidenceLevel,
+  { label: string; className: string; textClassName: string; icon: typeof ShieldCheck }
+> = {
+  high: { label: "High confidence", className: "border-forest-800 bg-forest-850 text-sage-300", textClassName: "text-sage-300", icon: ShieldCheck },
+  medium: { label: "Medium confidence", className: "border-amber-300/30 bg-forest-850 text-amber-300", textClassName: "text-amber-300", icon: TriangleAlert },
+  review: { label: "Review", className: "border-forest-700 bg-forest-850 text-mist-300", textClassName: "text-mist-300", icon: ShieldQuestion },
 };
 
 interface TargetCardProps {
@@ -48,12 +51,12 @@ function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; e
         onToggle();
       }}
       aria-expanded={expanded}
-      aria-label={`${presentation.label} for ${target.name}. Show the reasons`}
-      title={confidenceReasons(target).join("\n")}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium transition-colors hover:border-sage-400/50 ${presentation.className}`}
+      // Icon only, so the name has to carry what the shape means.
+      aria-label={`${presentation.label} for ${target.name}. Show what was detected`}
+      title={presentation.label}
+      className={`grid size-6 shrink-0 place-items-center rounded-md border leading-none transition-colors hover:border-sage-400/50 ${presentation.className}`}
     >
-      <Icon size={11} aria-hidden="true" />
-      {presentation.label}
+      <Icon size={13} aria-hidden="true" />
     </button>
   );
 }
@@ -61,15 +64,20 @@ function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; e
 // Rendered across the whole card rather than inside the column holding the
 // badge: the reasons are sentences, and the size column is too narrow for them.
 function ConfidenceReasons({ target }: { target: ScanTarget }) {
+  const presentation = CONFIDENCE_PRESENTATION[target.confidence.level];
+
   return (
-    <ul className="space-y-1 border-t border-forest-800 pt-2.5 sm:col-span-2">
-      {confidenceReasons(target).map((reason) => (
-        <li key={reason} className="flex items-start gap-2 text-[11px] leading-5 text-mist-500">
-          <span aria-hidden="true" className="mt-1.5 size-1 shrink-0 rounded-full bg-mist-500" />
-          {reason}
-        </li>
-      ))}
-    </ul>
+    <div className="border-t border-forest-800 pt-2.5 sm:col-span-2">
+      <p className={`text-[11px] font-medium ${presentation.textClassName}`}>{presentation.label}</p>
+      <ul className="mt-1.5 space-y-1">
+        {confidenceReasons(target).map((reason) => (
+          <li key={reason} className="flex items-start gap-2 text-[11px] leading-5 text-mist-500">
+            <span aria-hidden="true" className="mt-1.5 size-1 shrink-0 rounded-full bg-mist-500" />
+            {reason}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -119,6 +127,8 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
         <div
           role="checkbox"
           aria-checked={selected}
+          aria-disabled={disabled}
+          aria-label={`Select ${target.name}`}
           tabIndex={disabled ? -1 : 0}
           onKeyDown={(e) => {
             if ((e.key === " " || e.key === "Enter") && !disabled) {
