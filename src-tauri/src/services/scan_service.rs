@@ -260,6 +260,7 @@ pub fn target_found_event(
                 "path": target.path.to_string_lossy(),
                 "name": target.name,
                 "category": target.category,
+                "plan": target.plan,
                 "sizeBytes": target.size_bytes,
                 "sizePending": target.size_pending,
                 "sizeHasErrors": target.size_has_errors,
@@ -1182,6 +1183,47 @@ mod tests {
         assert_eq!(value["data"]["target"]["sizeBytes"], 12);
         assert!(value["data"]["target"].get("identity").is_none());
         assert!(value["error"].is_null());
+    }
+
+    // The event payload is hand-built, so a field added to `ScanTarget` does not
+    // reach the wire on its own. This pins the exact key set the UI validator
+    // requires: adding a field to the model without adding it here fails loudly
+    // instead of failing at runtime as a rejected payload.
+    #[test]
+    fn target_found_event_carries_every_field_the_ui_contract_requires() {
+        for (category, expected_plan) in [
+            (Category::NodeModules, "free"),
+            (Category::CargoTarget, "pro"),
+        ] {
+            let target = ScanTarget::new(
+                PathBuf::from(r"C:\workspace\artifact"),
+                category,
+                12,
+                false,
+                None,
+            );
+            let value = serde_json::to_value(target_found_event("scan-1", &target)).unwrap();
+            let emitted = value["data"]["target"].as_object().unwrap();
+            let mut keys = emitted.keys().cloned().collect::<Vec<_>>();
+            keys.sort();
+
+            assert_eq!(
+                keys,
+                [
+                    "category",
+                    "formattedSize",
+                    "id",
+                    "lastModified",
+                    "name",
+                    "path",
+                    "plan",
+                    "sizeBytes",
+                    "sizeHasErrors",
+                    "sizePending",
+                ]
+            );
+            assert_eq!(emitted["plan"], expected_plan);
+        }
     }
 
     #[test]
