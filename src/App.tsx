@@ -3,6 +3,7 @@ import { AppLayout } from "./layouts/AppLayout";
 import { PurgeModule } from "./modules/PurgeModule";
 import { WorkspaceModule } from "./modules/WorkspaceModule";
 import { PurgeFlowProvider } from "./hooks/usePurgeFlow";
+import { WorkspaceSessionProvider } from "./hooks/useWorkspaceSession";
 import { useEntitlement } from "./hooks/useEntitlement";
 import { useIgnoreRuleCount } from "./hooks/useIgnoreRuleCount";
 import { useSettings } from "./hooks/useSettings";
@@ -21,25 +22,27 @@ function App() {
 
   return (
     <PurgeFlowProvider cleanMode={cleanMode}>
-      <AppLayout
-        activeModule={activeModule}
-        onModuleChange={setActiveModule}
-        proEnabled={entitlement.proEnabled}
-        settings={settings}
-        settingsOpen={settingsOpen}
-        onSettingsOpenChange={setSettingsOpen}
-      >
-        {activeModule === "workspace" ? (
-          <WorkspaceModule proEnabled={entitlement.proEnabled} />
-        ) : (
-          <PurgeModule
-            proEnabled={entitlement.proEnabled}
-            cleanMode={cleanMode}
-            lastCleanup={settings.settings?.lastCleanup ?? null}
-            activeIgnoreRules={activeIgnoreRules}
-          />
-        )}
-      </AppLayout>
+      <WorkspaceSessionProvider>
+        <AppLayout
+          activeModule={activeModule}
+          onModuleChange={setActiveModule}
+          proEnabled={entitlement.proEnabled}
+          settings={settings}
+          settingsOpen={settingsOpen}
+          onSettingsOpenChange={setSettingsOpen}
+        >
+          {activeModule === "workspace" ? (
+            <WorkspaceModule proEnabled={entitlement.proEnabled} />
+          ) : (
+            <PurgeModule
+              proEnabled={entitlement.proEnabled}
+              cleanMode={cleanMode}
+              lastCleanup={settings.settings?.lastCleanup ?? null}
+              activeIgnoreRules={activeIgnoreRules}
+            />
+          )}
+        </AppLayout>
+      </WorkspaceSessionProvider>
     </PurgeFlowProvider>
   );
 }

@@ -2,7 +2,6 @@ import { ArrowUpRight, FolderOpen, GitBranch, MoreHorizontal, RefreshCw, Search,
 import { motion } from "motion/react";
 import { useMemo, useState, type ReactNode } from "react";
 import type { Footprint, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
-import { useWorkspaceFootprints } from "../../hooks/useWorkspaceFootprints";
 import { formatBytes } from "../../utils/format";
 
 type WorkspaceMapProps = {
@@ -15,12 +14,13 @@ type WorkspaceMapProps = {
   onOpenProject: (path: string) => void;
   onRevealProject: (path: string) => void;
   proEnabled: boolean;
+  footprints: Record<string, Footprint>;
+  measuring: boolean;
 };
 
 type MapView = "all" | "attention";
 
-export function WorkspaceMap({ index, loading, query, onQueryChange, onScan, onChangeFolder, onOpenProject, onRevealProject, proEnabled }: WorkspaceMapProps) {
-  const { footprints, measuring } = useWorkspaceFootprints(index.projects);
+export function WorkspaceMap({ index, loading, query, onQueryChange, onScan, onChangeFolder, onOpenProject, onRevealProject, proEnabled, footprints, measuring }: WorkspaceMapProps) {
   const [view, setView] = useState<MapView>("all");
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const normalizedQuery = query.trim().toLowerCase();

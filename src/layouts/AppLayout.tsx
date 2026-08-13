@@ -29,7 +29,7 @@ export function AppLayout({
   settings,
   settingsOpen,
   onSettingsOpenChange,
-  align = "center",
+  align = "start",
   children,
 }: AppLayoutProps) {
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
