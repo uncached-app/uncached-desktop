@@ -59,20 +59,33 @@ function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; e
   const Icon = presentation.icon;
 
   return (
-    <button
-      type="button"
-      onClick={(event) => {
-        event.stopPropagation();
-        onToggle();
-      }}
-      aria-expanded={expanded}
-      // Icon only, so the name has to carry what the shape means.
-      aria-label={`${presentation.label} for ${target.name}. Show what was detected`}
-      title={presentation.label}
-      className={`grid size-6 shrink-0 place-items-center rounded-md border leading-none transition-colors hover:border-sage-400/50 ${presentation.className}`}
-    >
-      <Icon size={13} aria-hidden="true" />
-    </button>
+    <div className="group/confidence relative shrink-0">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggle();
+        }}
+        aria-expanded={expanded}
+        // Icon only, so the name has to carry what the shape means.
+        aria-label={`${presentation.label} for ${target.name}. Show what was detected`}
+        className={`grid size-6 place-items-center rounded-md border leading-none transition-colors hover:border-sage-400/50 ${presentation.className}`}
+      >
+        <Icon size={13} aria-hidden="true" />
+      </button>
+
+      {/* Anchored right instead of centered: the badge sits at the card's edge,
+          and a centered tooltip would hang outside it. Focus opens it too, so a
+          keyboard reaches what the mouse gets. */}
+      <span
+        role="tooltip"
+        className={`pointer-events-none absolute -top-8 right-0 z-10 flex scale-95 items-center gap-1.5 whitespace-nowrap rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium opacity-0 shadow-xl transition-all duration-200 group-hover/confidence:scale-100 group-hover/confidence:opacity-100 group-focus-within/confidence:scale-100 group-focus-within/confidence:opacity-100 ${presentation.textClassName}`}
+      >
+        <Icon size={11} aria-hidden="true" />
+        {presentation.label}
+        <span className="absolute -bottom-1 right-2.5 border-x-4 border-t-4 border-x-transparent border-t-forest-800" />
+      </span>
+    </div>
   );
 }
 
