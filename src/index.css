@@ -18,6 +18,12 @@
   --color-pro-100: var(--theme-pro-100);
   --color-pro-200: var(--theme-pro-200);
   --color-pro-surface: var(--theme-pro-surface);
+  --color-confidence-high: var(--theme-confidence-high);
+  --color-confidence-high-surface: var(--theme-confidence-high-surface);
+  --color-confidence-medium: var(--theme-confidence-medium);
+  --color-confidence-medium-surface: var(--theme-confidence-medium-surface);
+  --color-confidence-review: var(--theme-confidence-review);
+  --color-confidence-review-surface: var(--theme-confidence-review-surface);
 }
 
 /* Light is the default theme: these values must paint before the settings
@@ -37,6 +43,14 @@
   --theme-pro-100: #5e3d85;
   --theme-pro-200: #704b9b;
   --theme-pro-surface: #f1eafb;
+  /* Confidence reads as reassurance, caution and neutrality — never alarm.
+     Review is a request to look, not an error, so it stays out of the reds. */
+  --theme-confidence-high: #3d5c2d;
+  --theme-confidence-high-surface: #e6efdf;
+  --theme-confidence-medium: #8a5b16;
+  --theme-confidence-medium-surface: #f7eeda;
+  --theme-confidence-review: #4f5a50;
+  --theme-confidence-review-surface: #e9ede8;
   color-scheme: light;
   font-family: var(--font-sans);
   color: var(--color-mist-100);
@@ -61,6 +75,12 @@
   --theme-pro-100: #eee0ff;
   --theme-pro-200: #d9b8ff;
   --theme-pro-surface: #211b2b;
+  --theme-confidence-high: #d1eca9;
+  --theme-confidence-high-surface: #1b241a;
+  --theme-confidence-medium: #f2cd94;
+  --theme-confidence-medium-surface: #262017;
+  --theme-confidence-review: #c7d0c1;
+  --theme-confidence-review-surface: #1c211d;
   color-scheme: dark;
 }
 

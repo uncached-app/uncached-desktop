@@ -21,9 +21,24 @@ const CONFIDENCE_PRESENTATION: Record<
   ConfidenceLevel,
   { label: string; className: string; textClassName: string; icon: typeof ShieldCheck }
 > = {
-  high: { label: "High confidence", className: "border-forest-800 bg-forest-850 text-sage-300", textClassName: "text-sage-300", icon: ShieldCheck },
-  medium: { label: "Medium confidence", className: "border-amber-300/30 bg-forest-850 text-amber-300", textClassName: "text-amber-300", icon: TriangleAlert },
-  review: { label: "Review", className: "border-forest-700 bg-forest-850 text-mist-300", textClassName: "text-mist-300", icon: ShieldQuestion },
+  high: {
+    label: "High confidence",
+    className: "border-confidence-high/25 bg-confidence-high-surface text-confidence-high",
+    textClassName: "text-confidence-high",
+    icon: ShieldCheck,
+  },
+  medium: {
+    label: "Medium confidence",
+    className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
+    textClassName: "text-confidence-medium",
+    icon: TriangleAlert,
+  },
+  review: {
+    label: "Review",
+    className: "border-confidence-review/25 bg-confidence-review-surface text-confidence-review",
+    textClassName: "text-confidence-review",
+    icon: ShieldQuestion,
+  },
 };
 
 interface TargetCardProps {
@@ -194,8 +209,6 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
       </div>
 
       <div className="flex items-center justify-end gap-3 pl-8 sm:gap-4 sm:pl-0">
-        <ConfidenceBadge target={target} expanded={confidenceOpen} onToggle={() => setConfidenceOpen((open) => !open)} />
-
         <div className="text-right">
           {proLocked ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-pro-100">
@@ -226,6 +239,8 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
             </strong>
           )}
         </div>
+
+        <ConfidenceBadge target={target} expanded={confidenceOpen} onToggle={() => setConfidenceOpen((open) => !open)} />
       </div>
 
       {confidenceOpen && <ConfidenceReasons target={target} />}
