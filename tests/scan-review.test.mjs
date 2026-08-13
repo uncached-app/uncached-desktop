@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canOpenReview, getCleanupReadyTargets, shouldOpenReview, sortByConfidence } from "../src/utils/scanReview.mjs";
+import { canOpenReview, getCleanupReadyTargets, shouldOpenReview, sortByConfidence, sortForListing } from "../src/utils/scanReview.mjs";
 
 const target = (overrides = {}) => ({
   sizePending: false,
@@ -77,5 +77,32 @@ test("a target with no usable level surfaces instead of hiding", () => {
   assert.deepEqual(
     sortByConfidence(targets).map((target) => target.id),
     ["unknown", "garbled", "known"],
+  );
+});
+
+test("on free, targets the plan can clean come first", () => {
+  const targets = [
+    { id: "pro-review", plan: "pro", confidence: { level: "review" } },
+    { id: "free-high", plan: "free", confidence: { level: "high" } },
+    { id: "pro-medium", plan: "pro", confidence: { level: "medium" } },
+    { id: "free-review", plan: "free", confidence: { level: "review" } },
+  ];
+
+  assert.deepEqual(
+    sortForListing(targets, false).map((target) => target.id),
+    ["free-review", "free-high", "pro-review", "pro-medium"],
+  );
+});
+
+test("on pro, confidence alone decides the order", () => {
+  const targets = [
+    { id: "pro-review", plan: "pro", confidence: { level: "review" } },
+    { id: "free-high", plan: "free", confidence: { level: "high" } },
+    { id: "pro-medium", plan: "pro", confidence: { level: "medium" } },
+  ];
+
+  assert.deepEqual(
+    sortForListing(targets, true).map((target) => target.id),
+    ["pro-review", "pro-medium", "free-high"],
   );
 });

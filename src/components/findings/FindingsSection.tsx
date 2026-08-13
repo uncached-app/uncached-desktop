@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { CleanResult, ScanTarget, Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import { formatBytes } from "../../utils/format";
-import { getCleanupReadyTargets, sortByConfidence } from "../../utils/scanReview.mjs";
+import { getCleanupReadyTargets, sortForListing } from "../../utils/scanReview.mjs";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { TargetCard } from "./TargetCard";
 import { openExternalUrl } from "../../utils/externalLink";
@@ -44,8 +44,9 @@ export function FindingsSection({
   const [confirmation, setConfirmation] = useState("");
   const readyTargets = getCleanupReadyTargets(targets);
   // Least certain first: a target the core is unsure about is the one worth
-  // looking at, and it would otherwise sit below dozens of routine ones.
-  const listedTargets = sortByConfidence(targets);
+  // looking at, and it would otherwise sit below dozens of routine ones. On
+  // Free, what the plan can actually clean comes before all of it.
+  const listedTargets = sortForListing(targets, proEnabled);
   const freeTargets = proEnabled ? readyTargets : readyTargets.filter(isFreeTarget);
   const selectedTargets = freeTargets.filter((target) => selectedIds.has(target.id));
   const allSelected = freeTargets.length > 0 && selectedTargets.length === freeTargets.length;
