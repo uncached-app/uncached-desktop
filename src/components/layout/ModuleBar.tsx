@@ -1,23 +1,18 @@
-import { Bot, Folders, Sparkles, Trash2 } from "lucide-react";
+import { Bot, Sparkles, Trash2 } from "lucide-react";
 import type React from "react";
 import type { AppModule } from "../../types/module";
 
 type ModuleBarProps = {
   activeModule: AppModule;
   onChange: (module: AppModule) => void;
-  proEnabled: boolean;
 };
 
-export function ModuleBar({ activeModule, onChange, proEnabled }: ModuleBarProps) {
+export function ModuleBar({ activeModule, onChange }: ModuleBarProps) {
   return (
     <nav className="flex shrink-0 items-center justify-center gap-1.5 border-t border-forest-800 bg-forest-950 px-4 py-3 sm:gap-2 sm:px-6" aria-label="Uncached modules">
-      <ModuleButton active={activeModule === "purge"} label="Uncached Purge" onClick={() => onChange("purge")}>
+      <ModuleButton active={activeModule === "reclaim"} label="Uncached Reclaim" onClick={() => onChange("reclaim")}>
         <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
         <span>Reclaim</span>
-      </ModuleButton>
-      <ModuleButton active={activeModule === "workspace"} label={proEnabled ? "Uncached Workspace" : "Uncached Workspace (Pro)"} onClick={() => onChange("workspace")}>
-        <Folders size={16} strokeWidth={1.8} aria-hidden="true" />
-        <span>Workspace</span>
       </ModuleButton>
       <ModuleButton active={false} label="Uncached Intelligence (Pro)" disabled>
         <Bot size={16} strokeWidth={1.8} aria-hidden="true" />

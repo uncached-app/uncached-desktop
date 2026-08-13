@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { CompletionView } from "../components/completion/CompletionView";
 import { FindingsSection } from "../components/findings/FindingsSection";
 import { ScanView } from "../components/scan/ScanView";
 import { WorkspaceForm } from "../components/workspace/WorkspaceForm";
+import { WorkspaceMap } from "../components/workspace/WorkspaceMap";
+import { ResultsView } from "../components/findings/ResultsView";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import type { CleanMode, LastCleanup } from "../types/settings";
 
@@ -20,6 +23,8 @@ type PurgeModuleProps = {
  */
 export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRules }: PurgeModuleProps) {
   const flow = usePurgeFlow();
+  const [view, setView] = useState<"projects" | "artifacts">("projects");
+  const [query, setQuery] = useState("");
 
   function goBackStep() {
     if (flow.step === 2 && flow.scanning) return;
@@ -54,7 +59,31 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
         cancelScan={flow.cancelScan}
       />
 
-      <FindingsSection
+      <ResultsView
+        step={flow.step}
+        view={view}
+        onViewChange={setView}
+        projectCount={flow.index.index?.projects.length ?? 0}
+        targetCount={flow.targets.length}
+        indexing={flow.index.loading}
+      />
+
+      {view === "projects" && flow.step === 3 && flow.index.index && (
+        <WorkspaceMap
+          index={flow.index.index}
+          loading={flow.index.loading}
+          query={query}
+          onQueryChange={setQuery}
+          onScan={() => flow.index.scanRoots(flow.extraRoots)}
+          onOpenProject={() => {}}
+          proEnabled={proEnabled}
+          footprints={flow.footprints}
+          measuring={flow.measuring}
+          verdicts={flow.verdicts}
+        />
+      )}
+
+      {view === "artifacts" && <FindingsSection
         step={flow.step}
         scanning={flow.scanning}
         cancelling={flow.cancelling}
@@ -69,7 +98,7 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
         cleanupModeSupported={flow.cleanupModeSupported}
         proEnabled={proEnabled}
         activeIgnoreRules={activeIgnoreRules}
-      />
+      />}
 
       <CompletionView
         step={flow.step}

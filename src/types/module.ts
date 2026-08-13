@@ -1,1 +1,1 @@
-export type AppModule = "purge" | "workspace";
+export type AppModule = "reclaim" | "intelligence" | "insights";

@@ -13,7 +13,6 @@ import type { AppModule } from "../types/module";
 type AppLayoutProps = {
   activeModule: AppModule;
   onModuleChange: (module: AppModule) => void;
-  proEnabled: boolean;
   settings: ReturnType<typeof useSettings>;
   settingsOpen: boolean;
   onSettingsOpenChange: (open: boolean) => void;
@@ -25,7 +24,6 @@ type AppLayoutProps = {
 export function AppLayout({
   activeModule,
   onModuleChange,
-  proEnabled,
   settings,
   settingsOpen,
   onSettingsOpenChange,
@@ -42,9 +40,9 @@ export function AppLayout({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden">
           <Screen align={align}>{children}</Screen>
-          {!isMac && activeModule === "purge" && <Footer onOpenSettings={() => onSettingsOpenChange(true)} />}
+          {!isMac && activeModule === "reclaim" && <Footer onOpenSettings={() => onSettingsOpenChange(true)} />}
         </div>
-        <ModuleBar activeModule={activeModule} onChange={onModuleChange} proEnabled={proEnabled} />
+        <ModuleBar activeModule={activeModule} onChange={onModuleChange} />
       </div>
       <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} {...settings} />
     </main>

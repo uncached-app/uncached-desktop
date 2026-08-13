@@ -49,7 +49,7 @@ export function Titlebar({ step, activeModule, onOpenSettings }: { step: Step; a
         <img src="/brand/UNCACHED-LOGO-LIGHT-NOBG.svg" alt="Uncached" className="theme-logo-light h-5 w-auto object-contain" />
         <img src="/brand/UNCACHED-LOGO-DARK-NOBG.svg" alt="" className="theme-logo-dark h-5 w-auto object-contain" />
       </div>}
-      {activeModule === "purge" ? <nav aria-label="Progress pipeline" className={`hidden items-center gap-1.5 text-xs sm:flex ${isMac ? "absolute left-1/2 order-2 -translate-x-1/2" : "order-1"}`} data-tauri-drag-region="false">
+      {activeModule === "reclaim" ? <nav aria-label="Progress pipeline" className={`hidden items-center gap-1.5 text-xs sm:flex ${isMac ? "absolute left-1/2 order-2 -translate-x-1/2" : "order-1"}`} data-tauri-drag-region="false">
         {STEPS.map((label, index) => {
           const stepNumber = (index + 1) as Step;
           const isCurrent = step === stepNumber;

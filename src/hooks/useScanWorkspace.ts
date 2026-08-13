@@ -43,7 +43,7 @@ import {
 } from "../utils/apiContract";
 import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
-export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
+export function useScanWorkspace(cleanMode: CleanMode = "Trash", indexRoots: (roots: string[]) => void = () => {}) {
   const [extraRoots, setExtraRoots] = useState<string[]>([]);
   const [targets, setTargets] = useState<ScanTarget[]>([]);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -269,6 +269,9 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     event.preventDefault();
     const roots = extraRoots;
     if (roots.length === 0 || scanning) return;
+    // One action, two readings of the same folders: the artifacts inside them
+    // and the projects that own those artifacts.
+    void indexRoots(roots);
 
     setError(null);
     setTargets([]);

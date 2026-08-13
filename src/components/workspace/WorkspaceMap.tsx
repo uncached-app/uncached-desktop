@@ -11,9 +11,7 @@ type WorkspaceMapProps = {
   query: string;
   onQueryChange: (query: string) => void;
   onScan: () => void;
-  onChangeFolder: () => void;
   onOpenProject: (path: string) => void;
-  onRevealProject: (path: string) => void;
   proEnabled: boolean;
   footprints: Record<string, Footprint>;
   measuring: boolean;
@@ -31,7 +29,6 @@ export function WorkspaceMap({
   query,
   onQueryChange,
   onScan,
-  onChangeFolder,
   onOpenProject,
   proEnabled,
   footprints,
@@ -120,13 +117,6 @@ export function WorkspaceMap({
             className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-forest-800 px-3.5 text-xs font-medium text-mist-300 transition-colors hover:bg-forest-850 hover:text-sage-300 disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {loading ? "Reading..." : "Refresh"}
-          </button>
-          <button
-            type="button"
-            onClick={onChangeFolder}
-            className="inline-flex min-h-10 items-center rounded-lg bg-forest-800 px-3.5 text-xs font-medium text-mist-300 transition-colors hover:bg-forest-850 hover:text-sage-300"
-          >
-            Change folders
           </button>
         </div>
       </header>
