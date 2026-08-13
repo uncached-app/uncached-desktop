@@ -26,6 +26,12 @@ pub struct AppSettings {
     pub detect_next_cache: bool,
     pub detect_turbo_cache: bool,
     pub default_clean_mode: CleanMode,
+    /// Paths the user has told us to leave alone, one rule per line, in
+    /// `.gitignore` syntax. Stored as the text they typed rather than as
+    /// compiled rules: the list is theirs to read and edit, and a line that
+    /// fails to compile has to survive a round trip so it can be fixed.
+    #[serde(default)]
+    pub ignore_rules: String,
     pub appearance: Appearance,
     #[serde(default)]
     pub last_cleanup: Option<LastCleanup>,
@@ -58,6 +64,7 @@ impl Default for AppSettings {
             detect_next_cache: true,
             detect_turbo_cache: true,
             default_clean_mode: CleanMode::Trash,
+            ignore_rules: String::new(),
             appearance: Appearance::Light,
             last_cleanup: None,
         }
@@ -107,6 +114,45 @@ pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
 pub async fn update_settings(app: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     persist_settings(&app, &settings)?;
     Ok(settings)
+}
+
+/// One ignore rule that failed to compile, on its way to the screen that
+/// accepted it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IgnoreRuleProblem {
+    pub line: usize,
+    pub text: String,
+    pub reason: String,
+}
+
+/// What the user's rule list currently amounts to.
+///
+/// The count exists so the interface can say how many rules are in force. A
+/// rule that silently removes things from a scan is indistinguishable from a
+/// bug three months later, when the report is "the app stopped finding my
+/// project".
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IgnoreRuleReview {
+    pub active: usize,
+    pub problems: Vec<IgnoreRuleProblem>,
+}
+
+#[tauri::command]
+pub async fn review_ignore_rules(text: String) -> IgnoreRuleReview {
+    let (rules, problems) = crate::scanner::compile_ignore_rules(&text);
+    IgnoreRuleReview {
+        active: rules.len(),
+        problems: problems
+            .into_iter()
+            .map(|problem| IgnoreRuleProblem {
+                line: problem.line,
+                text: problem.text,
+                reason: problem.reason,
+            })
+            .collect(),
+    }
 }
 
 #[tauri::command]

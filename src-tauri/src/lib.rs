@@ -13,7 +13,7 @@ use commands::clean::clean_target;
 use commands::cleanup_capabilities;
 use commands::entitlements::get_entitlement_status;
 use commands::scan::{retry_target_size, start_scan};
-use commands::settings::{get_app_info, get_settings, update_settings};
+use commands::settings::{get_app_info, get_settings, review_ignore_rules, update_settings};
 use commands::workspace::scan_workspace_index;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,6 +32,7 @@ pub fn run() {
             get_settings,
             update_settings,
             get_app_info,
+            review_ignore_rules,
             scan_workspace_index,
         ])
         .run(tauri::generate_context!())

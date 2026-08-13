@@ -678,6 +678,7 @@ impl ScanService {
                     discover_home_locations(
                         &worker_scan_id,
                         &home,
+                        &settings.ignore_rules,
                         &discovery_event_sink,
                         &stats,
                         &cancel_token,
@@ -1157,6 +1158,7 @@ fn emit_finished(
 fn discover_home_locations(
     scan_id: &str,
     home: &Path,
+    ignore_rules: &str,
     event_sink: &EventSink,
     stats: &Arc<Mutex<ScanStats>>,
     cancel_token: &Arc<AtomicBool>,
@@ -1166,9 +1168,13 @@ fn discover_home_locations(
     if discoveries.is_empty() {
         return;
     }
-    let providers = Arc::new(uncached_core::KnownLocationScanner::provider_set(
-        home.to_path_buf(),
-    ));
+    // The same rules that prune the walk apply here. A catalogued location the
+    // user excluded is not reported at all: offering it and then refusing to
+    // clean it would be the worst of both.
+    let providers = Arc::new(
+        uncached_core::KnownLocationScanner::provider_set(home.to_path_buf())
+            .with_ignore_rules(crate::scanner::compile_ignore_rules(ignore_rules).0),
+    );
     crate::logging::info(
         "scan",
         &format!(
@@ -1181,6 +1187,9 @@ fn discover_home_locations(
     for discovery in &discoveries {
         if cancel_token.load(Ordering::Acquire) {
             return;
+        }
+        if providers.excludes(&discovery.path) {
+            continue;
         }
         let target = ScanTarget::from_discovery(scan_id, discovery);
 
@@ -1541,6 +1550,7 @@ mod tests {
         super::discover_home_locations(
             &scan_id,
             &home,
+            "",
             &event_sink,
             &Arc::new(Mutex::new(ScanStats::default())),
             &Arc::new(AtomicBool::new(false)),
@@ -1578,6 +1588,62 @@ mod tests {
 
         drop(events);
         ScanService::remove_target(&target_id).unwrap();
+        registry().lock().unwrap().sessions.remove(&scan_id);
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    /// An excluded location is not reported at all, rather than reported and
+    /// then refused at cleanup. A finding the user cannot act on is worse than
+    /// no finding: it reads as the app being broken.
+    #[test]
+    fn an_ignore_rule_keeps_a_discovery_off_the_list() {
+        let home =
+            std::env::temp_dir().join(format!("uncached-discovery-ignored-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&home);
+        let location = uncached_core::known_locations()
+            .first()
+            .expect("the catalogue should not be empty");
+        std::fs::create_dir_all(location.resolve(&home)).unwrap();
+
+        let scan_id = format!("discovery-ignored-{}", std::process::id());
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), super::ScanSession::new());
+
+        let emitted: Arc<Mutex<Vec<serde_json::Value>>> = Arc::new(Mutex::new(Vec::new()));
+        let sink_emitted = Arc::clone(&emitted);
+        let event_sink: EventSink = Arc::new(move |event, payload| {
+            if event == "scan:target_found" {
+                sink_emitted.lock().unwrap().push(payload);
+            }
+        });
+        let sizing = SizingController::for_test(
+            1,
+            Arc::new(|_| DirSize {
+                bytes: 0,
+                errors: 0,
+            }),
+            Arc::clone(&event_sink),
+        );
+
+        super::discover_home_locations(
+            &scan_id,
+            &home,
+            &location.resolve(&home).to_string_lossy(),
+            &event_sink,
+            &Arc::new(Mutex::new(ScanStats::default())),
+            &Arc::new(AtomicBool::new(false)),
+            &sizing.submitter(),
+        );
+        sizing.finish();
+
+        assert!(
+            emitted.lock().unwrap().is_empty(),
+            "an excluded location must not be reported"
+        );
+
         registry().lock().unwrap().sessions.remove(&scan_id);
         let _ = std::fs::remove_dir_all(&home);
     }

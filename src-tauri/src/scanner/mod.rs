@@ -27,7 +27,21 @@ pub fn get_default_providers(
     providers.add_scanner(uncached_core::SwiftBuildScanner);
     providers.add_scanner(uncached_core::DotNetObjScanner);
     providers.add_scanner(uncached_core::DartToolScanner);
-    providers
+    providers.with_ignore_rules(compile_ignore_rules(&settings.ignore_rules).0)
+}
+
+/// Compiles the user's rules, returning the lines that failed alongside them.
+///
+/// A broken line is never a reason to drop the whole list: the rules that do
+/// compile still protect what they name. Callers that can show the failures —
+/// the settings screen — take the second half; the scan takes the first.
+pub fn compile_ignore_rules(
+    text: &str,
+) -> (
+    uncached_core::IgnoreRules,
+    Vec<uncached_core::IgnoreRuleError>,
+) {
+    uncached_core::IgnoreRules::compile(text, uncached_core::home_directory().as_deref())
 }
 
 #[cfg(test)]

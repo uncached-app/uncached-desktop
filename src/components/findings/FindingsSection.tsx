@@ -22,6 +22,8 @@ interface FindingsSectionProps {
   refreshTargetSize: (targetId: string) => void;
   cleanupModeSupported: boolean;
   proEnabled: boolean;
+  /** How many of the user's ignore rules were in force when this list was built. */
+  activeIgnoreRules: number;
   onBack: () => void;
 }
 
@@ -37,6 +39,7 @@ export function FindingsSection({
   onBack,
   cleanupModeSupported,
   proEnabled,
+  activeIgnoreRules,
 }: FindingsSectionProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
@@ -146,6 +149,15 @@ export function FindingsSection({
                  ? "Selected targets are deleted permanently. Not recoverable."
                  : "Selected targets move to the Recycle Bin. Restorable from there."}
             </p>
+            {/* Rules remove things from this list without leaving a trace, and
+                an absence has no tooltip. Left unsaid, the report months later
+                is "the app stopped finding my project" — so the list says how
+                many rules were in force when it was built. */}
+            {activeIgnoreRules > 0 && (
+              <p className="mt-1.5 text-xs text-mist-500">
+                {activeIgnoreRules === 1 ? "1 ignore rule is" : `${activeIgnoreRules} ignore rules are`} in force. Anything they cover was skipped.
+              </p>
+            )}
             <p
               className={`mt-1.5 text-xs font-medium transition-all duration-200 ${
                 selectedTargets.length > 0 ? "text-sage-300" : "invisible select-none"

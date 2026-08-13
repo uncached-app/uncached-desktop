@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
-import type { AppSettings, Appearance } from "../../types/settings";
+import type { AppSettings, Appearance, IgnoreRuleReview } from "../../types/settings";
 import { openExternalUrl } from "../../utils/externalLink";
 
 type SettingsPanelProps = {
@@ -14,7 +14,7 @@ type SettingsPanelProps = {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
 };
 
-const sections = ["General", "Scanning", "Deletion", "Appearance", "About"] as const;
+const sections = ["General", "Scanning", "Ignore rules", "Deletion", "Appearance", "About"] as const;
 type Section = (typeof sections)[number];
 
 export function SettingsPanel({ open, onClose, settings, loading, saving, error, updateSettings }: SettingsPanelProps) {
@@ -51,7 +51,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
           <header className="flex shrink-0 items-center justify-between border-b border-forest-800 px-5 py-4 sm:px-7">
             <div className="flex items-center gap-3 sm:hidden"><Settings size={16} className="text-sage-300" /><span className="text-sm font-medium text-mist-100">Settings</span></div>
             <h2 className="hidden text-lg font-semibold text-mist-100 sm:block">{section}</h2>
-            <select value={section} onChange={(event) => setSection(event.target.value as Section)} className="rounded-lg bg-forest-800 px-2 py-1.5 text-sm text-mist-200 sm:hidden"><option>General</option><option>Scanning</option><option>Deletion</option><option>Appearance</option><option>About</option></select>
+            <select value={section} onChange={(event) => setSection(event.target.value as Section)} className="rounded-lg bg-forest-800 px-2 py-1.5 text-sm text-mist-200 sm:hidden">{sections.map((item) => <option key={item}>{item}</option>)}</select>
             <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-lg bg-forest-800 text-mist-500 hover:text-mist-100" aria-label="Close settings"><X size={17} /></button>
           </header>
 
@@ -70,6 +70,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
 function SettingsContent({ section, settings, updateSettings, onRequestPermanentDelete }: { section: Section; settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"]; onRequestPermanentDelete: () => void }) {
   if (section === "General") return <SettingsGroup><SettingToggle label="Open at startup" checked={settings.openAtStartup} onChange={(value) => updateSettings({ openAtStartup: value })} /><SettingToggle label="Remember last workspace" checked={settings.rememberLastWorkspace} onChange={(value) => updateSettings({ rememberLastWorkspace: value })} /><SettingToggle label="Check for updates" checked={settings.checkForUpdates} onChange={(value) => updateSettings({ checkForUpdates: value })} /></SettingsGroup>;
   if (section === "Scanning") return <SettingsGroup><SettingToggle label="Detect node_modules" checked={settings.detectNodeModules} onChange={(value) => updateSettings({ detectNodeModules: value })} /><SettingToggle label="Detect Cargo target" checked={settings.detectCargoTarget} onChange={(value) => updateSettings({ detectCargoTarget: value })} /><SettingToggle label="Detect Gradle cache" checked={settings.detectGradleCache} onChange={(value) => updateSettings({ detectGradleCache: value })} /><SettingToggle label="Detect Next.js cache" checked={settings.detectNextCache} onChange={(value) => updateSettings({ detectNextCache: value })} /><SettingToggle label="Detect Turbo cache" checked={settings.detectTurboCache} onChange={(value) => updateSettings({ detectTurboCache: value })} /></SettingsGroup>;
+  if (section === "Ignore rules") return <IgnoreRulesContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Deletion") return <SettingsGroup><SettingRadio label="Move to Recycle Bin" selected={settings.defaultCleanMode === "Trash"} onClick={() => updateSettings({ defaultCleanMode: "Trash" })} /><SettingRadio label="Permanently delete" selected={settings.defaultCleanMode === "Permanent"} onClick={onRequestPermanentDelete} /></SettingsGroup>;
   return <SettingsGroup><SettingRadio icon={<Moon size={16} />} label="Dark" selected={settings.appearance === "dark"} onClick={() => updateSettings({ appearance: "dark" as Appearance })} /><SettingRadio icon={<Sun size={16} />} label="Light" selected={settings.appearance === "light"} onClick={() => updateSettings({ appearance: "light" as Appearance })} /><SettingRadio icon={<Monitor size={16} />} label="System" selected={settings.appearance === "system"} onClick={() => updateSettings({ appearance: "system" as Appearance })} /></SettingsGroup>;
 }
@@ -100,6 +101,79 @@ function AboutContent({ appInfo }: { appInfo: { name: string; version: string; w
         >
           End User License Agreement (EULA)
         </a>
+      </div>
+    </div>
+  );
+}
+
+const IGNORE_RULES_PLACEHOLDER = `node_modules
+~/Library/Caches/Homebrew
+/Users/me/work/client-project
+!/Users/me/work/client-project/scratch`;
+
+/**
+ * The one screen where the user overrules the product.
+ *
+ * Edits are held locally and saved on blur rather than on every keystroke:
+ * a half-typed path is a rule that matches nothing, and persisting it would
+ * make the scan behave differently mid-sentence.
+ *
+ * Rules are validated in Rust as they are typed, because the alternative —
+ * dropping a line that failed to compile — leaves the user believing something
+ * is protected when it is not.
+ */
+function IgnoreRulesContent({ settings, updateSettings }: { settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"] }) {
+  const [draft, setDraft] = useState(settings.ignoreRules);
+  const [review, setReview] = useState<IgnoreRuleReview | null>(null);
+
+  useEffect(() => { setDraft(settings.ignoreRules); }, [settings.ignoreRules]);
+
+  useEffect(() => {
+    let current = true;
+    void invoke<IgnoreRuleReview>("review_ignore_rules", { text: draft })
+      .then((result) => { if (current) setReview(result); })
+      .catch(() => { if (current) setReview(null); });
+    return () => { current = false; };
+  }, [draft]);
+
+  const problemLines = new Set((review?.problems ?? []).map((problem) => problem.line));
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <p className="text-sm leading-6 text-mist-500">
+        Paths listed here are never scanned and never deleted, whatever the app finds there.
+        One rule per line, in <span className="font-mono text-mist-300">.gitignore</span> syntax —
+        a bare name matches anywhere, a full path matches that path and everything under it,
+        and <span className="font-mono text-mist-300">!</span> makes an exception.
+      </p>
+
+      <textarea
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => { if (draft !== settings.ignoreRules) void updateSettings({ ignoreRules: draft }); }}
+        spellCheck={false}
+        placeholder={IGNORE_RULES_PLACEHOLDER}
+        aria-label="Ignore rules"
+        aria-invalid={problemLines.size > 0}
+        className="mt-5 min-h-44 flex-1 resize-none rounded-2xl border border-forest-800 bg-forest-950 p-4 font-mono text-xs leading-6 text-mist-100 placeholder:text-mist-500/60 focus:border-sage-400 focus:outline-none"
+      />
+
+      <div className="mt-4 shrink-0 space-y-2" aria-live="polite">
+        {review && review.problems.length > 0 && review.problems.map((problem) => (
+          <p key={problem.line} className="rounded-xl bg-confidence-review-surface px-4 py-2.5 text-xs leading-5 text-confidence-review">
+            {/* Naming the line and quoting it back is what makes this fixable:
+                the rule stays in the list, it just does not protect anything yet. */}
+            <span className="font-semibold">Line {problem.line}</span> could not be read, so it protects nothing:{" "}
+            <span className="font-mono">{problem.text.trim()}</span> — {problem.reason}
+          </p>
+        ))}
+        {review && (
+          <p className="text-xs text-mist-500">
+            {review.active === 0
+              ? "No rules yet. Everything the scan finds is offered."
+              : `${review.active} ${review.active === 1 ? "rule is" : "rules are"} in force.`}
+          </p>
+        )}
       </div>
     </div>
   );

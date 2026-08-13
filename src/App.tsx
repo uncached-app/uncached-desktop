@@ -13,6 +13,7 @@ import { WorkspaceModule } from "./components/workspace/WorkspaceModule";
 import { useScanWorkspace } from "./hooks/useScanWorkspace";
 import { useEntitlement } from "./hooks/useEntitlement";
 import { useSettings } from "./hooks/useSettings";
+import { useIgnoreRuleCount } from "./hooks/useIgnoreRuleCount";
 import { useTheme } from "./hooks/useTheme";
 import type { AppModule } from "./types/module";
 
@@ -22,6 +23,10 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeModule, setActiveModule] = useState<AppModule>("purge");
   const cleanMode = settings.settings?.defaultCleanMode ?? "Trash";
+  // Counted in Rust rather than by splitting lines here: comments and blanks
+  // are not rules, and the list that decides what a scan skips is the only one
+  // allowed to say how long it is.
+  const activeIgnoreRules = useIgnoreRuleCount(settings.settings?.ignoreRules ?? "");
   const entitlement = useEntitlement();
   const {
     rootPath,
@@ -118,6 +123,7 @@ function App() {
             refreshTargetSize={refreshTargetSize}
             cleanupModeSupported={cleanupModeSupported}
             proEnabled={entitlement.proEnabled}
+            activeIgnoreRules={activeIgnoreRules}
           />
 
           <CompletionView
