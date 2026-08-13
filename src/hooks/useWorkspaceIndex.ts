@@ -30,15 +30,14 @@ export function useWorkspaceIndex() {
     setRoots(isTauri() ? await invoke<string[]>("normalize_workspace_roots", { paths: next }) : next);
   }
 
-  /// Picks a folder and folds it in together with whatever is in the field.
-  async function pickRoot(pending: string) {
+  async function pickRoot() {
     if (!isTauri()) {
       setError("Tauri runtime unavailable. Start the app with `pnpm dev`.");
       return;
     }
     try {
       const selected = await open({ directory: true, multiple: false });
-      if (typeof selected === "string") await addRoots([pending, selected]);
+      if (typeof selected === "string") await addRoots([selected]);
     } catch (pickerError) {
       setError(String(pickerError));
     }
@@ -46,10 +45,6 @@ export function useWorkspaceIndex() {
 
   function removeRoot(path: string) {
     setRoots((current) => current.filter((root) => root !== path));
-  }
-
-  async function commitDraft(pending: string) {
-    await addRoots([pending]);
   }
 
   function clearRoots() {
@@ -78,5 +73,5 @@ export function useWorkspaceIndex() {
     }
   }
 
-  return { roots, pickRoot, commitDraft, removeRoot, clearRoots, index, loading, error, scanRoots };
+  return { roots, pickRoot, removeRoot, clearRoots, index, loading, error, scanRoots };
 }

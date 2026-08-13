@@ -8,12 +8,9 @@ import { formatBytes } from "../../utils/format";
 
 interface WorkspaceFormProps {
   step: Step;
-  rootPath: string;
-  setRootPath: (path: string) => void;
   extraRoots: string[];
   removeRoot: (path: string) => void;
   pickRoot: () => void;
-  commitDraft: () => void;
   proEnabled: boolean;
   startScan: (event: FormEvent) => void;
   cancelScan: () => void;
@@ -28,12 +25,9 @@ interface WorkspaceFormProps {
 
 export function WorkspaceForm({
   step,
-  rootPath,
-  setRootPath,
   extraRoots,
   removeRoot,
   pickRoot,
-  commitDraft,
   proEnabled,
   startScan,
   cancelScan,
@@ -77,10 +71,7 @@ export function WorkspaceForm({
         <form onSubmit={startScan} className="mt-6 w-full max-w-2xl">
           <RootPicker
             roots={extraRoots}
-            draft={rootPath}
-            onDraftChange={setRootPath}
             onPick={pickRoot}
-            onCommitDraft={commitDraft}
             onRemove={removeRoot}
             proEnabled={proEnabled}
           />
@@ -88,7 +79,7 @@ export function WorkspaceForm({
           <div className="mt-4 flex items-center gap-3">
             <button
               type="submit"
-              disabled={!listenersReady || scanning || (!rootPath.trim() && extraRoots.length === 0)}
+              disabled={!listenersReady || scanning || extraRoots.length === 0}
               className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 transition-colors hover:bg-sage-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {scanning ? (

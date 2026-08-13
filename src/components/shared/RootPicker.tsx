@@ -3,12 +3,7 @@ import { ProLockButton } from "./ProLockButton";
 
 type RootPickerProps = {
   roots: string[];
-  draft: string;
-  onDraftChange: (value: string) => void;
-  /** Opens the folder picker and folds the result in with the draft. */
   onPick: () => void;
-  /** Commits whatever is typed in the field. */
-  onCommitDraft: () => void;
   onRemove: (root: string) => void;
   proEnabled: boolean;
   containerClassName?: string;
@@ -23,10 +18,7 @@ function folderName(path: string): string {
 
 export function RootPicker({
   roots,
-  draft,
-  onDraftChange,
   onPick,
-  onCommitDraft,
   onRemove,
   proEnabled,
   containerClassName = "rounded-2xl p-2",
@@ -35,8 +27,8 @@ export function RootPicker({
   const chosen = roots.length > 0;
 
   return (
-    <div className={`group flex flex-wrap items-center gap-2 border border-forest-800 bg-forest-900 transition-colors focus-within:border-sage-400 focus-within:ring-2 focus-within:ring-sage-400/20 ${containerClassName}`}>
-      <FolderOpen size={18} className="ml-2 shrink-0 text-mist-500 transition-colors group-focus-within:text-sage-400" strokeWidth={1.8} aria-hidden="true" />
+    <div className={`group flex flex-wrap items-center gap-2 border border-forest-800 bg-forest-900 transition-colors ${containerClassName}`}>
+      <FolderOpen size={18} className="ml-2 shrink-0 text-mist-500" strokeWidth={1.8} aria-hidden="true" />
 
       {roots.map((root) => (
         <span key={root} className="group/pill relative inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-forest-800 py-1.5 pl-2.5 pr-1.5">
@@ -50,15 +42,8 @@ export function RootPicker({
         </span>
       ))}
 
-      <input
-        value={draft}
-        onChange={(event) => onDraftChange(event.currentTarget.value)}
-        onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); onCommitDraft(); } }}
-        placeholder={chosen ? "Paste another path..." : "Select or paste folder path..."}
-        aria-label="Workspace folder path"
-        className="min-w-32 flex-1 bg-transparent px-1 py-2 font-mono text-sm text-mist-100 outline-none placeholder:font-sans placeholder:text-mist-500/50"
-        spellCheck={false}
-      />
+      {!chosen && <span className="flex-1 px-1 py-2 text-left text-sm text-mist-500/50">No folder selected yet</span>}
+      {chosen && <span className="flex-1" />}
 
       {/* Browse and + open the same picker, so only one of them is ever shown. */}
       {chosen ? (

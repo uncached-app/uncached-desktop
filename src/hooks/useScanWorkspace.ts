@@ -44,7 +44,6 @@ import {
 import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
 
 export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
-  const [rootPath, setRootPath] = useState("");
   const [extraRoots, setExtraRoots] = useState<string[]>([]);
   const [targets, setTargets] = useState<ScanTarget[]>([]);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -268,9 +267,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
 
   async function startScan(event: FormEvent) {
     event.preventDefault();
-    // The field counts as a root, so one folder needs no list.
-    const pending = rootPath.trim();
-    const roots = pending && !extraRoots.includes(pending) ? [...extraRoots, pending] : extraRoots;
+    const roots = extraRoots;
     if (roots.length === 0 || scanning) return;
 
     setError(null);
@@ -324,15 +321,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
 
   async function pickRoot() {
     const selected = await pickFolderPath();
-    if (!selected) return;
-    await addRoots([rootPath, selected]);
-    setRootPath("");
-  }
-
-  async function commitDraft() {
-    if (!rootPath.trim()) return;
-    await addRoots([rootPath]);
-    setRootPath("");
+    if (selected) await addRoots([selected]);
   }
 
   async function cancelScan() {
@@ -465,12 +454,9 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   const cleanupModeSupported = canUseCleanupMode(capabilities, cleanMode);
 
   return {
-    rootPath,
     extraRoots,
     removeRoot,
     pickRoot,
-    commitDraft,
-    setRootPath,
     targets,
     progress,
     status,

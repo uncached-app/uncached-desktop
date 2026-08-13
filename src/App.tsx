@@ -29,12 +29,9 @@ function App() {
   const activeIgnoreRules = useIgnoreRuleCount(settings.settings?.ignoreRules ?? "");
   const entitlement = useEntitlement();
   const {
-    rootPath,
     extraRoots,
     removeRoot,
     pickRoot,
-    commitDraft,
-    setRootPath,
     targets,
     progress,
     status,
@@ -84,17 +81,14 @@ function App() {
         <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center w-full overflow-hidden">
             {activeModule === "workspace" ? (
-              <WorkspaceModule proEnabled={entitlement.proEnabled} rootPath={rootPath} setRootPath={setRootPath} />
+              <WorkspaceModule proEnabled={entitlement.proEnabled} />
             ) : (
               <>
           <WorkspaceForm
             step={step}
-            rootPath={rootPath}
-            setRootPath={setRootPath}
             extraRoots={extraRoots}
             removeRoot={removeRoot}
             pickRoot={pickRoot}
-            commitDraft={commitDraft}
             proEnabled={entitlement.proEnabled}
             startScan={startScan}
             cancelScan={cancelScan}
