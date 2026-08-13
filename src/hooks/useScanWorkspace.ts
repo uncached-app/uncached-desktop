@@ -254,11 +254,12 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     }
   }, [scanFinished, scanTargetCount, step, targets]);
 
-  function addRoot(path: string) {
-    const trimmed = path.trim();
-    if (!trimmed) return;
-    setExtraRoots((current) => (current.includes(trimmed) ? current : [...current, trimmed]));
-    setRootPath("");
+  /// Folds the given paths into the list. Rust owns the collapse, so the list
+  /// shows exactly what a scan would read.
+  async function addRoots(paths: string[]) {
+    const next = [...extraRoots, ...paths.map((path) => path.trim()).filter(Boolean)];
+    if (next.length === extraRoots.length) return;
+    setExtraRoots(isTauri() ? await invoke<string[]>("normalize_workspace_roots", { paths: next }) : next);
   }
 
   function removeRoot(path: string) {
@@ -328,7 +329,9 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
 
   async function pickAdditionalRoot() {
     const selected = await pickFolderPath();
-    if (selected) addRoot(selected);
+    if (!selected) return;
+    await addRoots([rootPath, selected]);
+    setRootPath("");
   }
 
   async function cancelScan() {
@@ -463,7 +466,6 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   return {
     rootPath,
     extraRoots,
-    addRoot,
     removeRoot,
     pickAdditionalRoot,
     setRootPath,

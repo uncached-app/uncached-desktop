@@ -52,6 +52,19 @@ pub struct WorkspaceIndex {
     pub truncated: bool,
 }
 
+/// Canonicalises and collapses roots so the interface lists exactly what will be scanned.
+#[tauri::command]
+pub async fn normalize_workspace_roots(paths: Vec<String>) -> Vec<String> {
+    let canonical = paths
+        .into_iter()
+        .map(|path| Path::new(&path).canonicalize().unwrap_or(path.into()))
+        .collect();
+    crate::scanner::outermost_roots(canonical)
+        .into_iter()
+        .map(|root| root.to_string_lossy().into_owned())
+        .collect()
+}
+
 #[tauri::command]
 pub async fn scan_workspace_index(paths: Vec<String>) -> Result<WorkspaceIndex, String> {
     let limit = crate::commands::entitlements::root_limit();

@@ -46,7 +46,7 @@ type WorkspaceEntryProps = {
   setRootPath: (path: string) => void;
   pickFolder: () => void;
   roots: string[];
-  pickAdditionalRoot: () => void;
+  pickAdditionalRoot: (pending: string) => Promise<void>;
   removeRoot: (path: string) => void;
   loading: boolean;
   error: string | null;
@@ -78,7 +78,7 @@ function WorkspaceEntry({ proEnabled, rootPath, setRootPath, pickFolder, roots, 
             label="Add another workspace"
             reason="Mapping several workspaces at once is part of Pro"
             locked={!proEnabled}
-            onClick={pickAdditionalRoot}
+            onClick={() => void pickAdditionalRoot(pending).then(() => setRootPath(""))}
             className="size-9 rounded-lg"
           >
             <Plus size={15} />

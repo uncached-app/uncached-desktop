@@ -21,24 +21,24 @@ export function useWorkspaceIndex() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function addRoot(path: string) {
-    const trimmed = path.trim();
-    if (!trimmed) {
-      setError("Select or paste a folder path first.");
-      return;
-    }
+  /// Folds the given paths into the list. Rust owns the collapse, so the list
+  /// shows exactly what a scan would read.
+  async function addRoots(paths: string[]) {
+    const next = [...roots, ...paths.map((path) => path.trim()).filter(Boolean)];
+    if (next.length === roots.length) return;
     setError(null);
-    setRoots((current) => (current.includes(trimmed) ? current : [...current, trimmed]));
+    setRoots(isTauri() ? await invoke<string[]>("normalize_workspace_roots", { paths: next }) : next);
   }
 
-  async function pickAdditionalRoot() {
+  /// Picks a folder and folds it in together with whatever is in the field.
+  async function pickAdditionalRoot(pending: string) {
     if (!isTauri()) {
       setError("Tauri runtime unavailable. Start the app with `pnpm dev`.");
       return;
     }
     try {
       const selected = await open({ directory: true, multiple: false });
-      if (typeof selected === "string") addRoot(selected);
+      if (typeof selected === "string") await addRoots([pending, selected]);
     } catch (pickerError) {
       setError(String(pickerError));
     }
@@ -74,5 +74,5 @@ export function useWorkspaceIndex() {
     }
   }
 
-  return { roots, addRoot, pickAdditionalRoot, removeRoot, clearRoots, index, loading, error, scanRoots };
+  return { roots, addRoots, pickAdditionalRoot, removeRoot, clearRoots, index, loading, error, scanRoots };
 }
