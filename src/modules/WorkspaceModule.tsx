@@ -1,6 +1,7 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { CircleAlert, LayoutGrid, LoaderCircle } from "lucide-react";
+import { SearchPanel } from "../components/shared/SearchPanel";
 import { RootPicker } from "../components/shared/RootPicker";
 import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
@@ -48,28 +49,22 @@ type WorkspaceEntryProps = {
 };
 
 function WorkspaceEntry({ proEnabled, roots, pickRoot, removeRoot, loading, error, onScan }: WorkspaceEntryProps) {
-  return <div className="mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center text-center">
-    <h1 id="workspace-title" className="text-4xl font-semibold tracking-[-0.05em] text-mist-100 sm:text-5xl">Your projects, in one place.</h1>
-    <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-mist-500">See what each project weighs, what can be reclaimed, and what holds work that exists nowhere else.</p>
+  return <SearchPanel
+    title="Your projects, in one place."
+    subtitle="See what each project weighs, what can be reclaimed, and what holds work that exists nowhere else."
+    error={error}
+    note={!proEnabled ? "Reading the map is free. Opening projects, Git actions and reclaiming from here are part of Pro." : undefined}
+  >
+    <RootPicker
+      roots={roots}
+      onPick={() => void pickRoot()}
+      onRemove={removeRoot}
+      proEnabled={proEnabled}
+    />
 
-    <div className="mt-9 w-full">
-      <RootPicker
-        roots={roots}
-        onPick={() => void pickRoot()}
-        onRemove={removeRoot}
-        proEnabled={proEnabled}
-        containerClassName="rounded-xl p-2"
-        buttonClassName="size-9 rounded-lg"
-      />
-    </div>
-
-    <button type="button" onClick={() => onScan(roots)} disabled={loading || roots.length === 0} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-sage-400 text-sm font-semibold text-forest-950 hover:bg-sage-300 disabled:opacity-50">
+    <button type="button" onClick={() => onScan(roots)} disabled={loading || roots.length === 0} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-sage-400 text-sm font-semibold text-forest-950 transition-colors hover:bg-sage-300 disabled:cursor-not-allowed disabled:opacity-40">
       {loading ? <LoaderCircle size={17} className="animate-spin" /> : <LayoutGrid size={17} />}
       {loading ? "Indexing workspace..." : roots.length > 1 ? `Map ${roots.length} workspaces` : "Create project map"}
     </button>
-
-    {!proEnabled && <p className="mt-5 text-xs leading-5 text-mist-500">Reading the map is free. Opening projects, Git actions and reclaiming from here are part of Pro.</p>}
-
-    {error && <p className="mt-4 flex items-center gap-2 text-sm text-coral-300"><CircleAlert size={15} />{error}</p>}
-  </div>;
+  </SearchPanel>;
 }

@@ -13,9 +13,8 @@ type ScreenProps = {
 export function Screen({ align = "center", children }: ScreenProps) {
   return (
     <div
-      className={`flex min-h-0 w-full flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12 ${
-        align === "center" ? "items-center justify-center" : "items-stretch justify-start"
-      }`}
+      className={`flex min-h-0 w-full flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12 ${align === "center" ? "items-center justify-center" : "items-stretch justify-start"
+        }`}
     >
       {children}
     </div>

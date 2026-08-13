@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { AlertTriangle, Ban, LoaderCircle, ScanSearch } from "lucide-react";
 import { RootPicker } from "../shared/RootPicker";
+import { SearchPanel } from "../shared/SearchPanel";
 import { motion, useReducedMotion } from "motion/react";
 import type { Step } from "../../types/scan";
 import type { LastCleanup } from "../../types/settings";
@@ -57,18 +58,13 @@ export function WorkspaceForm({
       initial={reducedMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="flex h-full w-full flex-col items-center justify-center text-center"
+      className="flex h-full w-full flex-col"
     >
-      <div className="flex w-full max-w-3xl flex-col items-center">
-        <h1 className="text-5xl font-semibold leading-[1.05] tracking-tighter text-mist-100">
-          Reclaim disk from build artifacts.
-        </h1>
-
-        <p className="mt-3 max-w-xl text-base leading-relaxed text-mist-500">
-          Finds dependency, build, and cache directories your toolchains can regenerate.
-        </p>
-
-        <form onSubmit={startScan} className="mt-6 w-full max-w-2xl">
+      <SearchPanel
+        title="Reclaim disk from build artifacts."
+        subtitle="Finds dependency, build, and cache directories your toolchains can regenerate."
+      >
+        <form onSubmit={startScan} className="w-full">
           <RootPicker
             roots={extraRoots}
             onPick={pickRoot}
@@ -119,7 +115,7 @@ export function WorkspaceForm({
             <span>{error}</span>
           </div>
         )}
-      </div>
+      </SearchPanel>
     </motion.section>
   );
 }
