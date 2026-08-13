@@ -1,7 +1,9 @@
+use crate::workspace::git::{self, GitContext};
+use crate::workspace::verdict::{self, ActivityState, Verdict};
 use serde::Serialize;
 use std::path::Path;
-use std::process::Command;
 use std::sync::atomic::AtomicBool;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const MAX_PROJECTS: usize = 250;
 const MAX_DEPTH: usize = 4;
@@ -14,9 +16,22 @@ pub struct WorkspaceProject {
     /// The indexed root this project sits under.
     pub root: String,
     pub kind: String,
-    pub branch: Option<String>,
-    pub last_commit: Option<String>,
-    pub dirty: Option<bool>,
+    pub git: GitContext,
+    pub activity: Activity,
+    /// Decided once the footprint is known, so it starts unknown.
+    pub verdict: Verdict,
+    /// Other indexed paths holding the same repository.
+    pub duplicate_of: Vec<String>,
+    pub install_missing: bool,
+    pub install_stale: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Activity {
+    pub last_activity_at: Option<i64>,
+    pub idle_days: Option<u32>,
+    pub state: ActivityState,
 }
 
 /// `source_bytes` is what remains once every reclaimable target is removed.
@@ -104,6 +119,7 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
         roots.push(root.to_string_lossy().into_owned());
     }
 
+    mark_duplicates(&mut projects);
     projects.sort_by_cached_key(|project| project.name.to_lowercase());
 
     Ok(WorkspaceIndex {
@@ -176,8 +192,46 @@ fn looks_like_project(directory: &Path) -> bool {
         .any(|file| directory.join(file).is_file())
 }
 
+/// Points every clone of the same repository at its siblings.
+///
+/// Two paths holding the same remote is something no file manager can tell the
+/// user, because the answer is not on disk — it is in what the repositories
+/// claim to be.
+fn mark_duplicates(projects: &mut [WorkspaceProject]) {
+    let mut by_remote: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+    for project in projects.iter() {
+        if let Some(remote) = &project.git.remote {
+            by_remote
+                .entry(remote.clone())
+                .or_default()
+                .push(project.path.clone());
+        }
+    }
+
+    for project in projects.iter_mut() {
+        let Some(remote) = &project.git.remote else {
+            continue;
+        };
+        let Some(paths) = by_remote.get(remote) else {
+            continue;
+        };
+        if paths.len() < 2 {
+            continue;
+        }
+        project.duplicate_of = paths
+            .iter()
+            .filter(|path| *path != &project.path)
+            .cloned()
+            .collect();
+    }
+}
+
 fn project_from_directory(path: &Path, root: &Path) -> WorkspaceProject {
-    let (branch, last_commit, dirty) = git_metadata(path);
+    let git = git::read(path);
+    let activity = activity_of(path, git.last_commit_at);
+    let (install_missing, install_stale) = installation_state(path);
+
     WorkspaceProject {
         name: path
             .file_name()
@@ -186,10 +240,92 @@ fn project_from_directory(path: &Path, root: &Path) -> WorkspaceProject {
         path: path.to_string_lossy().into_owned(),
         root: root.to_string_lossy().into_owned(),
         kind: project_kind(path),
-        branch,
-        last_commit,
-        dirty,
+        git,
+        activity,
+        verdict: Verdict::Unknown,
+        duplicate_of: Vec::new(),
+        install_missing,
+        install_stale,
     }
+}
+
+/// Last activity, from the last commit or the newest source file.
+///
+/// Regenerable directories are excluded on purpose: a `node_modules` written by
+/// yesterday's install says nothing about whether the project is alive, and
+/// counting it would mark every abandoned project as active the moment someone
+/// runs a build in it.
+fn activity_of(path: &Path, last_commit_at: Option<i64>) -> Activity {
+    let last_activity_at = [last_commit_at, newest_source_write(path)]
+        .into_iter()
+        .flatten()
+        .max();
+    let idle_days = last_activity_at.and_then(|at| {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs() as i64;
+        u32::try_from((now - at).max(0) / 86_400).ok()
+    });
+
+    Activity {
+        last_activity_at,
+        idle_days,
+        state: verdict::activity_state(idle_days),
+    }
+}
+
+fn newest_source_write(path: &Path) -> Option<i64> {
+    let entries = std::fs::read_dir(path).ok()?;
+    entries
+        .flatten()
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_str()
+                .is_some_and(|name| !name.starts_with('.') && !is_regenerable(name))
+        })
+        .filter_map(|entry| entry.metadata().ok()?.modified().ok())
+        .filter_map(|time| time.duration_since(UNIX_EPOCH).ok())
+        .map(|since| since.as_secs() as i64)
+        .max()
+}
+
+fn is_regenerable(name: &str) -> bool {
+    matches!(
+        name,
+        "node_modules" | "target" | "dist" | "build" | "vendor" | "__pycache__" | "DerivedData"
+    )
+}
+
+/// Whether the project has a lockfile without an installation behind it, and
+/// whether that installation predates the lockfile.
+fn installation_state(path: &Path) -> (bool, bool) {
+    const PAIRS: &[(&str, &str)] = &[
+        ("package-lock.json", "node_modules"),
+        ("pnpm-lock.yaml", "node_modules"),
+        ("yarn.lock", "node_modules"),
+        ("bun.lockb", "node_modules"),
+        ("Cargo.lock", "target"),
+    ];
+
+    for (lockfile, installed) in PAIRS {
+        let lock = path.join(lockfile);
+        if !lock.is_file() {
+            continue;
+        }
+        let install = path.join(installed);
+        if !install.is_dir() {
+            return (true, false);
+        }
+        let newer = written_at(&lock)
+            .zip(written_at(&install))
+            .is_some_and(|(lock_at, install_at)| lock_at > install_at);
+        return (false, newer);
+    }
+    (false, false)
+}
+
+fn written_at(path: &Path) -> Option<i64> {
+    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
+    Some(modified.duration_since(UNIX_EPOCH).ok()?.as_secs() as i64)
 }
 
 fn project_kind(path: &Path) -> String {
@@ -208,18 +344,6 @@ fn project_kind(path: &Path) -> String {
     }
 }
 
-fn git_metadata(path: &Path) -> (Option<String>, Option<String>, Option<bool>) {
-    let branch = git_value(path, &["branch", "--show-current"]);
-    let last_commit = git_value(path, &["log", "-1", "--format=%h %s"]);
-    let dirty = Command::new("git")
-        .args(["-C", &path.to_string_lossy(), "status", "--porcelain"])
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .map(|output| !output.stdout.is_empty());
-    (branch, last_commit, dirty)
-}
-
 /// Measures one project. The caller runs these concurrently and stops asking to cancel.
 #[tauri::command]
 pub async fn measure_project_footprint(
@@ -230,6 +354,27 @@ pub async fn measure_project_footprint(
     tauri::async_runtime::spawn_blocking(move || measure_footprint(Path::new(&path), &settings))
         .await
         .map_err(|error| error.to_string())?
+}
+
+/// The verdict for a project, once its footprint is known.
+///
+/// Kept out of the index because the reclaimable figure is measured later:
+/// deciding before it arrives would call every project Archivable.
+#[tauri::command]
+pub async fn assess_project(
+    recoverability: verdict::RecoverabilityLevel,
+    activity: ActivityState,
+    reclaimable_bytes: u64,
+    install_missing: bool,
+    install_stale: bool,
+) -> Verdict {
+    verdict::assess(verdict::VerdictInput {
+        recoverability: Some(recoverability),
+        activity,
+        reclaimable_bytes,
+        install_missing,
+        install_stale,
+    })
 }
 
 fn measure_footprint(
@@ -286,19 +431,6 @@ fn measure_footprint(
         .collect();
 
     Ok(footprint)
-}
-
-fn git_value(path: &Path, args: &[&str]) -> Option<String> {
-    Command::new("git")
-        .arg("-C")
-        .arg(path)
-        .args(args)
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
 }
 
 #[cfg(test)]
@@ -454,6 +586,84 @@ mod tests {
         assert!(index.roots_over_limit.is_empty());
 
         let _ = fs::remove_dir_all(outer);
+    }
+
+    /// An install run yesterday says nothing about whether a project is alive.
+    /// Counting it would mark every abandoned project active the moment a build
+    /// touched it, which is the failure the age heuristic exists to avoid.
+    #[test]
+    fn a_regenerable_directory_does_not_make_a_project_look_active() {
+        let root = std::env::temp_dir().join(format!("uncached-activity-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
+        fs::write(root.join("node_modules/pkg/index.js"), b"fresh").unwrap();
+
+        assert!(
+            super::newest_source_write(&root).is_none(),
+            "only regenerable content exists, so there is no source activity"
+        );
+
+        fs::write(root.join("index.js"), b"source").unwrap();
+        assert!(super::newest_source_write(&root).is_some());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_lockfile_without_an_installation_reads_as_broken_and_never_as_stale() {
+        let root = std::env::temp_dir().join(format!("uncached-install-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("package-lock.json"), b"{}").unwrap();
+
+        assert_eq!(super::installation_state(&root), (true, false));
+
+        fs::create_dir_all(root.join("node_modules")).unwrap();
+        let (missing, _) = super::installation_state(&root);
+        assert!(!missing);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    /// The same repository in two folders is something no file manager can
+    /// report, because the answer is not on disk.
+    #[test]
+    fn clones_of_one_repository_point_at_each_other() {
+        let mut projects = vec![
+            project_named("first", Some("github.com/acme/app")),
+            project_named("second", Some("github.com/acme/app")),
+            project_named("other", Some("github.com/acme/other")),
+            project_named("local", None),
+        ];
+
+        super::mark_duplicates(&mut projects);
+
+        assert_eq!(projects[0].duplicate_of, vec!["second".to_string()]);
+        assert_eq!(projects[1].duplicate_of, vec!["first".to_string()]);
+        assert!(projects[2].duplicate_of.is_empty());
+        assert!(projects[3].duplicate_of.is_empty());
+    }
+
+    fn project_named(path: &str, remote: Option<&str>) -> super::WorkspaceProject {
+        super::WorkspaceProject {
+            name: path.to_string(),
+            path: path.to_string(),
+            root: "/root".to_string(),
+            kind: "Node".to_string(),
+            git: crate::workspace::git::GitContext {
+                remote: remote.map(str::to_string),
+                ..Default::default()
+            },
+            activity: super::Activity {
+                last_activity_at: None,
+                idle_days: None,
+                state: crate::workspace::verdict::ActivityState::Unknown,
+            },
+            verdict: crate::workspace::verdict::Verdict::Unknown,
+            duplicate_of: Vec::new(),
+            install_missing: false,
+            install_stale: false,
+        }
     }
 
     #[test]

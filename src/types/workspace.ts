@@ -1,12 +1,50 @@
+export type RecoverabilityLevel = "fullyRemote" | "localOnlyWork" | "noRemote" | "unknown";
+export type ActivityState = "active" | "idle" | "cold" | "unknown";
+export type Verdict =
+  | "safe"
+  | "tradeOff"
+  | "protect"
+  | "archivable"
+  | "broken"
+  | "staleDeps"
+  | "unknown";
+
+export type Recoverability = {
+  unpushedCommits: number;
+  branchesWithoutUpstream: number;
+  stashEntries: number;
+  untrackedFiles: number;
+  level: RecoverabilityLevel;
+};
+
+export type GitContext = {
+  branch: string | null;
+  lastCommitSummary: string | null;
+  lastCommitAt: number | null;
+  dirty: boolean | null;
+  remote: string | null;
+  recoverability: Recoverability;
+};
+
+export type Activity = {
+  lastActivityAt: number | null;
+  idleDays: number | null;
+  state: ActivityState;
+};
+
 export type WorkspaceProject = {
   name: string;
   path: string;
   /** The indexed root this project sits under. */
   root: string;
   kind: string;
-  branch: string | null;
-  lastCommit: string | null;
-  dirty: boolean | null;
+  git: GitContext;
+  activity: Activity;
+  verdict: Verdict;
+  /** Other indexed paths holding the same repository. */
+  duplicateOf: string[];
+  installMissing: boolean;
+  installStale: boolean;
 };
 
 export type CategoryBytes = {

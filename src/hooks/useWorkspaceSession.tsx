@@ -1,11 +1,13 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useWorkspaceIndex } from "./useWorkspaceIndex";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
+import { useWorkspaceVerdicts } from "./useWorkspaceVerdicts";
 import type { WorkspaceProject } from "../types/workspace";
 
 const NO_PROJECTS: WorkspaceProject[] = [];
 
-type WorkspaceSession = ReturnType<typeof useWorkspaceIndex> & ReturnType<typeof useWorkspaceFootprints>;
+type WorkspaceSession = ReturnType<typeof useWorkspaceIndex> &
+  ReturnType<typeof useWorkspaceFootprints> & { verdicts: ReturnType<typeof useWorkspaceVerdicts> };
 
 const WorkspaceSessionContext = createContext<WorkspaceSession | null>(null);
 
@@ -15,9 +17,11 @@ const WorkspaceSessionContext = createContext<WorkspaceSession | null>(null);
  */
 export function WorkspaceSessionProvider({ children }: { children: ReactNode }) {
   const index = useWorkspaceIndex();
-  const footprints = useWorkspaceFootprints(index.index?.projects ?? NO_PROJECTS);
+  const projects = index.index?.projects ?? NO_PROJECTS;
+  const footprints = useWorkspaceFootprints(projects);
+  const verdicts = useWorkspaceVerdicts(projects, footprints.footprints);
   return (
-    <WorkspaceSessionContext.Provider value={{ ...index, ...footprints }}>
+    <WorkspaceSessionContext.Provider value={{ ...index, ...footprints, verdicts }}>
       {children}
     </WorkspaceSessionContext.Provider>
   );

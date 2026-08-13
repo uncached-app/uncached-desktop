@@ -5,6 +5,7 @@ pub mod logging;
 pub mod models;
 pub mod scanner;
 pub mod services;
+pub mod workspace;
 
 pub use uncached_core as shared_core;
 
@@ -15,7 +16,7 @@ use commands::entitlements::get_entitlement_status;
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{get_app_info, get_settings, review_ignore_rules, update_settings};
 use commands::workspace::{
-    measure_project_footprint, normalize_workspace_roots, scan_workspace_index,
+    assess_project, measure_project_footprint, normalize_workspace_roots, scan_workspace_index,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -38,6 +39,7 @@ pub fn run() {
             scan_workspace_index,
             measure_project_footprint,
             normalize_workspace_roots,
+            assess_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

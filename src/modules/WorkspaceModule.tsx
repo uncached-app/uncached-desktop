@@ -14,7 +14,7 @@ type WorkspaceModuleProps = {
 
 export function WorkspaceModule({ proEnabled }: WorkspaceModuleProps) {
   const reducedMotion = useReducedMotion();
-  const { roots, pickRoot, removeRoot, clearRoots, index, loading, error, scanRoots, footprints, measuring } = useWorkspaceSession();
+  const { roots, pickRoot, removeRoot, clearRoots, index, loading, error, scanRoots, footprints, measuring, verdicts } = useWorkspaceSession();
   const [actionError, setActionError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -33,7 +33,7 @@ export function WorkspaceModule({ proEnabled }: WorkspaceModuleProps) {
   return <motion.section initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="flex h-full w-full min-h-0 flex-col justify-center overflow-hidden" aria-labelledby="workspace-title">
     {!index
       ? <WorkspaceEntry proEnabled={proEnabled} roots={roots} pickRoot={pickRoot} removeRoot={removeRoot} loading={loading} error={error} onScan={(picked) => void scanRoots(picked)} />
-      : <WorkspaceMap index={index} loading={loading} query={query} onQueryChange={setQuery} onScan={() => void scanRoots()} onChangeFolder={() => { clearRoots(); setQuery(""); }} onOpenProject={(path) => void openProject(path)} onRevealProject={(path) => void revealProject(path)} proEnabled={proEnabled} footprints={footprints} measuring={measuring} />}
+      : <WorkspaceMap index={index} loading={loading} query={query} onQueryChange={setQuery} onScan={() => void scanRoots()} onChangeFolder={() => { clearRoots(); setQuery(""); }} onOpenProject={(path) => void openProject(path)} onRevealProject={(path) => void revealProject(path)} proEnabled={proEnabled} footprints={footprints} measuring={measuring} verdicts={verdicts} />}
     {index && (error || actionError) && <p className="mt-3 flex items-center gap-2 text-sm text-coral-300"><CircleAlert size={15} />{error ?? actionError}</p>}
   </motion.section>;
 }
