@@ -1,6 +1,7 @@
 use serde::Serialize;
 use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::AtomicBool;
 
 const MAX_PROJECTS: usize = 250;
 const MAX_DEPTH: usize = 4;
@@ -34,6 +35,33 @@ pub struct WorkspaceProject {
     pub branch: Option<String>,
     pub last_commit: Option<String>,
     pub dirty: Option<bool>,
+}
+
+/// What a project weighs, split the way a decision needs it.
+///
+/// `total` is what the folder occupies. `reclaimable` is the part this product
+/// can put back. `source` is what is left once it does — the real weight of the
+/// work, and the number that says whether a project is big or merely dirty.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Footprint {
+    pub total_bytes: u64,
+    pub source_bytes: u64,
+    pub reclaimable_bytes: u64,
+    /// The part the Free plan can act on today. Shown so the split between what
+    /// is possible and what is unlocked never has to be guessed.
+    pub free_reclaimable_bytes: u64,
+    pub by_category: Vec<CategoryBytes>,
+    /// Some directory could not be read. A partial total that says so is
+    /// usable; one that pretends to be complete is not.
+    pub has_errors: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CategoryBytes {
+    pub category: String,
+    pub bytes: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -198,6 +226,83 @@ fn git_metadata(path: &Path) -> (Option<String>, Option<String>, Option<bool>) {
     (branch, last_commit, dirty)
 }
 
+/// Measures one project.
+///
+/// One project at a time, on purpose. The list arrives from discovery in
+/// milliseconds and this fills the weights in behind it, so a workspace of two
+/// hundred projects is readable immediately instead of after a walk of every
+/// byte in it. The caller decides how many to run at once and can simply stop
+/// asking, which is all cancellation needs to be here.
+#[tauri::command]
+pub async fn measure_project_footprint(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<Footprint, String> {
+    let settings = crate::commands::settings::load_settings(&app).unwrap_or_default();
+    tauri::async_runtime::spawn_blocking(move || measure_footprint(Path::new(&path), &settings))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+fn measure_footprint(
+    path: &Path,
+    settings: &crate::commands::settings::AppSettings,
+) -> Result<Footprint, String> {
+    let total = crate::filesystem::size::calculate_dir_size_report(path);
+    // The same providers and the same exclusions the Purge uses. A footprint
+    // that counted a path the user has excluded would promise back space the
+    // cleanup would then refuse to touch.
+    let providers = crate::scanner::get_default_providers(settings);
+    let cancelled = AtomicBool::new(false);
+
+    let mut targets = Vec::new();
+    uncached_core::traverse_workspace(path, &providers, &cancelled, |entry| {
+        match entry.category.clone() {
+            Some(category) => {
+                targets.push((entry.path.clone(), category));
+                uncached_core::TraversalControl::Prune
+            }
+            None => uncached_core::TraversalControl::Continue,
+        }
+    })
+    .map_err(|error| error.to_string())?;
+
+    let mut footprint = Footprint {
+        total_bytes: total.bytes,
+        has_errors: total.errors > 0,
+        ..Footprint::default()
+    };
+    let mut by_category: Vec<(String, u64)> = Vec::new();
+
+    for (target_path, category) in targets {
+        let size = crate::filesystem::size::calculate_dir_size_report(&target_path);
+        footprint.has_errors = footprint.has_errors || size.errors > 0;
+        footprint.reclaimable_bytes = footprint.reclaimable_bytes.saturating_add(size.bytes);
+        if crate::commands::entitlements::is_free_category(&category) {
+            footprint.free_reclaimable_bytes =
+                footprint.free_reclaimable_bytes.saturating_add(size.bytes);
+        }
+        let wire = category.as_wire();
+        match by_category.iter_mut().find(|(name, _)| name == &wire) {
+            Some((_, bytes)) => *bytes = bytes.saturating_add(size.bytes),
+            None => by_category.push((wire, size.bytes)),
+        }
+    }
+
+    // Saturating rather than wrapping: sizing walks the tree twice and a file
+    // removed between the passes can leave the parts above the whole.
+    footprint.source_bytes = footprint
+        .total_bytes
+        .saturating_sub(footprint.reclaimable_bytes);
+    by_category.sort_by_key(|(_, bytes)| std::cmp::Reverse(*bytes));
+    footprint.by_category = by_category
+        .into_iter()
+        .map(|(category, bytes)| CategoryBytes { category, bytes })
+        .collect();
+
+    Ok(footprint)
+}
+
 fn git_value(path: &Path, args: &[&str]) -> Option<String> {
     Command::new("git")
         .arg("-C")
@@ -295,6 +400,63 @@ mod tests {
 
         let _ = fs::remove_dir_all(personal);
         let _ = fs::remove_dir_all(work);
+    }
+
+    /// The whole point of the split: a project can be enormous and weigh
+    /// almost nothing, and only the source figure tells them apart. A footprint
+    /// that reported one total would leave the user unable to distinguish a
+    /// large project from a dirty one.
+    #[test]
+    fn a_footprint_separates_the_work_from_what_can_be_put_back() {
+        let root = std::env::temp_dir().join(format!("uncached-footprint-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::write(root.join("package.json"), b"{}").unwrap();
+        fs::write(root.join("src/index.js"), vec![b'a'; 100]).unwrap();
+        fs::write(root.join("node_modules/pkg/index.js"), vec![b'b'; 900]).unwrap();
+
+        let settings = crate::commands::settings::AppSettings::default();
+        let footprint = super::measure_footprint(&root, &settings).unwrap();
+
+        assert!(footprint.reclaimable_bytes >= 900);
+        assert_eq!(
+            footprint.free_reclaimable_bytes,
+            footprint.reclaimable_bytes
+        );
+        assert_eq!(
+            footprint.source_bytes,
+            footprint.total_bytes - footprint.reclaimable_bytes
+        );
+        assert!(footprint.source_bytes < footprint.reclaimable_bytes);
+        assert_eq!(footprint.by_category.len(), 1);
+        assert_eq!(footprint.by_category[0].category, "NodeModules");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    /// An excluded path is not reclaimable. Counting it would promise back
+    /// space the cleanup then refuses to touch.
+    #[test]
+    fn a_footprint_does_not_count_what_an_ignore_rule_protects() {
+        let root =
+            std::env::temp_dir().join(format!("uncached-footprint-ignored-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
+        fs::write(root.join("package.json"), b"{}").unwrap();
+        fs::write(root.join("node_modules/pkg/index.js"), vec![b'b'; 900]).unwrap();
+
+        let settings = crate::commands::settings::AppSettings {
+            ignore_rules: root.join("node_modules").to_string_lossy().into_owned(),
+            ..crate::commands::settings::AppSettings::default()
+        };
+        let footprint = super::measure_footprint(&root, &settings).unwrap();
+
+        assert_eq!(footprint.reclaimable_bytes, 0);
+        assert!(footprint.by_category.is_empty());
+        assert_eq!(footprint.source_bytes, footprint.total_bytes);
+
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

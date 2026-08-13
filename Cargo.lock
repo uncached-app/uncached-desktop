@@ -4116,6 +4116,7 @@ dependencies = [
 [[package]]
 name = "uncached-core"
 version = "0.1.0"
+source = "git+ssh://git@github.com/uncached-app/uncached-core.git?rev=c156933#c156933a7d2499c0509b34441135c4a41086cf67"
 dependencies = [
  "globset",
  "jwalk",

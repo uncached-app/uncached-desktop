@@ -14,7 +14,7 @@ use commands::cleanup_capabilities;
 use commands::entitlements::get_entitlement_status;
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{get_app_info, get_settings, review_ignore_rules, update_settings};
-use commands::workspace::scan_workspace_index;
+use commands::workspace::{measure_project_footprint, scan_workspace_index};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -34,6 +34,7 @@ pub fn run() {
             get_app_info,
             review_ignore_rules,
             scan_workspace_index,
+            measure_project_footprint,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
