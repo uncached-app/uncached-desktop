@@ -132,7 +132,9 @@ export function FindingsSection({
                 </span>
               )}
             </div>
-            {readyTargets.length > 0 && (
+            {/* The split answers "how much of this can I actually clean?", which
+                only has an answer worth showing while some of it is locked. */}
+            {!proEnabled && readyTargets.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
                 <span className="rounded-md bg-sage-400/10 px-2.5 py-1 text-sage-300">Free · {formatBytes(freeBytes)}</span>
                 {proBytes > 0 && <span className="rounded-md bg-pro-surface px-2.5 py-1 text-pro-100">Pro · {formatBytes(proBytes)}</span>}
