@@ -4,7 +4,8 @@
   "version": "0.1.1-alpha.2",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "tauri dev",
+    "dev:vite": "vite",
     "dev:pro": "UNCACHED_DEV_PRO=1 tauri dev",
     "build": "tsc && vite build",
     "dmg:clean": "./scripts/clean-dmg.sh",

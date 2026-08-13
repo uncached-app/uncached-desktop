@@ -1,7 +1,7 @@
 export type WorkspaceProject = {
   name: string;
   path: string;
-  /** Which indexed root this project was found under. */
+  /** The indexed root this project sits under. */
   root: string;
   kind: string;
   branch: string | null;
@@ -14,11 +14,7 @@ export type CategoryBytes = {
   bytes: number;
 };
 
-/**
- * What a project weighs, split the way a decision needs it. `source` is the
- * real weight of the work — it is what distinguishes a large project from a
- * merely dirty one.
- */
+/** `source` is the weight left once artifacts are removed. */
 export type Footprint = {
   totalBytes: number;
   sourceBytes: number;
@@ -31,9 +27,9 @@ export type Footprint = {
 export type WorkspaceIndex = {
   roots: string[];
   projects: WorkspaceProject[];
-  /** Roots the plan did not cover, named so the gap is never silent. */
+  /** Roots the plan did not cover. */
   rootsOverLimit: string[];
   rootLimit: number;
-  /** Discovery stopped at its project or depth cap. */
+  /** Discovery hit its project or depth cap. */
   truncated: boolean;
 };

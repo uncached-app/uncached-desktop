@@ -6,13 +6,7 @@ use std::sync::atomic::AtomicBool;
 const MAX_PROJECTS: usize = 250;
 const MAX_DEPTH: usize = 4;
 
-/// How many workspace roots a plan may index at once.
-///
-/// One root answers "what is in this folder?". Several answer "what is on this
-/// machine?", which is the question the module exists for and the one worth
-/// paying for. Decided here rather than in the interface for the same reason
-/// every other boundary is: a client that asks for five roots on a Free plan
-/// gets one, not an apology.
+/// Roots a plan may index at once. Enforced here, not in the interface.
 fn root_limit() -> usize {
     if crate::commands::entitlements::current_status().pro_enabled {
         MAX_ROOTS
@@ -28,8 +22,7 @@ const MAX_ROOTS: usize = 12;
 pub struct WorkspaceProject {
     pub name: String,
     pub path: String,
-    /// Which indexed root this project was found under. With several roots the
-    /// name alone stops being enough to place a project.
+    /// The indexed root this project sits under.
     pub root: String,
     pub kind: String,
     pub branch: Option<String>,
@@ -37,23 +30,17 @@ pub struct WorkspaceProject {
     pub dirty: Option<bool>,
 }
 
-/// What a project weighs, split the way a decision needs it.
-///
-/// `total` is what the folder occupies. `reclaimable` is the part this product
-/// can put back. `source` is what is left once it does — the real weight of the
-/// work, and the number that says whether a project is big or merely dirty.
+/// `source_bytes` is what remains once every reclaimable target is removed.
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Footprint {
     pub total_bytes: u64,
     pub source_bytes: u64,
     pub reclaimable_bytes: u64,
-    /// The part the Free plan can act on today. Shown so the split between what
-    /// is possible and what is unlocked never has to be guessed.
+    /// What the Free plan can act on today.
     pub free_reclaimable_bytes: u64,
     pub by_category: Vec<CategoryBytes>,
-    /// Some directory could not be read. A partial total that says so is
-    /// usable; one that pretends to be complete is not.
+    /// Some directory could not be read, so the total is partial.
     pub has_errors: bool,
 }
 
@@ -69,13 +56,10 @@ pub struct CategoryBytes {
 pub struct WorkspaceIndex {
     pub roots: Vec<String>,
     pub projects: Vec<WorkspaceProject>,
-    /// Roots the caller asked for that this plan does not cover. Named rather
-    /// than dropped: silently indexing fewer folders than were selected reads
-    /// as the scan being broken.
+    /// Roots the caller asked for that this plan does not cover.
     pub roots_over_limit: Vec<String>,
     pub root_limit: usize,
-    /// Discovery stopped at `MAX_PROJECTS` or `MAX_DEPTH`. A truncated list
-    /// that says so is usable; one that does not is misleading.
+    /// Discovery hit `MAX_PROJECTS` or `MAX_DEPTH`.
     pub truncated: bool,
 }
 
@@ -106,9 +90,7 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
         }
         let before = projects.len();
         discover_projects(&root, &root, 0, &mut projects)?;
-        // The cap is shared across roots, so a later root can be cut short by
-        // an earlier one. Reporting the cap once, for the whole index, is
-        // honest; reporting it per root would suggest each got its own budget.
+        // The cap is shared across roots, so it is reported once for the whole index.
         truncated = truncated || projects.len() >= MAX_PROJECTS && projects.len() > before;
         roots.push(root.to_string_lossy().into_owned());
     }
@@ -226,13 +208,7 @@ fn git_metadata(path: &Path) -> (Option<String>, Option<String>, Option<bool>) {
     (branch, last_commit, dirty)
 }
 
-/// Measures one project.
-///
-/// One project at a time, on purpose. The list arrives from discovery in
-/// milliseconds and this fills the weights in behind it, so a workspace of two
-/// hundred projects is readable immediately instead of after a walk of every
-/// byte in it. The caller decides how many to run at once and can simply stop
-/// asking, which is all cancellation needs to be here.
+/// Measures one project. The caller runs these concurrently and stops asking to cancel.
 #[tauri::command]
 pub async fn measure_project_footprint(
     app: tauri::AppHandle,
@@ -249,9 +225,7 @@ fn measure_footprint(
     settings: &crate::commands::settings::AppSettings,
 ) -> Result<Footprint, String> {
     let total = crate::filesystem::size::calculate_dir_size_report(path);
-    // The same providers and the same exclusions the Purge uses. A footprint
-    // that counted a path the user has excluded would promise back space the
-    // cleanup would then refuse to touch.
+    // Same providers and exclusions as the Purge, so reclaimable matches what cleanup takes.
     let providers = crate::scanner::get_default_providers(settings);
     let cancelled = AtomicBool::new(false);
 
@@ -289,8 +263,7 @@ fn measure_footprint(
         }
     }
 
-    // Saturating rather than wrapping: sizing walks the tree twice and a file
-    // removed between the passes can leave the parts above the whole.
+    // Saturating: the two sizing passes disagree if a file vanishes between them.
     footprint.source_bytes = footprint
         .total_bytes
         .saturating_sub(footprint.reclaimable_bytes);
@@ -378,9 +351,6 @@ mod tests {
         let _ = fs::remove_dir_all(work);
     }
 
-    /// A plan that covers one root indexes one root - and says which folders it
-    /// left out. Dropping them silently would read as the scan being broken,
-    /// which is the opposite of the upgrade this limit is meant to suggest.
     #[test]
     fn a_root_beyond_the_limit_is_named_rather_than_dropped() {
         let personal = workspace("limit-personal", &["blog"]);
@@ -402,10 +372,6 @@ mod tests {
         let _ = fs::remove_dir_all(work);
     }
 
-    /// The whole point of the split: a project can be enormous and weigh
-    /// almost nothing, and only the source figure tells them apart. A footprint
-    /// that reported one total would leave the user unable to distinguish a
-    /// large project from a dirty one.
     #[test]
     fn a_footprint_separates_the_work_from_what_can_be_put_back() {
         let root = std::env::temp_dir().join(format!("uncached-footprint-{}", std::process::id()));
@@ -435,8 +401,6 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
-    /// An excluded path is not reclaimable. Counting it would promise back
-    /// space the cleanup then refuses to touch.
     #[test]
     fn a_footprint_does_not_count_what_an_ignore_rule_protects() {
         let root =
