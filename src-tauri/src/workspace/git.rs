@@ -55,7 +55,11 @@ pub fn read(path: &Path) -> GitContext {
     );
     let tracking = run(
         path,
-        &["for-each-ref", "--format=%(upstream:track)", "refs/heads"],
+        &[
+            "for-each-ref",
+            "--format=%(upstream)%x1f%(upstream:track)",
+            "refs/heads",
+        ],
     );
     let stash = run(path, &["stash", "list"]);
     let log = run(path, &["log", "-1", "--format=%h%x1f%ct%x1f%s"]);
@@ -129,9 +133,13 @@ fn parse_status(status: Option<&str>) -> (Option<String>, Option<bool>, u32) {
 
 /// Commits ahead of a remote, and branches that have no remote at all.
 ///
-/// `%(upstream:track)` prints `[ahead 3]`, `[ahead 1, behind 2]`, or nothing
-/// when the branch has no upstream. Behind is deliberately ignored: it says
-/// something exists elsewhere, not that something here is at risk.
+/// Both fields are needed. `%(upstream:track)` is empty for a branch with no
+/// upstream *and* for one that is perfectly in sync, so reading it alone marks
+/// every up-to-date repository as holding work that exists nowhere else.
+/// `%(upstream)` is what tells the two apart.
+///
+/// Behind is ignored: it says something exists elsewhere, not that something
+/// here is at risk.
 fn parse_tracking(tracking: Option<&str>) -> (u32, u32) {
     let Some(tracking) = tracking else {
         return (0, 0);
@@ -140,12 +148,15 @@ fn parse_tracking(tracking: Option<&str>) -> (u32, u32) {
     let mut without_upstream = 0;
 
     for line in tracking.lines() {
-        let line = line.trim();
-        if line.is_empty() {
+        let mut fields = line.split('\u{1f}');
+        let upstream = fields.next().unwrap_or_default().trim();
+        let track = fields.next().unwrap_or_default().trim();
+
+        if upstream.is_empty() {
             without_upstream += 1;
             continue;
         }
-        if let Some(rest) = line.split("ahead ").nth(1) {
+        if let Some(rest) = track.split("ahead ").nth(1) {
             let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
             ahead += digits.parse::<u32>().unwrap_or(0);
         }
@@ -233,9 +244,27 @@ mod tests {
         assert_eq!(untracked, 0);
     }
 
+    /// A branch in sync prints an empty track field, exactly like a branch with
+    /// no upstream at all. Reading track alone marked every up-to-date
+    /// repository as holding work that exists nowhere else.
+    #[test]
+    fn a_branch_in_sync_is_not_mistaken_for_one_without_a_remote() {
+        let tracking = "refs/remotes/origin/main\u{1f}\n";
+
+        let (ahead, without_upstream) = parse_tracking(Some(tracking));
+
+        assert_eq!(ahead, 0);
+        assert_eq!(without_upstream, 0);
+    }
+
     #[test]
     fn tracking_counts_commits_ahead_and_branches_with_no_upstream() {
-        let tracking = "[ahead 3]\n\n[ahead 1, behind 2]\n[behind 5]\n";
+        let tracking = concat!(
+            "refs/remotes/origin/main\u{1f}[ahead 3]\n",
+            "\u{1f}\n",
+            "refs/remotes/origin/topic\u{1f}[ahead 1, behind 2]\n",
+            "refs/remotes/origin/old\u{1f}[behind 5]\n",
+        );
 
         let (ahead, without_upstream) = parse_tracking(Some(tracking));
 
