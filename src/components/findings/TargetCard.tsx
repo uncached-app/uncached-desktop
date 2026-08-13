@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Check, Copy, Folder, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
+import { Box, Boxes, Check, Coffee, Container, Copy, Folder, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
 import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
 
 // The level is decided in Rust and arrives as a reason code. The wording is
@@ -42,6 +42,34 @@ const CONFIDENCE_PRESENTATION: Record<
     icon: ShieldQuestion,
   },
 };
+
+// The badge names the ecosystem the artifact came from; the directory name
+// beside it already says which artifact it is. Naming the category after the
+// directory made the pair read "Gradle .gradle", which spends a badge to
+// repeat the next word.
+const CATEGORY_PRESENTATION: Record<string, { label: string; icon: typeof Package }> = {
+  NodeModules: { label: "Node", icon: Package },
+  NextJs: { label: "Node", icon: Package },
+  Turbo: { label: "Node", icon: Package },
+  CargoTarget: { label: "Rust", icon: Box },
+  PyCache: { label: "Python", icon: Layers },
+  Gradle: { label: "JVM", icon: Coffee },
+  DotNetObj: { label: ".NET", icon: Boxes },
+  Docker: { label: "Docker", icon: Container },
+};
+
+const CUSTOM_CATEGORY_PREFIX = "Custom:";
+
+function categoryPresentation(category: string) {
+  const known = CATEGORY_PRESENTATION[category];
+  if (known) return known;
+  return {
+    label: category.startsWith(CUSTOM_CATEGORY_PREFIX)
+      ? category.slice(CUSTOM_CATEGORY_PREFIX.length)
+      : category,
+    icon: Folder,
+  };
+}
 
 interface TargetCardProps {
   target: ScanTarget;
@@ -116,6 +144,8 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
   const [confidenceOpen, setConfidenceOpen] = useState(false);
   const proLocked = target.plan === "pro" && !proEnabled;
   const disabled = isCleaning || target.sizePending || target.sizeHasErrors || proLocked;
+  const category = categoryPresentation(target.category);
+  const CategoryIcon = category.icon;
 
   async function handleCopyPath(e: React.MouseEvent) {
     e.stopPropagation();
@@ -126,18 +156,6 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
     } catch (err) {
       console.error("Failed to copy path", err);
     }
-  }
-
-  function getCategoryIcon(category: string) {
-    const cat = category.toUpperCase();
-    if (cat.includes("NODE")) return <Package size={12} className="text-sage-300" aria-hidden="true" />;
-    if (cat.includes("CARGO") || cat.includes("RUST") || cat.includes("BUILD")) {
-      return <Box size={12} className="text-sage-300" aria-hidden="true" />;
-    }
-    if (cat.includes("FOLDER") || cat.includes("DIR")) {
-      return <Folder size={12} className="text-sage-300" aria-hidden="true" />;
-    }
-    return <Layers size={12} className="text-sage-300" aria-hidden="true" />;
   }
 
   return (
@@ -178,8 +196,8 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="inline-flex items-center gap-1.5 rounded-md border border-forest-800 bg-forest-800 px-2 py-0.5 font-mono text-[11px] font-medium tracking-wide text-sage-300">
-              {getCategoryIcon(target.category)}
-              {target.category}
+              <CategoryIcon size={12} className="text-sage-300" aria-hidden="true" />
+              {category.label}
             </span>
             <span className="text-xs font-medium text-mist-500">{target.name}</span>
             {proLocked && (

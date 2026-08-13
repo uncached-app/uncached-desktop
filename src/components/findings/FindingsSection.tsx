@@ -218,38 +218,51 @@ export function FindingsSection({
           </div>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1.5">
-          {!proEnabled && proBytes > 0 && (
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pro-200/30 bg-pro-surface px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-mist-100">{formatBytes(proBytes)} more available with Pro</p>
-                <p className="mt-1 text-xs text-mist-500">Unlock every cleaner, Workspace and Intelligence.</p>
+        <div className="relative min-h-0 flex-1">
+          {/* Softens the scroll edges: without them the list ends mid-card on a
+              hard line, which reads as a rendering seam rather than as more
+              content below. Purely decorative, so they never take a click. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-5 bg-linear-to-b from-forest-950 to-transparent"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-linear-to-t from-forest-950 to-transparent"
+          />
+          <div className="h-full overflow-y-auto pr-1.5">
+            {!proEnabled && proBytes > 0 && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pro-200/30 bg-pro-surface px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-mist-100">{formatBytes(proBytes)} more available with Pro</p>
+                  <p className="mt-1 text-xs text-mist-500">Unlock every cleaner, Workspace and Intelligence.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openExternalUrl("https://uncached.app/pro")}
+                  className="rounded-xl bg-pro-200 px-3 py-2 text-xs font-semibold text-forest-950 transition-colors hover:bg-pro-100"
+                >
+                  Get Uncached Pro
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => openExternalUrl("https://uncached.app/pro")}
-                className="rounded-xl bg-pro-200 px-3 py-2 text-xs font-semibold text-forest-950 transition-colors hover:bg-pro-100"
-              >
-                Get Uncached Pro
-              </button>
+            )}
+            <div className="grid gap-3">
+                {listedTargets.map((target) => (
+                <motion.div
+                  key={target.id}
+                  initial={false}
+                >
+                  <TargetCard
+                    target={target}
+                    isCleaning={cleaningTargetIds.has(target.id)}
+                    selected={selectedIds.has(target.id)}
+                     onToggle={toggleTarget}
+                     onRefreshSize={refreshTargetSize}
+                     proEnabled={proEnabled}
+                  />
+                </motion.div>
+              ))}
             </div>
-          )}
-          <div className="grid gap-3">
-              {listedTargets.map((target) => (
-              <motion.div
-                key={target.id}
-                initial={false}
-              >
-                <TargetCard
-                  target={target}
-                  isCleaning={cleaningTargetIds.has(target.id)}
-                  selected={selectedIds.has(target.id)}
-                   onToggle={toggleTarget}
-                   onRefreshSize={refreshTargetSize}
-                   proEnabled={proEnabled}
-                />
-              </motion.div>
-            ))}
           </div>
         </div>
       )}
