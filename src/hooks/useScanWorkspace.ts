@@ -322,15 +322,16 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     }
   }
 
-  async function pickFolder() {
-    const selected = await pickFolderPath();
-    if (selected) setRootPath(selected);
-  }
-
-  async function pickAdditionalRoot() {
+  async function pickRoot() {
     const selected = await pickFolderPath();
     if (!selected) return;
     await addRoots([rootPath, selected]);
+    setRootPath("");
+  }
+
+  async function commitDraft() {
+    if (!rootPath.trim()) return;
+    await addRoots([rootPath]);
     setRootPath("");
   }
 
@@ -467,7 +468,8 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     rootPath,
     extraRoots,
     removeRoot,
-    pickAdditionalRoot,
+    pickRoot,
+    commitDraft,
     setRootPath,
     targets,
     progress,
@@ -487,7 +489,6 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     capabilities,
     cleanupModeSupported,
     startScan,
-    pickFolder,
     cancelScan,
     cleanTarget,
     refreshTargetSize,

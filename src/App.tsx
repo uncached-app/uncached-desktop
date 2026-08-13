@@ -32,7 +32,8 @@ function App() {
     rootPath,
     extraRoots,
     removeRoot,
-    pickAdditionalRoot,
+    pickRoot,
+    commitDraft,
     setRootPath,
     targets,
     progress,
@@ -47,7 +48,6 @@ function App() {
     cleanupMode,
     setStep,
     startScan,
-    pickFolder,
     cancelScan,
     cleanTarget,
     refreshTargetSize,
@@ -84,7 +84,7 @@ function App() {
         <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center w-full overflow-hidden">
             {activeModule === "workspace" ? (
-              <WorkspaceModule proEnabled={entitlement.proEnabled} rootPath={rootPath} setRootPath={setRootPath} pickFolder={pickFolder} />
+              <WorkspaceModule proEnabled={entitlement.proEnabled} rootPath={rootPath} setRootPath={setRootPath} />
             ) : (
               <>
           <WorkspaceForm
@@ -93,10 +93,10 @@ function App() {
             setRootPath={setRootPath}
             extraRoots={extraRoots}
             removeRoot={removeRoot}
-            pickAdditionalRoot={pickAdditionalRoot}
+            pickRoot={pickRoot}
+            commitDraft={commitDraft}
             proEnabled={entitlement.proEnabled}
             startScan={startScan}
-            pickFolder={pickFolder}
             cancelScan={cancelScan}
             listenersReady={listenersReady}
             scanning={scanning}
