@@ -210,6 +210,42 @@ mod tests {
         assert!(value["path"].as_str().unwrap().ends_with("/node_modules"));
     }
 
+    // End to end through collection and assessment: an ordinary project must
+    // read as high confidence, including ecosystems that do not commit a
+    // lockfile. A badge asking for review on routine targets teaches the user
+    // to ignore it.
+    #[test]
+    fn an_ordinary_project_target_reads_as_high_confidence() {
+        let root = std::env::temp_dir().join(format!(
+            "uncached-target-confidence-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let cases = [
+            ("node", "package.json", Category::NodeModules, "node_modules"),
+            ("gradle", "build.gradle", Category::Gradle, ".gradle"),
+            ("python", "pyproject.toml", Category::PyCache, "__pycache__"),
+        ];
+
+        for (name, manifest, category, artifact) in cases {
+            let project = root.join(name);
+            let path = project.join(artifact);
+            std::fs::create_dir_all(&path).unwrap();
+            std::fs::write(project.join(manifest), b"").unwrap();
+
+            let target = ScanTarget::new(path, category, 1, false, None);
+
+            assert_eq!(
+                target.confidence.level,
+                uncached_core::ConfidenceLevel::High,
+                "{name}: {:?}",
+                target.confidence.signals
+            );
+        }
+
+        let _ = std::fs::remove_dir_all(root);
+    }
+
     #[test]
     fn resizing_a_target_never_changes_its_plan() {
         let mut target = ScanTarget::new(
