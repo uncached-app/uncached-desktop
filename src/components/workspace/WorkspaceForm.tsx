@@ -58,7 +58,7 @@ export function WorkspaceForm({
       initial={reducedMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="flex h-full w-full flex-col"
+      className="flex h-full w-full flex-col justify-center"
     >
       <SearchPanel
         title="Reclaim disk from build artifacts."

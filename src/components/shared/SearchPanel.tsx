@@ -21,7 +21,7 @@ type SearchPanelProps = {
  */
 export function SearchPanel({ title, subtitle, children, note, error }: SearchPanelProps) {
   return (
-    <div className="flex min-h-96 w-full flex-col items-center pt-16 text-center">
+    <div className="flex min-h-52 w-full flex-col items-center text-center">
       <div className="flex w-full max-w-2xl flex-col items-center">
         <h1 className="text-4xl font-semibold leading-[1.05] tracking-tighter text-mist-100 sm:text-5xl">{title}</h1>
         <p className="mt-3 max-w-xl text-base leading-relaxed text-mist-500">{subtitle}</p>

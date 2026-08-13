@@ -30,7 +30,7 @@ export function WorkspaceModule({ proEnabled }: WorkspaceModuleProps) {
     catch (revealError) { setActionError(revealError instanceof Error ? revealError.message : String(revealError)); }
   }
 
-  return <motion.section initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="flex h-full w-full min-h-0 flex-col overflow-hidden" aria-labelledby="workspace-title">
+  return <motion.section initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="flex h-full w-full min-h-0 flex-col justify-center overflow-hidden" aria-labelledby="workspace-title">
     {!index
       ? <WorkspaceEntry proEnabled={proEnabled} roots={roots} pickRoot={pickRoot} removeRoot={removeRoot} loading={loading} error={error} onScan={(picked) => void scanRoots(picked)} />
       : <WorkspaceMap index={index} loading={loading} query={query} onQueryChange={setQuery} onScan={() => void scanRoots()} onChangeFolder={() => { clearRoots(); setQuery(""); }} onOpenProject={(path) => void openProject(path)} onRevealProject={(path) => void revealProject(path)} proEnabled={proEnabled} footprints={footprints} measuring={measuring} />}
