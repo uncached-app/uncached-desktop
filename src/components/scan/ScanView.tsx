@@ -30,7 +30,7 @@ export function ScanView({
       exit={reducedMotion ? undefined : { opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       aria-label={scanning ? "Scanning workspace" : "Measuring targets"}
-      className="flex h-full w-full flex-col items-center justify-center text-center px-4 py-8"
+      className="flex h-full w-full flex-col items-center justify-center text-center"
     >
       <div className="flex flex-col items-center max-w-md w-full">
         <div className="mb-7 grid size-16 place-items-center text-sage-300">

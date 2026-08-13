@@ -112,7 +112,7 @@ export function FindingsSection({
       exit={reducedMotion ? undefined : { opacity: 0, y: -8 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       aria-label="Scan targets"
-      className="flex h-full w-full flex-col overflow-hidden pt-5 md:pl-6 sm:pt-7"
+      className="flex h-full w-full flex-col overflow-hidden"
     >
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-forest-800 pb-5">
         <div className="flex min-w-0 items-start gap-3">

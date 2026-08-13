@@ -1,147 +1,46 @@
-import { useEffect, useState } from "react";
-import { isTauri } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { CompletionView } from "./components/completion/CompletionView";
-import { FindingsSection } from "./components/findings/FindingsSection";
-import { Footer } from "./components/layout/Footer";
-import { ModuleBar } from "./components/layout/ModuleBar";
-import { Titlebar } from "./components/layout/Titlebar";
-import { ScanView } from "./components/scan/ScanView";
-import { SettingsPanel } from "./components/settings/SettingsPanel";
-import { WorkspaceForm } from "./components/workspace/WorkspaceForm";
-import { WorkspaceModule } from "./components/workspace/WorkspaceModule";
-import { useScanWorkspace } from "./hooks/useScanWorkspace";
+import { useState } from "react";
+import { AppLayout } from "./layouts/AppLayout";
+import { PurgeModule } from "./modules/PurgeModule";
+import { WorkspaceModule } from "./modules/WorkspaceModule";
+import { PurgeFlowProvider } from "./hooks/usePurgeFlow";
 import { useEntitlement } from "./hooks/useEntitlement";
-import { useSettings } from "./hooks/useSettings";
 import { useIgnoreRuleCount } from "./hooks/useIgnoreRuleCount";
+import { useSettings } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
 import type { AppModule } from "./types/module";
 
 function App() {
-  const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
   const settings = useSettings();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [activeModule, setActiveModule] = useState<AppModule>("purge");
-  const cleanMode = settings.settings?.defaultCleanMode ?? "Trash";
-  // Counted in Rust rather than by splitting lines here: comments and blanks
-  // are not rules, and the list that decides what a scan skips is the only one
-  // allowed to say how long it is.
-  const activeIgnoreRules = useIgnoreRuleCount(settings.settings?.ignoreRules ?? "");
   const entitlement = useEntitlement();
-  const {
-    extraRoots,
-    removeRoot,
-    pickRoot,
-    targets,
-    progress,
-    status,
-    error,
-    scanning,
-    cancelling,
-    listenersReady,
-    cleaningTargetIds,
-    step,
-    cleanupSummary,
-    cleanupMode,
-    setStep,
-    startScan,
-    cancelScan,
-    cleanTarget,
-    refreshTargetSize,
-    cleanupModeSupported,
-    resetScan,
-  } = useScanWorkspace(cleanMode);
+  const [activeModule, setActiveModule] = useState<AppModule>("purge");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const cleanMode = settings.settings?.defaultCleanMode ?? "Trash";
+  // Counted in Rust: comments and blanks are not rules.
+  const activeIgnoreRules = useIgnoreRuleCount(settings.settings?.ignoreRules ?? "");
   useTheme(settings.settings?.appearance);
 
-  useEffect(() => {
-    if (!settings.loading && listenersReady) {
-      if (isTauri()) {
-        const appWindow = getCurrentWindow();
-        void appWindow.show();
-        void appWindow.setFocus();
-      }
-      const splash = document.getElementById("app-splashscreen");
-      if (splash) {
-        splash.classList.add("splash-fade-out");
-        const timer = setTimeout(() => splash.remove(), 300);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [settings.loading, listenersReady]);
-
-  function goBackStep() {
-    if (step === 2 && scanning) return;
-    setStep(1);
-  }
-
   return (
-    <main className="relative flex h-screen flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
-      <Titlebar step={step} activeModule={activeModule} onOpenSettings={() => setSettingsOpen(true)} />
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center w-full overflow-hidden">
-            {activeModule === "workspace" ? (
-              <WorkspaceModule proEnabled={entitlement.proEnabled} />
-            ) : (
-              <>
-          <WorkspaceForm
-            step={step}
-            extraRoots={extraRoots}
-            removeRoot={removeRoot}
-            pickRoot={pickRoot}
+    <PurgeFlowProvider cleanMode={cleanMode}>
+      <AppLayout
+        activeModule={activeModule}
+        onModuleChange={setActiveModule}
+        proEnabled={entitlement.proEnabled}
+        settings={settings}
+        settingsOpen={settingsOpen}
+        onSettingsOpenChange={setSettingsOpen}
+      >
+        {activeModule === "workspace" ? (
+          <WorkspaceModule proEnabled={entitlement.proEnabled} />
+        ) : (
+          <PurgeModule
             proEnabled={entitlement.proEnabled}
-            startScan={startScan}
-            cancelScan={cancelScan}
-            listenersReady={listenersReady}
-            scanning={scanning}
-            cancelling={cancelling}
-            status={status}
-            cleanupSummary={cleanupSummary}
-            lastCleanup={settings.settings?.lastCleanup ?? null}
-            error={error}
-          />
-
-          <ScanView
-            step={step}
-            scanning={scanning}
-            cancelling={cancelling}
-            targets={targets}
-            progress={progress}
-            cancelScan={cancelScan}
-          />
-
-          <FindingsSection
-            step={step}
-            scanning={scanning}
-            cancelling={cancelling}
-            targets={targets}
-            cleaningTargetIds={cleaningTargetIds}
             cleanMode={cleanMode}
-            cancelScan={cancelScan}
-            onDone={() => setStep(4)}
-            onBack={goBackStep}
-            cleanTarget={cleanTarget}
-            refreshTargetSize={refreshTargetSize}
-            cleanupModeSupported={cleanupModeSupported}
-            proEnabled={entitlement.proEnabled}
+            lastCleanup={settings.settings?.lastCleanup ?? null}
             activeIgnoreRules={activeIgnoreRules}
           />
-
-          <CompletionView
-            step={step}
-            cleanupSummary={cleanupSummary}
-            cleanupMode={cleanupMode}
-            resetScan={resetScan}
-          />
-              </>
-            )}
-          </div>
-          {!isMac && activeModule === "purge" && <Footer onOpenSettings={() => setSettingsOpen(true)} />}
-        </div>
-        <ModuleBar activeModule={activeModule} onChange={setActiveModule} proEnabled={entitlement.proEnabled} />
-      </div>
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} {...settings} />
-    </main>
+        )}
+      </AppLayout>
+    </PurgeFlowProvider>
   );
 }
 

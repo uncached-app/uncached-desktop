@@ -1,11 +1,11 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { CircleAlert, LayoutGrid, LoaderCircle } from "lucide-react";
-import { RootPicker } from "../shared/RootPicker";
+import { RootPicker } from "../components/shared/RootPicker";
 import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
-import { useWorkspaceIndex } from "../../hooks/useWorkspaceIndex";
-import { WorkspaceMap } from "./WorkspaceMap";
+import { useWorkspaceIndex } from "../hooks/useWorkspaceIndex";
+import { WorkspaceMap } from "../components/workspace/WorkspaceMap";
 
 type WorkspaceModuleProps = {
   proEnabled: boolean;

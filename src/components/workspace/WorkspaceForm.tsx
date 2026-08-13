@@ -57,7 +57,7 @@ export function WorkspaceForm({
       initial={reducedMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="flex h-full w-full flex-col items-center justify-center text-center px-4 py-8"
+      className="flex h-full w-full flex-col items-center justify-center text-center"
     >
       <div className="flex w-full max-w-3xl flex-col items-center">
         <h1 className="text-5xl font-semibold leading-[1.05] tracking-tighter text-mist-100">
