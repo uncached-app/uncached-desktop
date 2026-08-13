@@ -47,7 +47,7 @@ function ModuleButton({ active, label, onClick, disabled = false, children }: {
       aria-current={active ? "page" : undefined}
       disabled={disabled}
       onClick={onClick}
-      className={`relative inline-flex min-h-9 items-center gap-2 rounded-xl px-3 text-xs font-medium transition-colors sm:px-4 ${active ? "bg-sage-400 text-forest-950" : "text-mist-500 hover:bg-forest-800 hover:text-mist-100"} disabled:cursor-not-allowed disabled:opacity-45`}
+      className={`relative inline-flex min-h-9 items-center gap-2 rounded-xl px-3 text-xs font-medium transition-colors sm:px-4 ${active ? "bg-sage-400 text-forest-950" : "text-mist-500 hover:bg-forest-800"} disabled:cursor-not-allowed disabled:opacity-45`}
     >
       {children}
     </button>

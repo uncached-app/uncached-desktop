@@ -30,6 +30,9 @@ function App() {
   const entitlement = useEntitlement();
   const {
     rootPath,
+    extraRoots,
+    addRoot,
+    removeRoot,
     setRootPath,
     targets,
     progress,
@@ -88,6 +91,10 @@ function App() {
             step={step}
             rootPath={rootPath}
             setRootPath={setRootPath}
+            extraRoots={extraRoots}
+            addRoot={addRoot}
+            removeRoot={removeRoot}
+            proEnabled={entitlement.proEnabled}
             startScan={startScan}
             pickFolder={pickFolder}
             cancelScan={cancelScan}

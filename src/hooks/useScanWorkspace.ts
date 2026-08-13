@@ -45,6 +45,7 @@ import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mj
 
 export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
   const [rootPath, setRootPath] = useState("");
+  const [extraRoots, setExtraRoots] = useState<string[]>([]);
   const [targets, setTargets] = useState<ScanTarget[]>([]);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [status, setStatus] = useState("Ready to scan");
@@ -253,9 +254,23 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
     }
   }, [scanFinished, scanTargetCount, step, targets]);
 
+  function addRoot(path: string) {
+    const trimmed = path.trim();
+    if (!trimmed) return;
+    setExtraRoots((current) => (current.includes(trimmed) ? current : [...current, trimmed]));
+    setRootPath("");
+  }
+
+  function removeRoot(path: string) {
+    setExtraRoots((current) => current.filter((root) => root !== path));
+  }
+
   async function startScan(event: FormEvent) {
     event.preventDefault();
-    if (!rootPath.trim() || scanning) return;
+    // The field counts as a root, so one folder needs no list.
+    const pending = rootPath.trim();
+    const roots = pending && !extraRoots.includes(pending) ? [...extraRoots, pending] : extraRoots;
+    if (roots.length === 0 || scanning) return;
 
     setError(null);
     setTargets([]);
@@ -274,7 +289,7 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
 
     try {
       const rawResult = await invoke<RawCommandResult<ScanStartResult>>("start_scan", {
-        path: rootPath.trim(),
+        paths: roots,
       });
       if (!isCurrentScanGeneration(generation, scanGeneration.current, pendingScan.current)) return;
       const result = validateScanStartResult(rawResult);
@@ -436,6 +451,9 @@ export function useScanWorkspace(cleanMode: CleanMode = "Trash") {
 
   return {
     rootPath,
+    extraRoots,
+    addRoot,
+    removeRoot,
     setRootPath,
     targets,
     progress,

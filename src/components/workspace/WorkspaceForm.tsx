@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
-import { AlertTriangle, Ban, FolderOpen, LoaderCircle, ScanSearch } from "lucide-react";
+import { AlertTriangle, Ban, FolderOpen, LoaderCircle, Plus, ScanSearch, X } from "lucide-react";
+import { ProLockButton } from "../shared/ProLockButton";
 import { motion, useReducedMotion } from "motion/react";
 import type { Step } from "../../types/scan";
 import type { LastCleanup } from "../../types/settings";
@@ -9,6 +10,10 @@ interface WorkspaceFormProps {
   step: Step;
   rootPath: string;
   setRootPath: (path: string) => void;
+  extraRoots: string[];
+  addRoot: (path: string) => void;
+  removeRoot: (path: string) => void;
+  proEnabled: boolean;
   startScan: (event: FormEvent) => void;
   pickFolder: () => void;
   cancelScan: () => void;
@@ -25,6 +30,10 @@ export function WorkspaceForm({
   step,
   rootPath,
   setRootPath,
+  extraRoots,
+  addRoot,
+  removeRoot,
+  proEnabled,
   startScan,
   pickFolder,
   cancelScan,
@@ -87,12 +96,35 @@ export function WorkspaceForm({
               <FolderOpen size={15} strokeWidth={1.8} aria-hidden="true" />
               <span>Browse</span>
             </button>
+
+            <ProLockButton
+              label="Add another folder"
+              reason="Scanning several folders at once is part of Pro"
+              locked={!proEnabled}
+              disabled={!rootPath.trim()}
+              onClick={() => addRoot(rootPath)}
+              className="grid size-10 shrink-0 place-items-center rounded-xl border border-transparent bg-forest-800 text-mist-300 transition-colors hover:bg-forest-850 hover:text-sage-300"
+            >
+              <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
+            </ProLockButton>
           </div>
+
+          {extraRoots.length > 0 && (
+            <ul className="mt-3 grid gap-1.5 text-left">
+              {extraRoots.map((root) => (
+                <li key={root} className="flex items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3 py-2">
+                  <FolderOpen size={13} className="shrink-0 text-sage-300" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-mist-300">{root}</span>
+                  <button type="button" onClick={() => removeRoot(root)} aria-label={`Remove ${root}`} className="shrink-0 rounded-md p-1 text-mist-500 hover:text-coral-300"><X size={13} /></button>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div className="mt-4 flex items-center gap-3">
             <button
               type="submit"
-              disabled={!listenersReady || scanning || !rootPath.trim()}
+              disabled={!listenersReady || scanning || (!rootPath.trim() && extraRoots.length === 0)}
               className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 transition-colors hover:bg-sage-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {scanning ? (

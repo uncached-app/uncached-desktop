@@ -530,17 +530,26 @@ fn providers_for_scan(
 pub struct ScanService;
 
 impl ScanService {
-    pub fn start_scan(app: &AppHandle, root_path: &Path) -> NukeResult<ScanStartResult> {
-        let metadata = std::fs::symlink_metadata(root_path)
-            .map_err(|_| NukeError::NotFound(root_path.display().to_string()))?;
-        if !metadata.is_dir() || metadata.file_type().is_symlink() {
-            return Err(NukeError::PermissionDenied(
-                "Scan root must be a real directory".to_string(),
-            ));
+    pub fn start_scan(app: &AppHandle, root_paths: &[PathBuf]) -> NukeResult<ScanStartResult> {
+        let limit = crate::commands::entitlements::root_limit();
+        let requested = root_paths.len();
+        let mut scan_roots = Vec::new();
+        for root_path in root_paths.iter().take(limit) {
+            let metadata = std::fs::symlink_metadata(root_path)
+                .map_err(|_| NukeError::NotFound(root_path.display().to_string()))?;
+            if !metadata.is_dir() || metadata.file_type().is_symlink() {
+                return Err(NukeError::PermissionDenied(
+                    "Scan root must be a real directory".to_string(),
+                ));
+            }
+            scan_roots.push(scan_path(&std::fs::canonicalize(root_path)?));
         }
-
-        let canonical_root = std::fs::canonicalize(root_path)?;
-        let scan_root = scan_path(&canonical_root);
+        if scan_roots.is_empty() {
+            return Err(NukeError::NotFound("No scan root selected".to_string()));
+        }
+        let roots_over_limit = requested.saturating_sub(scan_roots.len());
+        let canonical_root = scan_roots[0].clone();
+        let scan_root = canonical_root.clone();
         let scan_id = format!(
             "scan-{}",
             NEXT_SCAN_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
@@ -550,9 +559,10 @@ impl ScanService {
         crate::logging::info(
             "scan",
             &format!(
-                "start scanId=\"{}\" root=\"{}\"",
+                "start scanId=\"{}\" roots={} overLimit={}",
                 scan_id,
-                scan_root.display()
+                scan_roots.len(),
+                roots_over_limit
             ),
         );
         let session = ScanSession::new();
@@ -565,7 +575,12 @@ impl ScanService {
         let app_handle = app.clone();
         let _ = app.emit(
             "scan:started",
-            value_event(serde_json::json!({ "scanId": scan_id, "rootPath": scan_root.clone() })),
+            value_event(serde_json::json!({
+                "scanId": scan_id,
+                "rootPath": scan_root.clone(),
+                "roots": scan_roots.clone(),
+                "rootsOverLimit": roots_over_limit,
+            })),
         );
 
         std::thread::spawn(move || {
@@ -584,95 +599,108 @@ impl ScanService {
             let sizing =
                 SizingController::new(&app_handle, &stats, started_at, Arc::clone(&cancel_token));
             let sizing_submitter = sizing.submitter();
-            let callback_sizing_submitter = sizing_submitter.clone();
-            let stats_for_callback = Arc::clone(&stats);
-            let registry_for_callback = Arc::clone(registry());
-            let callback_scan_id = worker_scan_id.clone();
-            let callback_event_scan_id = worker_scan_id.clone();
-            let callback_root = canonical_root.clone();
-            let callback_cancel_token = Arc::clone(&cancel_token);
-            let callback_providers = Arc::clone(&providers);
 
-            let core_cancel_token = Arc::clone(&cancel_token);
-            let walk_result = uncached_core::traverse_workspace(
-                &scan_root,
-                &providers,
-                &core_cancel_token,
-                move |entry| {
-                    if callback_cancel_token.load(Ordering::Acquire) {
-                        return uncached_core::TraversalControl::Cancel;
-                    }
-                    let mut stats = stats_for_callback.lock().unwrap();
-                    stats.directories_scanned += 1;
+            // One session, one root at a time. Each target keeps the root it
+            // was found under, so cleanup still validates against its own.
+            let mut walk_result = Ok(uncached_core::TraversalOutcome::Completed);
+            for scan_root in &scan_roots {
+                let callback_sizing_submitter = sizing_submitter.clone();
+                let stats_for_callback = Arc::clone(&stats);
+                let registry_for_callback = Arc::clone(registry());
+                let callback_scan_id = worker_scan_id.clone();
+                let callback_event_scan_id = worker_scan_id.clone();
+                let callback_root = scan_root.clone();
+                let callback_cancel_token = Arc::clone(&cancel_token);
+                let callback_providers = Arc::clone(&providers);
+                let target_event_sink = Arc::clone(&target_event_sink);
 
-                    if let Some(category) = entry.category.clone() {
-                        let core_target =
-                            uncached_core::ScanTarget::new(entry.path.clone(), category, 0)
-                                .with_identity(entry.identity);
-                        let target = ScanTarget::from_core(&callback_scan_id, core_target);
+                let core_cancel_token = Arc::clone(&cancel_token);
+                walk_result = uncached_core::traverse_workspace(
+                    scan_root,
+                    &providers,
+                    &core_cancel_token,
+                    move |entry| {
                         if callback_cancel_token.load(Ordering::Acquire) {
                             return uncached_core::TraversalControl::Cancel;
                         }
-                        stats.targets_found += 1;
+                        let mut stats = stats_for_callback.lock().unwrap();
+                        stats.directories_scanned += 1;
 
-                        let mut registry = registry_for_callback.lock().unwrap();
-                        let accepted = {
-                            let Some(session) = registry.sessions.get_mut(&callback_scan_id) else {
+                        if let Some(category) = entry.category.clone() {
+                            let core_target =
+                                uncached_core::ScanTarget::new(entry.path.clone(), category, 0)
+                                    .with_identity(entry.identity);
+                            let target = ScanTarget::from_core(&callback_scan_id, core_target);
+                            if callback_cancel_token.load(Ordering::Acquire) {
                                 return uncached_core::TraversalControl::Cancel;
-                            };
-                            if session.cancelled || session.cancel_token.load(Ordering::Acquire) {
-                                false
-                            } else {
-                                session.target_ids.insert(target.id.clone());
-                                session.register_size_job(target.id.clone());
-                                true
                             }
-                        };
-                        if !accepted {
-                            return uncached_core::TraversalControl::Cancel;
-                        }
-                        registry.targets.insert(
-                            target.id.clone(),
-                            RegisteredTarget {
-                                target: target.clone(),
-                                root_path: callback_root.clone(),
-                                providers: Arc::clone(&callback_providers),
-                            },
-                        );
-                        drop(registry);
-                        emit_target_found(&target_event_sink, &callback_event_scan_id, &target);
-                        crate::logging::info(
-                            "scan",
-                            &format!(
-                                "target scanId=\"{}\" path=\"{}\" pending=true",
-                                callback_event_scan_id,
-                                target.path.display()
-                            ),
-                        );
-                        if !callback_sizing_submitter.submit(SizingJob {
-                            scan_id: callback_event_scan_id.clone(),
-                            target_id: target.id.clone(),
-                            path: target.path.clone(),
-                        }) {
-                            return uncached_core::TraversalControl::Cancel;
-                        }
-                        return uncached_core::TraversalControl::Prune;
-                    }
+                            stats.targets_found += 1;
 
-                    let snapshot = serde_json::json!({
-                        "scanId": callback_event_scan_id,
-                        "directoriesScanned": stats.directories_scanned,
-                        "targetsFound": stats.targets_found,
-                        "totalBytesFound": stats.total_bytes_found
-                    });
-                    drop(stats);
-                    target_event_sink(
-                        "scan:progress",
-                        serde_json::to_value(value_event(snapshot)).unwrap(),
-                    );
-                    uncached_core::TraversalControl::Continue
-                },
-            );
+                            let mut registry = registry_for_callback.lock().unwrap();
+                            let accepted = {
+                                let Some(session) = registry.sessions.get_mut(&callback_scan_id)
+                                else {
+                                    return uncached_core::TraversalControl::Cancel;
+                                };
+                                if session.cancelled || session.cancel_token.load(Ordering::Acquire)
+                                {
+                                    false
+                                } else {
+                                    session.target_ids.insert(target.id.clone());
+                                    session.register_size_job(target.id.clone());
+                                    true
+                                }
+                            };
+                            if !accepted {
+                                return uncached_core::TraversalControl::Cancel;
+                            }
+                            registry.targets.insert(
+                                target.id.clone(),
+                                RegisteredTarget {
+                                    target: target.clone(),
+                                    root_path: callback_root.clone(),
+                                    providers: Arc::clone(&callback_providers),
+                                },
+                            );
+                            drop(registry);
+                            emit_target_found(&target_event_sink, &callback_event_scan_id, &target);
+                            crate::logging::info(
+                                "scan",
+                                &format!(
+                                    "target scanId=\"{}\" path=\"{}\" pending=true",
+                                    callback_event_scan_id,
+                                    target.path.display()
+                                ),
+                            );
+                            if !callback_sizing_submitter.submit(SizingJob {
+                                scan_id: callback_event_scan_id.clone(),
+                                target_id: target.id.clone(),
+                                path: target.path.clone(),
+                            }) {
+                                return uncached_core::TraversalControl::Cancel;
+                            }
+                            return uncached_core::TraversalControl::Prune;
+                        }
+
+                        let snapshot = serde_json::json!({
+                            "scanId": callback_event_scan_id,
+                            "directoriesScanned": stats.directories_scanned,
+                            "targetsFound": stats.targets_found,
+                            "totalBytesFound": stats.total_bytes_found
+                        });
+                        drop(stats);
+                        target_event_sink(
+                            "scan:progress",
+                            serde_json::to_value(value_event(snapshot)).unwrap(),
+                        );
+                        uncached_core::TraversalControl::Continue
+                    },
+                );
+                if !matches!(walk_result, Ok(uncached_core::TraversalOutcome::Completed)) {
+                    break;
+                }
+            }
+
             if matches!(walk_result, Ok(uncached_core::TraversalOutcome::Completed)) {
                 if let Some(home) = uncached_core::home_directory() {
                     discover_home_locations(

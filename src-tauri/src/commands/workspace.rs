@@ -6,17 +6,6 @@ use std::sync::atomic::AtomicBool;
 const MAX_PROJECTS: usize = 250;
 const MAX_DEPTH: usize = 4;
 
-/// Roots a plan may index at once. Enforced here, not in the interface.
-fn root_limit() -> usize {
-    if crate::commands::entitlements::current_status().pro_enabled {
-        MAX_ROOTS
-    } else {
-        1
-    }
-}
-
-const MAX_ROOTS: usize = 12;
-
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceProject {
@@ -65,7 +54,7 @@ pub struct WorkspaceIndex {
 
 #[tauri::command]
 pub async fn scan_workspace_index(paths: Vec<String>) -> Result<WorkspaceIndex, String> {
-    let limit = root_limit();
+    let limit = crate::commands::entitlements::root_limit();
     tauri::async_runtime::spawn_blocking(move || build_index(&paths, limit))
         .await
         .map_err(|error| error.to_string())?
@@ -316,7 +305,7 @@ mod tests {
             .iter()
             .map(|root| root.to_string_lossy().into_owned())
             .collect::<Vec<_>>();
-        build_index(&paths, super::MAX_ROOTS).unwrap()
+        build_index(&paths, 12).unwrap()
     }
 
     fn workspace(name: &str, projects: &[&str]) -> std::path::PathBuf {

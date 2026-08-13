@@ -19,6 +19,17 @@ pub fn plan_for_category(category: &Category) -> Plan {
     }
 }
 
+/// Workspace roots a plan may scan or index at once.
+pub fn root_limit() -> usize {
+    if current_status().pro_enabled {
+        MAX_ROOTS
+    } else {
+        1
+    }
+}
+
+const MAX_ROOTS: usize = 12;
+
 pub fn is_free_category(category: &Category) -> bool {
     plan_for_category(category) == Plan::Free
 }
@@ -58,8 +69,19 @@ pub fn get_entitlement_status() -> EntitlementStatus {
 
 #[cfg(test)]
 mod tests {
-    use super::{current_status, is_free_category, plan_for_category, Plan};
+    use super::{current_status, is_free_category, plan_for_category, root_limit, Plan, MAX_ROOTS};
     use crate::models::category::Category;
+
+    #[test]
+    fn the_root_limit_follows_the_plan_and_is_never_zero() {
+        let expected = if current_status().pro_enabled {
+            MAX_ROOTS
+        } else {
+            1
+        };
+        assert_eq!(root_limit(), expected);
+        assert!(root_limit() >= 1);
+    }
 
     #[test]
     fn entitlement_defaults_to_free_without_dev_override() {

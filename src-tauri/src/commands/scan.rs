@@ -5,9 +5,9 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 
 #[tauri::command]
-pub async fn start_scan(app: AppHandle, path: String) -> Result<ScanStartResult, String> {
-    let root = PathBuf::from(path);
-    ScanService::start_scan(&app, &root).map_err(|error| error.to_string())
+pub async fn start_scan(app: AppHandle, paths: Vec<String>) -> Result<ScanStartResult, String> {
+    let roots = paths.into_iter().map(PathBuf::from).collect::<Vec<_>>();
+    ScanService::start_scan(&app, &roots).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
