@@ -15,11 +15,10 @@ type ProLockButtonProps = {
 /** A Pro action that stays visible and keeps its own icon; the lock lives in the tooltip. */
 export function ProLockButton({ label, reason, locked, disabled = false, onClick, children, className = "" }: ProLockButtonProps) {
   const inert = locked || disabled;
-  const state = locked
-    ? "cursor-not-allowed border-pro-200/30 bg-pro-surface text-pro-100"
-    : disabled
-      ? "cursor-not-allowed border-transparent bg-forest-800 text-mist-500"
-      : "border-transparent bg-forest-800 text-mist-300 hover:bg-forest-850 hover:text-sage-300";
+  // Locked looks and responds like enabled: the tooltip carries the plan, not the styling.
+  const state = disabled
+    ? "cursor-not-allowed border-transparent bg-forest-800 text-mist-500"
+    : "border-transparent bg-forest-800 text-mist-300 hover:bg-forest-850 hover:text-sage-300";
 
   return (
     <span className="group/prolock relative inline-flex">

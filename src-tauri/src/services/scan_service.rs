@@ -532,9 +532,8 @@ pub struct ScanService;
 impl ScanService {
     pub fn start_scan(app: &AppHandle, root_paths: &[PathBuf]) -> NukeResult<ScanStartResult> {
         let limit = crate::commands::entitlements::root_limit();
-        let requested = root_paths.len();
-        let mut scan_roots = Vec::new();
-        for root_path in root_paths.iter().take(limit) {
+        let mut canonical = Vec::new();
+        for root_path in root_paths {
             let metadata = std::fs::symlink_metadata(root_path)
                 .map_err(|_| NukeError::NotFound(root_path.display().to_string()))?;
             if !metadata.is_dir() || metadata.file_type().is_symlink() {
@@ -542,8 +541,13 @@ impl ScanService {
                     "Scan root must be a real directory".to_string(),
                 ));
             }
-            scan_roots.push(scan_path(&std::fs::canonicalize(root_path)?));
+            canonical.push(scan_path(&std::fs::canonicalize(root_path)?));
         }
+        // Nested roots collapse into the outermost before the plan limit
+        // applies, so a redundant folder never costs the user a slot.
+        let canonical = crate::scanner::outermost_roots(canonical);
+        let requested = canonical.len();
+        let scan_roots = canonical.into_iter().take(limit).collect::<Vec<_>>();
         if scan_roots.is_empty() {
             return Err(NukeError::NotFound("No scan root selected".to_string()));
         }

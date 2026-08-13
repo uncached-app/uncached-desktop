@@ -64,21 +64,28 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
     if paths.is_empty() {
         return Err("Select at least one folder".to_string());
     }
-    let (accepted, over_limit) = paths.split_at(paths.len().min(limit));
-
-    let mut roots = Vec::new();
-    let mut projects = Vec::new();
-    let mut truncated = false;
-
-    for path in accepted {
+    let mut canonical = Vec::new();
+    for path in paths {
         let root = Path::new(path)
             .canonicalize()
             .map_err(|error| format!("Cannot open workspace: {error}"))?;
         if !root.is_dir() {
             return Err("Workspace path is not a directory".to_string());
         }
+        canonical.push(root);
+    }
+    // Nested roots collapse into the outermost before the plan limit applies,
+    // so a redundant folder never costs the user a slot.
+    let canonical = crate::scanner::outermost_roots(canonical);
+    let (accepted, over_limit) = canonical.split_at(canonical.len().min(limit));
+
+    let mut roots = Vec::new();
+    let mut projects = Vec::new();
+    let mut truncated = false;
+
+    for root in accepted {
         let before = projects.len();
-        discover_projects(&root, &root, 0, &mut projects)?;
+        discover_projects(root, root, 0, &mut projects)?;
         // The cap is shared across roots, so it is reported once for the whole index.
         truncated = truncated || projects.len() >= MAX_PROJECTS && projects.len() > before;
         roots.push(root.to_string_lossy().into_owned());
@@ -89,7 +96,10 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
     Ok(WorkspaceIndex {
         roots,
         projects,
-        roots_over_limit: over_limit.to_vec(),
+        roots_over_limit: over_limit
+            .iter()
+            .map(|root| root.to_string_lossy().into_owned())
+            .collect(),
         root_limit: limit,
         truncated,
     })
@@ -354,7 +364,10 @@ mod tests {
         assert_eq!(index.roots.len(), 1);
         assert_eq!(index.projects.len(), 1);
         assert_eq!(index.projects[0].name, "blog");
-        assert_eq!(index.roots_over_limit, vec![paths[1].clone()]);
+        assert_eq!(
+            index.roots_over_limit,
+            vec![work.canonicalize().unwrap().to_string_lossy().into_owned()]
+        );
         assert_eq!(index.root_limit, 1);
 
         let _ = fs::remove_dir_all(personal);
@@ -410,6 +423,24 @@ mod tests {
         assert_eq!(footprint.source_bytes, footprint.total_bytes);
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_root_nested_in_another_is_replaced_without_duplicating_its_projects() {
+        let outer = workspace("nested-outer", &["api"]);
+        let inner = outer.join("api");
+        let paths = [
+            outer.to_string_lossy().into_owned(),
+            inner.to_string_lossy().into_owned(),
+        ];
+
+        let index = build_index(&paths, 12).unwrap();
+
+        assert_eq!(index.roots.len(), 1);
+        assert_eq!(index.projects.len(), 1);
+        assert!(index.roots_over_limit.is_empty());
+
+        let _ = fs::remove_dir_all(outer);
     }
 
     #[test]
