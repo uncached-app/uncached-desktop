@@ -11,8 +11,10 @@ pub use uncached_core as shared_core;
 use commands::cancel::{cancel_cleanup, cancel_scan};
 use commands::clean::clean_target;
 use commands::cleanup_capabilities;
+use commands::entitlements::get_entitlement_status;
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{get_app_info, get_settings, update_settings};
+use commands::workspace::scan_workspace_index;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,9 +28,11 @@ pub fn run() {
             retry_target_size,
             clean_target,
             cleanup_capabilities,
+            get_entitlement_status,
             get_settings,
             update_settings,
-            get_app_info
+            get_app_info,
+            scan_workspace_index,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

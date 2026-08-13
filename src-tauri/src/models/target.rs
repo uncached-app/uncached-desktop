@@ -1,3 +1,4 @@
+use crate::commands::entitlements::{plan_for_category, Plan};
 use crate::models::category::Category;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,8 @@ pub struct ScanTarget {
     pub path: PathBuf,
     pub name: String,
     pub category: Category,
+    /// Stamped by the native layer so the UI never has to decide what is Free.
+    pub plan: Plan,
     pub size_bytes: u64,
     pub size_has_errors: bool,
     pub size_pending: bool,
@@ -51,12 +54,14 @@ impl ScanTarget {
 
         let id = simple_hash(&path.to_string_lossy());
         let formatted_size = format_size(size_bytes);
+        let plan = plan_for_category(&category);
 
         Self {
             id,
             path,
             name,
             category,
+            plan,
             size_bytes,
             size_has_errors,
             size_pending: false,
@@ -143,5 +148,44 @@ fn format_size(bytes: u64) -> String {
         format!("{:.2} KB", bytes as f64 / KB as f64)
     } else {
         format!("{} B", bytes)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ScanTarget;
+    use crate::models::category::Category;
+    use std::path::PathBuf;
+
+    fn wire(category: Category) -> serde_json::Value {
+        serde_json::to_value(ScanTarget::new(
+            PathBuf::from("/workspace/project/artifact"),
+            category,
+            1,
+            false,
+            None,
+        ))
+        .unwrap()
+    }
+
+    #[test]
+    fn every_target_carries_the_plan_decided_by_the_native_layer() {
+        assert_eq!(wire(Category::NodeModules)["plan"], "free");
+        assert_eq!(wire(Category::CargoTarget)["plan"], "pro");
+        assert_eq!(wire(Category::Custom("unknown".to_string()))["plan"], "pro");
+    }
+
+    #[test]
+    fn resizing_a_target_never_changes_its_plan() {
+        let mut target = ScanTarget::new(
+            PathBuf::from("/workspace/project/node_modules"),
+            Category::NodeModules,
+            0,
+            false,
+            None,
+        );
+        target.set_size(4096, false);
+
+        assert_eq!(serde_json::to_value(&target).unwrap()["plan"], "free");
     }
 }

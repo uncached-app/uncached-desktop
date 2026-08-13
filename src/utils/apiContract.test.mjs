@@ -79,6 +79,7 @@ test("normalizes v1 target DTOs without losing backend identity", () => {
       id: "scan-1-target-1",
       path: "C:\\workspace\\node_modules",
       category: "NodeModules",
+      plan: "free",
       sizeBytes: 0,
       sizePending: true,
       sizeHasErrors: false,
@@ -88,10 +89,48 @@ test("normalizes v1 target DTOs without losing backend identity", () => {
   });
 
   assert.equal(target.target.id, "scan-1-target-1");
+  assert.equal(target.target.plan, "free");
   assert.equal(target.target.name, "node_modules");
   assert.equal(target.target.formattedSize, "");
   assert.equal(target.target.sizePending, true);
   assert.equal(target.target.lastModified, null);
+});
+
+test("keeps the plan the native layer sent instead of deriving it", () => {
+  const target = normalizeTargetFound({
+    scanId: "scan-1",
+    target: {
+      id: "scan-1-target-1",
+      path: "C:\\workspace\\node_modules",
+      category: "NodeModules",
+      plan: "pro",
+      sizeBytes: 1,
+      sizePending: false,
+      sizeHasErrors: false,
+      formattedSize: "1 B",
+    },
+  });
+
+  assert.equal(target.target.plan, "pro");
+});
+
+test("rejects a target without a usable plan", () => {
+  const baseTarget = {
+    id: "scan-1-target-1",
+    path: "C:\\workspace\\node_modules",
+    category: "NodeModules",
+    sizeBytes: 0,
+    sizePending: false,
+    sizeHasErrors: false,
+    formattedSize: "0 B",
+  };
+
+  for (const plan of [undefined, null, "", "FREE", "trial", 1]) {
+    assert.throws(
+      () => normalizeTargetFound({ scanId: "scan-1", target: { ...baseTarget, plan } }),
+      /target payload shape/,
+    );
+  }
 });
 
 test("rejects malformed target display fields", () => {
@@ -99,6 +138,7 @@ test("rejects malformed target display fields", () => {
     id: "scan-1-target-1",
     path: "C:\\workspace\\node_modules",
     category: "NodeModules",
+    plan: "free",
     sizeBytes: 0,
     sizePending: false,
     sizeHasErrors: false,
@@ -170,7 +210,7 @@ test("rejects malformed target identity payloads before normalization", () => {
       {
         apiVersion: "v1",
         platform: "windows",
-        data: { scanId: "scan-1", target: { id: "", path: "C:\\temp", category: "Cache", sizeBytes: 1, sizePending: false, sizeHasErrors: false, formattedSize: "1 B" } },
+        data: { scanId: "scan-1", target: { id: "", path: "C:\\temp", category: "Cache", plan: "pro", sizeBytes: 1, sizePending: false, sizeHasErrors: false, formattedSize: "1 B" } },
         error: null,
       },
       normalizeTargetFound,

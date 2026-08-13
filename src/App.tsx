@@ -4,19 +4,25 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CompletionView } from "./components/completion/CompletionView";
 import { FindingsSection } from "./components/findings/FindingsSection";
 import { Footer } from "./components/layout/Footer";
+import { ModuleBar } from "./components/layout/ModuleBar";
 import { Titlebar } from "./components/layout/Titlebar";
 import { ScanView } from "./components/scan/ScanView";
 import { SettingsPanel } from "./components/settings/SettingsPanel";
 import { WorkspaceForm } from "./components/workspace/WorkspaceForm";
+import { WorkspaceModule } from "./components/workspace/WorkspaceModule";
 import { useScanWorkspace } from "./hooks/useScanWorkspace";
+import { useEntitlement } from "./hooks/useEntitlement";
 import { useSettings } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
+import type { AppModule } from "./types/module";
 
 function App() {
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
   const settings = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeModule, setActiveModule] = useState<AppModule>("purge");
   const cleanMode = settings.settings?.defaultCleanMode ?? "Trash";
+  const entitlement = useEntitlement();
   const {
     rootPath,
     setRootPath,
@@ -65,9 +71,14 @@ function App() {
 
   return (
     <main className="relative flex h-screen flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
-      <Titlebar step={step} onOpenSettings={() => setSettingsOpen(true)} />
-      <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center w-full overflow-hidden">
+      <Titlebar step={step} activeModule={activeModule} onOpenSettings={() => setSettingsOpen(true)} />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center w-full overflow-hidden">
+            {activeModule === "workspace" ? (
+              <WorkspaceModule proEnabled={entitlement.proEnabled} rootPath={rootPath} setRootPath={setRootPath} pickFolder={pickFolder} />
+            ) : (
+              <>
           <WorkspaceForm
             step={step}
             rootPath={rootPath}
@@ -106,6 +117,7 @@ function App() {
             cleanTarget={cleanTarget}
             refreshTargetSize={refreshTargetSize}
             cleanupModeSupported={cleanupModeSupported}
+            proEnabled={entitlement.proEnabled}
           />
 
           <CompletionView
@@ -114,8 +126,12 @@ function App() {
             cleanupMode={cleanupMode}
             resetScan={resetScan}
           />
+              </>
+            )}
+          </div>
+          {!isMac && activeModule === "purge" && <Footer onOpenSettings={() => setSettingsOpen(true)} />}
         </div>
-        {!isMac && <Footer onOpenSettings={() => setSettingsOpen(true)} />}
+        <ModuleBar activeModule={activeModule} onChange={setActiveModule} proEnabled={entitlement.proEnabled} />
       </div>
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} {...settings} />
     </main>

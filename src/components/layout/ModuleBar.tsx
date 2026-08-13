@@ -1,0 +1,51 @@
+import { BrainCircuit, FolderKanban, PackageOpen } from "lucide-react";
+import type React from "react";
+import type { AppModule } from "../../types/module";
+
+type ModuleBarProps = {
+  activeModule: AppModule;
+  onChange: (module: AppModule) => void;
+  proEnabled: boolean;
+};
+
+export function ModuleBar({ activeModule, onChange, proEnabled }: ModuleBarProps) {
+  return (
+    <nav className="flex shrink-0 items-center justify-center gap-1 border-t border-forest-800 bg-forest-950 px-3 py-2 sm:gap-2" aria-label="Uncached modules">
+      <ModuleButton active={activeModule === "purge"} label="Uncached Purge" onClick={() => onChange("purge")}>
+        <PackageOpen size={16} strokeWidth={1.8} aria-hidden="true" />
+        <span>Reclaim</span>
+      </ModuleButton>
+      <ModuleButton active={activeModule === "workspace"} label={proEnabled ? "Uncached Workspace" : "Uncached Workspace (Pro)"} onClick={() => onChange("workspace")}>
+        <FolderKanban size={16} strokeWidth={1.8} aria-hidden="true" />
+        <span>Workspace</span>
+      </ModuleButton>
+      <ModuleButton active={false} label="Uncached Intelligence (Pro)" disabled>
+        <BrainCircuit size={16} strokeWidth={1.8} aria-hidden="true" />
+        <span className="hidden sm:inline">Intelligence</span>
+      </ModuleButton>
+    </nav>
+  );
+}
+
+function ModuleButton({ active, label, onClick, disabled = false, children }: {
+  active: boolean;
+  label: string;
+  onClick?: () => void;
+  pro?: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      aria-current={active ? "page" : undefined}
+      disabled={disabled}
+      onClick={onClick}
+      className={`relative inline-flex min-h-9 items-center gap-2 rounded-xl px-3 text-xs font-medium transition-colors sm:px-4 ${active ? "bg-sage-400 text-forest-950" : "text-mist-500 hover:bg-forest-800 hover:text-mist-100"} disabled:cursor-not-allowed disabled:opacity-45`}
+    >
+      {children}
+    </button>
+  );
+}

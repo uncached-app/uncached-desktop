@@ -1,12 +1,14 @@
 import type { CleanMode } from "./settings";
 
 export type Category = string;
+export type Plan = "free" | "pro";
 
 export type ScanTarget = {
   id: string;
   path: string;
   name: string;
   category: Category;
+  plan: Plan;
   sizeBytes: number;
   sizeHasErrors: boolean;
   sizePending: boolean;

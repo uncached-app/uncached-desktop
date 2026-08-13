@@ -5,7 +5,9 @@ import type { CleanResult, ScanTarget, Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import { formatBytes } from "../../utils/format";
 import { getCleanupReadyTargets } from "../../utils/scanReview.mjs";
+import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { TargetCard } from "./TargetCard";
+import { openExternalUrl } from "../../utils/externalLink";
 
 interface FindingsSectionProps {
   step: Step;
@@ -19,6 +21,7 @@ interface FindingsSectionProps {
   cleanTarget: (targetId: string, confirmation?: string | null) => Promise<CleanResult | null>;
   refreshTargetSize: (targetId: string) => void;
   cleanupModeSupported: boolean;
+  proEnabled: boolean;
   onBack: () => void;
 }
 
@@ -33,14 +36,16 @@ export function FindingsSection({
   refreshTargetSize,
   onBack,
   cleanupModeSupported,
+  proEnabled,
 }: FindingsSectionProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const readyTargets = getCleanupReadyTargets(targets);
-  const selectedTargets = readyTargets.filter((target) => selectedIds.has(target.id));
-  const allSelected = readyTargets.length > 0 && selectedTargets.length === readyTargets.length;
+  const freeTargets = proEnabled ? readyTargets : readyTargets.filter(isFreeTarget);
+  const selectedTargets = freeTargets.filter((target) => selectedIds.has(target.id));
+  const allSelected = freeTargets.length > 0 && selectedTargets.length === freeTargets.length;
   const deleteDisabled = scanning || confirming || deleting || selectedTargets.length === 0 || !cleanupModeSupported;
   const reducedMotion = useReducedMotion();
   const permanent = cleanMode === "Permanent";
@@ -48,7 +53,8 @@ export function FindingsSection({
 
   const selectedNoun = selectedTargets.length === 1 ? "target" : "targets";
 
-  const totalBytesFound = readyTargets.reduce((sum, t) => sum + t.sizeBytes, 0);
+  const { freeBytes, proBytes } = summarizePlans(readyTargets);
+  const totalBytesFound = freeBytes + proBytes;
   const selectedBytes = selectedTargets.reduce((sum, t) => sum + t.sizeBytes, 0);
 
   useEffect(() => {
@@ -75,7 +81,7 @@ export function FindingsSection({
   }
 
   function toggleAll() {
-    setSelectedIds(allSelected ? new Set() : new Set(readyTargets.map((target) => target.id)));
+    setSelectedIds(allSelected ? new Set() : new Set(freeTargets.map((target) => target.id)));
   }
 
   async function confirmDelete() {
@@ -117,12 +123,18 @@ export function FindingsSection({
               <h2 className="text-2xl font-semibold tracking-[-0.04em] text-mist-100 sm:text-3xl">
                 {targets.length} {targets.length === 1 ? "target" : "targets"}
               </h2>
-              {readyTargets.length > 0 && (
+               {readyTargets.length > 0 && (
                 <span className="rounded-md border border-sage-400 bg-forest-900 px-2.5 py-0.5 font-mono text-xs font-medium text-sage-300">
                   {formatBytes(totalBytesFound)} total
                 </span>
               )}
             </div>
+            {readyTargets.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
+                <span className="rounded-md bg-sage-400/10 px-2.5 py-1 text-sage-300">Free · {formatBytes(freeBytes)}</span>
+                {proBytes > 0 && <span className="rounded-md bg-pro-surface px-2.5 py-1 text-pro-100">Pro · {formatBytes(proBytes)}</span>}
+              </div>
+            )}
             <p className="mt-1.5 text-sm text-mist-500">
                {permanent
                  ? "Selected targets are deleted permanently. Not recoverable."
@@ -134,7 +146,7 @@ export function FindingsSection({
               }`}
               aria-live="polite"
             >
-              {selectedTargets.length > 0
+               {selectedTargets.length > 0
                 ? `${selectedTargets.length} selected · ${formatBytes(selectedBytes)}`
                 : "Placeholder"}
             </p>
@@ -202,8 +214,23 @@ export function FindingsSection({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto pr-1.5">
+          {!proEnabled && proBytes > 0 && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pro-200/30 bg-pro-surface px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-mist-100">{formatBytes(proBytes)} more available with Pro</p>
+                <p className="mt-1 text-xs text-mist-500">Unlock every cleaner, Workspace and Intelligence.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => openExternalUrl("https://uncached.app/pro")}
+                className="rounded-xl bg-pro-200 px-3 py-2 text-xs font-semibold text-forest-950 transition-colors hover:bg-pro-100"
+              >
+                Get Uncached Pro
+              </button>
+            </div>
+          )}
           <div className="grid gap-3">
-            {targets.map((target) => (
+              {targets.map((target) => (
               <motion.div
                 key={target.id}
                 initial={false}
@@ -212,8 +239,9 @@ export function FindingsSection({
                   target={target}
                   isCleaning={cleaningTargetIds.has(target.id)}
                   selected={selectedIds.has(target.id)}
-                  onToggle={toggleTarget}
-                  onRefreshSize={refreshTargetSize}
+                   onToggle={toggleTarget}
+                   onRefreshSize={refreshTargetSize}
+                   proEnabled={proEnabled}
                 />
               </motion.div>
             ))}

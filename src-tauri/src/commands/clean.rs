@@ -299,6 +299,14 @@ pub async fn clean_target(
         Ok(value) => value,
         Err(error) => return clean_command_failure(&error),
     };
+    if !crate::commands::entitlements::is_free_category(&registered.target.category)
+        && !crate::commands::entitlements::current_status().pro_enabled
+    {
+        ScanService::release_cleanup(&target_id);
+        return clean_command_failure(&crate::errors::NukeError::PermissionDenied(
+            "This cleaner requires Uncached Pro".to_string(),
+        ));
+    }
     let settings = match settings_for_clean(mode, || crate::commands::settings::load_settings(&app))
     {
         Ok(settings) => settings,

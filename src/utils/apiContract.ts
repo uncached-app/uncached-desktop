@@ -1,6 +1,7 @@
 import type {
   CleanResult,
   CleanupCapabilities,
+  Plan,
   ScanCancelled,
   ScanFinished,
   ScanFailed,
@@ -73,6 +74,7 @@ export type RawTargetFound = {
     path: string;
     name?: string;
     category: string;
+    plan: Plan;
     sizeBytes: number;
     sizePending: boolean;
     sizeHasErrors: boolean;
@@ -314,6 +316,8 @@ export function normalizeTargetFound(payload: RawTargetFound) {
   }
   if (
     !isNonEmptyString(target.category) ||
+    // The plan is decided in Rust; the UI reads it and never recomputes it.
+    (target.plan !== "free" && target.plan !== "pro") ||
     !isFiniteNonNegativeNumber(target.sizeBytes) ||
     typeof target.sizePending !== "boolean" ||
     typeof target.sizeHasErrors !== "boolean" ||
