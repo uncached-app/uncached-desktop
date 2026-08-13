@@ -103,7 +103,7 @@ export function WorkspaceForm({
               locked={!proEnabled}
               disabled={!rootPath.trim()}
               onClick={() => addRoot(rootPath)}
-              className="grid size-10 shrink-0 place-items-center rounded-xl border border-transparent bg-forest-800 text-mist-300 transition-colors hover:bg-forest-850 hover:text-sage-300"
+              className="size-10 rounded-xl"
             >
               <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
             </ProLockButton>

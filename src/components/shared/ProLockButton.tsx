@@ -8,12 +8,18 @@ type ProLockButtonProps = {
   disabled?: boolean;
   onClick: () => void;
   children: ReactNode;
+  /** Shape only — size, radius, layout. Interactive state is owned here. */
   className?: string;
 };
 
 /** A Pro action that stays visible and keeps its own icon; the lock lives in the tooltip. */
 export function ProLockButton({ label, reason, locked, disabled = false, onClick, children, className = "" }: ProLockButtonProps) {
   const inert = locked || disabled;
+  const state = locked
+    ? "cursor-not-allowed border-pro-200/30 bg-pro-surface text-pro-100"
+    : disabled
+      ? "cursor-not-allowed border-transparent bg-forest-800 text-mist-500"
+      : "border-transparent bg-forest-800 text-mist-300 hover:bg-forest-850 hover:text-sage-300";
 
   return (
     <span className="group/prolock relative inline-flex">
@@ -23,7 +29,7 @@ export function ProLockButton({ label, reason, locked, disabled = false, onClick
         onClick={() => { if (!inert) onClick(); }}
         aria-disabled={inert}
         aria-label={locked ? `${label}. ${reason}` : label}
-        className={`${className} ${locked ? "cursor-not-allowed border-pro-200/30 bg-pro-surface text-pro-100" : disabled ? "cursor-not-allowed text-mist-500" : ""}`}
+        className={`grid shrink-0 place-items-center border transition-colors ${className} ${state}`}
       >
         {children}
       </button>

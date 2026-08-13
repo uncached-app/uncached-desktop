@@ -79,7 +79,7 @@ function WorkspaceEntry({ proEnabled, rootPath, setRootPath, pickFolder, roots, 
           locked={!proEnabled}
           disabled={!pending}
           onClick={() => { addRoot(pending); setRootPath(""); }}
-          className="grid size-9 shrink-0 place-items-center rounded-lg border border-transparent bg-forest-800 text-mist-300 hover:text-sage-300"
+          className="size-10 rounded-xl"
         >
           <Plus size={15} />
         </ProLockButton>
