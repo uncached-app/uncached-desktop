@@ -13,6 +13,7 @@ import { useSettings } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
 
 function App() {
+  const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
   const settings = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const cleanMode = settings.settings?.defaultCleanMode ?? "Trash";
@@ -63,8 +64,8 @@ function App() {
   }
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-forest-950 text-mist-100">
-      <Titlebar step={step} />
+    <main className="relative flex h-screen flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
+      <Titlebar step={step} onOpenSettings={() => setSettingsOpen(true)} />
       <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden px-5 py-5 sm:px-8 lg:px-12">
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center w-full overflow-hidden">
           <WorkspaceForm
@@ -114,8 +115,7 @@ function App() {
             resetScan={resetScan}
           />
         </div>
-
-        <Footer onOpenSettings={() => setSettingsOpen(true)} />
+        {!isMac && <Footer onOpenSettings={() => setSettingsOpen(true)} />}
       </div>
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} {...settings} />
     </main>
