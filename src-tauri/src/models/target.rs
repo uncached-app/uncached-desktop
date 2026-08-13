@@ -21,6 +21,11 @@ pub struct ScanTarget {
     #[serde(serialize_with = "serialize_path_lossy")]
     pub path: PathBuf,
     pub name: String,
+    /// The tool's own name for the finding, when the directory's basename does
+    /// not identify it. `_cacache`, `store` and `caches` say nothing on their
+    /// own; "npm cache" and "pnpm store" do. Absent for anything found by
+    /// walking a workspace, where the basename is the name.
+    pub label: Option<String>,
     pub category: Category,
     /// Stamped by the native layer so the UI never has to decide what is Free.
     pub plan: Plan,
@@ -42,16 +47,36 @@ impl ScanTarget {
             .ok()
             .and_then(|metadata| metadata.modified().ok())
             .map(DateTime::<Utc>::from);
-        let mut ui_target = Self::pending(
-            target.path,
-            category_from_core(target.category),
-            last_modified,
-        );
+        let mut ui_target = Self::pending(target.path, target.category, last_modified);
         ui_target.id = format!("{scan_id}-{}", ui_target.id);
         ui_target.size_bytes = target.size_bytes;
         ui_target.formatted_size = format_size(target.size_bytes);
         ui_target.identity = target.identity;
         ui_target
+    }
+
+    /// Builds a target for a catalogued location found outside the workspace.
+    ///
+    /// Confidence comes from the catalogue rather than from the ground around
+    /// the directory: there is no project above `~/Library/Caches`, and asking
+    /// for one would report "no project found" for every discovery — true, and
+    /// useless. What the entry is, and what removing it costs, were both
+    /// decided in the core when the location was catalogued.
+    pub fn from_discovery(scan_id: &str, discovery: &uncached_core::Discovery) -> Self {
+        let last_modified = std::fs::metadata(&discovery.path)
+            .ok()
+            .and_then(|metadata| metadata.modified().ok())
+            .map(DateTime::<Utc>::from);
+        let mut target = Self::pending(
+            discovery.path.clone(),
+            discovery.category.clone(),
+            last_modified,
+        );
+        target.id = format!("{scan_id}-{}", target.id);
+        target.label = Some(discovery.label.to_owned());
+        target.confidence = uncached_core::assess(uncached_core::discovery::signals_for(discovery));
+        target.identity = uncached_core::filesystem::file_identity(&discovery.path);
+        target
     }
 
     pub fn new(
@@ -77,6 +102,7 @@ impl ScanTarget {
             id,
             path,
             name,
+            label: None,
             category,
             plan,
             confidence,
@@ -109,39 +135,11 @@ impl ScanTarget {
     pub fn to_core_dto(&self) -> uncached_core::contract::v1::ScanTargetDto {
         uncached_core::contract::v1::ScanTargetDto {
             path: self.path.to_string_lossy().into_owned(),
-            category: category_to_core(&self.category),
+            category: self.category.clone(),
             size_bytes: self.size_bytes,
             size_pending: self.size_pending,
             size_has_errors: self.size_has_errors,
         }
-    }
-}
-
-fn category_from_core(category: uncached_core::Category) -> Category {
-    match category {
-        uncached_core::Category::NodeModules => Category::NodeModules,
-        uncached_core::Category::CargoTarget => Category::CargoTarget,
-        uncached_core::Category::NextJs => Category::NextJs,
-        uncached_core::Category::Turbo => Category::Turbo,
-        uncached_core::Category::PyCache => Category::PyCache,
-        uncached_core::Category::Gradle => Category::Gradle,
-        uncached_core::Category::DotNetObj => Category::DotNetObj,
-        uncached_core::Category::Docker => Category::Docker,
-        uncached_core::Category::Custom(name) => Category::Custom(name),
-    }
-}
-
-fn category_to_core(category: &Category) -> uncached_core::Category {
-    match category {
-        Category::NodeModules => uncached_core::Category::NodeModules,
-        Category::CargoTarget => uncached_core::Category::CargoTarget,
-        Category::NextJs => uncached_core::Category::NextJs,
-        Category::Turbo => uncached_core::Category::Turbo,
-        Category::PyCache => uncached_core::Category::PyCache,
-        Category::Gradle => uncached_core::Category::Gradle,
-        Category::DotNetObj => uncached_core::Category::DotNetObj,
-        Category::Docker => uncached_core::Category::Docker,
-        Category::Custom(name) => uncached_core::Category::Custom(name.clone()),
     }
 }
 
@@ -172,6 +170,7 @@ fn format_size(bytes: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::ScanTarget;
+    use crate::commands::entitlements::Plan;
     use crate::models::category::Category;
     use std::path::PathBuf;
 
@@ -222,7 +221,12 @@ mod tests {
             std::thread::current().id()
         ));
         let cases = [
-            ("node", "package.json", Category::NodeModules, "node_modules"),
+            (
+                "node",
+                "package.json",
+                Category::NodeModules,
+                "node_modules",
+            ),
             ("gradle", "build.gradle", Category::Gradle, ".gradle"),
             ("python", "pyproject.toml", Category::PyCache, "__pycache__"),
         ];
@@ -244,6 +248,30 @@ mod tests {
         }
 
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    /// A discovered cache is named by its tool, not by its directory. Falling
+    /// back to the basename would list "store", "_cacache" and "caches" and
+    /// leave the user to guess which tool each one belongs to.
+    #[test]
+    fn a_discovered_location_is_named_after_its_tool() {
+        let discovery = uncached_core::Discovery {
+            path: std::env::temp_dir().join("uncached-discovery-target/store"),
+            label: "pnpm store",
+            category: Category::PackageManagerCache,
+            kind: uncached_core::LocationKind::SharedCache,
+        };
+
+        let target = ScanTarget::from_discovery("scan-1", &discovery);
+
+        assert_eq!(target.label.as_deref(), Some("pnpm store"));
+        assert_eq!(target.name, "store");
+        assert_eq!(target.plan, Plan::Pro);
+        assert_eq!(
+            target.confidence.level,
+            uncached_core::ConfidenceLevel::Medium,
+            "a shared cache is never offered as high confidence"
+        );
     }
 
     #[test]

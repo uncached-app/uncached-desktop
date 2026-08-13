@@ -95,6 +95,33 @@ test("normalizes v1 target DTOs without losing backend identity", () => {
   assert.equal(target.target.formattedSize, "");
   assert.equal(target.target.sizePending, true);
   assert.equal(target.target.lastModified, null);
+  assert.equal(target.target.label, null);
+});
+
+test("carries the tool label a discovered cache is named by", () => {
+  const discovered = {
+    scanId: "scan-1",
+    target: {
+      id: "scan-1-target-2",
+      path: "/Users/dev/Library/pnpm/store",
+      label: "pnpm store",
+      category: "PackageManagerCache",
+      plan: "pro",
+      confidence: { level: "medium", signals: ["knownArtifact", "knownLocation", "sharedCache"] },
+      sizeBytes: 1,
+      sizePending: false,
+      sizeHasErrors: false,
+      formattedSize: "1 B",
+    },
+  };
+
+  assert.equal(normalizeTargetFound(discovered).target.label, "pnpm store");
+  // An empty label would render as a nameless row, which is worse than the
+  // basename it was meant to replace.
+  assert.throws(
+    () => normalizeTargetFound({ ...discovered, target: { ...discovered.target, label: "" } }),
+    /shape/,
+  );
 });
 
 test("keeps the plan the native layer sent instead of deriving it", () => {

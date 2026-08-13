@@ -16,6 +16,8 @@ export type ScanTarget = {
   id: string;
   path: string;
   name: string;
+  /** The tool's name for a discovered cache. Null for workspace findings. */
+  label: string | null;
   category: Category;
   plan: Plan;
   confidence: Confidence;

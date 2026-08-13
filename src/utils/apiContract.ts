@@ -75,6 +75,9 @@ export type RawTargetFound = {
     id: string;
     path: string;
     name?: string;
+    // The tool's own name for a discovered cache, where the directory's
+    // basename identifies nothing. Null for anything found in a workspace.
+    label?: string | null;
     category: string;
     plan: Plan;
     confidence: Confidence;
@@ -345,6 +348,13 @@ export function normalizeTargetFound(payload: RawTargetFound) {
   if (hasOwn(target, "name") && (typeof target.name !== "string" || target.name.length === 0)) {
     throw new Error("Invalid target payload shape");
   }
+  if (
+    hasOwn(target, "label") &&
+    target.label !== null &&
+    (typeof target.label !== "string" || target.label.length === 0)
+  ) {
+    throw new Error("Invalid target payload shape");
+  }
   if (hasOwn(target, "lastModified") && target.lastModified !== null && typeof target.lastModified !== "string") {
     throw new Error("Invalid target payload shape");
   }
@@ -353,6 +363,7 @@ export function normalizeTargetFound(payload: RawTargetFound) {
     target: {
       ...target,
       name: target.name || targetName(target.path),
+      label: target.label ?? null,
       formattedSize: target.sizePending ? "" : target.formattedSize,
       lastModified: target.lastModified ?? null,
     },

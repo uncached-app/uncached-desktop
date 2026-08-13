@@ -26,7 +26,7 @@ impl CleanService {
 
         let target = uncached_core::ScanTarget::new(
             registered.target.path.clone(),
-            core_category(&registered.target.category),
+            registered.target.category.clone(),
             registered.target.size_bytes,
         )
         .with_identity(registered.target.identity);
@@ -63,22 +63,6 @@ impl CleanService {
             mode_used: mode,
             message: None,
         })
-    }
-}
-
-fn core_category(category: &crate::models::category::Category) -> uncached_core::Category {
-    match category {
-        crate::models::category::Category::NodeModules => uncached_core::Category::NodeModules,
-        crate::models::category::Category::CargoTarget => uncached_core::Category::CargoTarget,
-        crate::models::category::Category::NextJs => uncached_core::Category::NextJs,
-        crate::models::category::Category::Turbo => uncached_core::Category::Turbo,
-        crate::models::category::Category::DotNetObj => uncached_core::Category::DotNetObj,
-        crate::models::category::Category::PyCache => uncached_core::Category::PyCache,
-        crate::models::category::Category::Gradle => uncached_core::Category::Gradle,
-        crate::models::category::Category::Docker => uncached_core::Category::Docker,
-        crate::models::category::Category::Custom(name) => {
-            uncached_core::Category::Custom(name.clone())
-        }
     }
 }
 

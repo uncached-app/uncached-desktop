@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Boxes, Check, Coffee, Container, Copy, Folder, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
+import { Bird, Box, Boxes, Check, Code, Coffee, Container, Copy, Database, Feather, Folder, Hammer, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw, ShieldCheck, ShieldQuestion, Sparkles, TriangleAlert } from "lucide-react";
 import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
 
 // The level is decided in Rust and arrives as a reason code. The wording is
@@ -14,6 +14,9 @@ const CONFIDENCE_REASONS: Record<string, string> = {
   versionManagerPath: "Version manager directory, holds globally installed packages",
   systemPath: "Belongs to the operating system, not to a project",
   noProjectContext: "No project found around it",
+  knownLocation: "Known cache location belonging to a specific tool",
+  sharedCache: "Shared by every project: clearing it makes future installs slower",
+  toolState: "Belongs to a tool rather than to a build",
 };
 
 const CONFIDENCE_PRESENTATION: Record<
@@ -56,6 +59,14 @@ const CATEGORY_PRESENTATION: Record<string, { label: string; icon: typeof Packag
   Gradle: { label: "JVM", icon: Coffee },
   DotNetObj: { label: ".NET", icon: Boxes },
   Docker: { label: "Docker", icon: Container },
+  XcodeDerivedData: { label: "Xcode", icon: Hammer },
+  SwiftBuild: { label: "Swift", icon: Bird },
+  DartTool: { label: "Dart", icon: Feather },
+  // The three below only ever come from discovery, where the badge names the
+  // kind of cache and the finding's own label names the tool that wrote it.
+  PackageManagerCache: { label: "Package cache", icon: Database },
+  AiToolCache: { label: "AI tool", icon: Sparkles },
+  EditorCache: { label: "Editor", icon: Code },
 };
 
 const CUSTOM_CATEGORY_PREFIX = "Custom:";
@@ -207,7 +218,10 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
               <CategoryIcon size={12} className="text-sage-300" aria-hidden="true" />
               {category.label}
             </span>
-            <span className="text-xs font-medium text-mist-500">{target.name}</span>
+            {/* A discovered cache is named by the tool that wrote it. Its
+                directory is called `store`, `_cacache` or `Cache`, which would
+                leave the user guessing which tool each row belongs to. */}
+            <span className="text-xs font-medium text-mist-500">{target.label ?? target.name}</span>
             {proLocked && (
               <span className="inline-flex items-center gap-1 rounded-md border border-pro-200/30 bg-pro-surface px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pro-100">
                 <LockKeyhole size={10} aria-hidden="true" /> Pro

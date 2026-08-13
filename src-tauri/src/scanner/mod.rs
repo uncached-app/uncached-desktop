@@ -18,6 +18,15 @@ pub fn get_default_providers(
     if settings.detect_gradle_cache {
         providers.add_scanner(uncached_core::GradleScanner);
     }
+    // Registered unconditionally, like the Python cache above: each of these
+    // requires its ecosystem's project file beside the directory, so on a
+    // machine without that ecosystem they match nothing and cost nothing. A
+    // toggle per provider only earns its place in the settings screen once
+    // there is a reason to turn one off.
+    providers.add_scanner(uncached_core::XcodeDerivedDataScanner);
+    providers.add_scanner(uncached_core::SwiftBuildScanner);
+    providers.add_scanner(uncached_core::DotNetObjScanner);
+    providers.add_scanner(uncached_core::DartToolScanner);
     providers
 }
 
@@ -32,7 +41,7 @@ mod tests {
     }
 
     #[test]
-    fn default_settings_register_six_active_provider_categories() {
+    fn default_settings_register_every_provider_category() {
         let providers = get_default_providers(&AppSettings::default());
         let categories = active_categories(&providers);
 
@@ -45,6 +54,10 @@ mod tests {
                 Category::Turbo,
                 Category::PyCache,
                 Category::Gradle,
+                Category::XcodeDerivedData,
+                Category::SwiftBuild,
+                Category::DotNetObj,
+                Category::DartTool,
             ]
         );
     }
@@ -87,8 +100,9 @@ mod tests {
             let providers = get_default_providers(&settings);
             let categories = active_categories(&providers);
 
-            assert_eq!(providers.len(), 5, "{name} provider count");
-            assert_eq!(categories.len(), 5, "{name} active categories");
+            let all = get_default_providers(&AppSettings::default()).len();
+            assert_eq!(providers.len(), all - 1, "{name} provider count");
+            assert_eq!(categories.len(), all - 1, "{name} active categories");
             assert!(providers.scanner_for(&Category::PyCache).is_some());
             assert!(
                 providers.scanner_for(&removed).is_none(),

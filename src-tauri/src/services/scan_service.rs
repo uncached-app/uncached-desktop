@@ -333,18 +333,19 @@ impl SizingController {
             })
         };
         let sizing_cancel_token = Arc::clone(&cancel_token);
-        let calculator: SizeCalculator = Arc::new(move |path| {
-            match uncached_core::filesystem::directory_size_report_with_cancel(
-                path,
-                &sizing_cancel_token,
-            ) {
-                Ok(Some(report)) => report,
-                Ok(None) | Err(_) => crate::filesystem::size::DirSize {
-                    bytes: 0,
-                    errors: 1,
+        let calculator: SizeCalculator =
+            Arc::new(
+                move |path| match uncached_core::filesystem::directory_size_report_with_cancel(
+                    path,
+                    &sizing_cancel_token,
+                ) {
+                    Ok(Some(report)) => report,
+                    Ok(None) | Err(_) => crate::filesystem::size::DirSize {
+                        bytes: 0,
+                        errors: 1,
+                    },
                 },
-            }
-        });
+            );
         Self::with_hooks(
             sizing_worker_count(),
             calculator,
@@ -578,6 +579,7 @@ impl ScanService {
                     let _ = app.emit(event, payload);
                 })
             };
+            let discovery_event_sink = Arc::clone(&target_event_sink);
             let stats = Arc::new(Mutex::new(ScanStats::default()));
             let sizing =
                 SizingController::new(&app_handle, &stats, started_at, Arc::clone(&cancel_token));
@@ -671,6 +673,18 @@ impl ScanService {
                     uncached_core::TraversalControl::Continue
                 },
             );
+            if matches!(walk_result, Ok(uncached_core::TraversalOutcome::Completed)) {
+                if let Some(home) = uncached_core::home_directory() {
+                    discover_home_locations(
+                        &worker_scan_id,
+                        &home,
+                        &discovery_event_sink,
+                        &stats,
+                        &cancel_token,
+                        &sizing_submitter,
+                    );
+                }
+            }
             drop(sizing_submitter);
 
             match walk_result {
@@ -1129,6 +1143,78 @@ fn emit_finished(
     );
 }
 
+/// Reports the catalogued locations that exist on this machine.
+///
+/// These live in the home directory, so no workspace walk reaches them however
+/// long it runs — which is why this is a separate phase rather than another
+/// provider. It runs once the walk has completed, and never after a cancel:
+/// stopping a scan should stop everything the scan was going to do.
+///
+/// The targets register against the home directory with the catalogue's own
+/// provider set, so cleanup validates them exactly as it validates anything
+/// found in a workspace. Discovery widens what the product can see; it does not
+/// widen what the product may delete.
+fn discover_home_locations(
+    scan_id: &str,
+    home: &Path,
+    event_sink: &EventSink,
+    stats: &Arc<Mutex<ScanStats>>,
+    cancel_token: &Arc<AtomicBool>,
+    sizing: &SizingSubmitter,
+) {
+    let discoveries = uncached_core::probe_home(home);
+    if discoveries.is_empty() {
+        return;
+    }
+    let providers = Arc::new(uncached_core::KnownLocationScanner::provider_set(
+        home.to_path_buf(),
+    ));
+    crate::logging::info(
+        "scan",
+        &format!(
+            "discovery scanId=\"{scan_id}\" locations={} home=\"{}\"",
+            discoveries.len(),
+            home.display()
+        ),
+    );
+
+    for discovery in &discoveries {
+        if cancel_token.load(Ordering::Acquire) {
+            return;
+        }
+        let target = ScanTarget::from_discovery(scan_id, discovery);
+
+        let mut registry = registry().lock().unwrap();
+        let Some(session) = registry.sessions.get_mut(scan_id) else {
+            return;
+        };
+        if session.cancelled || session.cancel_token.load(Ordering::Acquire) {
+            return;
+        }
+        session.target_ids.insert(target.id.clone());
+        session.register_size_job(target.id.clone());
+        registry.targets.insert(
+            target.id.clone(),
+            RegisteredTarget {
+                target: target.clone(),
+                root_path: home.to_path_buf(),
+                providers: Arc::clone(&providers),
+            },
+        );
+        drop(registry);
+
+        stats.lock().unwrap().targets_found += 1;
+        emit_target_found(event_sink, scan_id, &target);
+        if !sizing.submit(SizingJob {
+            scan_id: scan_id.to_owned(),
+            target_id: target.id.clone(),
+            path: target.path.clone(),
+        }) {
+            return;
+        }
+    }
+}
+
 fn emit_target_found(event_sink: &EventSink, scan_id: &str, target: &ScanTarget) {
     event_sink(
         "scan:target_found",
@@ -1148,8 +1234,9 @@ fn scan_id_from_target_id(target_id: &str) -> String {
 mod tests {
     use super::{
         error_event, platform, providers_for_scan, registry, scan_failed_event,
-        scan_finished_event, target_found_event, target_sized_event, CleanupControl,
-        RegisteredTarget, ScanService, ScanStartResult, SizingController, SizingJob, NEXT_SCAN_ID,
+        scan_finished_event, target_found_event, target_sized_event, CleanupControl, EventSink,
+        RegisteredTarget, ScanService, ScanStartResult, ScanStats, SizingController, SizingJob,
+        NEXT_SCAN_ID,
     };
     use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
@@ -1159,8 +1246,8 @@ mod tests {
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use std::path::PathBuf;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::{mpsc, Arc, Barrier};
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    use std::sync::{mpsc, Arc, Barrier, Mutex};
     use std::thread;
 
     #[test]
@@ -1211,6 +1298,7 @@ mod tests {
                     "confidence",
                     "formattedSize",
                     "id",
+                    "label",
                     "lastModified",
                     "name",
                     "path",
@@ -1410,6 +1498,90 @@ mod tests {
         assert!(session.pending_size_ids.is_empty());
     }
 
+    /// Exercises the discovery phase against a home directory built for the
+    /// test, so the assertions do not depend on which tools this machine has.
+    /// What matters is that a catalogued location becomes a real registered
+    /// target: emitted, named after its tool, and rooted at the home directory
+    /// with a provider set that vouches for it — without which cleanup would
+    /// refuse it and the finding would be visible but inert.
+    #[test]
+    fn discovery_registers_catalogued_locations_as_cleanable_targets() {
+        let home =
+            std::env::temp_dir().join(format!("uncached-discovery-home-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&home);
+        let location = uncached_core::known_locations()
+            .first()
+            .expect("the catalogue should not be empty");
+        let path = location.resolve(&home);
+        std::fs::create_dir_all(&path).unwrap();
+
+        let scan_id = format!("discovery-{}", std::process::id());
+        registry()
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(scan_id.clone(), super::ScanSession::new());
+
+        let emitted: Arc<Mutex<Vec<serde_json::Value>>> = Arc::new(Mutex::new(Vec::new()));
+        let sink_emitted = Arc::clone(&emitted);
+        let event_sink: EventSink = Arc::new(move |event, payload| {
+            if event == "scan:target_found" {
+                sink_emitted.lock().unwrap().push(payload);
+            }
+        });
+        let sizing = SizingController::for_test(
+            1,
+            Arc::new(|_| DirSize {
+                bytes: 0,
+                errors: 0,
+            }),
+            Arc::clone(&event_sink),
+        );
+
+        super::discover_home_locations(
+            &scan_id,
+            &home,
+            &event_sink,
+            &Arc::new(Mutex::new(ScanStats::default())),
+            &Arc::new(AtomicBool::new(false)),
+            &sizing.submitter(),
+        );
+        sizing.finish();
+
+        let events = emitted.lock().unwrap();
+        assert_eq!(
+            events.len(),
+            1,
+            "one catalogued location exists in the fixture"
+        );
+        let target = &events[0]["data"]["target"];
+        assert_eq!(target["label"], location.label);
+        assert_eq!(target["plan"], "pro");
+
+        let target_id = target["id"].as_str().unwrap().to_owned();
+        let registered = ScanService::get_target(&target_id).expect("discovery should register");
+        assert_eq!(registered.root_path, home);
+        assert!(
+            uncached_core::validate_clean_target(
+                &registered.root_path,
+                &registered.providers,
+                &uncached_core::ScanTarget::new(
+                    registered.target.path.clone(),
+                    registered.target.category.clone(),
+                    0,
+                )
+                .with_identity(registered.target.identity),
+            )
+            .is_ok(),
+            "cleanup must accept a discovered target"
+        );
+
+        drop(events);
+        ScanService::remove_target(&target_id).unwrap();
+        registry().lock().unwrap().sessions.remove(&scan_id);
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
     #[test]
     fn sizing_error_settles_visible_target_with_error_flag() {
         let scan_id = format!("size-error-{}", std::process::id());
@@ -1564,7 +1736,7 @@ mod tests {
     fn scan_providers_use_configured_settings_not_free_provider_set() {
         let providers = providers_for_scan(&AppSettings::default());
 
-        assert_eq!(providers.len(), 6);
+        assert!(providers.len() > uncached_core::ProviderSet::free().len());
         assert!(providers
             .scanner_for(&uncached_core::Category::CargoTarget)
             .is_some());
