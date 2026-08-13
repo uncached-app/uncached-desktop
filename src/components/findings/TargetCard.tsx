@@ -32,44 +32,50 @@ interface TargetCardProps {
   proEnabled: boolean;
 }
 
-function ConfidenceBadge({ target }: { target: ScanTarget }) {
-  const [expanded, setExpanded] = useState(false);
+function confidenceReasons(target: ScanTarget): string[] {
+  return target.confidence.signals.map((signal) => CONFIDENCE_REASONS[signal] ?? signal);
+}
+
+function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; expanded: boolean; onToggle: () => void }) {
   const presentation = CONFIDENCE_PRESENTATION[target.confidence.level];
   const Icon = presentation.icon;
-  const reasons = target.confidence.signals.map((signal) => CONFIDENCE_REASONS[signal] ?? signal);
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          setExpanded((open) => !open);
-        }}
-        aria-expanded={expanded}
-        title={reasons.join("\n")}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium transition-colors hover:border-sage-400/50 ${presentation.className}`}
-      >
-        <Icon size={11} aria-hidden="true" />
-        {presentation.label}
-      </button>
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
+      aria-expanded={expanded}
+      aria-label={`${presentation.label} for ${target.name}. Show the reasons`}
+      title={confidenceReasons(target).join("\n")}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium transition-colors hover:border-sage-400/50 ${presentation.className}`}
+    >
+      <Icon size={11} aria-hidden="true" />
+      {presentation.label}
+    </button>
+  );
+}
 
-      {expanded && (
-        <ul className="mt-2 w-full space-y-1 border-t border-forest-800 pt-2">
-          {reasons.map((reason) => (
-            <li key={reason} className="flex items-start gap-2 text-[11px] leading-5 text-mist-500">
-              <span aria-hidden="true" className="mt-1.5 size-1 shrink-0 rounded-full bg-mist-500" />
-              {reason}
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
+// Rendered across the whole card rather than inside the column holding the
+// badge: the reasons are sentences, and the size column is too narrow for them.
+function ConfidenceReasons({ target }: { target: ScanTarget }) {
+  return (
+    <ul className="space-y-1 border-t border-forest-800 pt-2.5 sm:col-span-2">
+      {confidenceReasons(target).map((reason) => (
+        <li key={reason} className="flex items-start gap-2 text-[11px] leading-5 text-mist-500">
+          <span aria-hidden="true" className="mt-1.5 size-1 shrink-0 rounded-full bg-mist-500" />
+          {reason}
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSize, proEnabled }: TargetCardProps) {
   const [copiedPath, setCopiedPath] = useState(false);
+  const [confidenceOpen, setConfidenceOpen] = useState(false);
   const proLocked = target.plan === "pro" && !proEnabled;
   const disabled = isCleaning || target.sizePending || target.sizeHasErrors || proLocked;
 
@@ -136,7 +142,6 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
               {target.category}
             </span>
             <span className="text-xs font-medium text-mist-500">{target.name}</span>
-            <ConfidenceBadge target={target} />
             {proLocked && (
               <span className="inline-flex items-center gap-1 rounded-md border border-pro-200/30 bg-pro-surface px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pro-100">
                 <LockKeyhole size={10} aria-hidden="true" /> Pro
@@ -178,7 +183,9 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-4 pl-8 sm:pl-0">
+      <div className="flex items-center justify-end gap-3 pl-8 sm:gap-4 sm:pl-0">
+        <ConfidenceBadge target={target} expanded={confidenceOpen} onToggle={() => setConfidenceOpen((open) => !open)} />
+
         <div className="text-right">
           {proLocked ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-pro-100">
@@ -210,6 +217,8 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
           )}
         </div>
       </div>
+
+      {confidenceOpen && <ConfidenceReasons target={target} />}
     </article>
   );
 }
