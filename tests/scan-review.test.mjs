@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canOpenReview, getCleanupReadyTargets, shouldOpenReview } from "../src/utils/scanReview.mjs";
+import { canOpenReview, getCleanupReadyTargets, shouldOpenReview, sortByConfidence } from "../src/utils/scanReview.mjs";
 
 const target = (overrides = {}) => ({
   sizePending: false,
@@ -37,4 +37,45 @@ test("allows bulk cleanup only for valid targets in mixed results", () => {
 test("does not reopen Review after navigating back to step 1", () => {
   assert.equal(shouldOpenReview(2, true, 1, [target()]), true);
   assert.equal(shouldOpenReview(1, true, 1, [target()]), false);
+});
+
+test("orders targets by confidence, least certain first", () => {
+  const targets = [
+    { id: "a", confidence: { level: "high" } },
+    { id: "b", confidence: { level: "review" } },
+    { id: "c", confidence: { level: "medium" } },
+    { id: "d", confidence: { level: "high" } },
+  ];
+
+  assert.deepEqual(
+    sortByConfidence(targets).map((target) => target.id),
+    ["b", "c", "a", "d"],
+  );
+});
+
+test("keeps arrival order within a level and does not mutate the input", () => {
+  const targets = [
+    { id: "first", confidence: { level: "high" } },
+    { id: "second", confidence: { level: "high" } },
+    { id: "third", confidence: { level: "high" } },
+  ];
+
+  assert.deepEqual(
+    sortByConfidence(targets).map((target) => target.id),
+    ["first", "second", "third"],
+  );
+  assert.deepEqual(targets.map((target) => target.id), ["first", "second", "third"]);
+});
+
+test("a target with no usable level surfaces instead of hiding", () => {
+  const targets = [
+    { id: "known", confidence: { level: "high" } },
+    { id: "unknown" },
+    { id: "garbled", confidence: { level: "certain" } },
+  ];
+
+  assert.deepEqual(
+    sortByConfidence(targets).map((target) => target.id),
+    ["unknown", "garbled", "known"],
+  );
 });

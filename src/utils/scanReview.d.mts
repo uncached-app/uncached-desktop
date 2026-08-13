@@ -18,3 +18,13 @@ export function shouldOpenReview(
 ): boolean;
 
 export function getCleanupReadyTargets<T extends ReviewTargetState>(targets: T[]): T[];
+
+export type ConfidenceRankedTarget = {
+  confidence?: { level?: string };
+};
+
+/**
+ * Returns a new array ordered review, medium, then high. The sort is stable,
+ * so targets keep their arrival order within a level.
+ */
+export function sortByConfidence<T extends ConfidenceRankedTarget>(targets: T[]): T[];
