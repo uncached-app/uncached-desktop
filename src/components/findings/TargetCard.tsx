@@ -163,8 +163,14 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
       onClick={() => {
         if (!disabled) onToggle(target.id);
       }}
+      /* A locked card sits on the canvas colour instead of the raised one, so
+         it reads as recessed rather than merely greyed: the actionable cards
+         lift off the page and the locked ones stay in it. The border carries
+         the Pro tint so the reason is legible before reading any label. */
       className={`group grid select-none gap-3 rounded-2xl border p-4 transition-all duration-200 sm:grid-cols-[1fr_auto] sm:items-center ${
-        disabled
+        proLocked
+          ? "cursor-not-allowed border-pro-200/25 bg-forest-950 text-mist-500"
+          : disabled
           ? "cursor-not-allowed border-forest-800 bg-forest-900 text-mist-500"
           : selected
           ? "cursor-pointer border-sage-400 bg-forest-900"
@@ -187,6 +193,8 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
           className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border transition-all ${
             selected
               ? "border-sage-400 bg-sage-400 text-forest-950"
+              : disabled
+              ? "border-forest-800 bg-forest-900 text-transparent"
               : "border-forest-700 bg-forest-950 text-transparent group-hover:border-sage-400"
           }`}
         >
