@@ -7,36 +7,38 @@ import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
 // than disappearing.
 const CONFIDENCE_REASONS: Record<string, string> = {
   knownArtifact: "Recognized build artifact",
-  projectManifest: "Project manifest found alongside it",
-  lockfile: "Lockfile found, contents are reproducible",
+  projectManifest: "Sits inside a project with a manifest",
+  lockfile: "The project has a lockfile, contents are reproducible",
   declaredDisposable: "Declared disposable by the project's .gitignore",
   versionControlled: "Tracked by Git, so it is not a build output",
   versionManagerPath: "Version manager directory, holds globally installed packages",
   systemPath: "Belongs to the operating system, not to a project",
-  recentlyModified: "Written to in the last day",
   noProjectContext: "No project found around it",
 };
 
 const CONFIDENCE_PRESENTATION: Record<
   ConfidenceLevel,
-  { label: string; className: string; textClassName: string; icon: typeof ShieldCheck }
+  { label: string; className: string; textClassName: string; arrowClassName: string; icon: typeof ShieldCheck }
 > = {
   high: {
     label: "High confidence",
     className: "border-confidence-high/25 bg-confidence-high-surface text-confidence-high",
     textClassName: "text-confidence-high",
+    arrowClassName: "border-t-confidence-high-surface",
     icon: ShieldCheck,
   },
   medium: {
     label: "Medium confidence",
     className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
     textClassName: "text-confidence-medium",
+    arrowClassName: "border-t-confidence-medium-surface",
     icon: TriangleAlert,
   },
   review: {
     label: "Review",
     className: "border-confidence-review/25 bg-confidence-review-surface text-confidence-review",
     textClassName: "text-confidence-review",
+    arrowClassName: "border-t-confidence-review-surface",
     icon: ShieldQuestion,
   },
 };
@@ -79,11 +81,11 @@ function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; e
           keyboard reaches what the mouse gets. */}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute -top-8 right-0 z-10 flex scale-95 items-center gap-1.5 whitespace-nowrap rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium opacity-0 shadow-xl transition-all duration-200 group-hover/confidence:scale-100 group-hover/confidence:opacity-100 group-focus-within/confidence:scale-100 group-focus-within/confidence:opacity-100 ${presentation.textClassName}`}
+        className={`pointer-events-none absolute -top-8 right-0 z-10 flex scale-95 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium opacity-0 shadow-xl transition-all duration-200 group-hover/confidence:scale-100 group-hover/confidence:opacity-100 group-focus-within/confidence:scale-100 group-focus-within/confidence:opacity-100 ${presentation.className}`}
       >
         <Icon size={11} aria-hidden="true" />
         {presentation.label}
-        <span className="absolute -bottom-1 right-2.5 border-x-4 border-t-4 border-x-transparent border-t-forest-800" />
+        <span className={`absolute -bottom-1 right-2.5 border-x-4 border-t-4 border-x-transparent ${presentation.arrowClassName}`} />
       </span>
     </div>
   );
