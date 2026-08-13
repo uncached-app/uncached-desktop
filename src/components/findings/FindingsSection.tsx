@@ -108,9 +108,9 @@ export function FindingsSection({
       exit={reducedMotion ? undefined : { opacity: 0, y: -8 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       aria-label="Scan targets"
-      className="flex h-full w-full flex-col overflow-hidden py-5 md:pl-6 sm:py-7"
+      className="flex h-full w-full flex-col overflow-hidden pt-5 md:pl-6 sm:pt-7"
     >
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-forest-800 pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-forest-800 pb-5">
         <div className="flex min-w-0 items-start gap-3">
           <button
             type="button"
@@ -194,7 +194,7 @@ export function FindingsSection({
       </div>
 
       {targets.length === 0 ? (
-        <div className="grid min-h-52 flex-1 place-items-center rounded-3xl border border-forest-800 bg-forest-900 px-6 py-10 text-center">
+        <div className="my-5 grid min-h-52 flex-1 place-items-center rounded-3xl border border-forest-800 bg-forest-900 px-6 py-10 text-center">
           <div>
             <FolderSearch size={32} className="mx-auto text-mist-500" strokeWidth={1.5} aria-hidden="true" />
             <p className="mt-4 text-sm font-medium text-mist-300">
@@ -230,7 +230,7 @@ export function FindingsSection({
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-linear-to-t from-forest-950 to-transparent"
           />
-          <div className="h-full overflow-y-auto pr-1.5">
+          <div className="h-full overflow-y-auto pr-1.5 pt-5 pb-8">
             {!proEnabled && proBytes > 0 && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pro-200/30 bg-pro-surface px-4 py-3">
                 <div>
