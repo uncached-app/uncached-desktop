@@ -43,14 +43,15 @@
   --theme-pro-100: #5e3d85;
   --theme-pro-200: #704b9b;
   --theme-pro-surface: #f1eafb;
-  /* Confidence reads as reassurance, caution and neutrality — never alarm.
-     Review is a request to look, not an error, so it stays out of the reds. */
+  /* Confidence reads as reassurance, caution and inquiry — never alarm.
+     Review is blue because it asks the user to look at something, and blue
+     carries that without the urgency red would add to a routine finding. */
   --theme-confidence-high: #3d5c2d;
   --theme-confidence-high-surface: #e6efdf;
   --theme-confidence-medium: #8a5b16;
   --theme-confidence-medium-surface: #f7eeda;
-  --theme-confidence-review: #4f5a50;
-  --theme-confidence-review-surface: #e9ede8;
+  --theme-confidence-review: #33607f;
+  --theme-confidence-review-surface: #e5eef5;
   color-scheme: light;
   font-family: var(--font-sans);
   color: var(--color-mist-100);
@@ -79,8 +80,8 @@
   --theme-confidence-high-surface: #1b241a;
   --theme-confidence-medium: #f2cd94;
   --theme-confidence-medium-surface: #262017;
-  --theme-confidence-review: #c7d0c1;
-  --theme-confidence-review-surface: #1c211d;
+  --theme-confidence-review: #a6cde6;
+  --theme-confidence-review-surface: #16212a;
   color-scheme: dark;
 }
 
