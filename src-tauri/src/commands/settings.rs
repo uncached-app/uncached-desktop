@@ -14,8 +14,17 @@ pub struct AppInfo {
     pub website: String,
 }
 
+/// Settings written by an older version are missing whatever was added since,
+/// and refusing the whole file over an absent field means a released app stops
+/// loading its own settings on upgrade — which is exactly what happened when
+/// `keepRunningInBackground` was added.
+///
+/// `default` at the container level rather than on each field: the per-field
+/// form works until someone forgets it once, and that once breaks every
+/// existing install. Malformed JSON still fails, so a file that is damaged
+/// rather than merely old is not silently replaced by defaults.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", default)]
 pub struct AppSettings {
     pub open_at_startup: bool,
     /// Closing the window hides it to the tray instead of quitting.
@@ -251,6 +260,33 @@ mod tests {
         assert!(value.get("rememberLastWorkspace").is_some());
         assert!(value.get("defaultCleanMode").is_some());
         assert!(value.get("remember_last_workspace").is_none());
+    }
+
+    /// The upgrade path, and the regression this class of bug deserves: a file
+    /// written before a field existed loads, keeps every value it stored, and
+    /// takes the default only for what it predates.
+    #[test]
+    fn settings_from_an_older_version_still_load() {
+        let path = std::env::temp_dir()
+            .join(format!("uncached-upgrade-{}.json", std::process::id()));
+        std::fs::write(
+            &path,
+            br#"{"openAtStartup":false,"rememberLastWorkspace":true,"checkForUpdates":true,
+                 "detectNodeModules":false,"detectCargoTarget":true,"detectGradleCache":true,
+                 "detectNextCache":true,"detectTurboCache":true,"defaultCleanMode":"Trash",
+                 "ignoreRules":"","workspaceRoots":[],"appearance":"dark","lastCleanup":null}"#,
+        )
+        .unwrap();
+
+        let settings = load_settings_from_path(&path).expect("an older file must still load");
+        assert!(!settings.open_at_startup, "a stored value is never overwritten");
+        assert!(!settings.detect_node_modules);
+        assert_eq!(settings.appearance, Appearance::Dark);
+        assert!(
+            settings.keep_running_in_background,
+            "a field the file predates arrives at its default"
+        );
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]

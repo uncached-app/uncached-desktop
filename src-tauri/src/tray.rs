@@ -23,6 +23,24 @@ pub fn starts_hidden() -> bool {
     std::env::args().any(|argument| argument == MINIMIZED_FLAG)
 }
 
+/// The menu bar wants a monochrome mark it can invert; a taskbar wants the
+/// app's own icon. Two different conventions, and following the wrong one looks
+/// broken on both.
+fn tray_icon(app: &AppHandle) -> tauri::image::Image<'static> {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = app;
+        // Only the alpha channel survives template rendering, so this asset is
+        // the brand mark as a silhouette rather than as artwork.
+        tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))
+            .expect("tray template icon")
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        app.default_window_icon().cloned().expect("bundled icon")
+    }
+}
+
 fn show_main_window(app: &AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
@@ -47,7 +65,11 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
     )?;
 
     TrayIconBuilder::with_id("uncached")
-        .icon(app.default_window_icon().cloned().expect("bundled icon"))
+        .icon(tray_icon(app))
+        // macOS renders a template image itself, inverting it for the light and
+        // dark menu bar. Setting this on other platforms would strip the colour
+        // from an icon that is supposed to have it.
+        .icon_as_template(cfg!(target_os = "macos"))
         .tooltip("Uncached")
         .menu(&menu)
         // The menu belongs to the right button. A left click reopens the app,
