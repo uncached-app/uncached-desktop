@@ -6,6 +6,7 @@ pub mod git;
 pub mod history;
 pub mod license;
 pub mod locate;
+pub mod orphans;
 pub mod scan;
 pub mod settings;
 pub mod workspace;

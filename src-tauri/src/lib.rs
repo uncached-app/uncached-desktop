@@ -22,6 +22,7 @@ use commands::git::{fetch_project, project_hygiene, prune_branches};
 use commands::history::{cleanup_history, clear_history, record_workspace_visit};
 use commands::license::{activate_license, deactivate_license, get_license};
 use commands::locate::{available_launchers, open_project_with, reveal_project};
+use commands::orphans::orphan_artifacts;
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{
     get_app_info, get_settings, review_ignore_rules, starts_hidden, update_settings,
@@ -98,6 +99,7 @@ pub fn run() {
             fetch_project,
             prune_branches,
             duplicate_packages,
+            orphan_artifacts,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

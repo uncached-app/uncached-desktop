@@ -321,6 +321,28 @@ switch rather than letting it be discovered by nothing happening.
 Reading the status is free. The runs themselves are Pro, and the thread that performs them checks
 the entitlement again before removing anything.
 
+### `orphan_artifacts`
+
+Request: `{ "paths": ["/Users/me/code"] }` — the chosen roots, not the indexed projects. An orphan is defined by there being no project over it, so a list of projects is the one input that cannot contain one. Every path is authorised the same way every other path-taking command authorises one.
+
+Raw response:
+
+```json
+{
+  "orphans": [
+    { "path": "/Users/me/code/old-api/node_modules", "parent": "/Users/me/code/old-api", "label": "Node modules", "bytes": 412000000 }
+  ],
+  "bytes": 412000000,
+  "examined": 318
+}
+```
+
+Regenerable directories under those roots that no project claims. `bytes` is `null` on an entry whose size could not be read, and such an entry stays in the list at nothing rather than being dropped — the total is what the user is asked to believe, and quietly shrinking it is worse than admitting a gap. `examined` lets an empty report say it looked.
+
+The rule is narrower than it could be: a directory is an orphan only when neither its own parent nor any ancestor **up to the scanned root** holds an owning manifest. A workspace member whose `package.json` is momentarily missing still sits under the repository's, and that is a project mid-edit. The chain stops at the root, because a manifest outside the folder the user chose is not evidence about anything inside it. Only unambiguous directory names qualify — `node_modules`, `.next`, `.turbo`, `.angular`, `.nuxt`, `.svelte-kit`. `target`, `dist`, `build` and `vendor` are excluded on purpose: every one of them is a name other tools use, and being wrong here means telling someone a directory they care about belongs to nobody.
+
+**Read-only, on every plan, and there is no companion command that removes one.** Cleanup validates each target against the providers, and the providers confirm an artifact by the manifest beside it — which is exactly what an orphan lacks. A button here would be one the backend declines, and relaxing that confirmation to make it work would trade the product's central safety property for a convenience. The finding names the path; `reveal_project` opens it.
+
 ### `cancel_cleanup`
 
 Request: `{ "targetId": "scan-1-abc123" }`

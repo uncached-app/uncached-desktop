@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Breakdown } from "./insights/Breakdown";
 import { Duplicates } from "./insights/Duplicates";
+import { Orphans } from "./insights/Orphans";
 import { EventLog } from "./insights/EventLog";
 import { FilterChips } from "./insights/FilterChips";
 import { Highlights } from "./insights/Highlights";
@@ -11,6 +13,7 @@ import { NoHistoryYet, ProPanel } from "./insights/states";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useCleanupHistory } from "../hooks/useWorkspaceHistory";
 import { useDuplicatePackages } from "../hooks/useDuplicatePackages";
+import { useOrphanArtifacts } from "../hooks/useOrphanArtifacts";
 import { buildInsights } from "../utils/insights.mjs";
 import type { Insight } from "../utils/insights.d.mts";
 import { DIMENSIONS, buildReport } from "../utils/report.mjs";
@@ -45,6 +48,10 @@ export function InsightsModule({
   // would rebuild the callback on every keystroke elsewhere on the screen.
   const projectPaths = useMemo(() => projects.map((project) => project.path), [projects]);
   const duplicates = useDuplicatePackages(projectPaths);
+  // The chosen roots, not the indexed projects: an orphan is defined by there
+  // being no project over it, so a list of projects is the one input that
+  // cannot contain one.
+  const orphans = useOrphanArtifacts(flow.extraRoots);
 
   const [grain, setGrain] = useState("month");
   const [filters, setFilters] = useState<Filters>({});
@@ -145,10 +152,11 @@ export function InsightsModule({
 
         <Highlights insights={insights} projectCount={projects.length} onFollow={follow} />
 
-        {/* Below the highlights because it is the one section here that costs
-            something to produce: it reads every node_modules in the workspace,
-            and it only does so when asked. */}
-        <div className="mt-4">
+        {/* Below the highlights because these are the two sections that cost
+            something to produce — one reads every node_modules in the
+            workspace, the other walks it looking for what nothing owns — and
+            both only do so when asked. */}
+        <div className="mt-4 grid gap-4">
           <Duplicates
             report={duplicates.report}
             running={duplicates.running}
@@ -156,6 +164,15 @@ export function InsightsModule({
             projectCount={projects.length}
             proEnabled={proEnabled}
             onScan={duplicates.scan}
+          />
+
+          <Orphans
+            report={orphans.report}
+            running={orphans.running}
+            error={orphans.error}
+            rootCount={flow.extraRoots.length}
+            onScan={orphans.scan}
+            onReveal={(path) => void invoke("reveal_project", { path })}
           />
         </div>
       </div>
