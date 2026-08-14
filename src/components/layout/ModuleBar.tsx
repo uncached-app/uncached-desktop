@@ -18,11 +18,11 @@ export function ModuleBar({ activeModule, onChange, proEnabled }: ModuleBarProps
       </ModuleButton>
       <ModuleButton
         active={activeModule === "intelligence"}
-        label={proEnabled ? "Uncached Intelligence" : "Uncached Intelligence (Pro)"}
+        label={proEnabled ? "Uncached Maintenance" : "Uncached Maintenance (Pro)"}
         onClick={() => onChange("intelligence")}
       >
         <Bot size={16} strokeWidth={1.8} aria-hidden="true" />
-        <span className="hidden sm:inline">Intelligence</span>
+        <span className="hidden sm:inline">Maintenance</span>
       </ModuleButton>
       {/* Reachable on every plan. A module nobody can open is a module nobody
           wants: Free reads the findings, Pro measures them. */}
