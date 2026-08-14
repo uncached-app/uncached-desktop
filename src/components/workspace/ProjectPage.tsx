@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useProjectActions } from "../../hooks/useProjectActions";
 import { formatBytes } from "../../utils/format";
 import { isInside, relativeTo } from "../../utils/paths.mjs";
+import { remoteLabel } from "../../utils/remoteUrl.mjs";
 import type { ScanTarget } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import type { Footprint, Recoverability, Verdict, WorkspaceProject } from "../../types/workspace";
@@ -164,6 +165,15 @@ export function ProjectPage({
               </ul>
             )}
 
+            {/* Git is happy to push into the folder next door, and calls the
+                result a remote. It is a backup, not somewhere else. */}
+            {project.git.remoteIsLocal && (
+              <p className="mt-3 border-t border-forest-800 pt-3 text-xs text-coral-300">
+                The only remote is a folder on this machine. One disk failure takes the working copy
+                and the backup together, so nothing here counts as being on a remote.
+              </p>
+            )}
+
             {(project.installMissing || project.installStale) && (
               <p className="mt-3 border-t border-forest-800 pt-3 text-xs text-mist-300">
                 {project.installMissing
@@ -185,18 +195,32 @@ export function ProjectPage({
                     </span>
                   </Field>
                   <Field label="Remote">
-                    <span className="truncate font-mono text-mist-300">{project.git.remote ?? "none"}</span>
+                    {project.git.remote ? (
+                      <>
+                        {/* Named by what it points at, with the whole string a
+                            hover away. A URL reads as owner/repo; a path has no
+                            shorter honest form, so it keeps its own. */}
+                        <span className="block truncate font-mono text-mist-300" title={project.git.remote}>
+                          {remoteLabel(project.git.remote) ?? project.git.remote}
+                        </span>
+                        {project.git.remoteIsLocal && (
+                          <span className="block text-[10px] text-coral-300">a folder on this machine</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-mist-500">none</span>
+                    )}
                   </Field>
                   {project.git.lastCommitSummary && (
                     <Field label="Last commit">
-                      <span className="min-w-0">
-                        <span className="block truncate text-mist-100">{project.git.lastCommitSummary}</span>
-                        {project.git.lastCommitAt && (
-                          <span className="font-mono text-[10px] text-mist-500">
-                            {new Date(project.git.lastCommitAt * 1000).toLocaleDateString()}
-                          </span>
-                        )}
+                      <span className="block truncate text-mist-100" title={project.git.lastCommitSummary}>
+                        {project.git.lastCommitSummary}
                       </span>
+                      {project.git.lastCommitAt && (
+                        <span className="block font-mono text-[10px] text-mist-500">
+                          {new Date(project.git.lastCommitAt * 1000).toLocaleDateString()}
+                        </span>
+                      )}
                     </Field>
                   )}
                 </dl>
@@ -336,11 +360,20 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
+/**
+ * One label and one value, where the value is allowed to be far too long.
+ *
+ * `overflow-hidden` on the row and `min-w-0` on the value are what actually
+ * stop a path from running out of the card: a flex item's default minimum
+ * width is its content, so without it the row simply grows and the truncation
+ * never happens. Values that truncate must also be block-level — `truncate` on
+ * an inline element does nothing at all, which is what shipped first.
+ */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline gap-3">
+    <div className="flex items-baseline gap-3 overflow-hidden">
       <dt className="w-24 shrink-0 text-mist-500">{label}</dt>
-      <dd className="min-w-0 flex-1">{children}</dd>
+      <dd className="min-w-0 flex-1 overflow-hidden">{children}</dd>
     </div>
   );
 }

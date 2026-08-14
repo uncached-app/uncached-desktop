@@ -12,8 +12,19 @@ pub struct GitContext {
     pub last_commit_summary: Option<String>,
     pub last_commit_at: Option<i64>,
     pub dirty: Option<bool>,
-    /// Normalised, so the same repository cloned twice compares equal.
+    /// As Git reported it, because this is what the user is shown. Normalising
+    /// it here once meant the interface displayed a lowercased, `.git`-stripped
+    /// string that was no longer anything anybody had typed.
     pub remote: Option<String>,
+    /// The same remote, reduced to what makes two clones the same repository.
+    /// Never crosses the wire: comparing clones is a decision made in here.
+    #[serde(skip)]
+    pub remote_key: Option<String>,
+    /// A remote that does not leave this machine — a sibling directory, a bare
+    /// repository on the same disk, `file://`. It is a backup of the working
+    /// copy and it is not somewhere else, which is the distinction every
+    /// sentence about recoverability in this product depends on.
+    pub remote_is_local: bool,
     pub recoverability: Recoverability,
 }
 
@@ -63,8 +74,11 @@ pub fn read(path: &Path) -> GitContext {
     );
     let stash = run(path, &["stash", "list"]);
     let log = run(path, &["log", "-1", "--format=%h%x1f%ct%x1f%s"]);
-    let remote =
-        run(path, &["config", "--get", "remote.origin.url"]).map(|url| normalise_remote(&url));
+    let remote = run(path, &["config", "--get", "remote.origin.url"])
+        .map(|url| url.trim().to_owned())
+        .filter(|url| !url.is_empty());
+    let remote_key = remote.as_deref().map(normalise_remote);
+    let off_machine = remote.as_deref().is_some_and(remote_leaves_the_machine);
 
     let (branch, dirty, untracked_files) = parse_status(status.as_deref());
     let (unpushed_commits, branches_without_upstream) = parse_tracking(tracking.as_deref());
@@ -73,12 +87,16 @@ pub fn read(path: &Path) -> GitContext {
     });
     let (last_commit_summary, last_commit_at) = parse_log(log.as_deref());
 
+    // `off_machine`, not `remote.is_some()`. "Everything is on a remote" is the
+    // sentence that lets an unattended cleanup touch a project, and a bare
+    // repository in a sibling folder does not make it true: one disk failure
+    // takes the working copy and the backup together.
     let level = recoverability_level(
         unpushed_commits,
         branches_without_upstream,
         stash_entries,
         untracked_files,
-        remote.is_some(),
+        off_machine,
     );
 
     GitContext {
@@ -86,7 +104,9 @@ pub fn read(path: &Path) -> GitContext {
         last_commit_summary,
         last_commit_at,
         dirty,
+        remote_is_local: remote.is_some() && !off_machine,
         remote,
+        remote_key,
         recoverability: Recoverability {
             unpushed_commits,
             branches_without_upstream,
@@ -179,6 +199,47 @@ fn parse_log(log: Option<&str>) -> (Option<String>, Option<i64>) {
     (Some(summary).filter(|value| !value.is_empty()), at)
 }
 
+/// Whether a remote is somewhere other than this machine.
+///
+/// The question is not whether Git can push to it — Git is happy to push into
+/// the folder next door. It is whether a second copy of the work exists
+/// anywhere the disk cannot take with it.
+///
+/// Deliberately strict: a host with no dot in it, the kind a LAN server has, is
+/// read as local. Erring that way costs a project the `safe` verdict and keeps
+/// it out of automation, which is the direction to be wrong in.
+pub fn remote_leaves_the_machine(url: &str) -> bool {
+    let url = url.trim();
+    if url.is_empty() {
+        return false;
+    }
+    if let Some((scheme, rest)) = url.split_once("://") {
+        // `file://` is the explicit spelling of "a path on this machine".
+        if scheme.eq_ignore_ascii_case("file") {
+            return false;
+        }
+        return rest.split('/').next().is_some_and(off_machine_host);
+    }
+    // scp-style, `user@host:path`. A Windows drive letter wears the same
+    // punctuation and is not a host.
+    if let Some((head, tail)) = url.split_once(':') {
+        return !tail.is_empty() && off_machine_host(head);
+    }
+    false
+}
+
+fn off_machine_host(authority: &str) -> bool {
+    let host = authority.rsplit('@').next().unwrap_or(authority);
+    let host = host.split(':').next().unwrap_or(host);
+    if host.is_empty() || host.eq_ignore_ascii_case("localhost") {
+        return false;
+    }
+    host.contains('.')
+        && host
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '.' | '-'))
+}
+
 /// Strips the parts that differ between equivalent clone URLs, so SSH and
 /// HTTPS forms of the same repository compare equal.
 pub fn normalise_remote(url: &str) -> String {
@@ -199,7 +260,51 @@ pub fn normalise_remote(url: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{normalise_remote, parse_log, parse_status, parse_tracking};
+    use super::{normalise_remote, parse_log, parse_status, parse_tracking, remote_leaves_the_machine};
+
+    /// The distinction the `safe` verdict rests on. Everything below is a
+    /// remote Git will happily push to; only some of them are somewhere else.
+    #[test]
+    fn a_remote_on_a_server_is_somewhere_else() {
+        for url in [
+            "git@github.com:acme/app.git",
+            "https://github.com/acme/app",
+            "http://gitlab.example.com/acme/app.git",
+            "ssh://git@git.company.dev:2222/team/app.git",
+            "git://git.kernel.org/pub/scm/linux.git",
+            "github.com:acme/app.git",
+        ] {
+            assert!(remote_leaves_the_machine(url), "{url}");
+        }
+    }
+
+    /// The one that started this: a bare repository beside the working copy.
+    /// Git calls it a remote; one disk failure takes both.
+    #[test]
+    fn a_remote_on_this_disk_is_not_somewhere_else() {
+        for url in [
+            "/Users/natan/documents/workspace/.bench-remotes/blog-engine",
+            "../mirrors/app.git",
+            "./app.git",
+            "~/backups/app.git",
+            "file:///Users/natan/backups/app.git",
+            "C:\\Users\\natan\\mirrors\\app.git",
+            "ssh://localhost/srv/git/app.git",
+            "localhost:app.git",
+            "",
+            "   ",
+        ] {
+            assert!(!remote_leaves_the_machine(url), "{url}");
+        }
+    }
+
+    /// A LAN host has no dot and reads as local. That costs the project its
+    /// `safe` verdict and keeps it away from automation, which is the
+    /// direction to be wrong in.
+    #[test]
+    fn a_host_that_cannot_be_told_apart_from_a_path_is_treated_as_local() {
+        assert!(!remote_leaves_the_machine("gitserver:team/app.git"));
+    }
 
     #[test]
     fn equivalent_clone_urls_normalise_to_the_same_remote() {

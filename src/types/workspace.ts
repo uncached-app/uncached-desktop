@@ -22,7 +22,10 @@ export type GitContext = {
   lastCommitSummary: string | null;
   lastCommitAt: number | null;
   dirty: boolean | null;
+  /** As Git reported it, not normalised. */
   remote: string | null;
+  /** The remote does not leave this machine: a sibling folder, `file://`. */
+  remoteIsLocal: boolean;
   recoverability: Recoverability;
 };
 

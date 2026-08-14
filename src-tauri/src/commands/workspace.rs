@@ -201,7 +201,9 @@ fn mark_duplicates(projects: &mut [WorkspaceProject]) {
     let mut by_remote: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();
     for project in projects.iter() {
-        if let Some(remote) = &project.git.remote {
+        // Grouped on the key, not on what is displayed: the same repository
+        // cloned over SSH and over HTTPS is one repository.
+        if let Some(remote) = &project.git.remote_key {
             by_remote
                 .entry(remote.clone())
                 .or_default()
@@ -210,7 +212,7 @@ fn mark_duplicates(projects: &mut [WorkspaceProject]) {
     }
 
     for project in projects.iter_mut() {
-        let Some(remote) = &project.git.remote else {
+        let Some(remote) = &project.git.remote_key else {
             continue;
         };
         let Some(paths) = by_remote.get(remote) else {
@@ -629,10 +631,12 @@ mod tests {
     /// report, because the answer is not on disk.
     #[test]
     fn clones_of_one_repository_point_at_each_other() {
+        // Spelled differently on purpose: one clone over SSH and one over
+        // HTTPS is one repository, and the display string no longer says so.
         let mut projects = vec![
-            project_named("first", Some("github.com/acme/app")),
-            project_named("second", Some("github.com/acme/app")),
-            project_named("other", Some("github.com/acme/other")),
+            project_named("first", Some("git@github.com:acme/app.git")),
+            project_named("second", Some("https://github.com/acme/app")),
+            project_named("other", Some("https://github.com/acme/other")),
             project_named("local", None),
         ];
 
@@ -652,6 +656,7 @@ mod tests {
             kind: "Node".to_string(),
             git: crate::workspace::git::GitContext {
                 remote: remote.map(str::to_string),
+                remote_key: remote.map(crate::workspace::git::normalise_remote),
                 ..Default::default()
             },
             activity: super::Activity {
