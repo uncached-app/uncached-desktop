@@ -26,6 +26,13 @@ export type GitContext = {
   remote: string | null;
   /** The remote does not leave this machine: a sibling folder, `file://`. */
   remoteIsLocal: boolean;
+  /**
+   * Commits the upstream has and this does not, worth only as much as
+   * `lastFetchAt` below it. `null` when there is no upstream to be behind.
+   */
+  behind: number | null;
+  /** When this repository last spoke to its remote. `null` means never. */
+  lastFetchAt: number | null;
   recoverability: Recoverability;
 };
 
@@ -73,4 +80,8 @@ export type WorkspaceIndex = {
   rootLimit: number;
   /** Discovery hit its project or depth cap. */
   truncated: boolean;
+  /** Folders the system would not open, so projects inside them are missing. */
+  unreadable: number;
+  /** The first few of them, so the user can see which access to grant. */
+  unreadableSample: string[];
 };

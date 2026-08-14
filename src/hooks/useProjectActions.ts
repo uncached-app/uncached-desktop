@@ -1,5 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Clipboard, FolderOpen, Globe, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import {
+  Clipboard,
+  FolderOpen,
+  Globe,
+  RefreshCw,
+  SquarePen,
+  SquareTerminal,
+  type LucideIcon,
+} from "lucide-react";
 import { useMemo } from "react";
 import { useLaunchers } from "./useLaunchers";
 import { remoteLabel, remoteToUrl } from "../utils/remoteUrl.mjs";
@@ -83,6 +91,26 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
       leaves: false,
       perform: () => copyText(project.path),
     });
+
+    // The only action here that touches the network, and the only one that
+    // writes anything into a repository — remote-tracking refs, which the next
+    // fetch would rewrite anyway. It never merges: `pull` is deliberately not
+    // offered from a palette, where a keystroke could change a working tree.
+    if (project.git.remote) {
+      actions.push({
+        id: "fetch",
+        title: "Fetch from remote",
+        detail: remoteLabel(project.git.remote) ?? undefined,
+        keywords: ["git", "fetch", "prune", "remote", "behind", "sync"],
+        // The result is the repository knowing more, which this window shows
+        // next time it reads it. Nothing opens, so the caller stays put.
+        leaves: false,
+        icon: RefreshCw,
+        perform: async () => {
+          await invoke("fetch_project", { path: project.path });
+        },
+      });
+    }
 
     const url = remoteToUrl(project.git.remote);
     if (url) {

@@ -118,8 +118,7 @@ fn installed(program: &str) -> bool {
     };
     std::env::split_paths(&path).any(|directory| {
         let candidate = directory.join(program);
-        candidate.is_file()
-            || (cfg!(windows) && directory.join(format!("{program}.exe")).is_file())
+        candidate.is_file() || (cfg!(windows) && directory.join(format!("{program}.exe")).is_file())
     })
 }
 
@@ -162,7 +161,11 @@ fn inside_a_root(path: &Path, roots: &[PathBuf]) -> bool {
 ///
 /// Canonical on both sides, so a path reaching us through a symlink is judged
 /// as where it lands rather than as how it was spelled.
-fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, String> {
+///
+/// Shared with the Git commands: every command that takes a path from the
+/// interface goes through this one function, so "inside the workspace" has a
+/// single definition and a second command cannot quietly get a weaker one.
+pub(crate) fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, String> {
     let requested = std::fs::canonicalize(path).map_err(|_| "That folder is gone".to_string())?;
     if !requested.is_dir() {
         return Err("That is not a folder".to_string());
@@ -229,12 +232,18 @@ mod tests {
     /// the spelling, and only one of them was chosen.
     #[test]
     fn a_shared_prefix_is_not_containment() {
-        assert!(!inside_a_root(Path::new("/work-archive/api"), &roots(&["/work"])));
+        assert!(!inside_a_root(
+            Path::new("/work-archive/api"),
+            &roots(&["/work"])
+        ));
     }
 
     #[test]
     fn a_path_outside_every_chosen_folder_is_refused() {
-        assert!(!inside_a_root(Path::new("/etc"), &roots(&["/work", "/home/me/code"])));
+        assert!(!inside_a_root(
+            Path::new("/etc"),
+            &roots(&["/work", "/home/me/code"])
+        ));
         assert!(!inside_a_root(Path::new("/work/api"), &roots(&[])));
     }
 

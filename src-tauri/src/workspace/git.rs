@@ -25,6 +25,17 @@ pub struct GitContext {
     /// copy and it is not somewhere else, which is the distinction every
     /// sentence about recoverability in this product depends on.
     pub remote_is_local: bool,
+    /// Commits the current branch's upstream has and it does not.
+    ///
+    /// `None` when there is no upstream to be behind, and worth only as much as
+    /// the fetch below it: this is read from a remote-tracking ref, which is a
+    /// record of the last conversation with the remote rather than of the remote.
+    /// A repository nobody has fetched in a month is not `0 behind`, it is
+    /// unchecked, and the interface has to say the second thing.
+    pub behind: Option<u32>,
+    /// When this repository last spoke to its remote, from `.git/FETCH_HEAD`.
+    /// `None` means it never has.
+    pub last_fetch_at: Option<i64>,
     pub recoverability: Recoverability,
 }
 
@@ -81,7 +92,12 @@ pub fn read(path: &Path) -> GitContext {
     let off_machine = remote.as_deref().is_some_and(remote_leaves_the_machine);
 
     let (branch, dirty, untracked_files) = parse_status(status.as_deref());
-    let (unpushed_commits, branches_without_upstream) = parse_tracking(tracking.as_deref());
+    let tracking = parse_tracking(tracking.as_deref());
+    let Tracking {
+        ahead: unpushed_commits,
+        branches_without_upstream,
+        ..
+    } = tracking;
     let stash_entries = stash.map_or(0, |list| {
         list.lines().filter(|line| !line.is_empty()).count() as u32
     });
@@ -105,6 +121,8 @@ pub fn read(path: &Path) -> GitContext {
         last_commit_at,
         dirty,
         remote_is_local: remote.is_some() && !off_machine,
+        behind: tracking.behind,
+        last_fetch_at: last_fetch_at(path),
         remote,
         remote_key,
         recoverability: Recoverability {
@@ -151,21 +169,34 @@ fn parse_status(status: Option<&str>) -> (Option<String>, Option<bool>, u32) {
     (branch, Some(changes > 0), untracked)
 }
 
-/// Commits ahead of a remote, and branches that have no remote at all.
+/// What every local branch's upstream says about it.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Tracking {
+    /// Summed across branches: this is the recoverability question, and work
+    /// unpushed on any branch is work that exists only on this disk.
+    ahead: u32,
+    branches_without_upstream: u32,
+    /// Not summed: being behind is a fact about one branch, and adding up how
+    /// far five branches have fallen behind produces a number about nothing.
+    /// `None` when no branch reported an upstream to be behind.
+    behind: Option<u32>,
+}
+
+/// Reads `%(upstream)` and `%(upstream:track)` for every local branch.
 ///
 /// Both fields are needed. `%(upstream:track)` is empty for a branch with no
 /// upstream *and* for one that is perfectly in sync, so reading it alone marks
 /// every up-to-date repository as holding work that exists nowhere else.
 /// `%(upstream)` is what tells the two apart.
 ///
-/// Behind is ignored: it says something exists elsewhere, not that something
-/// here is at risk.
-fn parse_tracking(tracking: Option<&str>) -> (u32, u32) {
+/// Behind never reaches recoverability. It says something exists elsewhere, not
+/// that something here is at risk, and letting it decide whether a project may
+/// be cleaned unattended would make a `git fetch` change what can be deleted.
+fn parse_tracking(tracking: Option<&str>) -> Tracking {
     let Some(tracking) = tracking else {
-        return (0, 0);
+        return Tracking::default();
     };
-    let mut ahead = 0;
-    let mut without_upstream = 0;
+    let mut result = Tracking::default();
 
     for line in tracking.lines() {
         let mut fields = line.split('\u{1f}');
@@ -173,16 +204,43 @@ fn parse_tracking(tracking: Option<&str>) -> (u32, u32) {
         let track = fields.next().unwrap_or_default().trim();
 
         if upstream.is_empty() {
-            without_upstream += 1;
+            result.branches_without_upstream += 1;
             continue;
         }
-        if let Some(rest) = track.split("ahead ").nth(1) {
-            let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
-            ahead += digits.parse::<u32>().unwrap_or(0);
+        result.ahead += count_after(track, "ahead ").unwrap_or(0);
+        // Max rather than sum, and only over branches that have an upstream: the
+        // figure the interface shows is "this branch is N behind", and the worst
+        // one is the honest headline.
+        if let Some(behind) = count_after(track, "behind ") {
+            result.behind = Some(result.behind.map_or(behind, |current| current.max(behind)));
+        } else if !track.contains("gone") {
+            result.behind = Some(result.behind.unwrap_or(0));
         }
     }
 
-    (ahead, without_upstream)
+    result
+}
+
+fn count_after(track: &str, marker: &str) -> Option<u32> {
+    let rest = track.split(marker).nth(1)?;
+    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+    digits.parse().ok()
+}
+
+/// When the repository last spoke to its remote.
+///
+/// `.git/FETCH_HEAD` is rewritten by every fetch and pull and by nothing else,
+/// so its modification time is the one record of that conversation that does not
+/// require asking the network what the network already said.
+fn last_fetch_at(path: &Path) -> Option<i64> {
+    let modified = std::fs::metadata(path.join(".git").join("FETCH_HEAD"))
+        .ok()?
+        .modified()
+        .ok()?;
+    modified
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .map(|elapsed| elapsed.as_secs() as i64)
 }
 
 fn parse_log(log: Option<&str>) -> (Option<String>, Option<i64>) {
@@ -260,7 +318,9 @@ pub fn normalise_remote(url: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{normalise_remote, parse_log, parse_status, parse_tracking, remote_leaves_the_machine};
+    use super::{
+        normalise_remote, parse_log, parse_status, parse_tracking, remote_leaves_the_machine,
+    };
 
     /// The distinction the `safe` verdict rests on. Everything below is a
     /// remote Git will happily push to; only some of them are somewhere else.
@@ -354,27 +414,62 @@ mod tests {
     /// repository as holding work that exists nowhere else.
     #[test]
     fn a_branch_in_sync_is_not_mistaken_for_one_without_a_remote() {
-        let tracking = "refs/remotes/origin/main\u{1f}\n";
+        let tracking = parse_tracking(Some("refs/remotes/origin/main\u{1f}\n"));
 
-        let (ahead, without_upstream) = parse_tracking(Some(tracking));
-
-        assert_eq!(ahead, 0);
-        assert_eq!(without_upstream, 0);
+        assert_eq!(tracking.ahead, 0);
+        assert_eq!(tracking.branches_without_upstream, 0);
+        assert_eq!(
+            tracking.behind,
+            Some(0),
+            "in sync is a reading, not a silence"
+        );
     }
 
     #[test]
     fn tracking_counts_commits_ahead_and_branches_with_no_upstream() {
-        let tracking = concat!(
+        let tracking = parse_tracking(Some(concat!(
             "refs/remotes/origin/main\u{1f}[ahead 3]\n",
             "\u{1f}\n",
             "refs/remotes/origin/topic\u{1f}[ahead 1, behind 2]\n",
             "refs/remotes/origin/old\u{1f}[behind 5]\n",
-        );
+        )));
 
-        let (ahead, without_upstream) = parse_tracking(Some(tracking));
+        assert_eq!(tracking.ahead, 4);
+        assert_eq!(tracking.branches_without_upstream, 1);
+    }
 
-        assert_eq!(ahead, 4);
-        assert_eq!(without_upstream, 1);
+    /// Summed, five branches one commit behind would read as five commits
+    /// behind, which describes no branch that exists.
+    #[test]
+    fn behind_is_the_worst_branch_rather_than_the_total() {
+        let tracking = parse_tracking(Some(concat!(
+            "refs/remotes/origin/main\u{1f}[behind 2]\n",
+            "refs/remotes/origin/topic\u{1f}[ahead 1, behind 7]\n",
+            "refs/remotes/origin/other\u{1f}[behind 3]\n",
+        )));
+
+        assert_eq!(tracking.behind, Some(7));
+    }
+
+    /// A repository with nothing to be behind of has no number, and the
+    /// interface has to say that rather than print a zero it invented.
+    #[test]
+    fn a_repository_with_no_upstream_anywhere_is_not_behind_by_zero() {
+        let tracking = parse_tracking(Some("\u{1f}\n\u{1f}\n"));
+
+        assert_eq!(tracking.behind, None);
+        assert_eq!(tracking.branches_without_upstream, 2);
+        assert_eq!(parse_tracking(None).behind, None);
+    }
+
+    /// A branch whose upstream was deleted is not in sync with it. Counting it
+    /// as `behind 0` would say the remote agrees, when the remote is gone.
+    #[test]
+    fn a_branch_whose_upstream_is_gone_reports_no_distance() {
+        let tracking = parse_tracking(Some("refs/remotes/origin/dead\u{1f}[gone]\n"));
+
+        assert_eq!(tracking.behind, None);
+        assert_eq!(tracking.ahead, 0);
     }
 
     #[test]
