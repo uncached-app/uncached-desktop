@@ -41,7 +41,12 @@ fn tray_icon(app: &AppHandle) -> tauri::image::Image<'static> {
     }
 }
 
-fn show_main_window(app: &AppHandle) {
+/// Puts the window back in front, from wherever the user asked for it.
+///
+/// Every way back into a hidden app goes through here — the tray icon, the tray
+/// menu, and the Dock. They have to agree: an app that reopens from one of them
+/// and ignores another is an app the user has to learn the working half of.
+pub fn show_main_window(app: &AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
