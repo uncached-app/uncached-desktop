@@ -16,7 +16,11 @@ export function ModuleBar({ activeModule, onChange, proEnabled }: ModuleBarProps
         <Folders size={16} strokeWidth={1.8} aria-hidden="true" />
         <span>Workspace</span>
       </ModuleButton>
-      <ModuleButton active={false} label="Uncached Intelligence (Pro)" disabled>
+      <ModuleButton
+        active={activeModule === "intelligence"}
+        label={proEnabled ? "Uncached Intelligence" : "Uncached Intelligence (Pro)"}
+        onClick={() => onChange("intelligence")}
+      >
         <Bot size={16} strokeWidth={1.8} aria-hidden="true" />
         <span className="hidden sm:inline">Intelligence</span>
       </ModuleButton>

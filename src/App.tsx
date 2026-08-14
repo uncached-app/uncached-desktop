@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AppLayout } from "./layouts/AppLayout";
 import { InsightsModule } from "./modules/InsightsModule";
+import { IntelligenceModule } from "./modules/IntelligenceModule";
 import { PurgeModule } from "./modules/PurgeModule";
 import { PurgeFlowProvider } from "./hooks/usePurgeFlow";
 import { useEntitlement } from "./hooks/useEntitlement";
@@ -37,6 +38,11 @@ function App() {
       >
         {activeModule === "insights" ? (
           <InsightsModule proEnabled={entitlement.proEnabled} onOpenWorkspace={() => setActiveModule("reclaim")} />
+        ) : activeModule === "intelligence" ? (
+          <IntelligenceModule
+            proEnabled={entitlement.proEnabled}
+            onOpenWorkspace={() => setActiveModule("reclaim")}
+          />
         ) : (
         <PurgeModule
           proEnabled={entitlement.proEnabled}

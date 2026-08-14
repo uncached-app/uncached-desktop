@@ -25,7 +25,16 @@ export function Titlebar({
   // The pipeline belongs to the cleanup run, not to the whole app: it appears
   // once the user is inside Reclaim disk and says nothing before that.
   const reclaiming = activeModule === "reclaim" && (step === 4 || (step === 3 && view === "artifacts"));
-  const title = activeModule === "reclaim" && step === 3 && view === "projects" ? "Uncached Workspace" : "Uncached";
+  // Each module names itself. "Uncached" alone is for the entry state, where
+  // there is nothing yet to be in the middle of.
+  const title =
+    activeModule === "insights"
+      ? "Uncached Insights"
+      : activeModule === "intelligence"
+        ? "Uncached Maintenance"
+        : step === 3 && view === "projects"
+          ? "Uncached Workspace"
+          : "Uncached";
 
   useEffect(() => {
     if (!isTauri()) return;
