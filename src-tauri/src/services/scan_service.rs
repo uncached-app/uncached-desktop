@@ -606,7 +606,7 @@ impl ScanService {
 
             // One session, one root at a time. Each target keeps the root it
             // was found under, so cleanup still validates against its own.
-            let mut walk_result = Ok(uncached_core::TraversalOutcome::Completed);
+            let mut walk_result = Ok(uncached_core::TraversalOutcome::Completed { unreadable: 0 });
             for scan_root in &scan_roots {
                 let callback_sizing_submitter = sizing_submitter.clone();
                 let stats_for_callback = Arc::clone(&stats);
@@ -700,12 +700,18 @@ impl ScanService {
                         uncached_core::TraversalControl::Continue
                     },
                 );
-                if !matches!(walk_result, Ok(uncached_core::TraversalOutcome::Completed)) {
+                if !matches!(
+                    walk_result,
+                    Ok(uncached_core::TraversalOutcome::Completed { .. })
+                ) {
                     break;
                 }
             }
 
-            if matches!(walk_result, Ok(uncached_core::TraversalOutcome::Completed)) {
+            if matches!(
+                walk_result,
+                Ok(uncached_core::TraversalOutcome::Completed { .. })
+            ) {
                 if let Some(home) = uncached_core::home_directory() {
                     discover_home_locations(
                         &worker_scan_id,
@@ -768,7 +774,17 @@ impl ScanService {
                     );
                     return;
                 }
-                Ok(uncached_core::TraversalOutcome::Completed) => {}
+                Ok(uncached_core::TraversalOutcome::Completed { unreadable }) => {
+                    if unreadable > 0 {
+                        crate::logging::warn(
+                            "walker",
+                            &format!(
+                                "scanId=\"{}\" unreadableDirectories={} note=\"grant Full Disk Access to read them\"",
+                                worker_scan_id, unreadable
+                            ),
+                        );
+                    }
+                }
             }
 
             if !ScanService::mark_walk_finished(&worker_scan_id, &app_handle, &stats, started_at) {
@@ -813,6 +829,41 @@ impl ScanService {
             .get(target_id)
             .cloned()
             .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))
+    }
+
+    /// Registered targets sitting inside any of `paths`, ready to be cleaned.
+    ///
+    /// The containment test is `Path::starts_with`, which compares whole
+    /// components: `/w/api-old` is not inside `/w/api` however the two are
+    /// spelled. It is done here rather than in the caller because deciding
+    /// which registered target belongs to a selected project is a decision
+    /// about what may be deleted, and those live in Rust.
+    ///
+    /// A target that is not cleanable, or whose size has not settled, is left
+    /// out rather than returned to fail later: the backend refuses both, and a
+    /// run that hands back errors for work it was never going to do is a run
+    /// that cannot be read.
+    pub fn targets_under(paths: &[PathBuf]) -> Vec<String> {
+        let registry = registry().lock().unwrap();
+        let mut ids: Vec<String> = registry
+            .targets
+            .iter()
+            .filter(|(_, registered)| {
+                registered.target.cleanable
+                    && !registered.target.size_pending
+                    && !registered.target.size_has_errors
+            })
+            .filter(|(_, registered)| {
+                paths
+                    .iter()
+                    .any(|selected| registered.target.path.starts_with(selected))
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+        // The registry is a map, so its order is not an order. Cleanup is
+        // reported as it happens and the sequence has to be the same twice.
+        ids.sort();
+        ids
     }
 
     pub fn refresh_target_size(target_id: &str) -> NukeResult<TargetSizeUpdate> {
@@ -1591,7 +1642,9 @@ mod tests {
         super::discover_home_locations(
             &scan_id,
             &home,
-            &crate::scanner::discovery_categories(&crate::commands::settings::AppSettings::default()),
+            &crate::scanner::discovery_categories(
+                &crate::commands::settings::AppSettings::default(),
+            ),
             "",
             &event_sink,
             &Arc::new(Mutex::new(ScanStats::default())),
@@ -1682,7 +1735,9 @@ mod tests {
         super::discover_home_locations(
             &scan_id,
             &home,
-            &crate::scanner::discovery_categories(&crate::commands::settings::AppSettings::default()),
+            &crate::scanner::discovery_categories(
+                &crate::commands::settings::AppSettings::default(),
+            ),
             &location.resolve(&home).to_string_lossy(),
             &event_sink,
             &Arc::new(Mutex::new(ScanStats::default())),
@@ -1957,6 +2012,104 @@ mod tests {
         assert_eq!(first.target.path, second.target.path);
 
         ScanService::remove_target(&target_id).unwrap();
+    }
+
+    /// The reason the maintenance run asks Rust which targets belong to a
+    /// selected project: two different directories share the spelling, and only
+    /// one of them was selected. A string prefix would hand `/w/api-old` to a
+    /// run the user authorised for `/w/api`.
+    #[test]
+    fn a_shared_prefix_is_not_containment() {
+        let prefix = format!("maintenance-scope-{}", std::process::id());
+        let paths = [
+            PathBuf::from("/w/api/node_modules"),
+            PathBuf::from("/w/api-old/node_modules"),
+            PathBuf::from("/w/other/node_modules"),
+        ];
+        let ids: Vec<String> = paths
+            .iter()
+            .enumerate()
+            .map(|(index, path)| {
+                let id = format!("{prefix}-{index}");
+                registry().lock().unwrap().targets.insert(
+                    id.clone(),
+                    RegisteredTarget {
+                        target: ScanTarget::new(
+                            path.clone(),
+                            Category::NodeModules,
+                            1,
+                            false,
+                            None,
+                        ),
+                        root_path: PathBuf::from("/w"),
+                        providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                    },
+                );
+                id
+            })
+            .collect();
+
+        let found = ScanService::targets_under(&[PathBuf::from("/w/api")]);
+        let mine: Vec<&String> = found.iter().filter(|id| id.starts_with(&prefix)).collect();
+
+        assert_eq!(mine, vec![&ids[0]], "only the selected project's target");
+
+        for id in ids {
+            registry().lock().unwrap().targets.remove(&id);
+        }
+    }
+
+    /// `claim_target_for_cleanup` refuses both of these, so handing them back
+    /// would be promising work the run cannot do.
+    #[test]
+    fn a_target_that_cannot_be_cleaned_is_never_offered_to_a_run() {
+        let prefix = format!("maintenance-unready-{}", std::process::id());
+        let mut pending = ScanTarget::new(
+            PathBuf::from("/m/project/node_modules"),
+            Category::NodeModules,
+            0,
+            false,
+            None,
+        );
+        pending.size_pending = true;
+        let mut unreadable = ScanTarget::new(
+            PathBuf::from("/m/project/target"),
+            Category::CargoTarget,
+            1,
+            true,
+            None,
+        );
+        unreadable.size_has_errors = true;
+        let mut reportable = ScanTarget::new(
+            PathBuf::from("/m/project/.venv"),
+            Category::NodeModules,
+            1,
+            false,
+            None,
+        );
+        reportable.cleanable = false;
+
+        for (index, target) in [pending, unreadable, reportable].into_iter().enumerate() {
+            registry().lock().unwrap().targets.insert(
+                format!("{prefix}-{index}"),
+                RegisteredTarget {
+                    target,
+                    root_path: PathBuf::from("/m"),
+                    providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                },
+            );
+        }
+
+        let found = ScanService::targets_under(&[PathBuf::from("/m/project")]);
+        assert!(found.iter().all(|id| !id.starts_with(&prefix)), "{found:?}");
+
+        for index in 0..3 {
+            registry()
+                .lock()
+                .unwrap()
+                .targets
+                .remove(&format!("{prefix}-{index}"));
+        }
     }
 
     #[test]

@@ -1,3 +1,5 @@
+import type { MaintenancePolicy } from "./maintenance";
+
 export type CleanMode = "Trash" | "Permanent";
 export type Appearance = "dark" | "light" | "system";
 
@@ -18,6 +20,8 @@ export type AppSettings = {
   workspaceRoots: string[];
   appearance: Appearance;
   lastCleanup: LastCleanup | null;
+  /** What a maintenance run may select. Decided in Rust; stored here. */
+  maintenance: MaintenancePolicy;
 };
 
 export type IgnoreRuleProblem = {

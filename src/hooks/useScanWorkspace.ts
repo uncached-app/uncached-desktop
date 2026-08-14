@@ -395,7 +395,17 @@ export function useScanWorkspace(
     }
   }
 
-  async function cleanTarget(targetId: string, confirmation: string | null = null): Promise<CleanResult | null> {
+  /**
+   * `mode` overrides the user's default for callers whose removal mode is not
+   * theirs to choose. Maintenance is the one that exists: a policy always moves
+   * to the Recycle Bin, so a machine whose default is Permanent must not have
+   * that default applied to a selection the user reviewed as reversible.
+   */
+  async function cleanTarget(
+    targetId: string,
+    confirmation: string | null = null,
+    mode: CleanMode = cleanMode,
+  ): Promise<CleanResult | null> {
     if (!targetId) {
       setError("Cannot clean target without an ID");
       return null;
@@ -407,7 +417,7 @@ export function useScanWorkspace(
        const envelope = await invoke<ApiEnvelope<CleanResult>>("clean_target", {
         request: {
           targetId,
-          mode: cleanMode,
+          mode,
           confirmation,
         },
       });

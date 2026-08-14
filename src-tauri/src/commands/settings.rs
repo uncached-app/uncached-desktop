@@ -59,6 +59,12 @@ pub struct AppSettings {
     pub appearance: Appearance,
     #[serde(default)]
     pub last_cleanup: Option<LastCleanup>,
+    /// The maintenance policy, which is the only thing on that screen the user
+    /// chooses. Stored rather than held in the window because switching module
+    /// unmounts the screen, and a threshold that resets when you look away is
+    /// not a setting.
+    #[serde(default)]
+    pub maintenance: crate::workspace::maintenance::MaintenancePolicy,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,6 +101,7 @@ impl Default for AppSettings {
             workspace_roots: Vec::new(),
             appearance: Appearance::Light,
             last_cleanup: None,
+            maintenance: crate::workspace::maintenance::MaintenancePolicy::default(),
         }
     }
 }
@@ -275,8 +282,8 @@ mod tests {
     /// takes the default only for what it predates.
     #[test]
     fn settings_from_an_older_version_still_load() {
-        let path = std::env::temp_dir()
-            .join(format!("uncached-upgrade-{}.json", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("uncached-upgrade-{}.json", std::process::id()));
         std::fs::write(
             &path,
             br#"{"openAtStartup":false,"rememberLastWorkspace":true,"checkForUpdates":true,
@@ -287,11 +294,19 @@ mod tests {
         .unwrap();
 
         let settings = load_settings_from_path(&path).expect("an older file must still load");
-        assert!(!settings.open_at_startup, "a stored value is never overwritten");
+        assert!(
+            !settings.open_at_startup,
+            "a stored value is never overwritten"
+        );
         assert_eq!(settings.appearance, Appearance::Dark);
         assert!(
             settings.keep_running_in_background,
             "a field the file predates arrives at its default"
+        );
+        assert_eq!(
+            settings.maintenance,
+            crate::workspace::maintenance::MaintenancePolicy::default(),
+            "and so does a whole block the file predates"
         );
         let _ = std::fs::remove_file(path);
     }

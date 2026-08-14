@@ -16,13 +16,17 @@ use commands::cancel::{cancel_cleanup, cancel_scan};
 use commands::clean::clean_target;
 use commands::cleanup_capabilities;
 use commands::entitlements::get_entitlement_status;
+use commands::git::{fetch_project, project_hygiene, prune_branches};
 use commands::history::{cleanup_history, clear_history, record_workspace_visit};
 use commands::license::{activate_license, deactivate_license, get_license};
 use commands::locate::{available_launchers, open_project_with, reveal_project};
 use commands::scan::{retry_target_size, start_scan};
-use commands::settings::{get_app_info, get_settings, review_ignore_rules, starts_hidden, update_settings};
+use commands::settings::{
+    get_app_info, get_settings, review_ignore_rules, starts_hidden, update_settings,
+};
 use commands::workspace::{
-    assess_project, measure_project_footprint, normalize_workspace_roots, scan_workspace_index,
+    assess_project, maintenance_targets, measure_project_footprint, normalize_workspace_roots,
+    preview_maintenance, scan_workspace_index,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -84,7 +88,34 @@ pub fn run() {
             measure_project_footprint,
             normalize_workspace_roots,
             assess_project,
+            preview_maintenance,
+            maintenance_targets,
+            project_hygiene,
+            fetch_project,
+            prune_branches,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        // Built and then run, rather than `run(context)`, only so there is a
+        // place to answer this: hiding to the tray leaves the app in the Dock,
+        // and clicking a Dock icon is not a window event — macOS asks the
+        // application delegate, which reaches us as `Reopen` and nothing else.
+        // Without this the icon is there and inert, and the tray is the only
+        // way back in.
+        .run(|_app, _event| {
+            #[cfg(target_os = "macos")]
+            {
+                if let tauri::RunEvent::Reopen {
+                    has_visible_windows,
+                    ..
+                } = _event
+                {
+                    // A visible window means macOS has already done the only
+                    // thing being asked for, which is to bring the app forward.
+                    if !has_visible_windows {
+                        tray::show_main_window(_app);
+                    }
+                }
+            }
+        });
 }

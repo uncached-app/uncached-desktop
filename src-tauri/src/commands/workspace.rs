@@ -1,4 +1,5 @@
 use crate::workspace::git::{self, GitContext};
+use crate::workspace::maintenance;
 use crate::workspace::verdict::{self, ActivityState, Verdict};
 use serde::Serialize;
 use std::path::Path;
@@ -7,6 +8,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const MAX_PROJECTS: usize = 250;
 const MAX_DEPTH: usize = 4;
+/// How many unreadable folders are named back. The count is the whole story;
+/// the sample only has to be long enough to show which kind of folder it is.
+const MAX_UNREADABLE_SAMPLE: usize = 5;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,6 +69,27 @@ pub struct WorkspaceIndex {
     pub root_limit: usize,
     /// Discovery hit `MAX_PROJECTS` or `MAX_DEPTH`.
     pub truncated: bool,
+    /// Folders the operating system would not let discovery open. Projects
+    /// inside them are missing from this index rather than known to be absent.
+    pub unreadable: usize,
+    /// The first few of them, so the user can see which access to grant.
+    pub unreadable_sample: Vec<String>,
+}
+
+/// Folders discovery had to skip.
+#[derive(Debug, Default)]
+struct Skipped {
+    count: usize,
+    sample: Vec<String>,
+}
+
+impl Skipped {
+    fn note(&mut self, path: &Path) {
+        self.count += 1;
+        if self.sample.len() < MAX_UNREADABLE_SAMPLE {
+            self.sample.push(path.to_string_lossy().into_owned());
+        }
+    }
 }
 
 /// Canonicalises and collapses roots so the interface lists exactly what will be scanned.
@@ -110,10 +135,11 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
     let mut roots = Vec::new();
     let mut projects = Vec::new();
     let mut truncated = false;
+    let mut skipped = Skipped::default();
 
     for root in accepted {
         let before = projects.len();
-        discover_projects(root, root, 0, &mut projects)?;
+        discover_projects(root, root, 0, &mut projects, &mut skipped)?;
         // The cap is shared across roots, so it is reported once for the whole index.
         truncated = truncated || projects.len() >= MAX_PROJECTS && projects.len() > before;
         roots.push(root.to_string_lossy().into_owned());
@@ -131,14 +157,23 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
             .collect(),
         root_limit: limit,
         truncated,
+        unreadable: skipped.count,
+        unreadable_sample: skipped.sample,
     })
 }
 
+/// Walks one root for projects.
+///
+/// Only the folder the user chose can fail this: a folder found inside it that
+/// the operating system withholds is counted and stepped over. Scanning a whole
+/// disk crosses plenty of those, and one of them ending the walk would leave the
+/// user with an error instead of the projects the walk had already found.
 fn discover_projects(
     root: &Path,
     directory: &Path,
     depth: usize,
     projects: &mut Vec<WorkspaceProject>,
+    skipped: &mut Skipped,
 ) -> Result<(), String> {
     if depth > MAX_DEPTH || projects.len() >= MAX_PROJECTS {
         return Ok(());
@@ -150,18 +185,28 @@ fn discover_projects(
         return Ok(());
     }
 
-    let entries = std::fs::read_dir(directory).map_err(|error| error.to_string())?;
+    let entries = match std::fs::read_dir(directory) {
+        Ok(entries) => entries,
+        Err(error) if depth == 0 => return Err(error.to_string()),
+        Err(_) => {
+            skipped.note(directory);
+            return Ok(());
+        }
+    };
     for entry in entries {
         if projects.len() >= MAX_PROJECTS {
             break;
         }
-        let entry = entry.map_err(|error| error.to_string())?;
+        let Ok(entry) = entry else {
+            skipped.note(directory);
+            continue;
+        };
         let path = entry.path();
-        if !entry
-            .file_type()
-            .map_err(|error| error.to_string())?
-            .is_dir()
-        {
+        let Ok(file_type) = entry.file_type() else {
+            skipped.note(&path);
+            continue;
+        };
+        if !file_type.is_dir() {
             continue;
         }
         let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
@@ -174,7 +219,7 @@ fn discover_projects(
             projects.push(project_from_directory(&path, root));
             continue;
         }
-        discover_projects(root, &path, depth + 1, projects)?;
+        discover_projects(root, &path, depth + 1, projects, skipped)?;
     }
     Ok(())
 }
@@ -379,6 +424,52 @@ pub async fn assess_project(
     })
 }
 
+/// What a maintenance policy would select right now.
+///
+/// Every candidate field was produced here — the verdict by `assess_project`,
+/// the weight by `measure_project_footprint`, the idle days by the index — so
+/// this asks the interface to carry facts back rather than to re-derive them.
+/// Reading is free: a policy nobody can see the result of is a control with no
+/// operation behind it.
+#[tauri::command]
+pub async fn preview_maintenance(
+    candidates: Vec<maintenance::Candidate>,
+    policy: maintenance::MaintenancePolicy,
+) -> maintenance::Preview {
+    maintenance::select(&candidates, &policy)
+}
+
+/// The registered targets a run of this policy would remove.
+///
+/// The selection is made here, from the same function the preview uses, and the
+/// interface never sends one: a caller that could name the projects could name
+/// any project. What comes back are ids into the scan session's registry, so
+/// the removal itself still goes through `clean_target`, which re-validates
+/// every one of them.
+///
+/// Pro-gated because running unattended maintenance is the capability being
+/// sold. Seeing what it would do is not.
+#[tauri::command]
+pub async fn maintenance_targets(
+    candidates: Vec<maintenance::Candidate>,
+    policy: maintenance::MaintenancePolicy,
+) -> Result<Vec<String>, String> {
+    if !crate::commands::entitlements::current_status().pro_enabled {
+        return Err("Running maintenance requires Uncached Pro".to_string());
+    }
+    let selected: Vec<std::path::PathBuf> = maintenance::select(&candidates, &policy)
+        .selected
+        .into_iter()
+        .map(|entry| std::path::PathBuf::from(entry.path))
+        .collect();
+    if selected.is_empty() {
+        return Ok(Vec::new());
+    }
+    Ok(crate::services::scan_service::ScanService::targets_under(
+        &selected,
+    ))
+}
+
 fn measure_footprint(
     path: &Path,
     settings: &crate::commands::settings::AppSettings,
@@ -389,7 +480,7 @@ fn measure_footprint(
     let cancelled = AtomicBool::new(false);
 
     let mut targets = Vec::new();
-    uncached_core::traverse_workspace(path, &providers, &cancelled, |entry| {
+    let outcome = uncached_core::traverse_workspace(path, &providers, &cancelled, |entry| {
         match entry.category.clone() {
             Some(category) => {
                 targets.push((entry.path.clone(), category));
@@ -400,9 +491,16 @@ fn measure_footprint(
     })
     .map_err(|error| error.to_string())?;
 
+    // A walk that could not open every folder may have missed artifacts, so the
+    // reclaimable figure is partial for the same reason a partial size is.
+    let walk_incomplete = matches!(
+        outcome,
+        uncached_core::TraversalOutcome::Completed { unreadable } if unreadable > 0
+    );
+
     let mut footprint = Footprint {
         total_bytes: total.bytes,
-        has_errors: total.errors > 0,
+        has_errors: total.errors > 0 || walk_incomplete,
         ..Footprint::default()
     };
     let mut by_category: Vec<(String, u64)> = Vec::new();
@@ -674,5 +772,51 @@ mod tests {
     #[test]
     fn indexing_nothing_is_an_error_rather_than_an_empty_map() {
         assert!(build_index(&[], 1).is_err());
+    }
+
+    /// Whole-disk scans cross folders the operating system withholds. Failing
+    /// there would hand the user an error in place of the projects already
+    /// found, which is what a permission-denied scan used to do.
+    #[cfg(unix)]
+    #[test]
+    fn a_folder_that_cannot_be_opened_is_counted_rather_than_ending_the_index() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = workspace("unreadable", &["visible"]);
+        let locked = root.join("locked");
+        fs::create_dir_all(&locked).unwrap();
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o000)).unwrap();
+
+        let index = index_of(&[&root]);
+
+        assert_eq!(index.projects.len(), 1);
+        assert_eq!(index.projects[0].name, "visible");
+        assert_eq!(index.unreadable, 1);
+        assert_eq!(index.unreadable_sample.len(), 1);
+        assert!(index.unreadable_sample[0].ends_with("locked"));
+
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o755)).unwrap();
+        let _ = fs::remove_dir_all(root);
+    }
+
+    /// The folder the user picked is the one case worth reporting: an index of
+    /// nothing, with no reason given, is not an answer.
+    #[cfg(unix)]
+    #[test]
+    fn a_chosen_root_that_cannot_be_opened_still_fails() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root =
+            std::env::temp_dir().join(format!("uncached-unreadable-root-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o000)).unwrap();
+
+        let paths = [root.to_string_lossy().into_owned()];
+        let failure = build_index(&paths, 12);
+
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(failure.is_err());
+        let _ = fs::remove_dir_all(root);
     }
 }
