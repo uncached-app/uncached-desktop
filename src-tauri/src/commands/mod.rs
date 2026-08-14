@@ -1,5 +1,6 @@
 pub mod cancel;
 pub mod clean;
+pub mod duplicates;
 pub mod entitlements;
 pub mod git;
 pub mod history;

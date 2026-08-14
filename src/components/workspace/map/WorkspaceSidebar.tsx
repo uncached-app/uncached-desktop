@@ -180,11 +180,10 @@ function RootItem({
 }) {
   return (
     <div
-      className={`group/root flex items-center gap-1 rounded-xl pr-1 transition-all ${
-        active
-          ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
-          : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-      }`}
+      className={`group/root flex items-center gap-1 rounded-xl pr-1 transition-all ${active
+        ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
+        : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+        }`}
     >
       <button
         type="button"
@@ -198,9 +197,8 @@ function RootItem({
           {label}
         </span>
         <span
-          className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] ${
-            active ? "bg-forest-900 text-mist-100 font-bold" : "bg-forest-850 text-mist-500"
-          }`}
+          className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] ${active ? "bg-forest-900 text-mist-100 font-bold" : "bg-forest-850 text-mist-500"
+            }`}
         >
           {indexed ? count : "—"}
         </span>
@@ -210,7 +208,7 @@ function RootItem({
           type="button"
           onClick={onRemove}
           aria-label={removeLabel ?? `Remove ${label} from the workspace`}
-          className="grid size-6 shrink-0 place-items-center rounded-lg text-mist-500 opacity-0 transition-all group-hover/root:opacity-100 group-focus-within/root:opacity-100 hover:bg-forest-900 hover:text-coral-300"
+          className="grid size-6 shrink-0 place-items-center rounded-lg text-mist-500 opacity-0 transition-all group-hover/root:opacity-100 hover:bg-forest-900 hover:text-coral-300"
         >
           <X size={12} aria-hidden="true" />
         </button>
@@ -240,18 +238,16 @@ function VerdictFilter({
       onClick={onSelect}
       title={title}
       aria-pressed={active}
-      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-all ${
-        active
-          ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
-          : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-      }`}
+      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-all ${active
+        ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
+        : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+        }`}
     >
       <span className={`size-2 shrink-0 rounded-full ${dotClassName ?? "bg-transparent"}`} aria-hidden="true" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <span
-        className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] ${
-          active ? "bg-forest-900 text-mist-100 font-bold" : "bg-forest-850 text-mist-500"
-        }`}
+        className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] ${active ? "bg-forest-900 text-mist-100 font-bold" : "bg-forest-850 text-mist-500"
+          }`}
       >
         {count}
       </span>

@@ -91,7 +91,7 @@ export function WorkspaceForm({
                 type="button"
                 disabled={cancelling}
                 onClick={cancelScan}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 transition-colors hover:opacity-90 disabled:cursor-not-allowed"
               >
                 <Ban size={16} aria-hidden="true" />
                 <span>{cancelling ? "Cancelling..." : "Cancel"}</span>

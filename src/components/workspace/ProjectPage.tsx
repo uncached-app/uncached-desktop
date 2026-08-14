@@ -65,7 +65,7 @@ export function ProjectPage({
     <section aria-label={project.name} className="flex h-full w-full flex-1 flex-col overflow-hidden">
       <ProjectHeader project={project} verdict={verdict} footprint={footprint} onBack={onBack} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-4 pb-8 [scrollbar-gutter:stable]">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-4 pb-8 scrollbar-gutter-stable">
         {/* Horizontal Action Bar & Feedback Toast */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ProjectActions project={project} onShowInList={onShowInList} onResult={handleResult} />

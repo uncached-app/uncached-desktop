@@ -35,7 +35,7 @@ export function Timeline({ report, onGrain }: { report: Report; onGrain: (grain:
         </div>
       </div>
 
-      <div className="mt-5 flex h-36 items-end gap-[3px] rounded-xl bg-forest-950 p-3" role="img" aria-label="Reclaimed disk over time">
+      <div className="mt-5 flex h-36 items-end gap-0.75 rounded-xl bg-forest-950 p-3" role="img" aria-label="Reclaimed disk over time">
         {report.series.map((bucket) => (
           <div
             key={bucket.start}
@@ -43,11 +43,10 @@ export function Timeline({ report, onGrain }: { report: Report; onGrain: (grain:
             className="group flex h-full flex-1 cursor-pointer items-end"
           >
             <div
-              className={`w-full rounded-t-sm transition-all duration-150 ${
-                bucket.bytes > 0
+              className={`w-full rounded-t-sm transition-all duration-150 ${bucket.bytes > 0
                   ? "bg-sage-400 group-hover:bg-sage-300"
                   : "bg-forest-800 group-hover:bg-forest-850"
-              }`}
+                }`}
               style={{
                 height: bucket.bytes > 0 && peak > 0 ? `${Math.max(4, (bucket.bytes / peak) * 100)}%` : "2px",
               }}

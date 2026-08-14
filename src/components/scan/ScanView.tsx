@@ -67,7 +67,7 @@ export function ScanView({
               type="button"
               onClick={cancelScan}
               disabled={cancelling}
-              className="inline-flex items-center gap-2 rounded-xl bg-coral-300 px-4 py-2 text-xs font-semibold text-forest-950 transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
+              className="inline-flex items-center gap-2 rounded-xl bg-coral-300 px-4 py-2 text-xs font-semibold text-forest-950 transition-colors hover:opacity-90 disabled:cursor-not-allowed"
             >
               <Ban size={14} aria-hidden="true" />
               <span>{cancelling ? "Cancelling..." : "Cancel scan"}</span>

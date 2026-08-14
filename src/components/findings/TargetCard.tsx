@@ -85,7 +85,7 @@ function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; e
           keyboard reaches what the mouse gets. */}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute -top-8 right-0 z-10 flex scale-95 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium opacity-0 shadow-xl transition-all duration-200 group-hover/confidence:scale-100 group-hover/confidence:opacity-100 group-focus-within/confidence:scale-100 group-focus-within/confidence:opacity-100 ${presentation.className}`}
+        className={`pointer-events-none absolute -top-8 right-0 z-10 flex scale-95 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium opacity-0 shadow-xl transition-all duration-200 group-hover/confidence:scale-100 group-hover/confidence:opacity-100 ${presentation.className}`}
       >
         <Icon size={11} aria-hidden="true" />
         {presentation.label}
@@ -217,11 +217,10 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
               {/* Tooltip centered below the path text */}
               <span
                 role="tooltip"
-                className={`pointer-events-none absolute top-full left-1/2 z-20 mt-1.5 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium shadow-xl transition-all duration-200 ${
-                  copiedPath
-                    ? "scale-100 opacity-100 border-sage-400/50 text-sage-300"
-                    : "scale-95 opacity-0 text-mist-100 group-hover/path:scale-100 group-hover/path:opacity-100"
-                }`}
+                className={`pointer-events-none absolute top-full left-1/2 z-20 mt-1.5 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium shadow-xl transition-all duration-200 ${copiedPath
+                  ? "scale-100 opacity-100 border-sage-400/50 text-sage-300"
+                  : "scale-95 opacity-0 text-mist-100 group-hover/path:scale-100 group-hover/path:opacity-100"
+                  }`}
               >
                 {copiedPath ? (
                   <>

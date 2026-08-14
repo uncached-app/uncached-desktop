@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Breakdown } from "./insights/Breakdown";
+import { Duplicates } from "./insights/Duplicates";
 import { EventLog } from "./insights/EventLog";
 import { FilterChips } from "./insights/FilterChips";
 import { Highlights } from "./insights/Highlights";
@@ -9,6 +10,7 @@ import { EVENT_PAGE } from "./insights/labels";
 import { NoHistoryYet, ProPanel } from "./insights/states";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useCleanupHistory } from "../hooks/useWorkspaceHistory";
+import { useDuplicatePackages } from "../hooks/useDuplicatePackages";
 import { buildInsights } from "../utils/insights.mjs";
 import type { Insight } from "../utils/insights.d.mts";
 import { DIMENSIONS, buildReport } from "../utils/report.mjs";
@@ -39,6 +41,10 @@ export function InsightsModule({
   const flow = usePurgeFlow();
   const projects = flow.index.index?.projects ?? [];
   const { events, totals, loading } = useCleanupHistory();
+  // Memoised: the hook keys its work on this array, and a fresh one every render
+  // would rebuild the callback on every keystroke elsewhere on the screen.
+  const projectPaths = useMemo(() => projects.map((project) => project.path), [projects]);
+  const duplicates = useDuplicatePackages(projectPaths);
 
   const [grain, setGrain] = useState("month");
   const [filters, setFilters] = useState<Filters>({});
@@ -95,7 +101,7 @@ export function InsightsModule({
         </p>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-5 pb-8 [scrollbar-gutter:stable]">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-5 pb-8 scrollbar-gutter-stable">
         {!proEnabled && <div className="mb-5"><ProPanel /></div>}
         {proEnabled && !loading && !hasHistory && <NoHistoryYet />}
 
@@ -133,6 +139,20 @@ export function InsightsModule({
         )}
 
         <Highlights insights={insights} projectCount={projects.length} onFollow={follow} />
+
+        {/* Below the highlights because it is the one section here that costs
+            something to produce: it reads every node_modules in the workspace,
+            and it only does so when asked. */}
+        <div className="mt-4">
+          <Duplicates
+            report={duplicates.report}
+            running={duplicates.running}
+            error={duplicates.error}
+            projectCount={projects.length}
+            proEnabled={proEnabled}
+            onScan={duplicates.scan}
+          />
+        </div>
       </div>
     </section>
   );

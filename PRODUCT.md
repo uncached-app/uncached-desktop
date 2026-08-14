@@ -37,6 +37,7 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - `Docker` exists in the category model but has no scanner implementation, and is priced Free for exactly that reason: a plan never charges for a capability that finds nothing.
 - A project's own page reports what its repository is carrying that nothing uses: local branches whose remote branch was deleted, forgotten stashes, and worktrees whose directory is gone. Only a branch `git branch -d` would accept is offered for deletion; one holding commits reachable from nowhere else is named and left alone. Stashes and worktrees are reported and never acted on.
 - Fetching a repository is the only network operation in the product, is never automatic, and runs with credential prompting disabled. `pull` is not offered: it merges into a working tree, and nothing here writes to one.
+- Insights reports the same package installed once per project, on request, as a measured total and a list. It is read-only and offers no removal: a project whose packages are links into a shared store is not duplicating anything and is reported as already sharing them, rather than counted as waste.
 - Scanner coverage grows release to release. Copy must never enumerate it in prose — see `DESIGN.md` § Voice & Copy.
 - Default cleanup moves targets to the native Recycle Bin/Trash.
 - Permanent deletion exists as a destructive backend mode and requires exact `Nuke` confirmation.

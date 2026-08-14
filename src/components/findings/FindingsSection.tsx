@@ -202,11 +202,10 @@ export function FindingsSection({
               className="inline-flex items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:opacity-40"
             >
               <div
-                className={`grid size-4 place-items-center rounded border transition-colors ${
-                  allSelected
-                    ? "border-sage-400 bg-sage-400 text-forest-950"
-                    : "border-forest-800 bg-forest-950 text-transparent"
-                }`}
+                className={`grid size-4 place-items-center rounded border transition-colors ${allSelected
+                  ? "border-sage-400 bg-sage-400 text-forest-950"
+                  : "border-forest-800 bg-forest-950 text-transparent"
+                  }`}
               >
                 <Check size={11} strokeWidth={3} aria-hidden="true" />
               </div>
@@ -217,7 +216,7 @@ export function FindingsSection({
               type="button"
               onClick={() => setConfirming(true)}
               disabled={deleteDisabled}
-              className="inline-flex min-h-10 min-w-32 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
+              className="inline-flex min-h-10 min-w-32 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed"
             >
               {confirming ? (
                 <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
@@ -284,7 +283,7 @@ export function FindingsSection({
               </div>
             )}
             <div className="grid gap-3">
-                {listedTargets.map((target) => (
+              {listedTargets.map((target) => (
                 <motion.div
                   key={target.id}
                   initial={false}
@@ -293,9 +292,9 @@ export function FindingsSection({
                     target={target}
                     isCleaning={cleaningTargetIds.has(target.id)}
                     selected={selectedIds.has(target.id)}
-                     onToggle={toggleTarget}
-                     onRefreshSize={refreshTargetSize}
-                     proEnabled={proEnabled}
+                    onToggle={toggleTarget}
+                    onRefreshSize={refreshTargetSize}
+                    proEnabled={proEnabled}
                   />
                 </motion.div>
               ))}
@@ -317,22 +316,22 @@ export function FindingsSection({
               className="w-full max-w-md rounded-3xl border border-forest-800 bg-forest-900 p-6 shadow-2xl"
             >
               <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className={`mb-3 grid size-10 place-items-center rounded-xl ${deleting ? "bg-forest-800 text-sage-300" : "bg-coral-300/10 text-coral-300"}`}>
-                      {deleting ? <LoaderCircle size={18} className="animate-spin" aria-hidden="true" /> : <AlertTriangle size={18} aria-hidden="true" />}
-                    </div>
-                    <h2 id="delete-confirm-title" className="text-xl font-semibold text-mist-100">
-                      {deleting ? (permanent ? "Deleting" : "Moving to Recycle Bin") : permanent ? "Delete permanently" : "Move to Recycle Bin"}
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-mist-500">
-                       {deleting
-                         ? permanent
-                           ? `Deleting ${selectedTargets.length} ${selectedNoun}...`
-                           : `Moving ${selectedTargets.length} ${selectedNoun}...`
-                         : permanent
-                           ? `${selectedTargets.length} ${selectedNoun} will be deleted from disk. Not recoverable.`
-                           : `${selectedTargets.length} ${selectedNoun} will be moved to the Recycle Bin. Restore from there if a build needs them.`}
-                   </p>
+                <div>
+                  <div className={`mb-3 grid size-10 place-items-center rounded-xl ${deleting ? "bg-forest-800 text-sage-300" : "bg-coral-300/10 text-coral-300"}`}>
+                    {deleting ? <LoaderCircle size={18} className="animate-spin" aria-hidden="true" /> : <AlertTriangle size={18} aria-hidden="true" />}
+                  </div>
+                  <h2 id="delete-confirm-title" className="text-xl font-semibold text-mist-100">
+                    {deleting ? (permanent ? "Deleting" : "Moving to Recycle Bin") : permanent ? "Delete permanently" : "Move to Recycle Bin"}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-mist-500">
+                    {deleting
+                      ? permanent
+                        ? `Deleting ${selectedTargets.length} ${selectedNoun}...`
+                        : `Moving ${selectedTargets.length} ${selectedNoun}...`
+                      : permanent
+                        ? `${selectedTargets.length} ${selectedNoun} will be deleted from disk. Not recoverable.`
+                        : `${selectedTargets.length} ${selectedNoun} will be moved to the Recycle Bin. Restore from there if a build needs them.`}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -344,41 +343,41 @@ export function FindingsSection({
                   <X size={17} aria-hidden="true" />
                 </button>
               </div>
-               {!deleting && <>
-                 <p className="mt-5 rounded-xl border border-forest-800 bg-forest-950 px-4 py-3 text-sm text-mist-300">
-                   Reclaims <strong className="text-mist-100">{formatBytes(selectedBytes)}</strong> (estimated)
-                 </p>
-                 {permanent && (
-                   <label className="mt-4 block text-left text-sm text-mist-300">
-                     Type <strong className="font-mono text-coral-300">Nuke</strong> to confirm.
-                     <input
-                       value={confirmation}
-                       onChange={(event) => setConfirmation(event.target.value)}
-                       className="mt-2 w-full rounded-xl border border-forest-800 bg-forest-950 px-3 py-2.5 font-mono text-sm text-mist-100 outline-none focus:border-coral-300"
-                       autoComplete="off"
-                       spellCheck={false}
-                       aria-label="Permanent deletion confirmation"
-                     />
-                   </label>
-                 )}
-               </>}
+              {!deleting && <>
+                <p className="mt-5 rounded-xl border border-forest-800 bg-forest-950 px-4 py-3 text-sm text-mist-300">
+                  Reclaims <strong className="text-mist-100">{formatBytes(selectedBytes)}</strong> (estimated)
+                </p>
+                {permanent && (
+                  <label className="mt-4 block text-left text-sm text-mist-300">
+                    Type <strong className="font-mono text-coral-300">Nuke</strong> to confirm.
+                    <input
+                      value={confirmation}
+                      onChange={(event) => setConfirmation(event.target.value)}
+                      className="mt-2 w-full rounded-xl border bg-forest-950 px-3 py-2.5 font-mono text-sm text-mist-100 outline-none focus:border-coral-300"
+                      autoComplete="off"
+                      spellCheck={false}
+                      aria-label="Permanent deletion confirmation"
+                    />
+                  </label>
+                )}
+              </>}
               <div className="mt-6 flex justify-end gap-3">
                 {deleting ? <button type="button" disabled className="inline-flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-medium text-mist-300"><LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> Cleaning...</button> : <>
-                <button
-                  type="button"
-                  onClick={() => setConfirming(false)}
-                  className="rounded-xl bg-forest-800 px-4 py-2.5 text-sm text-mist-300 hover:bg-forest-850"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                   onClick={confirmDelete}
-                   disabled={!confirmationReady || selectedTargets.length === 0 || !cleanupModeSupported}
-                   className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
-                 >
-                   {permanent ? "Delete permanently" : "Move to Recycle Bin"}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(false)}
+                    className="rounded-xl bg-forest-800 px-4 py-2.5 text-sm text-mist-300 hover:bg-forest-850"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDelete}
+                    disabled={!confirmationReady || selectedTargets.length === 0 || !cleanupModeSupported}
+                    className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:opacity-90 disabled:cursor-not-allowed"
+                  >
+                    {permanent ? "Delete permanently" : "Move to Recycle Bin"}
+                  </button>
                 </>}
               </div>
             </motion.div>

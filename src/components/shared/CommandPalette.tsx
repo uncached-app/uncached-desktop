@@ -172,11 +172,11 @@ export function CommandPalette({
             onKeyDown={onKeyDown}
             placeholder={scope ? `${scope.name} — pick an action` : "Search projects and commands"}
             aria-label={scope ? `Actions for ${scope.name}` : "Search projects and commands"}
-            className="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-mist-100 outline-none placeholder:text-mist-500"
+            className="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-mist-100 outline-none"
           />
         </div>
 
-        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto py-2 [scrollbar-gutter:stable]">
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto py-2 scrollbar-gutter-stable">
           {results.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-mist-500">
               {projects.length === 0 && !scope

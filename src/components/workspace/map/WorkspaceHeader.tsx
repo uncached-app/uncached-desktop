@@ -98,7 +98,7 @@ export function WorkspaceHeader({
 
       {/* Filter and Action controls bar */}
       <div className="mt-3.5 flex items-center gap-3">
-        <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 transition-all focus-within:border-sage-400 focus-within:ring-1 focus-within:ring-sage-400/30">
+        <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 transition-all focus-within:ring-1 focus-within:ring-sage-400/30">
           <Search size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
           <span className="sr-only">Filter projects by name, path, kind or branch</span>
           <input
@@ -112,7 +112,7 @@ export function WorkspaceHeader({
               }
             }}
             placeholder="Filter by name, path, ecosystem or branch"
-            className="min-w-0 flex-1 bg-transparent text-sm text-mist-100 outline-none placeholder:text-mist-500"
+            className="min-w-0 flex-1 bg-transparent text-sm text-mist-100 outline-none"
           />
           {query ? (
             <button
@@ -204,11 +204,10 @@ function HistoryLine({
 function StatCard({ value, label, accent = false }: { value: string; label: string; accent?: boolean }) {
   return (
     <div
-      className={`inline-flex items-baseline gap-1.5 rounded-xl border px-3 py-1.5 ${
-        accent
-          ? "border-sage-400/40 bg-sage-400/10 text-sage-300"
-          : "border-forest-800 bg-forest-900 text-mist-100"
-      }`}
+      className={`inline-flex items-baseline gap-1.5 rounded-xl border px-3 py-1.5 ${accent
+        ? "border-sage-400/40 bg-sage-400/10 text-sage-300"
+        : "border-forest-800 bg-forest-900 text-mist-100"
+        }`}
     >
       <span className="font-mono text-sm font-semibold tracking-tight">{value}</span>
       <span className={`text-[11px] ${accent ? "text-sage-300/80 font-medium" : "text-mist-500"}`}>{label}</span>

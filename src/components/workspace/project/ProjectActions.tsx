@@ -42,7 +42,7 @@ function ActionButton({
 
       <span
         role="tooltip"
-        className="pointer-events-none absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2 scale-95 rounded-md border border-forest-800 bg-forest-950 px-2 py-1 text-center text-[11px] font-medium text-mist-100 opacity-0 shadow-xl transition-all duration-200 group-hover/action:scale-100 group-hover/action:opacity-100 group-focus-within/action:scale-100 group-focus-within/action:opacity-100"
+        className="pointer-events-none absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2 scale-95 rounded-md border border-forest-800 bg-forest-950 px-2 py-1 text-center text-[11px] font-medium text-mist-100 opacity-0 shadow-xl transition-all duration-200 group-hover/action:scale-100 group-hover/action:opacity-100"
       >
         <span className="block whitespace-nowrap">{label}</span>
         {detail && (

@@ -83,7 +83,7 @@ export function ArtifactList({
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
               placeholder='Type "Nuke"'
-              className="w-44 rounded-lg border border-coral-300/40 bg-forest-950 px-3 py-1.5 font-mono text-xs text-mist-100 outline-none focus:border-coral-300 focus:ring-1 focus:ring-coral-300/30"
+              className="w-44 rounded-lg border border-coral-300/40 bg-forest-950 px-3 py-1.5 font-mono text-xs text-mist-100 outline-none focus:ring-1 focus:ring-coral-300/30"
               autoComplete="off"
               spellCheck={false}
               aria-label="Permanent deletion confirmation token"
@@ -107,7 +107,7 @@ export function ArtifactList({
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-forest-800 border-t border-forest-800">
+        <ul className="divide-y border-t border-forest-800">
           {owned.map((target) => {
             const name = relativeTo(target.path, projectPath);
             const cleaning = cleaningTargetIds.has(target.id);
@@ -155,8 +155,8 @@ export function ArtifactList({
                         !armed
                           ? 'Type "Nuke" to arm permanent deletion'
                           : permanent
-                          ? "Delete permanently"
-                          : "Move to Recycle Bin"
+                            ? "Delete permanently"
+                            : "Move to Recycle Bin"
                       }
                       className="grid size-7 place-items-center rounded-lg border border-forest-800 text-mist-500 transition-all hover:border-coral-300/60 hover:bg-coral-300/10 hover:text-coral-300 disabled:cursor-not-allowed disabled:opacity-30"
                     >

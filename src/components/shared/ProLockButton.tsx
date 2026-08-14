@@ -47,7 +47,7 @@ export function ProLockButton({ label, reason, locked, disabled = false, onClick
           role="tooltip"
           /* Anchored to the button's top edge rather than offset a fixed 36px:
              a tooltip that wraps to two lines grew upward and left a gap. */
-          className={`pointer-events-none absolute bottom-full z-10 mb-2 flex scale-95 gap-1.5 rounded-md border border-pro-200/30 bg-pro-surface px-2 py-1 text-[11px] font-medium text-pro-100 opacity-0 shadow-xl transition-all duration-200 group-hover/prolock:scale-100 group-hover/prolock:opacity-100 group-focus-within/prolock:scale-100 group-focus-within/prolock:opacity-100 ${tooltipClassName || "right-0 items-center whitespace-nowrap"}`}
+          className={`pointer-events-none absolute bottom-full z-10 mb-2 flex scale-95 gap-1.5 rounded-md border border-pro-200/30 bg-pro-surface px-2 py-1 text-[11px] font-medium text-pro-100 opacity-0 shadow-xl transition-all duration-200 group-hover/prolock:scale-100 group-hover/prolock:opacity-100 ${tooltipClassName || "right-0 items-center whitespace-nowrap"}`}
         >
           <LockKeyhole size={11} aria-hidden="true" />
           {reason}

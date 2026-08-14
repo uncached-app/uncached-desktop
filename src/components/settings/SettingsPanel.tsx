@@ -20,7 +20,7 @@ type SettingsPanelProps = {
 const sections = ["General", "Scanning", "Ignore rules", "Deletion", "Appearance", "Licence", "About"] as const;
 type Section = (typeof sections)[number];
 
-export function SettingsPanel({ open, onClose, settings, loading, saving, error, updateSettings, onLicenseChange = () => {} }: SettingsPanelProps) {
+export function SettingsPanel({ open, onClose, settings, loading, saving, error, updateSettings, onLicenseChange = () => { } }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(null);
   const [confirmPermanent, setConfirmPermanent] = useState(false);
@@ -158,7 +158,7 @@ function IgnoreRulesContent({ settings, updateSettings }: { settings: AppSetting
         placeholder={IGNORE_RULES_PLACEHOLDER}
         aria-label="Ignore rules"
         aria-invalid={problemLines.size > 0}
-        className="mt-5 min-h-44 flex-1 resize-none rounded-2xl border border-forest-800 bg-forest-950 p-4 font-mono text-xs leading-6 text-mist-100 placeholder:text-mist-500/60 focus:border-sage-400 focus:outline-none"
+        className="mt-5 min-h-44 flex-1 resize-none rounded-2xl border border-forest-800 bg-forest-950 p-4 font-mono text-xs leading-6 placeholder:text-mist-500/60 focus:outline-none"
       />
 
       <div className="mt-4 shrink-0 space-y-2" aria-live="polite">

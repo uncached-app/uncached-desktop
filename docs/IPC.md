@@ -183,6 +183,49 @@ itself is `git branch -d`, never `-D`. Git's reachability check is the last word
 so a stale list costs a refusal and never a commit. A batch that half worked says
 which half.
 
+### `duplicate_packages`
+
+Request: `{ "paths": ["/work/api", "/work/web"] }` — project paths, each authorised
+against the chosen folders. Read-only on every plan; nothing is moved or offered
+for removal.
+
+```json
+{
+  "packages": [
+    {
+      "name": "esbuild", "version": "0.28.1", "copies": 9,
+      "bytesEach": 42991616, "wastedBytes": 343932928,
+      "projects": ["/work/api", "..."], "samplePath": "/work/api/node_modules/esbuild"
+    }
+  ],
+  "wastedBytes": 19542601728,
+  "scannedProjects": 14,
+  "sharedProjects": 3,
+  "distinctPackages": 2187
+}
+```
+
+Only the top level of each `node_modules` is read: npm and Yarn hoist nearly
+every transitive dependency there, and the nested fallback copies are installs
+npm chose rather than the user. Identity is `name@version`, so two versions of
+one package are two packages and not copies of each other. Copies are counted
+per project — one project holding the same package twice is one copy.
+
+**A symlinked entry is never counted**, and a `node_modules` that is mostly links
+is reported under `sharedProjects` instead. That is a pnpm install: every package
+is a link into one content-addressed store, so the bytes exist once however many
+projects point at them. Following those links would report duplication against
+the tool that removed it. The majority test exists because npm leaves a few link
+entries in an ordinary install.
+
+`bytesEach` is one copy, measured; `wastedBytes` is that times the copies past
+the first. Weighing every copy would walk every `node_modules` on the machine to
+refine a number whose point is its order of magnitude, so the figure is an
+estimate and the screen says so — a package whose install step compiled a native
+binary may not be identical across projects. `bytesEach` is `null` when the size
+could not be read, and the package stays in the list at zero rather than
+vanishing from a total the user is asked to believe.
+
 ### `cleanup_history`
 
 No request. Returns `{ "events": [...], "totals": {...} }`, and returns both empty on Free, where nothing is written down.

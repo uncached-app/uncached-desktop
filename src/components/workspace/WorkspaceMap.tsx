@@ -222,7 +222,7 @@ export function WorkspaceMap({
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
         <div className="min-h-0 flex-1 overflow-hidden">
-          <div ref={listRef} className="h-full overflow-y-auto overflow-x-hidden pr-2 pb-6 [scrollbar-gutter:stable]">
+          <div ref={listRef} className="h-full overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
             {grouped.map(([verdict, projects]) => (
               <VerdictGroup
                 key={verdict}

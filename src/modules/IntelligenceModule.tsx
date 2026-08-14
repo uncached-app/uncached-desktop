@@ -65,10 +65,10 @@ export function IntelligenceModule({
   const showProtected =
     flow.step === 3 && flow.index.index
       ? () => {
-          flow.setView("projects");
-          flow.setActiveVerdict("protect");
-          onOpenWorkspace();
-        }
+        flow.setView("projects");
+        flow.setActiveVerdict("protect");
+        onOpenWorkspace();
+      }
       : null;
 
   async function runNow() {
@@ -143,7 +143,7 @@ export function IntelligenceModule({
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-5 pb-8 [scrollbar-gutter:stable]">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-5 pb-8 scrollbar-gutter-stable">
         <div className="grid gap-4">
           {!proEnabled && <ProPanel />}
 
