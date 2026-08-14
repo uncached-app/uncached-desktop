@@ -5,6 +5,31 @@ import { formatBytes } from "../../../utils/format";
 import { projectEvidence } from "../verdictPresentation";
 import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
 
+/**
+ * What the project weighs, and whether that figure is a total or a floor.
+ *
+ * `hasErrors` means some directory under it could not be read, so the walk
+ * measured part of the project and the sum is the smallest it could be. Printed
+ * plain, it would be a number the product states as fact and cannot stand
+ * behind — which is the one thing the size column must never be.
+ */
+function OnDisk({ footprint }: { footprint: Footprint }) {
+  return (
+    <div className="flex items-baseline gap-1 font-mono text-xs">
+      {footprint.hasErrors && (
+        <span
+          className="text-[10px] font-semibold text-mist-500"
+          title="Some folders under this project could not be read, so this is a floor rather than a total."
+        >
+          &ge;
+        </span>
+      )}
+      <span className="font-semibold text-mist-100">{formatBytes(footprint.totalBytes)}</span>
+      <span className="text-[10px] text-mist-500">on disk</span>
+    </div>
+  );
+}
+
 /** One project: who it is, what the verdict rests on, and what it weighs. */
 export function ProjectRow({
   project,
@@ -94,10 +119,7 @@ export function ProjectRow({
           {footprint ? (
             footprint.reclaimableBytes > 0 ? (
               <>
-                <div className="flex items-baseline gap-1 font-mono text-xs">
-                  <span className="font-semibold text-mist-100">{formatBytes(footprint.totalBytes)}</span>
-                  <span className="text-[10px] text-mist-500">on disk</span>
-                </div>
+                <OnDisk footprint={footprint} />
                 <div className="flex items-center gap-1.5">
                   <div
                     className="h-1.5 w-10 shrink-0 overflow-hidden rounded-full bg-forest-800"
@@ -115,10 +137,7 @@ export function ProjectRow({
                 </div>
               </>
             ) : (
-              <div className="flex items-baseline gap-1 font-mono text-xs">
-                <span className="font-semibold text-mist-100">{formatBytes(footprint.totalBytes)}</span>
-                <span className="text-[10px] text-mist-500">on disk</span>
-              </div>
+              <OnDisk footprint={footprint} />
             )
           ) : (
             <span className="font-mono text-[10px] text-mist-500">measuring...</span>

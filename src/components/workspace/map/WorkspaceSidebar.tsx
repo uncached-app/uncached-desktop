@@ -117,6 +117,16 @@ export function WorkspaceSidebar({
             the system did not grant access. Anything inside is missing from this map.
           </p>
         )}
+        {/* Discovery stops at a cap, and until now it stopped silently. A count
+            with nothing beside it reads as the whole workspace, so a map that
+            was cut off would have been indistinguishable from a complete one —
+            and every total below it would have been quietly short. */}
+        {index.truncated && (
+          <p className="mt-2 rounded-lg border border-forest-800 bg-forest-950 px-2.5 py-1.5 text-[10px] leading-4 text-mist-500">
+            This map stops at {index.projects.length} projects. There are more inside the folders you
+            chose, and the totals below cover only what is listed here.
+          </p>
+        )}
       </div>
 
       {/* The list is already grouped by verdict; this narrows it to one, so

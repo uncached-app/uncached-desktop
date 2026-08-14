@@ -79,23 +79,36 @@ export function ProjectHeader({
 
         {footprint && (
           <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+            {/* Every figure here is a floor when the walk could not read
+                everything, so all three carry the mark rather than one. A
+                partial total makes the share partial too. */}
             <MetricCard
               value={formatBytes(footprint.totalBytes)}
               label="total on disk"
+              partial={footprint.hasErrors}
             />
             <MetricCard
               value={formatBytes(footprint.reclaimableBytes)}
               label="reclaimable cache"
               accent={footprint.reclaimableBytes > 0}
               badge={reclaimableShare > 0 ? `${reclaimableShare}%` : undefined}
+              partial={footprint.hasErrors}
             />
             <MetricCard
               value={formatBytes(footprint.sourceBytes)}
               label="source code"
+              partial={footprint.hasErrors}
             />
           </div>
         )}
       </div>
+
+      {footprint?.hasErrors && (
+        <p className="mt-3 text-xs leading-5 text-mist-500">
+          Some folders under this project could not be read. Every figure above is the smallest it
+          could be, not the measurement.
+        </p>
+      )}
     </header>
   );
 }
@@ -105,11 +118,14 @@ function MetricCard({
   label,
   accent = false,
   badge,
+  partial = false,
 }: {
   value: string;
   label: string;
   accent?: boolean;
   badge?: string;
+  /** The walk could not read everything, so this is a floor rather than a total. */
+  partial?: boolean;
 }) {
   return (
     <div
@@ -125,6 +141,7 @@ function MetricCard({
             accent ? "text-sage-300" : "text-mist-100"
           }`}
         >
+          {partial && <span className="text-sm font-semibold text-mist-500">&ge;</span>}
           {value}
         </span>
         {badge && (
