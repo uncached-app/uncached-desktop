@@ -31,4 +31,12 @@ tauri-plugin-notification = "2"
 tauri-plugin-autostart = "2"
 ed25519-dalek = { version = "2", default-features = false, features = ["std"] }
 base64 = "0.22"
-uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "6f41d85", package = "uncached-core" }
+# Pinned as the full forty characters, which is what CI's drift check reads.
+# An abbreviated revision makes its regex match nothing, and the step that
+# reports drift fails the build instead of reporting it.
+#
+# `.cargo/config.toml` patches this to the sibling checkout, so this pin does not
+# decide what gets compiled — CI builds whatever `uncached-core` main is at. It
+# decides what a build without that sibling would resolve, and it is what the
+# drift warning compares against before a release.
+uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "5df0fbaaa3432056856db05f0d8e969e21d4d7a0", package = "uncached-core" }
