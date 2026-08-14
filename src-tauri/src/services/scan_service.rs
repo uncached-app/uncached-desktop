@@ -187,6 +187,21 @@ struct SizingJob {
 type SizeCalculator = Arc<dyn Fn(&Path) -> crate::filesystem::size::DirSize + Send + Sync>;
 type EventSink = Arc<dyn Fn(&str, serde_json::Value) + Send + Sync>;
 
+/// The scan a phase reports into: where its events go, what it counts towards,
+/// the flag that stops it, and the queue that measures what it finds.
+///
+/// Carried together rather than one by one because a phase does not choose any
+/// of them — it inherits them from the scan it belongs to, and four positional
+/// arguments of the same shape are four chances to hand a phase the machinery
+/// of a different scan.
+struct RunningScan<'a> {
+    id: &'a str,
+    events: &'a EventSink,
+    stats: &'a Arc<Mutex<ScanStats>>,
+    cancel: &'a Arc<AtomicBool>,
+    sizing: &'a SizingSubmitter,
+}
+
 pub fn platform() -> uncached_core::contract::v1::Platform {
     #[cfg(target_os = "windows")]
     return uncached_core::contract::v1::Platform::Windows;
@@ -714,14 +729,16 @@ impl ScanService {
             ) {
                 if let Some(home) = uncached_core::home_directory() {
                     discover_home_locations(
-                        &worker_scan_id,
+                        &RunningScan {
+                            id: &worker_scan_id,
+                            events: &discovery_event_sink,
+                            stats: &stats,
+                            cancel: &cancel_token,
+                            sizing: &sizing_submitter,
+                        },
                         &home,
                         &crate::scanner::discovery_categories(&settings),
                         &settings.ignore_rules,
-                        &discovery_event_sink,
-                        &stats,
-                        &cancel_token,
-                        &sizing_submitter,
                     );
                 }
             }
@@ -1240,15 +1257,12 @@ fn emit_finished(
 /// found in a workspace. Discovery widens what the product can see; it does not
 /// widen what the product may delete.
 fn discover_home_locations(
-    scan_id: &str,
+    run: &RunningScan,
     home: &Path,
     wanted: &[uncached_core::Category],
     ignore_rules: &str,
-    event_sink: &EventSink,
-    stats: &Arc<Mutex<ScanStats>>,
-    cancel_token: &Arc<AtomicBool>,
-    sizing: &SizingSubmitter,
 ) {
+    let scan_id = run.id;
     // Filtered before anything is measured. A category the user turned off is
     // not walked, not sized and not reported — switching it off has to mean the
     // scan does less work, not that the results are hidden afterwards.
@@ -1276,7 +1290,7 @@ fn discover_home_locations(
     );
 
     for discovery in &discoveries {
-        if cancel_token.load(Ordering::Acquire) {
+        if run.cancel.load(Ordering::Acquire) {
             return;
         }
         if providers.excludes(&discovery.path) {
@@ -1303,9 +1317,9 @@ fn discover_home_locations(
         );
         drop(registry);
 
-        stats.lock().unwrap().targets_found += 1;
-        emit_target_found(event_sink, scan_id, &target);
-        if !sizing.submit(SizingJob {
+        run.stats.lock().unwrap().targets_found += 1;
+        emit_target_found(run.events, scan_id, &target);
+        if !run.sizing.submit(SizingJob {
             scan_id: scan_id.to_owned(),
             target_id: target.id.clone(),
             path: target.path.clone(),
@@ -1640,16 +1654,18 @@ mod tests {
         );
 
         super::discover_home_locations(
-            &scan_id,
+            &super::RunningScan {
+                id: &scan_id,
+                events: &event_sink,
+                stats: &Arc::new(Mutex::new(ScanStats::default())),
+                cancel: &Arc::new(AtomicBool::new(false)),
+                sizing: &sizing.submitter(),
+            },
             &home,
             &crate::scanner::discovery_categories(
                 &crate::commands::settings::AppSettings::default(),
             ),
             "",
-            &event_sink,
-            &Arc::new(Mutex::new(ScanStats::default())),
-            &Arc::new(AtomicBool::new(false)),
-            &sizing.submitter(),
         );
         sizing.finish();
 
@@ -1733,16 +1749,18 @@ mod tests {
         );
 
         super::discover_home_locations(
-            &scan_id,
+            &super::RunningScan {
+                id: &scan_id,
+                events: &event_sink,
+                stats: &Arc::new(Mutex::new(ScanStats::default())),
+                cancel: &Arc::new(AtomicBool::new(false)),
+                sizing: &sizing.submitter(),
+            },
             &home,
             &crate::scanner::discovery_categories(
                 &crate::commands::settings::AppSettings::default(),
             ),
             &location.resolve(&home).to_string_lossy(),
-            &event_sink,
-            &Arc::new(Mutex::new(ScanStats::default())),
-            &Arc::new(AtomicBool::new(false)),
-            &sizing.submitter(),
         );
         sizing.finish();
 

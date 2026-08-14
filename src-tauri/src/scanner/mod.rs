@@ -155,16 +155,22 @@ mod tests {
     /// beside it would have been a weaker duplicate.
     #[test]
     fn a_workspace_provider_is_never_switched_off_by_settings() {
-        let mut settings = AppSettings::default();
-        settings.ignore_rules = String::new();
-        let bare = active_categories(&get_default_providers(&settings)).len();
+        let bare = active_categories(&get_default_providers(&AppSettings {
+            ignore_rules: String::new(),
+            ..Default::default()
+        }))
+        .len();
 
-        settings.detect_package_manager_caches = false;
-        settings.detect_ai_tool_caches = false;
-        settings.detect_editor_caches = false;
+        let switched_off = AppSettings {
+            ignore_rules: String::new(),
+            detect_package_manager_caches: false,
+            detect_ai_tool_caches: false,
+            detect_editor_caches: false,
+            ..Default::default()
+        };
 
         assert_eq!(
-            active_categories(&get_default_providers(&settings)).len(),
+            active_categories(&get_default_providers(&switched_off)).len(),
             bare,
             "the discovery switches never touch the workspace walk"
         );
@@ -178,9 +184,10 @@ mod tests {
         assert!(all.contains(&C::AiToolCache));
         assert!(all.contains(&C::EditorCache));
 
-        let mut settings = AppSettings::default();
-        settings.detect_ai_tool_caches = false;
-        let reduced = super::discovery_categories(&settings);
+        let reduced = super::discovery_categories(&AppSettings {
+            detect_ai_tool_caches: false,
+            ..Default::default()
+        });
         assert!(!reduced.contains(&C::AiToolCache));
         assert!(
             reduced.contains(&C::XcodeDerivedData),
