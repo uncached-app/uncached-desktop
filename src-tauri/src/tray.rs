@@ -175,7 +175,7 @@ fn parse_finished(payload: &str) -> Option<(u64, u64)> {
     let data = value.get("data").unwrap_or(&value);
     Some((
         data.get("totalTargets")?.as_u64()?,
-        data.get("totalBytes")?.as_u64()?,
+        data.get("totalBytesFound")?.as_u64()?,
     ))
 }
 
@@ -183,10 +183,18 @@ fn parse_finished(payload: &str) -> Option<(u64, u64)> {
 mod tests {
     use super::parse_finished;
 
+    /// Built by serializing the event the scan actually emits, never by hand.
+    /// Hand-written, this fixture said `totalBytes` while the wire said
+    /// `totalBytesFound`, so the parser returned `None` for every real scan and
+    /// the notification never fired — with a green test over it the whole time.
     #[test]
     fn the_finished_event_yields_its_two_numbers() {
-        let payload = r#"{"data":{"scanId":"s","totalTargets":12,"totalBytes":4096}}"#;
-        assert_eq!(parse_finished(payload), Some((12, 4096)));
+        let payload = serde_json::to_string(&crate::services::scan_service::scan_finished_event(
+            "s", 12, 4096, 7,
+        ))
+        .unwrap();
+
+        assert_eq!(parse_finished(&payload), Some((12, 4096)));
     }
 
     #[test]
