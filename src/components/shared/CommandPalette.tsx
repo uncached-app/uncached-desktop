@@ -1,25 +1,19 @@
-import { invoke } from "@tauri-apps/api/core";
 import {
   ArrowLeft,
-  Clipboard,
   Compass,
   CornerDownLeft,
   FolderOpen,
   FolderPlus,
-  Globe,
+  PanelsTopLeft,
   RefreshCw,
   Search,
   Settings,
-  SquareTerminal,
-  SquarePen,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePurgeFlow } from "../../hooks/usePurgeFlow";
-import { useLaunchers } from "../../hooks/useLaunchers";
+import { useProjectActions } from "../../hooks/useProjectActions";
 import { groupCommands, rankCommands } from "../../utils/palette.mjs";
 import type { PaletteItem } from "../../utils/palette.d.mts";
-import { remoteLabel, remoteToUrl } from "../../utils/remoteUrl.mjs";
-import { openExternalUrl } from "../../utils/externalLink";
 import { formatBytes } from "../../utils/format";
 import type { AppModule } from "../../types/module";
 import type { WorkspaceProject } from "../../types/workspace";
@@ -68,7 +62,6 @@ export function CommandPalette({
   onOpenSettings: () => void;
 }) {
   const flow = usePurgeFlow();
-  const launchers = useLaunchers();
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<WorkspaceProject | null>(null);
   const [cursor, setCursor] = useState(0);
@@ -99,102 +92,59 @@ export function CommandPalette({
     }
   }
 
+  const actions = useProjectActions(scope);
+
   const projectCommands = useMemo<Command[]>(() => {
     if (!scope) return [];
-    const url = remoteToUrl(scope.git.remote);
-    const items: Command[] = [];
-
-    for (const launcher of launchers.filter((entry) => entry.kind === "editor")) {
-      items.push({
-        id: `open-${launcher.id}`,
+    return [
+      {
+        id: "page",
         group: "actions",
-        title: `Open in ${launcher.name}`,
-        keywords: ["edit", "editor", launcher.name],
-        icon: SquarePen,
+        title: "Open project page",
+        keywords: ["details", "git", "artifacts", "everything"],
+        icon: PanelsTopLeft,
         run: () =>
-          run(
-            () => invoke("open_project_with", { path: scope.path, program: launcher.program }),
-            true,
-          ),
-      });
-    }
-
-    // One terminal, not all of them. The candidate order puts the deliberate
-    // installs first, so whoever went and installed Ghostty gets Ghostty, and
-    // everyone else gets the one that shipped with the machine.
-    const terminal = launchers.find((entry) => entry.kind === "terminal");
-    if (terminal) {
-      items.push({
-        id: "open-terminal",
+          run(async () => {
+            onModuleChange("reclaim");
+            flow.setView("projects");
+            flow.openProject(scope.path);
+          }, true),
+      },
+      // The same verbs the project page offers, from one definition. Two lists
+      // would drift the first time one of them gained an entry.
+      ...actions.map((action) => ({
+        id: action.id,
         group: "actions",
-        title: `Open in ${terminal.name}`,
-        keywords: ["shell", "terminal", "cd"],
-        icon: SquareTerminal,
+        title: action.title,
+        detail: action.detail,
+        keywords: action.keywords,
+        icon: action.icon,
         run: () =>
-          run(
-            () => invoke("open_project_with", { path: scope.path, program: terminal.program }),
-            true,
-          ),
-      });
-    }
-
-    items.push({
-      id: "reveal",
-      group: "actions",
-      title: "Reveal in file manager",
-      keywords: ["finder", "explorer", "folder", "show"],
-      icon: FolderOpen,
-      run: () => run(() => invoke("reveal_project", { path: scope.path }), true),
-    });
-
-    items.push({
-      id: "copy",
-      group: "actions",
-      title: "Copy path",
-      subtitle: scope.path,
-      keywords: ["clipboard", "path"],
-      icon: Clipboard,
-      // Stays open and says so. A copy that closes the window leaves no
-      // evidence it happened, and the user presses it again.
-      run: () =>
-        run(async () => {
-          await copyText(scope.path);
-          setFlash("Path copied");
-        }, false),
-    });
-
-    if (url) {
-      items.push({
-        id: "remote",
+          run(async () => {
+            await action.perform();
+            if (!action.leaves) setFlash(`${action.title} — done`);
+          }, action.leaves),
+      })),
+      {
+        id: "focus",
         group: "actions",
-        title: "Open repository",
-        detail: remoteLabel(scope.git.remote) ?? undefined,
-        keywords: ["github", "git", "remote", "browser"],
-        icon: Globe,
-        run: () => run(async () => openExternalUrl(url), true),
-      });
-    }
-
-    items.push({
-      id: "focus",
-      group: "actions",
-      title: "Show in workspace",
-      keywords: ["find", "list", "map", "locate", "scroll"],
-      icon: Compass,
-      // Asking rather than navigating. Getting to the right screen is the easy
-      // half; the list is the only thing that knows which filter is currently
-      // hiding the row, so it is what answers the request.
-      run: () =>
-        run(async () => {
-          onModuleChange("reclaim");
-          flow.setView("projects");
-          flow.focusProject(scope.path);
-        }, true),
-    });
-
-    return items;
+        title: "Show in workspace",
+        keywords: ["find", "list", "map", "locate", "scroll"],
+        icon: Compass,
+        // Asking rather than navigating. Getting to the right screen is the easy
+        // half; the list is the only thing that knows which filter is currently
+        // hiding the row, so it is what answers the request.
+        run: () =>
+          run(async () => {
+            onModuleChange("reclaim");
+            flow.setView("projects");
+            flow.closeProject();
+            flow.focusProject(scope.path);
+          }, true),
+      },
+    ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, launchers]);
+  }, [scope, actions]);
 
   const rootCommands = useMemo<Command[]>(() => {
     const items: Command[] = projects.map((project) => ({
@@ -404,29 +354,6 @@ export function CommandPalette({
       </div>
     </div>
   );
-}
-
-/**
- * Writes to the clipboard, with the old way as a fallback.
- *
- * `navigator.clipboard` is absent in a few webview configurations, and a copy
- * that quietly does nothing is worse than one that takes an odd route.
- */
-async function copyText(text: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const field = document.createElement("textarea");
-  field.value = text;
-  field.setAttribute("readonly", "");
-  field.style.position = "fixed";
-  field.style.opacity = "0";
-  document.body.appendChild(field);
-  field.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(field);
-  if (!copied) throw "Could not reach the clipboard";
 }
 
 function Row({

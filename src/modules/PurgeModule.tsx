@@ -3,6 +3,7 @@ import { CompletionView } from "../components/completion/CompletionView";
 import { FindingsSection } from "../components/findings/FindingsSection";
 import { ScanView } from "../components/scan/ScanView";
 import { WorkspaceForm } from "../components/workspace/WorkspaceForm";
+import { ProjectPage } from "../components/workspace/ProjectPage";
 import { WorkspaceMap } from "../components/workspace/WorkspaceMap";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useWorkspaceHistory } from "../hooks/useWorkspaceHistory";
@@ -25,6 +26,11 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
   const flow = usePurgeFlow();
   const { view, setView } = flow;
   const [query, setQuery] = useState("");
+  // Resolved every render rather than held: the index is re-read when the
+  // window comes back, and a page holding its own copy of a project would go
+  // on reporting sizes that have already changed.
+  const openProject =
+    flow.index.index?.projects.find((project) => project.path === flow.detailPath) ?? null;
   const history = useWorkspaceHistory(
     flow.index.index?.projects ?? [],
     flow.footprints,
@@ -84,7 +90,32 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
         cancelScan={flow.cancelScan}
       />
 
-      {view === "projects" && flow.step === 3 && flow.index.index && (
+      {view === "projects" && flow.step === 3 && openProject && (
+        <ProjectPage
+          project={openProject}
+          verdict={flow.verdicts[openProject.path] ?? "unknown"}
+          footprint={flow.footprints[openProject.path] ?? null}
+          targets={flow.targets}
+          cleaningTargetIds={flow.cleaningTargetIds}
+          cleanMode={cleanMode}
+          onClean={async (targetId, confirmation) => {
+            const result = await flow.cleanTarget(targetId, confirmation);
+            // The row goes as soon as the target does; the weights do not, so
+            // the project is read again rather than left claiming what it no
+            // longer holds.
+            if (result) await flow.remeasureProject(openProject.path);
+            return result !== null;
+          }}
+          onBack={flow.closeProject}
+          onShowInList={() => {
+            flow.closeProject();
+            flow.focusProject(openProject.path);
+          }}
+          onOpenProject={flow.openProject}
+        />
+      )}
+
+      {view === "projects" && flow.step === 3 && !openProject && flow.index.index && (
         <WorkspaceMap
           index={flow.index.index}
           query={query}
@@ -105,6 +136,7 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
           setActiveVerdict={flow.setActiveVerdict as never}
           focusPath={flow.focusPath}
           onFocusHandled={flow.clearFocus}
+          onOpenProject={flow.openProject}
         />
       )}
 

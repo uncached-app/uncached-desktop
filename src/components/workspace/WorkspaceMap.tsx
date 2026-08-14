@@ -34,6 +34,8 @@ type WorkspaceMapProps = {
   /** A project someone asked to be shown. The list is what makes it visible. */
   focusPath: string | null;
   onFocusHandled: () => void;
+  /** A row is the way into a project's own page. */
+  onOpenProject: (path: string) => void;
 };
 
 /** `⌘` where it means something, `Ctrl` where it does not. */
@@ -66,6 +68,7 @@ export function WorkspaceMap({
   setActiveVerdict,
   focusPath,
   onFocusHandled,
+  onOpenProject,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
   const openPalette = useOpenCommandPalette();
@@ -404,6 +407,7 @@ export function WorkspaceMap({
                 footprints={footprints}
                 showRoot={index.roots.length > 1 && activeRoot === null}
                 focusPath={focusPath}
+                onOpenProject={onOpenProject}
               />
             ))}
             {visible.length === 0 && (
@@ -573,12 +577,14 @@ function VerdictGroup({
   footprints,
   showRoot,
   focusPath,
+  onOpenProject,
 }: {
   verdict: Verdict;
   projects: WorkspaceProject[];
   footprints: Record<string, Footprint>;
   showRoot: boolean;
   focusPath: string | null;
+  onOpenProject: (path: string) => void;
 }) {
   const presentation = VERDICT_PRESENTATION[verdict];
   const reclaimable = projects.reduce(
@@ -612,6 +618,7 @@ function VerdictGroup({
             first={position === 0}
             showRoot={showRoot}
             focused={project.path === focusPath}
+            onOpen={onOpenProject}
           />
         ))}
       </div>
@@ -626,6 +633,7 @@ function ProjectRow({
   first,
   showRoot,
   focused,
+  onOpen,
 }: {
   project: WorkspaceProject;
   verdict: Verdict;
@@ -633,10 +641,10 @@ function ProjectRow({
   first: boolean;
   showRoot: boolean;
   focused: boolean;
+  onOpen: (path: string) => void;
 }) {
   const evidence = projectEvidence(project, verdict, footprint);
   const share = footprint && footprint.totalBytes > 0 ? footprint.reclaimableBytes / footprint.totalBytes : 0;
-  const openPalette = useOpenCommandPalette();
 
   return (
     // A button rather than an article with a click handler: the row is the way
@@ -645,8 +653,8 @@ function ProjectRow({
     <motion.button
       type="button"
       data-path={project.path}
-      onClick={() => openPalette(project)}
-      title={`${project.name} — open, reveal, copy path`}
+      onClick={() => onOpen(project.path)}
+      title={`${project.name} — everything known about it`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={`group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition-colors hover:bg-forest-850 ${

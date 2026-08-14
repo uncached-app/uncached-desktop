@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { Footprint, WorkspaceProject } from "../types/workspace";
 
@@ -45,5 +45,20 @@ export function useWorkspaceFootprints(projects: WorkspaceProject[]) {
     return () => { generation.current += 1; };
   }, [projects]);
 
-  return { footprints, measuring };
+  // Re-reads one project, for after something under it was removed. The
+  // generation check is the same one the sweep uses: a measurement that lands
+  // after the user changed workspace must not write into the new one.
+  const remeasure = useCallback(async (path: string) => {
+    if (!isTauri()) return;
+    const current = generation.current;
+    try {
+      const footprint = await invoke<Footprint>("measure_project_footprint", { path });
+      if (generation.current !== current) return;
+      setFootprints((previous) => ({ ...previous, [path]: footprint }));
+    } catch {
+      // Keep the last good reading rather than replacing it with a claim.
+    }
+  }, []);
+
+  return { footprints, measuring, remeasure };
 }

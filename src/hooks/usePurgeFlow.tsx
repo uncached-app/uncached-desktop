@@ -15,6 +15,8 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   index: ReturnType<typeof useWorkspaceIndex>;
   footprints: Record<string, import("../types/workspace").Footprint>;
   measuring: boolean;
+  /** Re-reads one project, for after something under it was removed. */
+  remeasureProject: (path: string) => Promise<void>;
   verdicts: ReturnType<typeof useWorkspaceVerdicts>;
   view: ResultsView;
   setView: (view: ResultsView) => void;
@@ -25,6 +27,10 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   focusPath: string | null;
   focusProject: (path: string) => void;
   clearFocus: () => void;
+  /** The project whose own page is open, if any. */
+  detailPath: string | null;
+  openProject: (path: string) => void;
+  closeProject: () => void;
 };
 
 const PurgeFlowContext = createContext<PurgeFlow | null>(null);
@@ -50,7 +56,7 @@ export function PurgeFlowProvider({
   const index = useWorkspaceIndex();
   const flow = useScanWorkspace(cleanMode, index.scanRoots, onRootsChange, proEnabled);
   const projects = index.index?.projects ?? NO_PROJECTS;
-  const { footprints, measuring } = useWorkspaceFootprints(projects);
+  const { footprints, measuring, remeasure } = useWorkspaceFootprints(projects);
   const verdicts = useWorkspaceVerdicts(projects, footprints);
   const [view, setView] = useState<ResultsView>("projects");
   // Held here rather than in the list: Insights sends the user to a filtered
@@ -61,6 +67,7 @@ export function PurgeFlowProvider({
   // be put in front of the user; only the list knows what is currently hiding
   // it, so the list is what answers and then clears the request.
   const [focusPath, setFocusPath] = useState<string | null>(null);
+  const [detailPath, setDetailPath] = useState<string | null>(null);
 
   // Reopening the app lands on the folders the user last chose, already being
   // read. Discovery is milliseconds; the weights fill in behind it as always.
@@ -110,7 +117,12 @@ export function PurgeFlowProvider({
   // A new scan replaces both readings, so it also puts the projects back in
   // front: the artifact list it would otherwise return to no longer exists.
   useEffect(() => {
-    if (flow.step !== 3) setView("projects");
+    if (flow.step !== 3) {
+      setView("projects");
+      // The page reads a project out of the index. A scan replaces the index,
+      // so a page left open would be describing something that no longer exists.
+      setDetailPath(null);
+    }
   }, [flow.step]);
 
   return (
@@ -120,6 +132,7 @@ export function PurgeFlowProvider({
         index,
         footprints,
         measuring,
+        remeasureProject: remeasure,
         verdicts,
         view,
         setView,
@@ -128,6 +141,9 @@ export function PurgeFlowProvider({
         focusPath,
         focusProject: setFocusPath,
         clearFocus: () => setFocusPath(null),
+        detailPath,
+        openProject: setDetailPath,
+        closeProject: () => setDetailPath(null),
       }}
     >
       {children}
