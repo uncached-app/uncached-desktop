@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { Footprint, WorkspaceProject } from "../types/workspace";
+import type { CleanupEvent } from "../utils/report.d.mts";
 
 /** What moved between the last visit and this one. */
 export type WorkspaceChange = {
@@ -17,6 +18,44 @@ export type CleanupTotals = {
   cleanups: number;
   firstRecordedAt: string | null;
 };
+
+type CleanupHistory = { events: CleanupEvent[]; totals: CleanupTotals };
+
+const EMPTY: CleanupHistory = {
+  events: [],
+  totals: { allTimeBytes: 0, last30DaysBytes: 0, cleanups: 0, firstRecordedAt: null },
+};
+
+/**
+ * Every cleanup this machine has recorded, and the summary of them.
+ *
+ * Read-only, and separate from the visit recording below, because the report
+ * reads this history without being part of it: opening a screen is not an event
+ * worth writing down.
+ *
+ * Free gets the same empty shape an untouched install would — the native layer
+ * returns nothing rather than refusing, so there is no error state to render
+ * for a plan that simply has no history.
+ */
+export function useCleanupHistory() {
+  const [history, setHistory] = useState<CleanupHistory>(EMPTY);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(() => {
+    if (!isTauri()) {
+      setLoading(false);
+      return;
+    }
+    invoke<CleanupHistory>("cleanup_history")
+      .then(setHistory)
+      .catch(() => setHistory(EMPTY))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(refresh, [refresh]);
+
+  return { ...history, loading, refresh };
+}
 
 /**
  * Reads what changed since the last visit, and records this one.
@@ -36,13 +75,8 @@ export function useWorkspaceHistory(
   measuring: boolean,
 ) {
   const [change, setChange] = useState<WorkspaceChange | null>(null);
-  const [totals, setTotals] = useState<CleanupTotals | null>(null);
+  const { totals } = useCleanupHistory();
   const recorded = useRef(false);
-
-  useEffect(() => {
-    if (!isTauri()) return;
-    invoke<CleanupTotals>("cleanup_totals").then(setTotals).catch(() => setTotals(null));
-  }, []);
 
   const measured = projects.filter((project) => footprints[project.path]).length;
   const complete = projects.length > 0 && measured === projects.length && !measuring;

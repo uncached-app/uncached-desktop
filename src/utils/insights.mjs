@@ -46,6 +46,12 @@ export const REDACTED = "\u2022\u2022\u2022";
  * `formatBytes` is injected rather than imported so this module stays free of
  * presentation, so a test can assert on plain numbers, and so a plan without
  * access to the measurements can pass a redacting one.
+ *
+ * The desktop passes the real formatter on every plan. These sentences read a
+ * scan that is already on screen, and the byte counts in them are one row away
+ * in the workspace list \u2014 withholding a number the user can reach by scrolling
+ * is friction rather than a boundary. What Pro sells on this screen is the
+ * history beneath them: the scan is the present, and only Pro keeps the past.
  */
 export function buildInsights({ projects, footprints, verdicts, totals, formatBytes }) {
   const insights = [];

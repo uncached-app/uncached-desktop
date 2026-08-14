@@ -17,11 +17,16 @@
 //! time, which is exactly what it does today, and nothing about the user's
 //! filesystem is written down.
 //!
-//! Paths are the sensitive part of both. The snapshot needs them — a per-project
-//! diff has nothing to join on otherwise — and the cleanup log does not, so it
-//! never records one. `clear_history` deletes both.
+//! Paths are the sensitive part of both, and both hold them. The snapshot needs
+//! them because a per-project diff has nothing to join on otherwise. The log
+//! records one per event because a report you can only read as a single running
+//! total is a number, not a report: every question worth asking of a cleanup
+//! history — which ecosystem, which workspace, was that me or a schedule — is a
+//! dimension that has to have been written down at the time. `clear_history`
+//! deletes both files, and nothing here leaves the machine.
 
 use crate::commands::entitlements::current_status;
+use crate::models::action::{CleanMode, CleanupTrigger};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -36,6 +41,14 @@ const CLEANUP_LOG_FILE: &str = "cleanup-history.jsonl";
 /// the worst case is one visit without a comparison, which is a far better
 /// failure than a half-understood record producing a wrong number.
 const SCHEMA_VERSION: u32 = 1;
+
+/// The cleanup log versions separately, and forward rather than sideways.
+///
+/// Version 1 recorded a timestamp and a byte count. Everything added since is
+/// optional on the way in, so those lines still parse and still count towards
+/// every total — a history that resets itself when the product learns a new
+/// dimension would be a history nobody could trust.
+const CLEANUP_SCHEMA_VERSION: u32 = 2;
 
 /// What one project weighed when the snapshot was taken.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -69,12 +82,50 @@ pub struct WorkspaceChange {
     pub projects_removed: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// One artifact, removed once.
+///
+/// The grain is the whole design. Cleanup happens a target at a time, so a
+/// target at a time is what actually occurred — and every aggregate the report
+/// draws is a sum over these, computed at read time. Storing the aggregates
+/// instead would mean deciding today which questions the report is allowed to
+/// answer.
+///
+/// The four dimensions past the timestamp and the size are the ones that cannot
+/// be recovered later: what it was, where it was, how it went, and who asked.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-struct CleanupEntry {
+pub struct CleanupEvent {
     version: u32,
-    at: DateTime<Utc>,
-    freed_bytes: u64,
+    pub at: DateTime<Utc>,
+    pub freed_bytes: u64,
+    /// Absent on a version 1 line, and left absent rather than guessed. The
+    /// report groups those under "unrecorded", which is the truth about them.
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub path: Option<String>,
+    /// The scan root the target was found under — the folder the user added,
+    /// not the project. It is the one grouping the history can still make sense
+    /// of months later, when the project directory may not exist any more.
+    #[serde(default)]
+    pub workspace: Option<String>,
+    #[serde(default)]
+    pub mode: Option<CleanMode>,
+    #[serde(default)]
+    pub trigger: CleanupTrigger,
+}
+
+/// What the caller knows at the moment a target comes off the disk.
+///
+/// Borrowed rather than owned: this is built on the success path of a cleanup,
+/// beside the logging, and it must not cost a clone of anything.
+pub struct CleanupRecord<'a> {
+    pub freed_bytes: u64,
+    pub category: &'a crate::models::category::Category,
+    pub path: &'a Path,
+    pub workspace: &'a Path,
+    pub mode: CleanMode,
+    pub trigger: CleanupTrigger,
 }
 
 /// Everything reclaimed, and how much of it recently.
@@ -85,6 +136,18 @@ pub struct CleanupTotals {
     pub last_30_days_bytes: u64,
     pub cleanups: usize,
     pub first_recorded_at: Option<DateTime<Utc>>,
+}
+
+/// The log, and the summary of it, read once.
+///
+/// One command rather than two because the report and the running total are the
+/// same file: asking twice would read it twice and could disagree with itself
+/// if a cleanup landed in between.
+#[derive(Debug, Clone, Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct CleanupHistory {
+    pub events: Vec<CleanupEvent>,
+    pub totals: CleanupTotals,
 }
 
 fn history_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -146,7 +209,7 @@ pub fn compare(previous: &WorkspaceSnapshot, projects: &[ProjectWeight]) -> Work
     }
 }
 
-fn totals_from(entries: &[CleanupEntry], now: DateTime<Utc>) -> CleanupTotals {
+fn totals_from(entries: &[CleanupEvent], now: DateTime<Utc>) -> CleanupTotals {
     let cutoff = now - Duration::days(30);
     CleanupTotals {
         all_time_bytes: entries
@@ -164,15 +227,23 @@ fn totals_from(entries: &[CleanupEntry], now: DateTime<Utc>) -> CleanupTotals {
 /// A malformed line is skipped, not fatal. The log is append-only and written
 /// by a process that can be killed; one unreadable line must not cost the user
 /// every number that came before it.
-fn read_cleanup_log(path: &Path) -> Vec<CleanupEntry> {
+///
+/// A line from a *newer* version is skipped for the opposite reason: it was
+/// written by a build that knew something this one does not, and reading it
+/// half-way is how a total starts lying.
+fn read_cleanup_log(path: &Path) -> Vec<CleanupEvent> {
     let Ok(contents) = fs::read_to_string(path) else {
         return Vec::new();
     };
-    contents
+    let mut events: Vec<CleanupEvent> = contents
         .lines()
-        .filter_map(|line| serde_json::from_str::<CleanupEntry>(line).ok())
-        .filter(|entry| entry.version == SCHEMA_VERSION)
-        .collect()
+        .filter_map(|line| serde_json::from_str::<CleanupEvent>(line).ok())
+        .filter(|entry| entry.version >= 1 && entry.version <= CLEANUP_SCHEMA_VERSION)
+        .collect();
+    // Append order is chronological in practice; sorting makes it so even if a
+    // clock moved, because a report draws a timeline out of this.
+    events.sort_by_key(|event| event.at);
+    events
 }
 
 /// Records this visit and returns what changed since the last one.
@@ -201,8 +272,11 @@ pub async fn record_workspace_visit(
     Ok(change)
 }
 
-/// Appends one cleanup to the log. Bytes and a timestamp, never a path.
-pub fn record_cleanup(app: &AppHandle, freed_bytes: u64) -> Result<(), String> {
+/// Appends one cleanup to the log.
+///
+/// One line per target, written on the success path only: the history answers
+/// what was removed, and a failed attempt removed nothing.
+pub fn record_cleanup(app: &AppHandle, record: CleanupRecord<'_>) -> Result<(), String> {
     if !current_status().pro_enabled {
         return Ok(());
     }
@@ -211,10 +285,15 @@ pub fn record_cleanup(app: &AppHandle, freed_bytes: u64) -> Result<(), String> {
         .parent()
         .ok_or_else(|| "Invalid history path".to_string())?;
     fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    let entry = CleanupEntry {
-        version: SCHEMA_VERSION,
+    let entry = CleanupEvent {
+        version: CLEANUP_SCHEMA_VERSION,
         at: Utc::now(),
-        freed_bytes,
+        freed_bytes: record.freed_bytes,
+        category: Some(record.category.as_wire()),
+        path: Some(record.path.to_string_lossy().into_owned()),
+        workspace: Some(record.workspace.to_string_lossy().into_owned()),
+        mode: Some(record.mode),
+        trigger: record.trigger,
     };
     let mut line = serde_json::to_string(&entry).map_err(|error| error.to_string())?;
     line.push('\n');
@@ -229,13 +308,23 @@ pub fn record_cleanup(app: &AppHandle, freed_bytes: u64) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// The whole log, plus its summary.
+///
+/// Returned unaggregated on purpose: filtering a report is an interactive act,
+/// and a round trip per filter change would make the screen feel like a query
+/// console. The file is one line per cleaned target — a heavy year of use is
+/// still measured in hundreds of kilobytes.
 #[tauri::command]
-pub async fn cleanup_totals(app: AppHandle) -> Result<CleanupTotals, String> {
+pub async fn cleanup_history(app: AppHandle) -> Result<CleanupHistory, String> {
     if !current_status().pro_enabled {
-        return Ok(CleanupTotals::default());
+        return Ok(CleanupHistory::default());
     }
     let path = history_dir(&app)?.join(CLEANUP_LOG_FILE);
-    Ok(totals_from(&read_cleanup_log(&path), Utc::now()))
+    let events = read_cleanup_log(&path);
+    Ok(CleanupHistory {
+        totals: totals_from(&events, Utc::now()),
+        events,
+    })
 }
 
 /// Removes both files. Offered because the snapshot holds paths, and a user who
@@ -256,10 +345,24 @@ pub async fn clear_history(app: AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        compare, read_cleanup_log, read_snapshot, totals_from, write_atomically, CleanupEntry,
-        ProjectWeight, WorkspaceSnapshot, SCHEMA_VERSION,
+        compare, read_cleanup_log, read_snapshot, totals_from, write_atomically, CleanupEvent,
+        ProjectWeight, WorkspaceSnapshot, CLEANUP_SCHEMA_VERSION, SCHEMA_VERSION,
     };
-    use chrono::{Duration, Utc};
+    use crate::models::action::{CleanMode, CleanupTrigger};
+    use chrono::{DateTime, Duration, Utc};
+
+    fn event(at: DateTime<Utc>, freed_bytes: u64) -> CleanupEvent {
+        CleanupEvent {
+            version: CLEANUP_SCHEMA_VERSION,
+            at,
+            freed_bytes,
+            category: Some("NodeModules".to_owned()),
+            path: Some("/w/api/node_modules".to_owned()),
+            workspace: Some("/w".to_owned()),
+            mode: Some(CleanMode::Trash),
+            trigger: CleanupTrigger::Manual,
+        }
+    }
 
     fn weight(path: &str, total: u64, reclaimable: u64) -> ProjectWeight {
         ProjectWeight {
@@ -353,16 +456,8 @@ mod tests {
     fn totals_separate_the_last_thirty_days_from_everything() {
         let now = Utc::now();
         let entries = vec![
-            CleanupEntry {
-                version: SCHEMA_VERSION,
-                at: now - Duration::days(90),
-                freed_bytes: 1_000,
-            },
-            CleanupEntry {
-                version: SCHEMA_VERSION,
-                at: now - Duration::days(2),
-                freed_bytes: 500,
-            },
+            event(now - Duration::days(90), 1_000),
+            event(now - Duration::days(2), 500),
         ];
         let totals = totals_from(&entries, now);
 
@@ -375,18 +470,80 @@ mod tests {
     #[test]
     fn a_corrupt_line_costs_only_itself() {
         let path = temp_path("log.jsonl");
-        let good = serde_json::to_string(&CleanupEntry {
-            version: SCHEMA_VERSION,
-            at: Utc::now(),
-            freed_bytes: 42,
-        })
-        .unwrap();
+        let good = serde_json::to_string(&event(Utc::now(), 42)).unwrap();
         std::fs::write(&path, format!("{good}\nnot-json\n{good}\n")).unwrap();
 
         let entries = read_cleanup_log(&path);
         assert_eq!(entries.len(), 2);
         assert_eq!(totals_from(&entries, Utc::now()).all_time_bytes, 84);
         let _ = std::fs::remove_file(path);
+    }
+
+    /// The dimensions arrived in version 2. Everything reclaimed before that
+    /// still counts, and reads as what it is — recorded, without a category.
+    #[test]
+    fn a_version_one_line_keeps_its_bytes_and_admits_what_it_does_not_know() {
+        let path = temp_path("v1.jsonl");
+        let legacy = serde_json::json!({ "version": 1, "at": Utc::now(), "freedBytes": 7 });
+        std::fs::write(&path, format!("{legacy}\n")).unwrap();
+
+        let entries = read_cleanup_log(&path);
+        assert_eq!(entries.len(), 1, "an older line is history, not corruption");
+        assert_eq!(entries[0].freed_bytes, 7);
+        assert_eq!(entries[0].category, None);
+        assert_eq!(entries[0].trigger, CleanupTrigger::Manual);
+        let _ = std::fs::remove_file(path);
+    }
+
+    /// Written by a build that knew more than this one does. Counting it would
+    /// mean trusting fields we cannot read.
+    #[test]
+    fn a_line_from_a_future_version_is_left_alone() {
+        let path = temp_path("v99.jsonl");
+        let ahead = serde_json::json!({
+            "version": CLEANUP_SCHEMA_VERSION + 1,
+            "at": Utc::now(),
+            "freedBytes": 9,
+        });
+        std::fs::write(&path, format!("{ahead}\n")).unwrap();
+
+        assert!(read_cleanup_log(&path).is_empty());
+        let _ = std::fs::remove_file(path);
+    }
+
+    /// A report draws a timeline out of this file, and a timeline cannot be
+    /// built on the order lines happened to be appended in.
+    #[test]
+    fn the_log_reads_back_in_time_order() {
+        let path = temp_path("order.jsonl");
+        let now = Utc::now();
+        let lines: Vec<String> = [
+            event(now, 3),
+            event(now - Duration::days(10), 1),
+            event(now - Duration::days(5), 2),
+        ]
+        .iter()
+        .map(|entry| serde_json::to_string(entry).unwrap())
+        .collect();
+        std::fs::write(&path, format!("{}\n", lines.join("\n"))).unwrap();
+
+        let freed: Vec<u64> = read_cleanup_log(&path)
+            .iter()
+            .map(|entry| entry.freed_bytes)
+            .collect();
+        assert_eq!(freed, vec![1, 2, 3]);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn an_event_carries_its_dimensions_across_the_wire_in_camel_case() {
+        let value = serde_json::to_value(event(Utc::now(), 5)).unwrap();
+
+        assert_eq!(value["freedBytes"], 5);
+        assert_eq!(value["category"], "NodeModules");
+        assert_eq!(value["workspace"], "/w");
+        assert_eq!(value["mode"], "Trash");
+        assert_eq!(value["trigger"], "Manual");
     }
 
     #[test]

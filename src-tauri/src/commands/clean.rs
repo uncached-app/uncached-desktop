@@ -321,6 +321,13 @@ pub async fn clean_target(
     );
     let _ = app.emit("clean:started", clean_started_event(&target_id, mode));
 
+    // Taken before the registration moves into the worker: what was removed is
+    // only knowable from the target, and by the time it is gone this is the
+    // only place that still says what it was.
+    let category = registered.target.category.clone();
+    let cleaned_path = registered.target.path.clone();
+    let root_path = registered.root_path.clone();
+
     let result = match tauri::async_runtime::spawn_blocking(move || {
         CleanService::clean_registered_target(
             registered,
@@ -360,8 +367,17 @@ pub async fn clean_target(
             // in settings is tied to the Trash flow; the history answers "what
             // has this product removed for me", and a permanent delete removed
             // it just as much.
-            if let Err(error) = crate::commands::history::record_cleanup(&app, clean_result.freed_bytes)
-            {
+            if let Err(error) = crate::commands::history::record_cleanup(
+                &app,
+                crate::commands::history::CleanupRecord {
+                    freed_bytes: clean_result.freed_bytes,
+                    category: &category,
+                    path: &cleaned_path,
+                    workspace: &root_path,
+                    mode,
+                    trigger: request.trigger,
+                },
+            ) {
                 crate::logging::warn(
                     "history",
                     &format!("failed to append cleanup entry error=\"{}\"", error),

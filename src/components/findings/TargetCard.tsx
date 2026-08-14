@@ -90,7 +90,7 @@ const CATEGORY_PRESENTATION: Record<string, { label: string; icon: typeof Packag
 
 const CUSTOM_CATEGORY_PREFIX = "Custom:";
 
-function categoryPresentation(category: string) {
+export function categoryPresentation(category: string) {
   const known = CATEGORY_PRESENTATION[category];
   if (known) return known;
   return {

@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Copy, FolderOpen, GitBranch, Plus, RefreshCw, Search, X } from "lucide-react";
+import { ArrowRight, Copy, FolderOpen, GitBranch, Plus, RefreshCw, Search, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Footprint, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
@@ -11,7 +11,6 @@ type WorkspaceMapProps = {
   index: WorkspaceIndex;
   query: string;
   onQueryChange: (query: string) => void;
-  onOpenProject: (path: string) => void;
   proEnabled: boolean;
   footprints: Record<string, Footprint>;
   measuring: boolean;
@@ -42,7 +41,6 @@ export function WorkspaceMap({
   index,
   query,
   onQueryChange,
-  onOpenProject,
   proEnabled,
   footprints,
   measuring,
@@ -341,8 +339,6 @@ export function WorkspaceMap({
                 projects={projects}
                 footprints={footprints}
                 showRoot={index.roots.length > 1 && activeRoot === null}
-                proEnabled={proEnabled}
-                onOpen={onOpenProject}
               />
             ))}
             {visible.length === 0 && (
@@ -444,18 +440,16 @@ function RootItem({
 }) {
   return (
     <div
-      className={`group/root flex items-center gap-1 rounded-lg pr-1 transition-colors ${
-        active ? "bg-forest-800" : "hover:bg-forest-850"
-      }`}
+      className={`group/root flex items-center gap-1 rounded-lg pr-1 transition-colors ${active ? "bg-forest-800" : "hover:bg-forest-850"
+        }`}
     >
       <button
         type="button"
         onClick={onSelect}
         title={title}
         aria-current={active ? "true" : undefined}
-        className={`flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-xs transition-colors ${
-          active ? "text-mist-100" : "text-mist-500 hover:text-mist-300"
-        }`}
+        className={`flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-xs transition-colors ${active ? "text-mist-100" : "text-mist-500 hover:text-mist-300"
+          }`}
       >
         <span className="min-w-0 flex-1 truncate">{label}</span>
         <span className="shrink-0 font-mono text-[10px] opacity-70">{indexed ? count : "—"}</span>
@@ -495,9 +489,8 @@ function VerdictFilter({
       onClick={onSelect}
       title={title}
       aria-pressed={active}
-      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
-        active ? "bg-forest-800 text-mist-100" : "text-mist-500 hover:bg-forest-850 hover:text-mist-300"
-      }`}
+      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${active ? "bg-forest-800 text-mist-100" : "text-mist-500 hover:bg-forest-850 hover:text-mist-300"
+        }`}
     >
       <span
         className={`size-1.5 shrink-0 rounded-full ${dotClassName ?? "bg-transparent"}`}
@@ -514,15 +507,11 @@ function VerdictGroup({
   projects,
   footprints,
   showRoot,
-  proEnabled,
-  onOpen,
 }: {
   verdict: Verdict;
   projects: WorkspaceProject[];
   footprints: Record<string, Footprint>;
   showRoot: boolean;
-  proEnabled: boolean;
-  onOpen: (path: string) => void;
 }) {
   const presentation = VERDICT_PRESENTATION[verdict];
   const reclaimable = projects.reduce(
@@ -555,8 +544,6 @@ function VerdictGroup({
             footprint={footprints[project.path] ?? null}
             first={position === 0}
             showRoot={showRoot}
-            proEnabled={proEnabled}
-            onOpen={() => onOpen(project.path)}
           />
         ))}
       </div>
@@ -570,16 +557,12 @@ function ProjectRow({
   footprint,
   first,
   showRoot,
-  proEnabled,
-  onOpen,
 }: {
   project: WorkspaceProject;
   verdict: Verdict;
   footprint: Footprint | null;
   first: boolean;
   showRoot: boolean;
-  proEnabled: boolean;
-  onOpen: () => void;
 }) {
   const evidence = projectEvidence(project, verdict, footprint);
   const share = footprint && footprint.totalBytes > 0 ? footprint.reclaimableBytes / footprint.totalBytes : 0;
@@ -588,9 +571,8 @@ function ProjectRow({
     <motion.article
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-forest-850 ${
-        first ? "" : "border-t border-forest-800"
-      }`}
+      className={`group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-forest-850 ${first ? "" : "border-t border-forest-800"
+        }`}
     >
       {/* Line one is identity, line two is the finding. Both keep their own row
           of the grid so the size column lines up across every group. */}
@@ -643,16 +625,6 @@ function ProjectRow({
           </span>
         ) : (
           <span className="w-48 text-right font-mono text-[10px] text-mist-500/60">measuring...</span>
-        )}
-        {proEnabled && (
-          <button
-            type="button"
-            onClick={onOpen}
-            aria-label={`Open ${project.name}`}
-            className="rounded-md p-1.5 text-mist-500 opacity-0 transition-colors hover:bg-forest-800 hover:text-sage-300 group-hover:opacity-100 group-focus-within:opacity-100"
-          >
-            <ArrowUpRight size={14} aria-hidden="true" />
-          </button>
         )}
       </div>
     </motion.article>

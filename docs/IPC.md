@@ -80,6 +80,26 @@ Request:
 
 `mode` is `Trash` or `Permanent`. `Permanent` requires exact confirmation `"Nuke"`. The backend resolves `targetId` from its in-memory registry; a frontend path is not accepted as authority.
 
+An optional `trigger` is `Manual` or `Scheduled`, defaulting to `Manual`. It is recorded with the cleanup and never changes what the command does — only what the history says about who asked for it.
+
+### `cleanup_history`
+
+No request. Returns `{ "events": [...], "totals": {...} }`, and returns both empty on Free, where nothing is written down.
+
+```json
+{
+  "at": "2026-08-14T11:02:14Z",
+  "freedBytes": 4194304,
+  "category": "NodeModules",
+  "path": "/work/api/node_modules",
+  "workspace": "/work",
+  "mode": "Trash",
+  "trigger": "Manual"
+}
+```
+
+One event per cleaned target, appended when the removal succeeded. Every field past `at` and `freedBytes` is `null` on an event written before that field existed; the report groups those as unrecorded rather than guessing. The whole log is returned unaggregated because filtering a report is interactive, and a round trip per filter change would make the screen feel like a query console.
+
 Response is a v1 envelope. Success data contains the command result; failure
 uses `data: null` and sanitized Core `error` information.
 

@@ -16,7 +16,7 @@ use commands::cancel::{cancel_cleanup, cancel_scan};
 use commands::clean::clean_target;
 use commands::cleanup_capabilities;
 use commands::entitlements::get_entitlement_status;
-use commands::history::{cleanup_totals, clear_history, record_workspace_visit};
+use commands::history::{cleanup_history, clear_history, record_workspace_visit};
 use commands::license::{activate_license, deactivate_license, get_license};
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{get_app_info, get_settings, review_ignore_rules, starts_hidden, update_settings};
@@ -69,7 +69,7 @@ pub fn run() {
             deactivate_license,
             get_license,
             record_workspace_visit,
-            cleanup_totals,
+            cleanup_history,
             clear_history,
             get_settings,
             update_settings,

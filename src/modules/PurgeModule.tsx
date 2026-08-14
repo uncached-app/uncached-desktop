@@ -89,7 +89,6 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
           index={flow.index.index}
           query={query}
           onQueryChange={setQuery}
-          onOpenProject={() => {}}
           proEnabled={proEnabled}
           footprints={flow.footprints}
           measuring={flow.measuring}
