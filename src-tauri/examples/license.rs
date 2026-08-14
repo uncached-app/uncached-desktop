@@ -47,7 +47,12 @@ fn seed_from_hex(hex: &str) -> Result<[u8; 32], String> {
 
 fn main() {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    let result = match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
+    let result = match args
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .as_slice()
+    {
         ["keygen", seed] => keygen(seed),
         ["issue", seed, id, holder] => issue(seed, id, holder, None),
         ["issue", seed, id, holder, expires] => issue(seed, id, holder, Some(expires)),

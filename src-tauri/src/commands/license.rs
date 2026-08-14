@@ -118,15 +118,19 @@ pub enum LicenseError {
 impl LicenseError {
     pub fn message(&self) -> String {
         match self {
-            Self::Malformed => "That is not a licence key. Paste the whole line from your receipt.".into(),
+            Self::Malformed => {
+                "That is not a licence key. Paste the whole line from your receipt.".into()
+            }
             Self::BadSignature => {
                 "This key was not issued by Uncached, or it was altered in transit.".into()
             }
-            Self::UnsupportedVersion(version) => format!(
-                "This key needs a newer version of Uncached to read (format {version})."
-            ),
+            Self::UnsupportedVersion(version) => {
+                format!("This key needs a newer version of Uncached to read (format {version}).")
+            }
             Self::Expired(at) => format!("This licence expired on {}.", at.format("%Y-%m-%d")),
-            Self::NotPro(plan) => format!("This key unlocks \"{plan}\", which this build has nothing to unlock."),
+            Self::NotPro(plan) => {
+                format!("This key unlocks \"{plan}\", which this build has nothing to unlock.")
+            }
             Self::NoPublicKey => {
                 "This build cannot verify licences. It was compiled without a signing key.".into()
             }
@@ -240,9 +244,7 @@ pub fn install(app: &AppHandle) {
     // rather than discarded as though it had never been bought.
     match authenticate(&public_key, &stored) {
         Ok(license) => {
-            let in_date = license
-                .expires_at
-                .is_none_or(|expiry| expiry > Utc::now());
+            let in_date = license.expires_at.is_none_or(|expiry| expiry > Utc::now());
             if let Ok(mut kept) = STORED.write() {
                 *kept = Some(license.clone());
             }
@@ -263,9 +265,7 @@ pub fn install(app: &AppHandle) {
 
 /// Builds what the settings screen shows from an authenticated licence.
 pub fn state_of(license: &License, now: DateTime<Utc>) -> LicenseState {
-    let expires_in_days = license
-        .expires_at
-        .map(|expiry| (expiry - now).num_days());
+    let expires_in_days = license.expires_at.map(|expiry| (expiry - now).num_days());
     LicenseState {
         license: LicenseInfo::from(license),
         expired: license.expires_at.is_some_and(|expiry| expiry <= now),
@@ -517,7 +517,8 @@ mod tests {
     #[test]
     fn a_licence_without_a_seat_count_covers_one_machine() {
         let signer = keypair();
-        let license = super::authenticate(&signer.verifying_key(), &sign(&signer, payload())).unwrap();
+        let license =
+            super::authenticate(&signer.verifying_key(), &sign(&signer, payload())).unwrap();
         assert_eq!(license.seats, None);
         assert_eq!(super::LicenseInfo::from(&license).seats, 1);
 
@@ -530,7 +531,8 @@ mod tests {
     #[test]
     fn a_perpetual_licence_never_counts_down() {
         let signer = keypair();
-        let license = super::authenticate(&signer.verifying_key(), &sign(&signer, payload())).unwrap();
+        let license =
+            super::authenticate(&signer.verifying_key(), &sign(&signer, payload())).unwrap();
         let state = super::state_of(&license, Utc::now());
 
         assert!(!state.expired);
