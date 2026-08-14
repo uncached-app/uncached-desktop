@@ -1,4 +1,4 @@
-import { ArrowRight, Command, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, Command, RefreshCw, Search, Sparkles, X } from "lucide-react";
 import type { RefObject } from "react";
 import { commandKeyLabel } from "./naming";
 import { formatBytes } from "../../../utils/format";
@@ -38,52 +38,67 @@ export function WorkspaceHeader({
   return (
     // `pr-1.5` matches the scrollbar gutter the list below reserves, so the
     // search field and the cards end on the same edge.
-    <header className="shrink-0 border-b border-forest-800 pr-1.5 pb-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-5 gap-y-1">
-          <h1 id="workspace-title" className="text-2xl font-semibold tracking-[-0.045em] text-mist-100">
+    <header className="shrink-0 border-b border-forest-800 pb-4">
+      {/* Top summary row: Project count, metrics cluster and Primary Reclaim CTA */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
+          <h1 id="workspace-title" className="shrink-0 text-xl font-bold tracking-tight text-mist-100 sm:text-2xl mr-1">
             {projectCount} {projectCount === 1 ? "project" : "projects"}
           </h1>
-          <Portrait value={formatBytes(totalBytes)} label="on disk" />
-          {reclaimableBytes > 0 ? (
-            <Portrait value={formatBytes(reclaimableBytes)} label="reclaimable" accent />
-          ) : (
-            <span className="flex items-baseline text-sm font-semibold text-sage-300">Nothing to reclaim</span>
-          )}
-          {measuring && (
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-mist-500">
-              <RefreshCw size={11} className="animate-spin" /> measuring
-            </span>
-          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <StatCard value={formatBytes(totalBytes)} label="on disk" />
+
+            {reclaimableBytes > 0 && (
+              <StatCard
+                value={formatBytes(reclaimableBytes)}
+                label="reclaimable"
+                accent
+              />
+            )}
+
+            {atRisk > 0 && (
+              <div
+                title={`${atRisk} ${atRisk === 1 ? "project holds" : "projects hold"} unpushed or uncommitted work`}
+                className="inline-flex items-baseline gap-1.5 rounded-xl border border-coral-300/30 bg-coral-300/10 px-3 py-1.5 text-coral-300"
+              >
+                <AlertTriangle size={13} className="self-center shrink-0" aria-hidden="true" />
+                <span className="font-mono text-sm font-semibold tracking-tight">{atRisk}</span>
+                <span className="text-[11px] font-medium uppercase tracking-wider text-coral-300/80">at risk</span>
+              </div>
+            )}
+
+            {measuring && (
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-forest-800 bg-forest-900 px-2.5 py-1.5 font-mono text-[11px] text-mist-500">
+                <RefreshCw size={11} className="animate-spin text-sage-300" /> measuring...
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Sage, not coral: pressing this destroys nothing, it opens the list
-            where deletion is chosen. The target count is what should pull the
-            user through, not an alarm colour on a link. */}
-        {targetCount > 0 && (
-          <button
-            type="button"
-            onClick={onReclaim}
-            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-sage-400 px-4 text-sm font-semibold text-forest-950 transition-colors hover:bg-sage-300"
-          >
-            Reclaim disk
-            <span className="font-mono text-xs opacity-80">{targetCount}</span>
-            <ArrowRight size={15} aria-hidden="true" />
-          </button>
-        )}
+        {/* Primary Reclaim CTA - Firmly pinned to top-right with high contrast */}
+        <div className="shrink-0 flex items-center justify-end">
+          {targetCount > 0 && (
+            <button
+              type="button"
+              onClick={onReclaim}
+              className="group inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-sage-300 hover:bg-sage-300/90 text-white dark:bg-sage-400 dark:text-forest-950 px-4 text-xs font-semibold shadow-sm transition-all active:scale-[0.99]"
+            >
+              <span>Reclaim disk</span>
+              <span className="grid size-4.5 place-items-center rounded bg-white/20 dark:bg-forest-950/30 font-mono text-[11px] font-bold text-white dark:text-forest-950">
+                {targetCount}
+              </span>
+              <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
 
       <HistoryLine change={change} reclaimed={reclaimed} />
 
-      {atRisk > 0 && (
-        <p className="mt-2 text-sm font-medium text-coral-300">
-          {atRisk === 1 ? "1 project holds work" : `${atRisk} projects hold work`} that exists only on this
-          disk.
-        </p>
-      )}
-
-      <div className="mt-3 flex items-center gap-3">
-        <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3 py-2.5 transition-colors focus-within:border-sage-400">
+      {/* Filter and Action controls bar */}
+      <div className="mt-3.5 flex items-center gap-3">
+        <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 transition-all focus-within:border-sage-400 focus-within:ring-1 focus-within:ring-sage-400/30">
           <Search size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
           <span className="sr-only">Filter projects by name, path, kind or branch</span>
           <input
@@ -96,7 +111,7 @@ export function WorkspaceHeader({
                 event.currentTarget.blur();
               }
             }}
-            placeholder="Filter by name, path or branch"
+            placeholder="Filter by name, path, ecosystem or branch"
             className="min-w-0 flex-1 bg-transparent text-sm text-mist-100 outline-none placeholder:text-mist-500"
           />
           {query ? (
@@ -104,12 +119,12 @@ export function WorkspaceHeader({
               type="button"
               onClick={() => onQueryChange("")}
               aria-label="Clear the text filter"
-              className="grid size-5 shrink-0 place-items-center rounded-md text-mist-500 hover:bg-forest-800 hover:text-mist-100"
+              className="grid size-5 shrink-0 place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-800 hover:text-mist-100"
             >
               <X size={13} aria-hidden="true" />
             </button>
           ) : (
-            <kbd className="shrink-0 rounded border border-forest-800 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
+            <kbd className="shrink-0 rounded-md border border-forest-800 bg-forest-950 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
               /
             </kbd>
           )}
@@ -122,11 +137,11 @@ export function WorkspaceHeader({
           type="button"
           onClick={onOpenPalette}
           title="Open a project in your editor, terminal or file manager"
-          className="flex shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3 py-2.5 text-xs text-mist-500 transition-colors hover:border-sage-400 hover:text-mist-100"
+          className="flex shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 text-xs font-medium text-mist-300 transition-all hover:border-sage-400 hover:bg-forest-850 hover:text-mist-100"
         >
-          <Command size={13} aria-hidden="true" />
-          Actions
-          <kbd className="rounded border border-forest-800 px-1.5 py-0.5 font-mono text-[10px]">
+          <Command size={13} className="text-mist-500" aria-hidden="true" />
+          <span>Actions</span>
+          <kbd className="rounded border border-forest-800 bg-forest-950 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
             {commandKeyLabel()}K
           </kbd>
         </button>
@@ -154,40 +169,49 @@ function HistoryLine({
   const moved = change && change.totalDelta !== 0;
 
   return (
-    <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mist-500">
+    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mist-500">
       {change && (
-        <span>
+        <span className="inline-flex items-center gap-1.5">
           {moved ? (
             <>
-              <span className={`font-mono ${grew ? "text-mist-100" : "text-sage-300"}`}>
+              <span className={`font-mono font-medium ${grew ? "text-mist-100" : "text-sage-300"}`}>
                 {grew ? "+" : "−"}
                 {formatBytes(Math.abs(change.totalDelta))}
               </span>{" "}
-              since your last visit
+              <span>since your last visit</span>
             </>
           ) : (
-            <>Unchanged since your last visit</>
+            <span>Unchanged since your last visit</span>
           )}
-          {change.projectsAdded > 0 && `, ${change.projectsAdded} new`}
+          {change.projectsAdded > 0 && (
+            <span className="rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-300">
+              +{change.projectsAdded} new
+            </span>
+          )}
         </span>
       )}
       {lifetime && (
-        <span>
-          <span className="font-mono text-sage-300">{formatBytes(lifetime.allTimeBytes)}</span> reclaimed with
-          Uncached
+        <span className="inline-flex items-center gap-1.5">
+          <Sparkles size={11} className="text-sage-300" aria-hidden="true" />
+          <span className="font-mono font-medium text-sage-300">{formatBytes(lifetime.allTimeBytes)}</span>
+          <span>reclaimed with Uncached</span>
         </span>
       )}
-    </p>
+    </div>
   );
 }
 
-function Portrait({ value, label, accent = false }: { value: string; label: string; accent?: boolean }) {
+function StatCard({ value, label, accent = false }: { value: string; label: string; accent?: boolean }) {
   return (
-    <span className="flex items-baseline gap-1.5">
-      <span className={`font-mono text-lg font-semibold ${accent ? "text-sage-300" : "text-mist-100"}`}>
-        {value}
-      </span>
-      <span className="text-[11px] text-mist-500">{label}</span>
-    </span>
+    <div
+      className={`inline-flex items-baseline gap-1.5 rounded-xl border px-3 py-1.5 ${
+        accent
+          ? "border-sage-400/40 bg-sage-400/10 text-sage-300"
+          : "border-forest-800 bg-forest-900 text-mist-100"
+      }`}
+    >
+      <span className="font-mono text-sm font-semibold tracking-tight">{value}</span>
+      <span className={`text-[11px] ${accent ? "text-sage-300/80 font-medium" : "text-mist-500"}`}>{label}</span>
+    </div>
   );
 }

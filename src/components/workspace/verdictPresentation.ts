@@ -54,13 +54,13 @@ export const VERDICT_PRESENTATION: Record<Verdict, VerdictPresentation> = {
   archivable: {
     label: "Fully on remote",
     summary: "Nothing left to reclaim. The local copy is yours to keep or drop.",
-    className: "border-forest-700 bg-forest-800 text-mist-300",
+    className: "border-forest-800 bg-forest-850 text-mist-300",
     dotClassName: "bg-mist-500",
   },
   unknown: {
     label: "Not established",
     summary: "Not enough was readable to judge. Never touched automatically.",
-    className: "border-forest-700 bg-forest-800 text-mist-500",
+    className: "border-forest-800 bg-forest-850 text-mist-500",
     dotClassName: "bg-mist-500",
   },
 };
@@ -96,7 +96,7 @@ function atRisk(recoverability: Recoverability): string | null {
     count(recoverability.branchesWithoutUpstream, "branch", "with no remote"),
     count(recoverability.untrackedFiles, "file", "never committed"),
   ].filter(Boolean);
-  return parts.length > 0 ? `${parts.join(", ")} — only on this disk.` : null;
+  return parts.length > 0 ? parts.join(", ") : null;
 }
 
 function count(value: number, noun: string, suffix: string): string | null {

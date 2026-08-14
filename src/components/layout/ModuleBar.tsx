@@ -11,9 +11,9 @@ type ModuleBarProps = {
 
 export function ModuleBar({ activeModule, onChange, proEnabled }: ModuleBarProps) {
   return (
-    <nav className="flex shrink-0 items-center justify-center gap-1.5 border-t border-forest-800 bg-forest-950 px-4 py-3 sm:gap-2 sm:px-6" aria-label="Uncached modules">
+    <nav className="flex shrink-0 items-center justify-center gap-1 border-t border-forest-800 bg-forest-900/40 px-4 py-2" aria-label="Uncached modules">
       <ModuleButton active={activeModule === "reclaim"} label="Uncached Workspace" onClick={() => onChange("reclaim")}>
-        <Folders size={16} strokeWidth={1.8} aria-hidden="true" />
+        <Folders size={15} strokeWidth={1.8} className={activeModule === "reclaim" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
         <span>Workspace</span>
       </ModuleButton>
       <ModuleButton
@@ -21,17 +21,15 @@ export function ModuleBar({ activeModule, onChange, proEnabled }: ModuleBarProps
         label={proEnabled ? "Uncached Maintenance" : "Uncached Maintenance (Pro)"}
         onClick={() => onChange("intelligence")}
       >
-        <Bot size={16} strokeWidth={1.8} aria-hidden="true" />
+        <Bot size={15} strokeWidth={1.8} className={activeModule === "intelligence" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
         <span className="hidden sm:inline">Maintenance</span>
       </ModuleButton>
-      {/* Reachable on every plan. A module nobody can open is a module nobody
-          wants: Free reads the findings, Pro measures them. */}
       <ModuleButton
         active={activeModule === "insights"}
         label={proEnabled ? "Uncached Insights" : "Uncached Insights (Pro)"}
         onClick={() => onChange("insights")}
       >
-        <Sparkles size={16} strokeWidth={1.8} aria-hidden="true" />
+        <Sparkles size={15} strokeWidth={1.8} className={activeModule === "insights" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
         <span className="hidden sm:inline">Insights</span>
       </ModuleButton>
     </nav>
@@ -42,7 +40,6 @@ function ModuleButton({ active, label, onClick, disabled = false, children }: {
   active: boolean;
   label: string;
   onClick?: () => void;
-  pro?: boolean;
   disabled?: boolean;
   children: React.ReactNode;
 }) {
@@ -54,7 +51,11 @@ function ModuleButton({ active, label, onClick, disabled = false, children }: {
       aria-current={active ? "page" : undefined}
       disabled={disabled}
       onClick={onClick}
-      className={`relative inline-flex min-h-9 items-center gap-2 rounded-xl px-3 text-xs font-medium transition-colors sm:px-4 ${active ? "bg-sage-400 text-forest-950" : "text-mist-500 hover:bg-forest-800"} disabled:cursor-not-allowed disabled:opacity-45`}
+      className={`inline-flex h-8 items-center gap-2 rounded-lg px-3 text-xs transition-colors ${
+        active
+          ? "bg-forest-800/80 font-semibold text-mist-100"
+          : "font-medium text-mist-500 hover:bg-forest-850/50 hover:text-mist-300"
+      } disabled:cursor-not-allowed disabled:opacity-45`}
     >
       {children}
     </button>

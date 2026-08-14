@@ -54,7 +54,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
           <header className="flex shrink-0 items-center justify-between border-b border-forest-800 px-5 py-4 sm:px-7">
             <div className="flex items-center gap-3 sm:hidden"><Settings size={16} className="text-sage-300" /><span className="text-sm font-medium text-mist-100">Settings</span></div>
             <h2 className="hidden text-lg font-semibold text-mist-100 sm:block">{section}</h2>
-            <select value={section} onChange={(event) => setSection(event.target.value as Section)} className="rounded-lg bg-forest-800 px-2 py-1.5 text-sm text-mist-200 sm:hidden">{sections.map((item) => <option key={item}>{item}</option>)}</select>
+            <select value={section} onChange={(event) => setSection(event.target.value as Section)} className="rounded-lg bg-forest-800 px-2 py-1.5 text-sm text-mist-100 sm:hidden">{sections.map((item) => <option key={item}>{item}</option>)}</select>
             <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-lg bg-forest-800 text-mist-500 hover:text-mist-100" aria-label="Close settings"><X size={17} /></button>
           </header>
 
@@ -65,7 +65,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
           <footer className="flex shrink-0 justify-end border-t border-forest-800 px-5 py-3 text-xs text-mist-500 sm:px-7">{saving ? "Saving..." : "Saved automatically"}</footer>
         </div>
       </section>
-      {confirmPermanent && <div className="fixed inset-0 z-50 grid place-items-center bg-forest-900/70 backdrop-blur-xs p-5" onClick={(event) => event.stopPropagation()}><div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-3xl border border-forest-800 bg-forest-900 p-6 shadow-2xl"><h2 className="text-xl font-semibold text-mist-100">Enable permanent deletion?</h2><p className="mt-3 text-sm leading-6 text-mist-500">Targets are deleted from disk instead of moved to the Recycle Bin. Not recoverable. Each cleanup then requires typing <strong className="font-mono text-coral-200">Nuke</strong> to confirm.</p><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setConfirmPermanent(false)} className="rounded-xl bg-forest-800 px-4 py-2.5 text-sm text-mist-300 hover:bg-forest-850">Cancel</button><button type="button" onClick={() => { void updateSettings({ defaultCleanMode: "Permanent" }); setConfirmPermanent(false); }} className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:bg-coral-200">Enable permanent deletion</button></div></div></div>}
+      {confirmPermanent && <div className="fixed inset-0 z-50 grid place-items-center bg-forest-900/70 backdrop-blur-xs p-5" onClick={(event) => event.stopPropagation()}><div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-3xl border border-forest-800 bg-forest-900 p-6 shadow-2xl"><h2 className="text-xl font-semibold text-mist-100">Enable permanent deletion?</h2><p className="mt-3 text-sm leading-6 text-mist-500">Targets are deleted from disk instead of moved to the Recycle Bin. Not recoverable. Each cleanup then requires typing <strong className="font-mono text-coral-300">Nuke</strong> to confirm.</p><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setConfirmPermanent(false)} className="rounded-xl bg-forest-800 px-4 py-2.5 text-sm text-mist-300 hover:bg-forest-850">Cancel</button><button type="button" onClick={() => { void updateSettings({ defaultCleanMode: "Permanent" }); setConfirmPermanent(false); }} className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:opacity-90">Enable permanent deletion</button></div></div></div>}
     </div>
   );
 }
@@ -93,7 +93,7 @@ function AboutContent({ appInfo }: { appInfo: { name: string; version: string; w
         <a
           href={websiteUrl}
           onClick={(e) => openExternalUrl(websiteUrl, e)}
-          className="text-sm text-sage-300 hover:text-sage-200"
+          className="text-sm text-sage-300 hover:text-sage-400"
         >
           uncached.app
         </a>
@@ -227,4 +227,4 @@ function ScanningContent({ settings, updateSettings }: { settings: AppSettings; 
 
 function SettingsGroup({ children }: { children: ReactNode }) { return <div className="divide-y divide-forest-800">{children}</div>; }
 function SettingToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) { return <label className="flex cursor-pointer items-center justify-between gap-4 py-4 text-sm text-mist-300"><span>{label}</span><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="size-4 accent-sage-400" /></label>; }
-function SettingRadio({ icon, label, selected, onClick }: { icon?: ReactNode; label: string; selected: boolean; onClick: () => void }) { return <button type="button" onClick={onClick} className={`flex w-full items-center justify-between gap-4 py-4 text-left text-sm ${selected ? "text-mist-100" : "text-mist-500"}`}><span className="flex items-center gap-3">{icon}<span>{label}</span></span><span className={`grid size-4 place-items-center rounded-full border ${selected ? "border-sage-400 bg-sage-400" : "border-forest-700"}`}>{selected && <span className="size-1.5 rounded-full bg-forest-950" />}</span></button>; }
+function SettingRadio({ icon, label, selected, onClick }: { icon?: ReactNode; label: string; selected: boolean; onClick: () => void }) { return <button type="button" onClick={onClick} className={`flex w-full items-center justify-between gap-4 py-4 text-left text-sm ${selected ? "text-mist-100" : "text-mist-500"}`}><span className="flex items-center gap-3">{icon}<span>{label}</span></span><span className={`grid size-4 place-items-center rounded-full border ${selected ? "border-sage-400 bg-sage-400" : "border-forest-800"}`}>{selected && <span className="size-1.5 rounded-full bg-forest-950" />}</span></button>; }

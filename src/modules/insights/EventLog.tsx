@@ -1,9 +1,10 @@
-import { Clock } from "lucide-react";
+import { Check, Clock, Copy, History, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { EVENT_PAGE, formatMoment, labelFor } from "./labels";
 import { formatBytes } from "../../utils/format";
 import type { Report } from "../../utils/report.d.mts";
 
-/** The events themselves. A report that cannot be checked against its own rows is a claim. */
+/** The events themselves, displayed as a clean flat list with tabular columns. */
 export function EventLog({
   report,
   shown,
@@ -13,52 +14,117 @@ export function EventLog({
   shown: number;
   onShowMore: () => void;
 }) {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const visible = report.events.slice(0, shown);
 
+  async function handleCopy(path: string | null, index: number) {
+    if (!path) return;
+    try {
+      await navigator.clipboard.writeText(path);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch {
+      // ignore
+    }
+  }
+
   return (
-    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-mist-500">Cleanups</p>
-        <p className="font-mono text-[10px] text-mist-500">
-          {visible.length} of {report.events.length}
-        </p>
+    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs transition-all">
+      <div className="flex items-center justify-between gap-3 border-b border-forest-800 pb-3">
+        <div className="flex items-center gap-2">
+          <History size={14} className="text-mist-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-mist-100">
+            Cleanup Event Log
+          </h2>
+        </div>
+
+        <span className="font-mono text-xs text-mist-500">
+          {visible.length} of {report.events.length} {report.events.length === 1 ? "event" : "events"}
+        </span>
       </div>
 
       {report.events.length === 0 ? (
-        <p className="mt-3 text-xs text-mist-500">No cleanup in this window.</p>
+        <div className="py-8 text-center">
+          <p className="text-xs text-mist-500">No cleanup recorded in this window.</p>
+        </div>
       ) : (
         <>
-          <ul className="mt-3 grid gap-px overflow-hidden rounded-lg">
-            {visible.map((event, position) => (
-              <li key={`${event.at}-${position}`} className="flex items-center gap-3 bg-forest-950 px-3 py-2.5">
-                <span className="w-28 shrink-0 font-mono text-[11px] text-mist-500">{formatMoment(event.at)}</span>
-                <span className="min-w-0 flex-1 truncate text-sm text-mist-100" title={event.path ?? undefined}>
-                  {event.path ?? "Path not recorded"}
-                </span>
-                <span className="shrink-0 rounded-md bg-forest-800 px-1.5 py-0.5 font-mono text-[10px] text-mist-300">
-                  {labelFor("category", event.category)}
-                </span>
-                {event.trigger === "Scheduled" && (
-                  <Clock size={12} className="shrink-0 text-mist-500" aria-label="Started by a schedule" />
-                )}
-                {event.mode === "Permanent" && (
-                  <span className="shrink-0 font-mono text-[10px] text-coral-300">permanent</span>
-                )}
-                <span className="w-20 shrink-0 text-right font-mono text-xs text-sage-300">
-                  {formatBytes(event.freedBytes)}
-                </span>
-              </li>
-            ))}
+          <ul className="divide-y divide-forest-800">
+            {visible.map((event, position) => {
+              const isCopied = copiedIndex === position;
+              return (
+                <li
+                  key={`${event.at}-${position}`}
+                  className="group flex flex-wrap items-center justify-between gap-3 py-3 transition-colors hover:bg-forest-850/30 px-1 rounded-lg"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <span className="w-28 shrink-0 font-mono text-[11px] text-mist-500">
+                      {formatMoment(event.at)}
+                    </span>
+
+                    <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                      <span
+                        onClick={() => handleCopy(event.path, position)}
+                        className="truncate font-mono text-xs text-mist-100 cursor-pointer hover:text-sage-300 transition-colors"
+                        title={event.path ?? "Path not recorded"}
+                      >
+                        {event.path ?? "Path not recorded"}
+                      </span>
+
+                      {event.path && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(event.path, position)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-mist-500 hover:text-mist-100"
+                          title="Copy path"
+                          aria-label="Copy path"
+                        >
+                          {isCopied ? <Check size={11} className="text-sage-300" /> : <Copy size={11} />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded border border-forest-800 bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-sage-300">
+                      {labelFor("category", event.category)}
+                    </span>
+
+                    {event.trigger === "Scheduled" && (
+                      <span className="inline-flex items-center gap-1 rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
+                        <Clock size={10} aria-hidden="true" /> schedule
+                      </span>
+                    )}
+
+                    {event.mode === "Permanent" ? (
+                      <span className="inline-flex items-center gap-1 rounded border border-coral-300/30 bg-coral-300/10 px-1.5 py-0.5 font-mono text-[10px] text-coral-300">
+                        <Trash2 size={10} aria-hidden="true" /> nuke
+                      </span>
+                    ) : (
+                      <span className="rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
+                        trash
+                      </span>
+                    )}
+
+                    <span className="w-20 text-right font-mono text-xs font-bold text-sage-300">
+                      {formatBytes(event.freedBytes)}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
 
           {report.events.length > visible.length && (
-            <button
-              type="button"
-              onClick={onShowMore}
-              className="mt-3 w-full rounded-lg border border-forest-800 py-2 text-xs text-mist-300 transition-colors hover:border-sage-400 hover:text-mist-100"
-            >
-              Show {Math.min(EVENT_PAGE, report.events.length - visible.length)} more
-            </button>
+            <div className="border-t border-forest-800 pt-3">
+              <button
+                type="button"
+                onClick={onShowMore}
+                className="w-full rounded-xl border border-forest-800 bg-forest-900 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-sage-400 hover:bg-forest-850 hover:text-mist-100"
+              >
+                Show {Math.min(EVENT_PAGE, report.events.length - visible.length)} more events
+              </button>
+            </div>
           )}
         </>
       )}

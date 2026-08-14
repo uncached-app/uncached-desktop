@@ -1,6 +1,7 @@
-import { ArrowLeft } from "lucide-react";
-import { Figure } from "./panels";
+import { ArrowLeft, Check, Copy } from "lucide-react";
+import { useState } from "react";
 import { formatBytes } from "../../../utils/format";
+import { copyText } from "../../../utils/clipboard";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
 import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
 
@@ -17,42 +18,124 @@ export function ProjectHeader({
   onBack: () => void;
 }) {
   const presentation = VERDICT_PRESENTATION[verdict];
+  const [copied, setCopied] = useState(false);
+
+  const reclaimableShare =
+    footprint && footprint.totalBytes > 0
+      ? Math.round((footprint.reclaimableBytes / footprint.totalBytes) * 100)
+      : 0;
+
+  async function handleCopyPath() {
+    await copyText(project.path);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
-    <header className="shrink-0 border-b border-forest-800 pb-4">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-3 inline-flex items-center gap-1.5 text-xs text-mist-500 transition-colors hover:text-mist-100"
-      >
-        <ArrowLeft size={13} aria-hidden="true" />
-        Workspace
-      </button>
+    <header className="shrink-0 border-b border-forest-800 pb-5">
+      {/* Back button & Breadcrumb */}
+      <div className="mb-3 flex items-center gap-2 text-xs text-mist-500">
+        <button
+          type="button"
+          onClick={onBack}
+          className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-mist-500 transition-colors hover:bg-forest-900 hover:text-mist-100"
+        >
+          <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-0.5" aria-hidden="true" />
+          <span>Workspace</span>
+        </button>
+        <span className="opacity-40">/</span>
+        <span className="truncate font-mono text-[11px] text-mist-300">{project.name}</span>
+      </div>
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-[-0.045em] text-mist-100">{project.name}</h1>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-mist-500">
+            <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">
+              {project.name}
+            </h1>
+            <span className="rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-mist-300">
               {project.kind}
             </span>
-            <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${presentation.className}`}>
+            <span className={`rounded-md border px-2.5 py-0.5 text-xs font-semibold ${presentation.className}`}>
               {presentation.label}
             </span>
           </div>
-          <p className="mt-1.5 truncate font-mono text-[11px] text-mist-500">{project.path}</p>
+
+          <div className="mt-2 flex items-center gap-2">
+            <p className="truncate font-mono text-xs text-mist-500" title={project.path}>
+              {project.path}
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleCopyPath()}
+              title={copied ? "Path copied!" : "Copy full path"}
+              aria-label="Copy full path"
+              className="grid size-6 shrink-0 place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-900 hover:text-mist-100"
+            >
+              {copied ? <Check size={12} className="text-sage-300" /> : <Copy size={12} />}
+            </button>
+          </div>
         </div>
 
         {footprint && (
-          <div className="flex shrink-0 items-baseline gap-5">
-            <Figure value={formatBytes(footprint.totalBytes)} label="on disk" />
-            <Figure value={formatBytes(footprint.reclaimableBytes)} label="reclaimable" accent />
-            {/* What stays once every artifact is gone — the number that says
-                whether this project is heavy or its build output is. */}
-            <Figure value={formatBytes(footprint.sourceBytes)} label="source" />
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+            <MetricCard
+              value={formatBytes(footprint.totalBytes)}
+              label="total on disk"
+            />
+            <MetricCard
+              value={formatBytes(footprint.reclaimableBytes)}
+              label="reclaimable cache"
+              accent={footprint.reclaimableBytes > 0}
+              badge={reclaimableShare > 0 ? `${reclaimableShare}%` : undefined}
+            />
+            <MetricCard
+              value={formatBytes(footprint.sourceBytes)}
+              label="source code"
+            />
           </div>
         )}
       </div>
     </header>
+  );
+}
+
+function MetricCard({
+  value,
+  label,
+  accent = false,
+  badge,
+}: {
+  value: string;
+  label: string;
+  accent?: boolean;
+  badge?: string;
+}) {
+  return (
+    <div
+      className={`flex flex-col justify-center rounded-xl border px-3.5 py-2 ${
+        accent
+          ? "border-sage-400/40 bg-sage-400/10"
+          : "border-forest-800 bg-forest-900"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`font-mono text-lg font-bold tracking-tight ${
+            accent ? "text-sage-300" : "text-mist-100"
+          }`}
+        >
+          {value}
+        </span>
+        {badge && (
+          <span className="rounded bg-sage-400/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-sage-300">
+            {badge}
+          </span>
+        )}
+      </div>
+      <span className={`text-[10px] font-mono uppercase tracking-wider ${accent ? "text-sage-300/80 font-medium" : "text-mist-500"}`}>
+        {label}
+      </span>
+    </div>
   );
 }

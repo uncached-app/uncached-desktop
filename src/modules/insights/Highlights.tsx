@@ -21,52 +21,58 @@ export function Highlights({
   const reducedMotion = useReducedMotion();
 
   return (
-    <section className="mt-6">
-      <div className="flex items-baseline justify-between gap-3 border-t border-forest-800 pt-5">
-        <h2 className="text-sm font-semibold text-mist-100">From the last scan</h2>
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-mist-500">
-          {projectCount} {projectCount === 1 ? "project" : "projects"}
+    <section className="mt-6 rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs">
+      <div className="flex items-center justify-between gap-3 border-b border-forest-800 pb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles size={14} className="text-sage-300" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-mist-100">Findings from Last Scan</h2>
+        </div>
+
+        <span className="font-mono text-xs text-mist-500">
+          {projectCount} {projectCount === 1 ? "project" : "projects"} scanned
         </span>
       </div>
 
       {insights.length === 0 ? (
-        <div className="py-10 text-center">
-          <Sparkles size={24} className="mx-auto text-mist-500" strokeWidth={1.5} aria-hidden="true" />
-          {/* Silence is a result. Filling this space would mean inventing a
-              finding, which is the one thing this module must not do. */}
-          <p className="mt-3 text-sm font-semibold text-mist-300">Nothing stands out.</p>
-          <p className="mt-1 text-xs text-mist-500">
+        <div className="py-8 text-center">
+          <p className="text-sm font-medium text-mist-100">Nothing stands out</p>
+          <p className="mt-1 text-xs text-mist-500 max-w-sm mx-auto">
             {projectCount === 0
-              ? "Scan a workspace and this fills in."
-              : "No project is cold, oversized, duplicated or out of step with its lockfile."}
+              ? "Scan a workspace to surface findings and recommendations."
+              : "No project is cold, oversized, duplicated, or out of step with its lockfile."}
           </p>
         </div>
       ) : (
-        <ul className="mt-3 grid gap-2.5">
+        <ul className="divide-y divide-forest-800">
           {insights.map((insight, position) => (
             <motion.li
               key={insight.id}
-              initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+              initial={reducedMotion ? false : { opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: position * 0.04, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: position * 0.03, duration: 0.2 }}
             >
               {insight.action ? (
                 <button
                   type="button"
                   onClick={() => onFollow(insight)}
-                  className="group flex w-full items-center gap-4 rounded-2xl border border-forest-800 bg-forest-900 px-4 py-3.5 text-left transition-colors hover:border-sage-400"
+                  className="group flex w-full items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-forest-850/40 px-2 rounded-lg"
                 >
-                  <span className="min-w-0 flex-1 text-sm leading-6 text-mist-100">{insight.text}</span>
-                  <ArrowRight
-                    size={15}
-                    className="shrink-0 text-mist-500 transition-colors group-hover:text-sage-300"
-                    aria-hidden="true"
-                  />
+                  <span className="min-w-0 flex-1 text-xs leading-relaxed text-mist-100">
+                    {insight.text}
+                  </span>
+                  <div className="flex shrink-0 items-center gap-1 text-xs font-medium text-mist-500 group-hover:text-sage-300 transition-colors">
+                    <span className="font-mono text-[11px]">View in workspace</span>
+                    <ArrowRight
+                      size={13}
+                      className="transition-transform group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </div>
                 </button>
               ) : (
-                <p className="rounded-2xl border border-forest-800 bg-forest-950 px-4 py-3.5 text-sm leading-6 text-mist-500">
+                <div className="py-3 px-2 text-xs leading-relaxed text-mist-300">
                   {insight.text}
-                </p>
+                </div>
               )}
             </motion.li>
           ))}

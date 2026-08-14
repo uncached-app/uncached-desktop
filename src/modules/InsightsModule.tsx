@@ -78,17 +78,25 @@ export function InsightsModule({
 
   return (
     <section aria-label="Insights" className="flex h-full w-full flex-1 flex-col overflow-hidden">
-      <header className="shrink-0 border-b border-forest-800 pb-4">
-        <h1 className="text-2xl font-semibold tracking-[-0.045em] text-mist-100">Insights</h1>
-        <p className="mt-1.5 text-sm text-mist-500">
+      <header className="shrink-0 border-b border-forest-800 pb-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">Insights</h1>
+            <span className="rounded-lg border border-forest-800 bg-forest-900 px-2.5 py-0.5 font-mono text-xs font-medium text-sage-300">
+              {proEnabled ? "Analytics & Trends" : "Scan Intelligence"}
+            </span>
+          </div>
+        </div>
+
+        <p className="mt-1.5 text-xs text-mist-500 max-w-2xl">
           {proEnabled
-            ? "Every cleanup this machine has recorded, and what the last scan adds up to."
-            : "What the last scan adds up to. Pro keeps the record of every cleanup."}
+            ? "Every recorded cleanup, disk recovery velocity, and what the last scan adds up to."
+            : "Live telemetry from your workspace. Upgrade to Pro to track lifetime recovery history and trends."}
         </p>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pt-5 pb-6 [scrollbar-gutter:stable]">
-        {!proEnabled && <ProPanel />}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-5 pb-8 [scrollbar-gutter:stable]">
+        {!proEnabled && <div className="mb-5"><ProPanel /></div>}
         {proEnabled && !loading && !hasHistory && <NoHistoryYet />}
 
         {proEnabled && hasHistory && (

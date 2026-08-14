@@ -114,97 +114,121 @@ export function FindingsSection({
       aria-label="Scan targets"
       className="flex h-full w-full flex-col overflow-hidden"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-forest-800 pb-5">
-        <div className="flex min-w-0 items-start gap-3">
+      <header className="shrink-0 border-b border-forest-800 pb-5">
+        {/* Breadcrumb Navigation matching ProjectHeader */}
+        <div className="mb-3 flex items-center gap-2 text-xs text-mist-500">
           <button
             type="button"
             onClick={onBack}
             disabled={scanning}
-            className="mt-1 grid size-9 shrink-0 place-items-center rounded-xl bg-forest-800 text-mist-300 transition-colors hover:bg-forest-850 hover:text-sage-300 disabled:cursor-not-allowed disabled:opacity-30"
-            aria-label="Back to previous step"
+            className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-mist-500 transition-colors hover:bg-forest-900 hover:text-mist-100 disabled:cursor-not-allowed disabled:opacity-30"
           >
-            <ArrowLeft size={16} aria-hidden="true" />
+            <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-0.5" aria-hidden="true" />
+            <span>Workspace</span>
           </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-semibold tracking-[-0.04em] text-mist-100 sm:text-3xl">
+          <span className="opacity-40">/</span>
+          <span className="truncate font-mono text-[11px] text-mist-300">Reclaim Targets</span>
+        </div>
+
+        {/* Top Summary & Actions Row */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">
                 {targets.length} {targets.length === 1 ? "target" : "targets"}
-              </h2>
-               {readyTargets.length > 0 && (
-                <span className="rounded-md border border-sage-400 bg-forest-900 px-2.5 py-0.5 font-mono text-xs font-medium text-sage-300">
-                  {formatBytes(totalBytesFound)} total
-                </span>
+              </h1>
+
+              {readyTargets.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-forest-800 bg-forest-900 px-3 py-1.5">
+                    <span className="font-mono text-sm font-semibold text-mist-100">
+                      {formatBytes(totalBytesFound)}
+                    </span>
+                    <span className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">total found</span>
+                  </div>
+
+                  {selectedTargets.length > 0 && (
+                    <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-sage-400/40 bg-sage-400/10 px-3 py-1.5 text-sage-300">
+                      <span className="font-mono text-sm font-bold">
+                        {formatBytes(selectedBytes)}
+                      </span>
+                      <span className="text-[11px] font-mono text-sage-300/80 font-medium">
+                        ({selectedTargets.length} selected)
+                      </span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-            {/* The split answers "how much of this can I actually clean?", which
-                only has an answer worth showing while some of it is locked. */}
+
+            {/* Split for Free vs Pro when locked targets exist */}
             {!proEnabled && readyTargets.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
-                <span className="rounded-md bg-sage-400/10 px-2.5 py-1 text-sage-300">Free · {formatBytes(freeBytes)}</span>
-                {proBytes > 0 && <span className="rounded-md bg-pro-surface px-2.5 py-1 text-pro-100">Pro · {formatBytes(proBytes)}</span>}
+              <div className="mt-2.5 flex flex-wrap gap-2 text-xs font-medium">
+                <span className="rounded-lg bg-sage-400/10 px-2.5 py-1 text-sage-300 font-mono text-[11px]">
+                  Free · {formatBytes(freeBytes)}
+                </span>
+                {proBytes > 0 && (
+                  <span className="rounded-lg bg-pro-surface px-2.5 py-1 text-pro-100 font-mono text-[11px]">
+                    Pro · {formatBytes(proBytes)}
+                  </span>
+                )}
               </div>
             )}
-            <p className="mt-1.5 text-sm text-mist-500">
-               {permanent
-                 ? "Selected targets are deleted permanently. Not recoverable."
-                 : "Selected targets move to the Recycle Bin. Restorable from there."}
+
+            <p className="mt-2 text-xs text-mist-500">
+              {permanent ? (
+                <span className="font-medium text-coral-300">
+                  Selected targets are deleted permanently. Not recoverable.
+                </span>
+              ) : (
+                <span>Selected targets move to the Recycle Bin. Restorable from there if needed.</span>
+              )}
             </p>
-            {/* Rules remove things from this list without leaving a trace, and
-                an absence has no tooltip. Left unsaid, the report months later
-                is "the app stopped finding my project" — so the list says how
-                many rules were in force when it was built. */}
+
             {activeIgnoreRules > 0 && (
-              <p className="mt-1.5 text-xs text-mist-500">
-                {activeIgnoreRules === 1 ? "1 ignore rule is" : `${activeIgnoreRules} ignore rules are`} in force. Anything they cover was skipped.
+              <p className="mt-1 text-xs text-mist-500">
+                {activeIgnoreRules === 1 ? "1 ignore rule is" : `${activeIgnoreRules} ignore rules are`} in force.
+                Covered paths were excluded from this scan.
               </p>
             )}
-            <p
-              className={`mt-1.5 text-xs font-medium transition-all duration-200 ${
-                selectedTargets.length > 0 ? "text-sage-300" : "invisible select-none"
-              }`}
-              aria-live="polite"
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex shrink-0 items-center gap-2.5">
+            <button
+              type="button"
+              onClick={toggleAll}
+              disabled={scanning || readyTargets.length === 0}
+              className="inline-flex items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:opacity-40"
             >
-               {selectedTargets.length > 0
-                ? `${selectedTargets.length} selected · ${formatBytes(selectedBytes)}`
-                : "Placeholder"}
-            </p>
+              <div
+                className={`grid size-4 place-items-center rounded border transition-colors ${
+                  allSelected
+                    ? "border-sage-400 bg-sage-400 text-forest-950"
+                    : "border-forest-800 bg-forest-950 text-transparent"
+                }`}
+              >
+                <Check size={11} strokeWidth={3} aria-hidden="true" />
+              </div>
+              <span>{allSelected ? "Deselect all" : "Select all"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              disabled={deleteDisabled}
+              className="inline-flex min-h-10 min-w-32 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
+            >
+              {confirming ? (
+                <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 size={16} aria-hidden="true" />
+              )}
+              <span>Delete ({selectedTargets.length})</span>
+            </button>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={toggleAll}
-            disabled={scanning || readyTargets.length === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-forest-800 px-3 py-2 text-xs font-medium text-mist-300 transition-colors hover:bg-forest-850 hover:text-sage-300 disabled:opacity-40"
-          >
-            <div
-              className={`grid size-4 place-items-center rounded border transition-colors ${
-                allSelected
-                  ? "border-sage-400 bg-sage-400 text-forest-950"
-                  : "border-forest-700 bg-forest-900 text-transparent"
-              }`}
-            >
-              <Check size={11} strokeWidth={3} aria-hidden="true" />
-            </div>
-            <span>Select all</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            disabled={deleteDisabled}
-            className="inline-flex min-h-10 min-w-32 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 transition-colors hover:bg-coral-200 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
-          >
-            {confirming ? (
-              <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
-            ) : (
-              <Trash2 size={16} aria-hidden="true" />
-            )}
-            <span>Delete ({selectedTargets.length})</span>
-          </button>
-        </div>
-      </div>
+      </header>
 
       {targets.length === 0 ? (
         <div className="my-5 grid min-h-52 flex-1 place-items-center rounded-3xl border border-forest-800 bg-forest-900 px-6 py-10 text-center">
@@ -326,11 +350,11 @@ export function FindingsSection({
                  </p>
                  {permanent && (
                    <label className="mt-4 block text-left text-sm text-mist-300">
-                     Type <strong className="font-mono text-coral-200">Nuke</strong> to confirm.
+                     Type <strong className="font-mono text-coral-300">Nuke</strong> to confirm.
                      <input
                        value={confirmation}
                        onChange={(event) => setConfirmation(event.target.value)}
-                       className="mt-2 w-full rounded-xl border border-forest-700 bg-forest-950 px-3 py-2.5 font-mono text-sm text-mist-100 outline-none focus:border-coral-300"
+                       className="mt-2 w-full rounded-xl border border-forest-800 bg-forest-950 px-3 py-2.5 font-mono text-sm text-mist-100 outline-none focus:border-coral-300"
                        autoComplete="off"
                        spellCheck={false}
                        aria-label="Permanent deletion confirmation"
@@ -351,7 +375,7 @@ export function FindingsSection({
                   type="button"
                    onClick={confirmDelete}
                    disabled={!confirmationReady || selectedTargets.length === 0 || !cleanupModeSupported}
-                   className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:bg-coral-200 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
+                   className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-forest-800 disabled:text-mist-500"
                  >
                    {permanent ? "Delete permanently" : "Move to Recycle Bin"}
                 </button>

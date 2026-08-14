@@ -1,4 +1,4 @@
-import { Loader2, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, FolderArchive, Loader2, ShieldCheck, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Panel } from "./panels";
@@ -45,80 +45,136 @@ export function ArtifactList({
     [targets, projectPath],
   );
 
+  const totalArtifactBytes = useMemo(
+    () => owned.reduce((sum, t) => sum + t.sizeBytes, 0),
+    [owned],
+  );
+
   async function reclaim(targetId: string) {
     setError(null);
     const removed = await onClean(targetId, permanent ? confirmation : null);
-    if (!removed) setError("That could not be reclaimed");
+    if (!removed) setError("That target could not be reclaimed by backend.");
   }
 
   return (
-    <Panel title={`Artifacts (${owned.length})`}>
+    <Panel
+      title={`Reclaimable Artifacts (${owned.length})`}
+      action={
+        owned.length > 0 && totalArtifactBytes > 0 ? (
+          <span className="font-mono text-xs font-semibold text-sage-300">
+            {formatBytes(totalArtifactBytes)} total
+          </span>
+        ) : null
+      }
+    >
+      {/* Permanent deletion gate */}
       {permanent && owned.length > 0 && (
-        <label className="mb-3 block text-xs text-mist-300">
-          Permanent deletion is on. Type <strong className="font-mono text-coral-200">Nuke</strong> to arm
-          the buttons below.
-          <input
-            value={confirmation}
-            onChange={(event) => setConfirmation(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-forest-700 bg-forest-950 px-3 py-2 font-mono text-sm text-mist-100 outline-none focus:border-coral-300"
-            autoComplete="off"
-            spellCheck={false}
-            aria-label="Permanent deletion confirmation"
-          />
-        </label>
+        <div className="mb-4 rounded-xl border border-coral-300/40 bg-coral-300/10 p-3.5 text-xs text-mist-100">
+          <div className="flex items-center gap-2 font-semibold text-coral-300">
+            <AlertTriangle size={14} aria-hidden="true" />
+            <span>Permanent Deletion Mode</span>
+          </div>
+          <p className="mt-1 text-mist-300">
+            Items will be removed directly from disk without using the system Recycle Bin. Type{" "}
+            <strong className="font-mono font-bold text-coral-300">Nuke</strong> below to arm deletion buttons.
+          </p>
+          <div className="mt-2.5 flex items-center gap-2">
+            <input
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+              placeholder='Type "Nuke"'
+              className="w-44 rounded-lg border border-coral-300/40 bg-forest-950 px-3 py-1.5 font-mono text-xs text-mist-100 outline-none focus:border-coral-300 focus:ring-1 focus:ring-coral-300/30"
+              autoComplete="off"
+              spellCheck={false}
+              aria-label="Permanent deletion confirmation token"
+            />
+            {armed && (
+              <span className="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-coral-300">
+                <Check size={13} strokeWidth={3} />
+                Armed
+              </span>
+            )}
+          </div>
+        </div>
       )}
 
       {owned.length === 0 ? (
-        <p className="text-xs text-mist-500">Nothing here that a build can regenerate. The weight is source.</p>
+        <div className="flex items-center gap-2.5 py-1 text-xs text-mist-500">
+          <ShieldCheck size={16} className="shrink-0 text-sage-300" aria-hidden="true" />
+          <p>
+            No disposable build artifacts detected here. All disk space is accounted for by source code
+            and version control.
+          </p>
+        </div>
       ) : (
-        <ul className="grid gap-px overflow-hidden rounded-lg">
+        <ul className="divide-y divide-forest-800 border-t border-forest-800">
           {owned.map((target) => {
             const name = relativeTo(target.path, projectPath);
             const cleaning = cleaningTargetIds.has(target.id);
+
             return (
               <motion.li
                 key={target.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-3 bg-forest-950 px-3 py-2.5"
+                className="flex items-center justify-between gap-3 py-3"
               >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-mono text-xs text-mist-100">{name}</span>
-                  <span className="font-mono text-[10px] text-mist-500">
-                    {target.label ?? target.category}
-                    {target.sizeHasErrors && " · partly unreadable"}
-                  </span>
-                </span>
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <FolderArchive size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate font-mono text-xs font-semibold text-mist-100">
+                      {name}
+                    </span>
+                    <div className="mt-0.5 flex items-center gap-2 text-[10px]">
+                      <span className="rounded bg-forest-850 px-1.5 py-0.5 font-mono uppercase tracking-wider text-mist-500">
+                        {target.label ?? target.category}
+                      </span>
+                      {target.sizeHasErrors && (
+                        <span className="font-mono text-coral-300">partly unreadable</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                <span className="shrink-0 font-mono text-xs text-mist-300">
-                  {target.sizePending ? "measuring..." : formatBytes(target.sizeBytes)}
-                </span>
-
-                {/* Absent rather than disabled for a location the catalogue
-                    reports and never removes: a control the backend would
-                    refuse should not be drawn at all. */}
-                {target.cleanable && (
-                  <button
-                    type="button"
-                    onClick={() => void reclaim(target.id)}
-                    disabled={cleaning || !armed}
-                    aria-label={`Reclaim ${name}`}
-                    className="shrink-0 rounded-md p-1.5 text-mist-500 transition-colors hover:bg-forest-800 hover:text-coral-300 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {cleaning ? (
-                      <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="font-mono text-xs font-bold text-mist-100">
+                    {target.sizePending ? (
+                      <span className="text-mist-500 font-normal text-[11px]">measuring...</span>
                     ) : (
-                      <Trash2 size={13} aria-hidden="true" />
+                      formatBytes(target.sizeBytes)
                     )}
-                  </button>
-                )}
+                  </span>
+
+                  {target.cleanable && (
+                    <button
+                      type="button"
+                      onClick={() => void reclaim(target.id)}
+                      disabled={cleaning || !armed}
+                      aria-label={`Reclaim ${name}`}
+                      title={
+                        !armed
+                          ? 'Type "Nuke" to arm permanent deletion'
+                          : permanent
+                          ? "Delete permanently"
+                          : "Move to Recycle Bin"
+                      }
+                      className="grid size-7 place-items-center rounded-lg border border-forest-800 text-mist-500 transition-all hover:border-coral-300/60 hover:bg-coral-300/10 hover:text-coral-300 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      {cleaning ? (
+                        <Loader2 size={13} className="animate-spin text-sage-300" aria-hidden="true" />
+                      ) : (
+                        <Trash2 size={13} aria-hidden="true" />
+                      )}
+                    </button>
+                  )}
+                </div>
               </motion.li>
             );
           })}
         </ul>
       )}
 
-      {error && <p className="mt-3 font-mono text-[10px] text-coral-300">{error}</p>}
+      {error && <p className="mt-3 font-mono text-xs text-coral-300">{error}</p>}
     </Panel>
   );
 }

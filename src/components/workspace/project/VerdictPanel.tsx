@@ -1,3 +1,4 @@
+import { HardDrive, Info } from "lucide-react";
 import { Panel } from "./panels";
 import { VERDICT_PRESENTATION, projectEvidence } from "../verdictPresentation";
 import type { Footprint, Recoverability, Verdict, WorkspaceProject } from "../../../types/workspace";
@@ -22,39 +23,60 @@ export function VerdictPanel({
   const atRisk = riskLines(project.git.recoverability);
 
   return (
-    <Panel title="Verdict">
-      <p className="text-sm text-mist-100">{presentation.summary}</p>
-      <p className="mt-1 text-xs text-mist-500">{projectEvidence(project, verdict, footprint)}</p>
+    <Panel
+      title="Verdict Analysis"
+      action={
+        <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-semibold ${presentation.className}`}>
+          <span className={`size-1.5 rounded-full ${presentation.dotClassName}`} aria-hidden="true" />
+          {presentation.label}
+        </span>
+      }
+    >
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-medium text-mist-100">{presentation.summary}</p>
+          <p className="mt-0.5 text-xs text-mist-500">{projectEvidence(project, verdict, footprint)}</p>
+        </div>
 
-      {/* Named one by one rather than counted. "Work that exists only on this
-          disk" is the sentence; these are the things. */}
-      {atRisk.length > 0 && (
-        <ul className="mt-3 grid gap-1.5 border-t border-forest-800 pt-3">
-          {atRisk.map((line) => (
-            <li key={line} className="flex items-center gap-2 text-xs text-coral-300">
-              <span className="size-1 shrink-0 rounded-full bg-coral-300" aria-hidden="true" />
-              {line}
-            </li>
-          ))}
-        </ul>
-      )}
+        {/* Risk & Safety status */}
+        {atRisk.length > 0 && (
+          <div className="border-t border-forest-800 pt-3">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-coral-300">
+              Uncommitted or unpushed local work
+            </p>
+            <ul className="mt-1.5 space-y-1">
+              {atRisk.map((line) => (
+                <li key={line} className="flex items-center gap-2 text-xs text-coral-300">
+                  <span className="size-1.5 shrink-0 rounded-full bg-coral-300" aria-hidden="true" />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      {/* Git is happy to push into the folder next door, and calls the result a
-          remote. It is a backup, not somewhere else. */}
-      {project.git.remoteIsLocal && (
-        <p className="mt-3 border-t border-forest-800 pt-3 text-xs text-coral-300">
-          The only remote is a folder on this machine. One disk failure takes the working copy and the
-          backup together, so nothing here counts as being on a remote.
-        </p>
-      )}
+        {/* Local remote warning */}
+        {project.git.remoteIsLocal && (
+          <div className="flex items-start gap-2 border-t border-forest-800 pt-2.5 text-xs text-coral-300">
+            <HardDrive size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="leading-relaxed">
+              <strong>Local backup:</strong> The git remote is a local folder on this machine rather than a remote server.
+            </p>
+          </div>
+        )}
 
-      {(project.installMissing || project.installStale) && (
-        <p className="mt-3 border-t border-forest-800 pt-3 text-xs text-mist-300">
-          {project.installMissing
-            ? "There is a lockfile with nothing installed behind it."
-            : "The lockfile changed after the last install, so what is installed is already wrong."}
-        </p>
-      )}
+        {/* Lockfile / Dependencies warnings */}
+        {(project.installMissing || project.installStale) && (
+          <div className="flex items-start gap-2 border-t border-forest-800 pt-2.5 text-xs text-confidence-medium">
+            <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="leading-relaxed">
+              {project.installMissing
+                ? "Lockfile present with missing dependencies. Run package manager install before testing."
+                : "Lockfile changed after last install. Installed dependencies may be stale."}
+            </p>
+          </div>
+        )}
+      </div>
     </Panel>
   );
 }
@@ -63,8 +85,8 @@ export function VerdictPanel({
 function riskLines(recoverability: Recoverability): string[] {
   const lines: Array<[number, string, string]> = [
     [recoverability.unpushedCommits, "commit", "never pushed"],
-    [recoverability.stashEntries, "stash", "saved and not applied"],
-    [recoverability.branchesWithoutUpstream, "branch", "with no remote"],
+    [recoverability.stashEntries, "stash", "saved and unapplied"],
+    [recoverability.branchesWithoutUpstream, "branch", "without remote upstream"],
     [recoverability.untrackedFiles, "file", "never committed"],
   ];
   return lines

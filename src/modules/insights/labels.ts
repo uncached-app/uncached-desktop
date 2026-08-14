@@ -1,4 +1,4 @@
-import { categoryPresentation } from "../../components/findings/TargetCard";
+import { categoryPresentation } from "../../components/findings/categoryPresentation";
 import type { Dimension, Report } from "../../utils/report.d.mts";
 
 export const DIMENSION_LABELS: Record<Dimension, string> = {
@@ -39,10 +39,8 @@ export function formatBucket(iso: string, bucket: Report["bucket"]): string {
 }
 
 export function formatMoment(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = new Date(iso);
+  const dayMonth = date.toLocaleDateString(undefined, { month: "short", day: "numeric" }).replace(/\.$/, "");
+  const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return `${dayMonth} · ${time}`;
 }

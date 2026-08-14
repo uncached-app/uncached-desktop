@@ -221,8 +221,8 @@ export function WorkspaceMap({
             list moves under it, and each verdict keeps its title in view. The
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
-        <div className="min-h-0 flex-1">
-          <div ref={listRef} className="h-full overflow-y-auto pb-6 [scrollbar-gutter:stable]">
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <div ref={listRef} className="h-full overflow-y-auto overflow-x-hidden pr-2 pb-6 [scrollbar-gutter:stable]">
             {grouped.map(([verdict, projects]) => (
               <VerdictGroup
                 key={verdict}
@@ -236,15 +236,30 @@ export function WorkspaceMap({
             ))}
 
             {visible.length === 0 && (
-              <div className="py-16 text-center">
-                <FolderOpen size={28} className="mx-auto text-mist-500" strokeWidth={1.5} aria-hidden="true" />
-                <p className="mt-3 text-sm font-semibold text-mist-300">
-                  {filtering ? "Nothing matches this filter." : "No projects in this folder."}
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="grid size-12 place-items-center rounded-2xl border border-forest-800 bg-forest-900 text-mist-500">
+                  <FolderOpen size={24} strokeWidth={1.5} aria-hidden="true" />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-mist-100">
+                  {filtering ? "No projects match this filter" : "No projects in this folder"}
                 </p>
-                <p className="mt-1 text-xs text-mist-500">
-                  {index.projects.length} projects were read across{" "}
-                  {index.roots.length === 1 ? "one folder" : `${index.roots.length} folders`}.
+                <p className="mt-1 text-xs text-mist-500 max-w-sm leading-relaxed">
+                  {index.projects.length} projects were indexed across{" "}
+                  {index.roots.length === 1 ? "1 folder" : `${index.roots.length} folders`}.
                 </p>
+                {filtering && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onQueryChange("");
+                      setActiveRoot(null);
+                      setActiveVerdict(null);
+                    }}
+                    className="mt-4 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-sage-300 transition-all hover:bg-forest-850 hover:border-sage-400/60"
+                  >
+                    Clear all filters
+                  </button>
+                )}
               </div>
             )}
           </div>

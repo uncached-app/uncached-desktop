@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Binary, Bird, Eye, Blocks, Box, Boxes, Check, Cloud, Code, Coffee, Component, Container, Copy, Cpu, Database, Droplet, Feather, Folder, Gamepad2, Hammer, Layers, LoaderCircle, LockKeyhole, Notebook, Package, RefreshCw, ShieldCheck, ShieldQuestion, Sigma, Smartphone, Sparkles, TriangleAlert } from "lucide-react";
+import { Check, Copy, Eye, LoaderCircle, LockKeyhole, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
+import { categoryPresentation } from "./categoryPresentation";
 import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
 
 // The level is decided in Rust and arrives as a reason code. The wording is
@@ -45,61 +46,6 @@ const CONFIDENCE_PRESENTATION: Record<
     icon: ShieldQuestion,
   },
 };
-
-// The badge names the ecosystem the artifact came from; the directory name
-// beside it already says which artifact it is. Naming the category after the
-// directory made the pair read "Gradle .gradle", which spends a badge to
-// repeat the next word.
-const CATEGORY_PRESENTATION: Record<string, { label: string; icon: typeof Package }> = {
-  NodeModules: { label: "Node", icon: Package },
-  NextJs: { label: "Node", icon: Package },
-  Turbo: { label: "Node", icon: Package },
-  NuxtCache: { label: "Node", icon: Package },
-  SvelteKitCache: { label: "Node", icon: Package },
-  ReactNative: { label: "React Native", icon: Smartphone },
-  CargoTarget: { label: "Rust", icon: Box },
-  PyCache: { label: "Python", icon: Layers },
-  PixiEnv: { label: "Pixi", icon: Layers },
-  JupyterCheckpoints: { label: "Jupyter", icon: Notebook },
-  Gradle: { label: "JVM", icon: Coffee },
-  GradleBuild: { label: "JVM", icon: Coffee },
-  MavenTarget: { label: "JVM", icon: Coffee },
-  SbtTarget: { label: "JVM", icon: Coffee },
-  CMakeBuild: { label: "C/C++", icon: Cpu },
-  ZigCache: { label: "Zig", icon: Binary },
-  ElixirBuild: { label: "Elixir", icon: Droplet },
-  HaskellBuild: { label: "Haskell", icon: Sigma },
-  ComposerVendor: { label: "PHP", icon: Blocks },
-  TerraformDir: { label: "Terraform", icon: Cloud },
-  UnityLibrary: { label: "Unity", icon: Gamepad2 },
-  UnrealIntermediate: { label: "Unreal", icon: Gamepad2 },
-  GodotCache: { label: "Godot", icon: Gamepad2 },
-  DotNetObj: { label: ".NET", icon: Boxes },
-  Docker: { label: "Docker", icon: Container },
-  XcodeDerivedData: { label: "Xcode", icon: Hammer },
-  SwiftBuild: { label: "Swift", icon: Bird },
-  CocoapodsPods: { label: "CocoaPods", icon: Component },
-  DartTool: { label: "Dart", icon: Feather },
-  FlutterBuild: { label: "Flutter", icon: Feather },
-  // The three below only ever come from discovery, where the badge names the
-  // kind of cache and the finding's own label names the tool that wrote it.
-  PackageManagerCache: { label: "Package cache", icon: Database },
-  AiToolCache: { label: "AI tool", icon: Sparkles },
-  EditorCache: { label: "Editor", icon: Code },
-};
-
-const CUSTOM_CATEGORY_PREFIX = "Custom:";
-
-export function categoryPresentation(category: string) {
-  const known = CATEGORY_PRESENTATION[category];
-  if (known) return known;
-  return {
-    label: category.startsWith(CUSTOM_CATEGORY_PREFIX)
-      ? category.slice(CUSTOM_CATEGORY_PREFIX.length)
-      : category,
-    icon: Folder,
-  };
-}
 
 interface TargetCardProps {
   target: ScanTarget;
@@ -200,15 +146,14 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
          it reads as recessed rather than merely greyed: the actionable cards
          lift off the page and the locked ones stay in it. The border carries
          the Pro tint so the reason is legible before reading any label. */
-      className={`group grid select-none gap-3 rounded-2xl border p-4 transition-all duration-200 sm:grid-cols-[1fr_auto] sm:items-center ${
-        proLocked
-          ? "cursor-not-allowed border-pro-200/25 bg-forest-950 text-mist-500"
-          : disabled
+      className={`group grid select-none gap-3 rounded-2xl border p-4 transition-all duration-200 sm:grid-cols-[1fr_auto] sm:items-center ${proLocked
+        ? "cursor-not-allowed border-pro-200/25 bg-forest-950 text-mist-500"
+        : disabled
           ? "cursor-not-allowed border-forest-800 bg-forest-900 text-mist-500"
           : selected
-          ? "cursor-pointer border-sage-400 bg-forest-900"
-          : "cursor-pointer border-forest-800 bg-forest-900 hover:border-sage-400"
-      }`}
+            ? "cursor-pointer border-sage-400 bg-forest-900"
+            : "cursor-pointer border-forest-800 bg-forest-900 hover:border-sage-400"
+        }`}
     >
       <div className="flex min-w-0 items-start gap-3.5">
         {reportOnly ? (
@@ -219,28 +164,27 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
             <Eye size={12} />
           </span>
         ) : (
-        <div
-          role="checkbox"
-          aria-checked={selected}
-          aria-disabled={disabled}
-          aria-label={`Select ${target.name}`}
-          tabIndex={disabled ? -1 : 0}
-          onKeyDown={(e) => {
-            if ((e.key === " " || e.key === "Enter") && !disabled) {
-              e.preventDefault();
-              onToggle(target.id);
-            }
-          }}
-          className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border transition-all ${
-            selected
+          <div
+            role="checkbox"
+            aria-checked={selected}
+            aria-disabled={disabled}
+            aria-label={`Select ${target.name}`}
+            tabIndex={disabled ? -1 : 0}
+            onKeyDown={(e) => {
+              if ((e.key === " " || e.key === "Enter") && !disabled) {
+                e.preventDefault();
+                onToggle(target.id);
+              }
+            }}
+            className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border transition-all ${selected
               ? "border-sage-400 bg-sage-400 text-forest-950"
               : disabled
-              ? "border-forest-800 bg-forest-900 text-transparent"
-              : "border-forest-700 bg-forest-950 text-transparent group-hover:border-sage-400"
-          }`}
-        >
-          <Check size={13} strokeWidth={3} aria-hidden="true" />
-        </div>
+                ? "border-forest-800 bg-forest-900 text-transparent"
+                : "border-forest-800 bg-forest-950 text-transparent group-hover:border-sage-400"
+              }`}
+          >
+            <Check size={13} strokeWidth={3} aria-hidden="true" />
+          </div>
         )}
 
         <div className="min-w-0 flex-1">
@@ -260,36 +204,39 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
             )}
           </div>
 
-          <div className="group/path relative mt-1.5">
-            <p
-              onClick={handleCopyPath}
-              className="truncate font-mono text-xs leading-5 text-mist-500 cursor-pointer transition-colors hover:text-mist-300"
-              title={target.path}
-            >
-              {target.path}
-            </p>
+          <div className="mt-1.5 flex items-center">
+            <div className="group/path relative inline-flex max-w-full items-center">
+              <p
+                onClick={handleCopyPath}
+                className="truncate font-mono text-xs leading-5 text-mist-500 cursor-pointer transition-colors hover:text-mist-300"
+                title={target.path}
+              >
+                {target.path}
+              </p>
 
-            {/* Centered Tooltip over path text */}
-            <span
-              className={`pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium shadow-xl transition-all duration-200 ${
-                copiedPath
-                  ? "scale-100 opacity-100 border-sage-400/50 text-sage-300"
-                  : "scale-95 opacity-0 text-mist-100 group-hover/path:scale-100 group-hover/path:opacity-100"
-              }`}
-            >
-              {copiedPath ? (
-                <>
-                  <Check size={11} className="text-sage-300" strokeWidth={2.5} aria-hidden="true" />
-                  <span>Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={11} className="text-mist-500" aria-hidden="true" />
-                  <span>Copy</span>
-                </>
-              )}
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-x-4 border-t-4 border-x-transparent border-t-forest-800" />
-            </span>
+              {/* Tooltip centered below the path text */}
+              <span
+                role="tooltip"
+                className={`pointer-events-none absolute top-full left-1/2 z-20 mt-1.5 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap rounded-md border border-forest-800 bg-forest-850 px-2 py-0.5 font-sans text-[11px] font-medium shadow-xl transition-all duration-200 ${
+                  copiedPath
+                    ? "scale-100 opacity-100 border-sage-400/50 text-sage-300"
+                    : "scale-95 opacity-0 text-mist-100 group-hover/path:scale-100 group-hover/path:opacity-100"
+                }`}
+              >
+                {copiedPath ? (
+                  <>
+                    <Check size={11} className="text-sage-300" strokeWidth={2.5} aria-hidden="true" />
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={11} className="text-mist-500" aria-hidden="true" />
+                    <span>Copy</span>
+                  </>
+                )}
+                <span className="absolute -top-1 left-1/2 -translate-x-1/2 border-x-4 border-b-4 border-x-transparent border-b-forest-800" />
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -311,14 +258,14 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
             </span>
           ) : target.sizeHasErrors ? (
             <div className="flex flex-col items-end gap-1">
-              <span className="text-xs font-medium text-amber-300">Size unavailable</span>
+              <span className="text-xs font-medium text-confidence-medium">Size unavailable</span>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRefreshSize(target.id);
                 }}
-                className="inline-flex items-center gap-2 rounded-lg bg-forest-800 px-2.5 py-1 text-xs font-medium text-amber-300 hover:bg-forest-850"
+                className="inline-flex items-center gap-2 rounded-lg bg-forest-800 px-2.5 py-1 text-xs font-medium text-confidence-medium hover:bg-forest-850"
                 aria-label={`Size failed for ${target.name}. Retry measurement`}
               >
                 <RefreshCw size={13} aria-hidden="true" /> Retry

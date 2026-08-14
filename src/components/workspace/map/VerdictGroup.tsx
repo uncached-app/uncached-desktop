@@ -27,23 +27,27 @@ export function VerdictGroup({
 
   return (
     <section aria-labelledby={`verdict-${verdict}`} className="pb-5">
-      {/* Sticky, because a verdict the user has scrolled into is the one piece
-          of context every row below it depends on. */}
-      <div className="sticky top-0 z-10 flex items-center gap-x-2.5 bg-forest-950 py-2">
-        <span className={`size-1.5 shrink-0 rounded-full ${presentation.dotClassName}`} aria-hidden="true" />
-        <h2 id={`verdict-${verdict}`} className="shrink-0 text-xs font-semibold text-mist-100">
-          {presentation.label}
-        </h2>
-        <span className="shrink-0 font-mono text-[10px] text-mist-500">{projects.length}</span>
-        <p className="min-w-0 flex-1 truncate text-xs text-mist-500">{presentation.summary}</p>
+      {/* Sticky group header with flat top edges */}
+      <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-x-2.5 rounded-t-none rounded-b-xl bg-forest-950/90 px-2.5 py-2 backdrop-blur-md">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={`size-2 shrink-0 rounded-full ${presentation.dotClassName}`} aria-hidden="true" />
+          <h2 id={`verdict-${verdict}`} className="shrink-0 text-xs font-semibold text-mist-100">
+            {presentation.label}
+          </h2>
+          <span className="shrink-0 rounded-md bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-mist-300">
+            {projects.length}
+          </span>
+          <span className="hidden sm:inline-block truncate text-xs text-mist-500">· {presentation.summary}</span>
+        </div>
+
         {reclaimable > 0 && (
-          <span className="shrink-0 font-mono text-[11px] text-mist-500">
+          <span className="shrink-0 rounded-md bg-forest-900 border border-forest-800 px-2 py-0.5 font-mono text-[11px] font-medium text-sage-300">
             {formatBytes(reclaimable)} reclaimable
           </span>
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-forest-800 bg-forest-900">
+      <div className="overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-xs">
         {projects.map((project, position) => (
           <ProjectRow
             key={project.path}
