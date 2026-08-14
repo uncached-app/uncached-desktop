@@ -11,6 +11,7 @@ import { SettingsPanel } from "../components/settings/SettingsPanel";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import type { useSettings } from "../hooks/useSettings";
 import type { AppModule } from "../types/module";
+import type { WorkspaceProject } from "../types/workspace";
 
 type AppLayoutProps = {
   activeModule: AppModule;
@@ -40,10 +41,20 @@ export function AppLayout({
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
   const { step, view, listenersReady } = usePurgeFlow();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteProject, setPaletteProject] = useState<WorkspaceProject | null>(null);
   useSplashScreen(!settings.loading && listenersReady);
-  useCommandPaletteShortcut(setPaletteOpen);
   // Stable, because it is handed to every screen through a context.
-  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const openPalette = useCallback((project?: WorkspaceProject) => {
+    setPaletteProject(project ?? null);
+    setPaletteOpen(true);
+  }, []);
+  // The shortcut always opens at the top. Reopening onto whichever project was
+  // last clicked would put the user somewhere they did not ask to be.
+  const togglePalette = useCallback(() => {
+    setPaletteProject(null);
+    setPaletteOpen((open) => !open);
+  }, []);
+  useCommandPaletteShortcut(togglePalette);
 
   return (
     <main className="relative flex h-screen flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
@@ -60,6 +71,7 @@ export function AppLayout({
       <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} {...settings} />
       <CommandPalette
         open={paletteOpen}
+        project={paletteProject}
         onClose={() => setPaletteOpen(false)}
         onModuleChange={onModuleChange}
         onOpenSettings={() => onSettingsOpenChange(true)}
@@ -76,16 +88,16 @@ export function AppLayout({
  * keyboard handling. It toggles: the same keys that opened it close it, which
  * is what the hand expects when it is already on them.
  */
-function useCommandPaletteShortcut(setOpen: (update: (open: boolean) => boolean) => void) {
+function useCommandPaletteShortcut(toggle: () => void) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "k" || !(event.metaKey || event.ctrlKey)) return;
       event.preventDefault();
-      setOpen((open) => !open);
+      toggle();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setOpen]);
+  }, [toggle]);
 }
 
 /** Reveals the window and dismisses the splash once the app can be used. */

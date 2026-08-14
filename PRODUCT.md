@@ -33,7 +33,7 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - Every detected artifact is confirmed by its ecosystem's marker file sitting beside it, and artifacts that only count in one place are declared as paths relative to the project root rather than as bare directory names.
 - No virtual environment and no fetched-dependency directory is ever a target where restoring it costs network rather than a local build.
 - Every workspace scanner runs unconditionally. Excluding something inside a workspace is an ignore rule, which reaches every category and wins against the provider, the confidence and a schedule. Settings § Scanning covers only what lives outside the chosen folders: package manager, AI tool and editor caches.
-- A command palette reaches every project and every module from the keyboard, and is where a project is opened in an editor, a terminal or the file manager. Opening is a native command: it refuses any path outside the chosen folders, and any application the machine was not found to have.
+- A command palette reaches every project and every module from the keyboard, and is where a project is opened in an editor, a terminal or the file manager. A project row in the workspace opens it already on that project. Opening is a native command: it refuses any path outside the chosen folders, and any application the machine was not found to have.
 - `Docker` exists in the category model but has no scanner implementation.
 - Scanner coverage grows release to release. Copy must never enumerate it in prose — see `DESIGN.md` § Voice & Copy.
 - Default cleanup moves targets to the native Recycle Bin/Trash.

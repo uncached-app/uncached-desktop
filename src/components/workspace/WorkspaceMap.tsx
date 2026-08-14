@@ -342,7 +342,7 @@ export function WorkspaceMap({
                 someone is already looking at the projects it acts on. */}
             <button
               type="button"
-              onClick={openPalette}
+              onClick={() => openPalette()}
               title="Open a project in your editor, terminal or file manager"
               className="flex shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3 py-2.5 text-xs text-mist-500 transition-colors hover:border-sage-400 hover:text-mist-100"
             >
@@ -595,12 +595,19 @@ function ProjectRow({
 }) {
   const evidence = projectEvidence(project, verdict, footprint);
   const share = footprint && footprint.totalBytes > 0 ? footprint.reclaimableBytes / footprint.totalBytes : 0;
+  const openPalette = useOpenCommandPalette();
 
   return (
-    <motion.article
+    // A button rather than an article with a click handler: the row is the way
+    // into everything you can do with a project, and a real button carries the
+    // keyboard and the focus ring without either being reimplemented here.
+    <motion.button
+      type="button"
+      onClick={() => openPalette(project)}
+      title={`${project.name} — open, reveal, copy path`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-forest-850 ${first ? "" : "border-t border-forest-800"
+      className={`group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition-colors hover:bg-forest-850 ${first ? "" : "border-t border-forest-800"
         }`}
     >
       {/* Line one is identity, line two is the finding. Both keep their own row
@@ -662,6 +669,6 @@ function ProjectRow({
           <span className="w-48 text-right font-mono text-[10px] text-mist-500/60">measuring...</span>
         )}
       </div>
-    </motion.article>
+    </motion.button>
   );
 }

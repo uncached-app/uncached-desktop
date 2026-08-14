@@ -55,11 +55,14 @@ const GROUP_LABELS: Record<string, string> = {
  */
 export function CommandPalette({
   open,
+  project,
   onClose,
   onModuleChange,
   onOpenSettings,
 }: {
   open: boolean;
+  /** Opened from a row, so it starts at that project's actions. */
+  project: WorkspaceProject | null;
   onClose: () => void;
   onModuleChange: (module: AppModule) => void;
   onOpenSettings: () => void;
@@ -78,11 +81,11 @@ export function CommandPalette({
   useEffect(() => {
     if (!open) return;
     setQuery("");
-    setScope(null);
+    setScope(project);
     setCursor(0);
     setFlash(null);
     inputRef.current?.focus();
-  }, [open]);
+  }, [open, project]);
 
   async function run(action: () => Promise<void>, closing: boolean) {
     try {
