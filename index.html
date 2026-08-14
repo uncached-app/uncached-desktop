@@ -26,12 +26,14 @@
     <style>
       #app-splashscreen {
         position: fixed;
-        inset: 0;
+        /* The window is undecorated and transparent, so its corners and its
+           inset are drawn in CSS. This element paints before the bundle's
+           stylesheet exists, which is the whole point of a splash — so it has
+           to repeat both, or the first thing the user sees is a square that
+           overhangs the window it is covering. Keep in step with
+           `--window-gutter` and `--window-radius` in `src/index.css`. */
+        inset: 16px;
         z-index: 99999;
-        /* The window is undecorated and transparent, so its corners are drawn
-           in CSS. This element paints before the bundle's stylesheet exists,
-           which is the whole point of a splash — so it has to round itself, or
-           the first thing the user sees is a square covering a rounded window. */
         border-radius: 18px;
         overflow: hidden;
         display: flex;

@@ -29,33 +29,41 @@
 /* Light is the default theme: these values must paint before the settings
    round-trip resolves, otherwise the window flashes dark on launch. */
 :root {
+  /* The window is undecorated and transparent, so the app does not reach its
+     own edges: this much of it is left empty for the shadow to fall into. A
+     shadow can only be drawn where there is window left to draw on, so this has
+     to be at least as far as the blur reaches, and the configured window size
+     carries the same 2× on top so the visible app is still 1080x800.
+
+     Hard-coded rather than derived, and repeated once in `index.html`: the
+     splash paints before this stylesheet exists and has to inset itself by the
+     same amount or the first frame is a rectangle wider than the window. */
+  --window-gutter: 16px;
+  --window-radius: 18px;
+  --window-shadow: 0 6px 16px rgb(24 32 24 / 0.16), 0 1px 4px rgb(24 32 24 / 0.1);
   --theme-forest-950: #f4f6f1;
   --theme-forest-900: #ffffff;
-  --theme-forest-850: #eef2eb;
-  --theme-forest-800: #dfe7dc;
-  /* Light sage is darkened so it holds contrast, but it has to stay botanical
-     while it does: below ~40% saturation these read as cold grey rather than as
-     green. Hue sits at 110 and the ramp keeps AA on every surface it lands on —
-     sage-400 also carries near-white text as a fill. */
-  --theme-sage-300: #35722c;
-  --theme-sage-400: #3f7d33;
-  --theme-sage-500: #57a044;
-  --theme-mist-100: #182018;
-  --theme-mist-300: #354336;
-  --theme-mist-500: #637064;
-  --theme-coral-300: #b64d3f;
-  --theme-pro-100: #5e3d85;
-  --theme-pro-200: #704b9b;
-  --theme-pro-surface: #f1eafb;
+  --theme-forest-850: #e2e8df;
+  --theme-forest-800: #ccdac9;
+  --theme-sage-300: #386641;
+  --theme-sage-400: #57843d;
+  --theme-sage-500: #7fa84e;
+  --theme-mist-100: #111711;
+  --theme-mist-300: #2b362c;
+  --theme-mist-500: #4c5a4d;
+  --theme-coral-300: #bc4749;
+  --theme-pro-100: #4a2d6f;
+  --theme-pro-200: #5e3d85;
+  --theme-pro-surface: #efe7fa;
   /* Confidence reads as reassurance, caution and inquiry — never alarm.
      Review is blue because it asks the user to look at something, and blue
      carries that without the urgency red would add to a routine finding. */
-  --theme-confidence-high: #35722c;
-  --theme-confidence-high-surface: #e4f0da;
-  --theme-confidence-medium: #8a5b16;
-  --theme-confidence-medium-surface: #f7eeda;
-  --theme-confidence-review: #33607f;
-  --theme-confidence-review-surface: #e5eef5;
+  --theme-confidence-high: #2e5535;
+  --theme-confidence-high-surface: #e1ecd1;
+  --theme-confidence-medium: #7a4f10;
+  --theme-confidence-medium-surface: #f7ebcf;
+  --theme-confidence-review: #2b5470;
+  --theme-confidence-review-surface: #dde9f2;
   color-scheme: light;
   font-family: var(--font-sans);
   color: var(--color-mist-100);
@@ -66,21 +74,24 @@
 }
 
 [data-theme="dark"] {
-  --theme-forest-950: #101311;
-  --theme-forest-900: #151b17;
-  --theme-forest-850: #1a211c;
-  --theme-forest-800: #222b24;
-  --theme-sage-300: #d1eca9;
-  --theme-sage-400: #b9d98d;
-  --theme-sage-500: #a8c982;
-  --theme-mist-100: #edf0eb;
-  --theme-mist-300: #c7d0c1;
-  --theme-mist-500: #8e998e;
-  --theme-coral-300: #ffc2b5;
+  /* Deeper, because a shadow reads against what surrounds the window, and on a
+     dark desktop a light-theme shadow is invisible. */
+  --window-shadow: 0 6px 18px rgb(0 0 0 / 0.5), 0 1px 4px rgb(0 0 0 / 0.32);
+  --theme-forest-950: #0e120f;
+  --theme-forest-900: #141a15;
+  --theme-forest-850: #1b231d;
+  --theme-forest-800: #253127;
+  --theme-sage-300: #b4e590;
+  --theme-sage-400: #9dd47a;
+  --theme-sage-500: #86bd63;
+  --theme-mist-100: #f2f5f1;
+  --theme-mist-300: #cfd8cc;
+  --theme-mist-500: #93a092;
+  --theme-coral-300: #ff9b94;
   --theme-pro-100: #eee0ff;
   --theme-pro-200: #d9b8ff;
   --theme-pro-surface: #211b2b;
-  --theme-confidence-high: #d1eca9;
+  --theme-confidence-high: #b4e590;
   --theme-confidence-high-surface: #1b241a;
   --theme-confidence-medium: #f2cd94;
   --theme-confidence-medium-surface: #262017;
@@ -93,14 +104,12 @@
   box-sizing: border-box;
 }
 
-body {
-  width: 100%;
-  min-width: 320px;
-  height: 100%;
-  margin: 0;
-  background: transparent;
-  border-radius: 18px;
-  overflow: hidden;
+/* A window the user asked to fill the screen has no room to float in, and the
+   gutter would be a strip of desktop showing through it. Set from
+   `useWindowFill`, which follows the window rather than the maximize button. */
+:root[data-window-fill="true"] {
+  --window-gutter: 0px;
+  --window-shadow: none;
 }
 
 html,
@@ -110,13 +119,39 @@ body,
   height: 100%;
   overflow: hidden;
   background: transparent;
-  clip-path: inset(0 round 18px);
 }
 
+body {
+  min-width: 320px;
+  margin: 0;
+  /* The app stops here; the rest of the window is where the shadow goes. */
+  padding: var(--window-gutter);
+}
+
+/* The shadow itself, drawn on the rounded rectangle the app occupies rather
+   than by the window server: the window is non-opaque, and a native shadow on
+   one of those is derived from whatever alpha the webview last reported, which
+   is how a resized window ends up wearing the shadow of its old shape.
+
+   Fixed and behind, so it neither moves with a scroll nor paints over anything:
+   an outer box-shadow renders only outside its own border box, which is exactly
+   the gutter. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: var(--window-gutter);
+  z-index: -1;
+  border-radius: var(--window-radius);
+  box-shadow: var(--window-shadow);
+  pointer-events: none;
+}
+
+/* `clip-path` rather than `overflow` plus a radius: WebKit leaves the corners
+   square under a transformed descendant, and every screen in here animates. */
 #root {
-  border-radius: 18px;
+  border-radius: var(--window-radius);
+  clip-path: inset(0 round var(--window-radius));
   background: var(--color-forest-950);
-  overflow: hidden;
 }
 
 /* Asset names describe the artwork, not the theme: the LIGHT wordmark is

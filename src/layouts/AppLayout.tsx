@@ -9,6 +9,7 @@ import { Screen } from "../components/layout/Screen";
 import { Titlebar } from "../components/layout/Titlebar";
 import { SettingsPanel } from "../components/settings/SettingsPanel";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
+import { useWindowFill } from "../hooks/useWindowFill";
 import type { useSettings } from "../hooks/useSettings";
 import type { AppModule } from "../types/module";
 import type { WorkspaceProject } from "../types/workspace";
@@ -43,6 +44,7 @@ export function AppLayout({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteProject, setPaletteProject] = useState<WorkspaceProject | null>(null);
   useSplashScreen(!settings.loading && listenersReady);
+  useWindowFill();
   // Stable, because it is handed to every screen through a context.
   const openPalette = useCallback((project?: WorkspaceProject) => {
     setPaletteProject(project ?? null);
@@ -57,7 +59,9 @@ export function AppLayout({
   useCommandPaletteShortcut(togglePalette);
 
   return (
-    <main className="relative flex h-screen flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
+    // `h-full`, not `h-screen`: the viewport is the whole window and the app
+    // only occupies what is left inside the shadow gutter.
+    <main className="relative flex h-full flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
       <Titlebar step={step} view={view} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="mx-auto flex min-h-0 w-full max-w-[72rem] flex-1 flex-col overflow-hidden">
