@@ -63,7 +63,8 @@ mod tests {
     #[test]
     fn a_request_without_a_trigger_is_a_manual_one() {
         let request: CleanRequest =
-            serde_json::from_value(serde_json::json!({ "targetId": "t", "mode": "Trash" })).unwrap();
+            serde_json::from_value(serde_json::json!({ "targetId": "t", "mode": "Trash" }))
+                .unwrap();
 
         assert_eq!(request.trigger, super::CleanupTrigger::Manual);
     }

@@ -130,7 +130,11 @@ mod tests {
     fn every_workspace_provider_is_registered() {
         let categories = active_categories(&get_default_providers(&AppSettings::default()));
 
-        assert_eq!(categories.first(), Some(&Category::ReactNative), "claims nested paths first");
+        assert_eq!(
+            categories.first(),
+            Some(&Category::ReactNative),
+            "claims nested paths first"
+        );
         assert_eq!(categories.len(), 29);
         for expected in [
             Category::NodeModules,
@@ -139,7 +143,10 @@ mod tests {
             Category::UnityLibrary,
             Category::ComposerVendor,
         ] {
-            assert!(categories.contains(&expected), "{expected:?} must be registered");
+            assert!(
+                categories.contains(&expected),
+                "{expected:?} must be registered"
+            );
         }
     }
 

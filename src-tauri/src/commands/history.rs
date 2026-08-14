@@ -181,12 +181,14 @@ fn read_snapshot(path: &Path) -> Option<WorkspaceSnapshot> {
 /// way to know the two are the same directory.
 pub fn compare(previous: &WorkspaceSnapshot, projects: &[ProjectWeight]) -> WorkspaceChange {
     let sum = |weights: &[ProjectWeight]| -> (i64, i64) {
-        weights.iter().fold((0i64, 0i64), |(total, reclaimable), weight| {
-            (
-                total.saturating_add(weight.total_bytes as i64),
-                reclaimable.saturating_add(weight.reclaimable_bytes as i64),
-            )
-        })
+        weights
+            .iter()
+            .fold((0i64, 0i64), |(total, reclaimable), weight| {
+                (
+                    total.saturating_add(weight.total_bytes as i64),
+                    reclaimable.saturating_add(weight.reclaimable_bytes as i64),
+                )
+            })
     };
     let (previous_total, previous_reclaimable) = sum(&previous.projects);
     let (current_total, current_reclaimable) = sum(projects);
@@ -373,10 +375,8 @@ mod tests {
     }
 
     fn temp_path(name: &str) -> std::path::PathBuf {
-        let path = std::env::temp_dir().join(format!(
-            "uncached-history-{}-{name}",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("uncached-history-{}-{name}", std::process::id()));
         let _ = std::fs::remove_file(&path);
         path
     }
@@ -390,10 +390,7 @@ mod tests {
         };
         let change = compare(
             &previous,
-            &[
-                weight("/w/api", 3_000, 2_000),
-                weight("/w/new", 250, 250),
-            ],
+            &[weight("/w/api", 3_000, 2_000), weight("/w/new", 250, 250)],
         );
 
         assert_eq!(change.total_delta, 1_750);
