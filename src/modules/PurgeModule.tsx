@@ -5,6 +5,7 @@ import { ScanView } from "../components/scan/ScanView";
 import { WorkspaceForm } from "../components/workspace/WorkspaceForm";
 import { ProjectPage } from "../components/workspace/ProjectPage";
 import { WorkspaceMap } from "../components/workspace/WorkspaceMap";
+import { WorkspaceUnavailable } from "../components/workspace/WorkspaceUnavailable";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useWorkspaceHistory } from "../hooks/useWorkspaceHistory";
 import type { CleanMode, LastCleanup } from "../types/settings";
@@ -137,6 +138,17 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
           focusPath={flow.focusPath}
           onFocusHandled={flow.clearFocus}
           onOpenProject={flow.openProject}
+        />
+      )}
+
+      {/* The map needs an index; the step that shows it does not wait for one.
+          Without this the screen the scan sends the user to renders nothing at
+          all whenever discovery fails or is still running. */}
+      {view === "projects" && flow.step === 3 && !openProject && !flow.index.index && (
+        <WorkspaceUnavailable
+          error={flow.index.error}
+          onRetry={() => void flow.index.scanRoots(flow.extraRoots)}
+          onChooseFolders={() => flow.setStep(1)}
         />
       )}
 

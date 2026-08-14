@@ -5,6 +5,12 @@ import type { WorkspaceIndex } from "../types/workspace";
 /** How long an index is trusted before a focus is allowed to re-read it. */
 const STALE_AFTER_MS = 5 * 60 * 1000;
 
+function indexFailure(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  return JSON.stringify(error);
+}
+
 /** Indexes the roots it is given. Free on every plan; Rust caps how many apply. */
 export function useWorkspaceIndex() {
   const [index, setIndex] = useState<WorkspaceIndex | null>(null);
@@ -36,7 +42,9 @@ export function useWorkspaceIndex() {
       setIndex(await invoke<WorkspaceIndex>("scan_workspace_index", { paths }));
       indexedAt.current = Date.now();
     } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : JSON.stringify(scanError));
+      // A rejected command carries the string Rust returned, so quoting it as
+      // JSON would put the reason in the user's face wearing quotation marks.
+      setError(indexFailure(scanError));
     } finally {
       running.current = false;
       setLoading(false);
