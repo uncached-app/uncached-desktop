@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppLayout } from "./layouts/AppLayout";
+import { InsightsModule } from "./modules/InsightsModule";
 import { PurgeModule } from "./modules/PurgeModule";
 import { PurgeFlowProvider } from "./hooks/usePurgeFlow";
 import { useEntitlement } from "./hooks/useEntitlement";
@@ -31,13 +32,19 @@ function App() {
         settings={settings}
         settingsOpen={settingsOpen}
         onSettingsOpenChange={setSettingsOpen}
+        onLicenseChange={entitlement.refresh}
+        proEnabled={entitlement.proEnabled}
       >
+        {activeModule === "insights" ? (
+          <InsightsModule proEnabled={entitlement.proEnabled} onOpenWorkspace={() => setActiveModule("reclaim")} />
+        ) : (
         <PurgeModule
           proEnabled={entitlement.proEnabled}
           cleanMode={cleanMode}
           lastCleanup={settings.settings?.lastCleanup ?? null}
           activeIgnoreRules={activeIgnoreRules}
         />
+        )}
       </AppLayout>
     </PurgeFlowProvider>
   );

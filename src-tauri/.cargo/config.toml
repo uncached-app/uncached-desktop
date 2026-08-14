@@ -1,2 +1,13 @@
 [patch."ssh://git@github.com/uncached-app/uncached-core.git"]
 uncached-core = { path = "../../uncached-core" }
+
+# The licence public key is compiled into the binary. It is not a secret — it
+# only verifies signatures — and it belongs here so every build produces a
+# binary that accepts the same licences, without anyone remembering to export
+# a variable. The private seed that matches it lives in a password manager and
+# in the Cloudflare secret store, never in this repository.
+#
+# Generate with: cargo run --example license -- keygen <seed>
+#
+[env]
+UNCACHED_LICENSE_PUBLIC_KEY = "L6JQDx7BzCAgLGrbhq0skEUj9ybR2zQmFCFWM2rGXVk"

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { LicenseSection } from "./LicenseSection";
 import type { AppSettings, Appearance, IgnoreRuleReview } from "../../types/settings";
 import { openExternalUrl } from "../../utils/externalLink";
 
@@ -12,12 +13,14 @@ type SettingsPanelProps = {
   saving: boolean;
   error: string | null;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
+  /** The plan is native state; activating one has to re-read it. */
+  onLicenseChange?: () => void;
 };
 
-const sections = ["General", "Scanning", "Ignore rules", "Deletion", "Appearance", "About"] as const;
+const sections = ["General", "Scanning", "Ignore rules", "Deletion", "Appearance", "Licence", "About"] as const;
 type Section = (typeof sections)[number];
 
-export function SettingsPanel({ open, onClose, settings, loading, saving, error, updateSettings }: SettingsPanelProps) {
+export function SettingsPanel({ open, onClose, settings, loading, saving, error, updateSettings, onLicenseChange = () => {} }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(null);
   const [confirmPermanent, setConfirmPermanent] = useState(false);
@@ -56,7 +59,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
-            {section === "About" ? <AboutContent appInfo={appInfo} /> : loading || !settings ? <div className="grid h-full place-items-center text-sm text-mist-500">Loading settings...</div> : <SettingsContent section={section} settings={settings} updateSettings={updateSettings} onRequestPermanentDelete={() => setConfirmPermanent(true)} />}
+            {section === "Licence" ? <LicenseSection onActivated={onLicenseChange} /> : section === "About" ? <AboutContent appInfo={appInfo} /> : loading || !settings ? <div className="grid h-full place-items-center text-sm text-mist-500">Loading settings...</div> : <SettingsContent section={section} settings={settings} updateSettings={updateSettings} onRequestPermanentDelete={() => setConfirmPermanent(true)} />}
             {error && <p className="mt-5 rounded-xl bg-forest-950 px-4 py-3 text-sm text-coral-300" role="alert">{error}</p>}
           </div>
           <footer className="flex shrink-0 justify-end border-t border-forest-800 px-5 py-3 text-xs text-mist-500 sm:px-7">{saving ? "Saving..." : "Saved automatically"}</footer>
