@@ -1,24 +1,32 @@
-import { Bot, Sparkles, Trash2 } from "lucide-react";
+import { Bot, Folders, Sparkles } from "lucide-react";
 import type React from "react";
 import type { AppModule } from "../../types/module";
 
 type ModuleBarProps = {
   activeModule: AppModule;
   onChange: (module: AppModule) => void;
+  /** Insights reads the same scan; the plan decides whether it is reachable. */
+  proEnabled: boolean;
 };
 
-export function ModuleBar({ activeModule, onChange }: ModuleBarProps) {
+export function ModuleBar({ activeModule, onChange, proEnabled }: ModuleBarProps) {
   return (
     <nav className="flex shrink-0 items-center justify-center gap-1.5 border-t border-forest-800 bg-forest-950 px-4 py-3 sm:gap-2 sm:px-6" aria-label="Uncached modules">
-      <ModuleButton active={activeModule === "reclaim"} label="Uncached Reclaim" onClick={() => onChange("reclaim")}>
-        <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
-        <span>Reclaim</span>
+      <ModuleButton active={activeModule === "reclaim"} label="Uncached Workspace" onClick={() => onChange("reclaim")}>
+        <Folders size={16} strokeWidth={1.8} aria-hidden="true" />
+        <span>Workspace</span>
       </ModuleButton>
       <ModuleButton active={false} label="Uncached Intelligence (Pro)" disabled>
         <Bot size={16} strokeWidth={1.8} aria-hidden="true" />
         <span className="hidden sm:inline">Intelligence</span>
       </ModuleButton>
-      <ModuleButton active={false} label="Uncached Insights (Pro)" disabled>
+      {/* Reachable on every plan. A module nobody can open is a module nobody
+          wants: Free reads the findings, Pro measures them. */}
+      <ModuleButton
+        active={activeModule === "insights"}
+        label={proEnabled ? "Uncached Insights" : "Uncached Insights (Pro)"}
+        onClick={() => onChange("insights")}
+      >
         <Sparkles size={16} strokeWidth={1.8} aria-hidden="true" />
         <span className="hidden sm:inline">Insights</span>
       </ModuleButton>

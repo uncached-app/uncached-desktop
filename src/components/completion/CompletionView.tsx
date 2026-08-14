@@ -14,9 +14,11 @@ interface CompletionViewProps {
   };
   cleanupMode: CleanMode;
   resetScan: () => void;
+  /** Absent when no folder is chosen, which leaves nothing to return to. */
+  backToWorkspace?: () => void;
 }
 
-export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }: CompletionViewProps) {
+export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, backToWorkspace }: CompletionViewProps) {
   const reducedMotion = useReducedMotion();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const noun = cleanupSummary.removed === 1 ? "target" : "targets";
@@ -69,7 +71,7 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }:
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
           aria-labelledby="cleanup-complete-title"
-          className="col-span-full w-full flex min-h-0 flex-col items-center justify-center text-center"
+          className="flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center text-center"
         >
           <motion.div
             initial={reducedMotion ? false : { scale: 0 }}
@@ -108,13 +110,31 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan }:
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={resetScan}
-            className="mt-8 inline-flex min-h-11 items-center rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 hover:bg-sage-300"
-          >
-            Scan another workspace
-          </button>
+          {/* The workspace is where the user came from and where the result is
+              now visible, so it leads. Reading it again is part of going back:
+              the map still holds the weights these targets used to occupy. */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {backToWorkspace && (
+              <button
+                type="button"
+                onClick={backToWorkspace}
+                className="inline-flex min-h-11 items-center rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 hover:bg-sage-300"
+              >
+                Back to Workspace
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={resetScan}
+              className={`inline-flex min-h-11 items-center rounded-xl px-5 text-sm font-medium transition-colors ${
+                backToWorkspace
+                  ? "bg-forest-800 text-mist-300 hover:bg-forest-850 hover:text-sage-300"
+                  : "bg-sage-400 font-semibold text-forest-950 hover:bg-sage-300"
+              }`}
+            >
+              Scan another folder
+            </button>
+          </div>
         </motion.section>
       )}
     </AnimatePresence>

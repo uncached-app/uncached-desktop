@@ -16,6 +16,9 @@ type AppLayoutProps = {
   settings: ReturnType<typeof useSettings>;
   settingsOpen: boolean;
   onSettingsOpenChange: (open: boolean) => void;
+  /** Re-reads the plan after an activation, which is native state. */
+  onLicenseChange?: () => void;
+  proEnabled: boolean;
   align?: "center" | "start";
   children: ReactNode;
 };
@@ -27,24 +30,26 @@ export function AppLayout({
   settings,
   settingsOpen,
   onSettingsOpenChange,
+  onLicenseChange,
+  proEnabled,
   align = "start",
   children,
 }: AppLayoutProps) {
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
-  const { step, listenersReady } = usePurgeFlow();
+  const { step, view, listenersReady } = usePurgeFlow();
   useSplashScreen(!settings.loading && listenersReady);
 
   return (
     <main className="relative flex h-screen flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
-      <Titlebar step={step} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} />
+      <Titlebar step={step} view={view} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="mx-auto flex min-h-0 w-full max-w-screen flex-1 flex-col overflow-hidden">
+        <div className="mx-auto flex min-h-0 w-full max-w-[72rem] flex-1 flex-col overflow-hidden">
           <Screen align={align}>{children}</Screen>
           {!isMac && activeModule === "reclaim" && <Footer onOpenSettings={() => onSettingsOpenChange(true)} />}
         </div>
-        <ModuleBar activeModule={activeModule} onChange={onModuleChange} />
+        <ModuleBar activeModule={activeModule} onChange={onModuleChange} proEnabled={proEnabled} />
       </div>
-      <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} {...settings} />
+      <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} {...settings} />
     </main>
   );
 }

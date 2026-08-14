@@ -33,9 +33,13 @@
   --theme-forest-900: #ffffff;
   --theme-forest-850: #eef2eb;
   --theme-forest-800: #dfe7dc;
-  --theme-sage-300: #3d5c2d;
-  --theme-sage-400: #567a3d;
-  --theme-sage-500: #6f9252;
+  /* Light sage is darkened so it holds contrast, but it has to stay botanical
+     while it does: below ~40% saturation these read as cold grey rather than as
+     green. Hue sits at 110 and the ramp keeps AA on every surface it lands on —
+     sage-400 also carries near-white text as a fill. */
+  --theme-sage-300: #35722c;
+  --theme-sage-400: #3f7d33;
+  --theme-sage-500: #57a044;
   --theme-mist-100: #182018;
   --theme-mist-300: #354336;
   --theme-mist-500: #637064;
@@ -46,8 +50,8 @@
   /* Confidence reads as reassurance, caution and inquiry — never alarm.
      Review is blue because it asks the user to look at something, and blue
      carries that without the urgency red would add to a routine finding. */
-  --theme-confidence-high: #3d5c2d;
-  --theme-confidence-high-surface: #e6efdf;
+  --theme-confidence-high: #35722c;
+  --theme-confidence-high-surface: #e4f0da;
   --theme-confidence-medium: #8a5b16;
   --theme-confidence-medium-surface: #f7eeda;
   --theme-confidence-review: #33607f;

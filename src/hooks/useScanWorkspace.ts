@@ -278,13 +278,22 @@ export function useScanWorkspace(
     });
   }
 
+  /// Drops every folder. Nothing on disk moves; the workspace just has no
+  /// folders left to read, which is the state the picker starts from.
+  function clearRoots() {
+    setExtraRoots([]);
+    persistRoots([]);
+  }
+
   /// Restores a saved selection without persisting it back.
   function restoreRoots(paths: string[]) {
     setExtraRoots(paths);
   }
 
-  async function startScan(event: FormEvent) {
-    event.preventDefault();
+  /// The form submits it, and so does a change to the chosen folders, which has
+  /// no event to cancel.
+  async function startScan(event?: FormEvent) {
+    event?.preventDefault();
     const roots = extraRoots;
     if (roots.length === 0 || scanning) return;
     // One action, two readings of the same folders: the artifacts inside them
@@ -480,6 +489,7 @@ export function useScanWorkspace(
   return {
     extraRoots,
     removeRoot,
+    clearRoots,
     restoreRoots,
     pickRoot,
     targets,

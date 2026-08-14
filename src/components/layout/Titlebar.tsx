@@ -4,13 +4,28 @@ import { isTauri } from "@tauri-apps/api/core";
 import { Check, Maximize2, Minus, Settings, Square, X } from "lucide-react";
 import type { Step } from "../../types/scan";
 import type { AppModule } from "../../types/module";
+import type { ResultsView } from "../../hooks/usePurgeFlow";
 
 const STEPS = ["Workspace", "Scan", "Review", "Done"] as const;
 
-export function Titlebar({ step, activeModule, onOpenSettings }: { step: Step; activeModule: AppModule; onOpenSettings: () => void }) {
+export function Titlebar({
+  step,
+  view,
+  activeModule,
+  onOpenSettings,
+}: {
+  step: Step;
+  view: ResultsView;
+  activeModule: AppModule;
+  onOpenSettings: () => void;
+}) {
   const [maximized, setMaximized] = useState(false);
   const [focused, setFocused] = useState(true);
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
+  // The pipeline belongs to the cleanup run, not to the whole app: it appears
+  // once the user is inside Reclaim disk and says nothing before that.
+  const reclaiming = activeModule === "reclaim" && (step === 4 || (step === 3 && view === "artifacts"));
+  const title = activeModule === "reclaim" && step === 3 && view === "projects" ? "Uncached Workspace" : "Uncached";
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -49,14 +64,14 @@ export function Titlebar({ step, activeModule, onOpenSettings }: { step: Step; a
         <img src="/brand/UNCACHED-LOGO-LIGHT-NOBG.svg" alt="Uncached" className="theme-logo-light h-5 w-auto object-contain" />
         <img src="/brand/UNCACHED-LOGO-DARK-NOBG.svg" alt="" className="theme-logo-dark h-5 w-auto object-contain" />
       </div>}
-      {activeModule === "reclaim" ? <nav aria-label="Progress pipeline" className={`hidden items-center gap-1.5 text-xs sm:flex ${isMac ? "absolute left-1/2 order-2 -translate-x-1/2" : "order-1"}`} data-tauri-drag-region="false">
+      {reclaiming ? <nav aria-label="Progress pipeline" className={`hidden items-center gap-1.5 text-xs sm:flex ${isMac ? "absolute left-1/2 order-2 -translate-x-1/2" : "order-1"}`} data-tauri-drag-region="false">
         {STEPS.map((label, index) => {
           const stepNumber = (index + 1) as Step;
           const isCurrent = step === stepNumber;
           const isPassed = step > stepNumber;
           return <span key={label} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ${isCurrent ? "bg-forest-800 text-sage-300" : isPassed ? "text-mist-300" : "text-mist-500"}`}><span className={`grid size-4 place-items-center rounded-full text-[10px] font-mono ${isCurrent ? "bg-sage-400 font-bold text-forest-950" : isPassed ? "bg-forest-800 text-sage-300" : "bg-forest-900 text-mist-500"}`}>{isPassed ? <Check size={10} strokeWidth={3} /> : stepNumber}</span>{label}</span>;
         })}
-      </nav> : <span className={`text-xs font-medium text-mist-500 ${isMac ? "absolute left-1/2 -translate-x-1/2" : "order-1"}`}>Uncached Workspace</span>}
+      </nav> : <span className={`text-xs font-medium text-mist-500 ${isMac ? "absolute left-1/2 -translate-x-1/2" : "order-1"}`}>{title}</span>}
       <div className={`flex items-center ${isMac ? "order-4 ml-auto" : "order-2 gap-1"}`} data-tauri-drag-region="false">
         {isMac && <button type="button" onClick={onOpenSettings} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label="Open settings"><Settings size={16} /></button>}
         {!isMac && <WindowControls isMac={isMac} focused={focused} maximized={maximized} minimize={minimize} toggleMaximize={toggleMaximize} close={close} />}
