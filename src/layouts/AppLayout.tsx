@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { isTauri } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Footer } from "../components/layout/Footer";
 import { ModuleBar } from "../components/layout/ModuleBar";
@@ -59,9 +59,17 @@ function useSplashScreen(ready: boolean) {
   useEffect(() => {
     if (!ready) return;
     if (isTauri()) {
-      const appWindow = getCurrentWindow();
-      void appWindow.show();
-      void appWindow.setFocus();
+      // The window is created hidden and revealed here. A launch that came from
+      // the login item stays hidden: the tray icon is how it is opened, and a
+      // window nobody asked for is the reason people disable startup items.
+      void invoke<boolean>("starts_hidden")
+        .catch(() => false)
+        .then((hidden) => {
+          if (hidden) return;
+          const appWindow = getCurrentWindow();
+          void appWindow.show();
+          void appWindow.setFocus();
+        });
     }
     const splash = document.getElementById("app-splashscreen");
     if (!splash) return;

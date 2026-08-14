@@ -18,6 +18,8 @@ pub struct AppInfo {
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub open_at_startup: bool,
+    /// Closing the window hides it to the tray instead of quitting.
+    pub keep_running_in_background: bool,
     pub remember_last_workspace: bool,
     pub check_for_updates: bool,
     pub detect_node_modules: bool,
@@ -58,7 +60,12 @@ pub enum Appearance {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            open_at_startup: false,
+            // On by default, and honoured: the plugin registers a login item
+            // that launches with `--minimized`, so the app is present without
+            // putting a window in front of anyone. A background utility that
+            // has to be remembered is a background utility nobody uses.
+            open_at_startup: true,
+            keep_running_in_background: true,
             remember_last_workspace: true,
             check_for_updates: true,
             detect_node_modules: true,
@@ -109,6 +116,37 @@ fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), Strin
     fs::rename(temporary, path).map_err(|error| error.to_string())
 }
 
+/// Registers or removes the login item to match the stored preference.
+///
+/// Applied at startup as well as on change: the setting is the source of truth
+/// and the operating system is what has to follow it, not the other way round.
+/// A failure is logged rather than surfaced — the app works either way, and a
+/// dialog about a login item is not worth interrupting a launch for.
+pub fn apply_autostart(app: &AppHandle) {
+    use tauri_plugin_autostart::ManagerExt;
+    let Ok(settings) = load_settings(app) else {
+        return;
+    };
+    let manager = app.autolaunch();
+    let result = if settings.open_at_startup {
+        manager.enable()
+    } else {
+        manager.disable()
+    };
+    if let Err(error) = result {
+        crate::logging::warn(
+            "autostart",
+            &format!("could not apply the login item error=\"{error}\""),
+        );
+    }
+}
+
+/// Whether this launch should stay out of the way.
+#[tauri::command]
+pub async fn starts_hidden() -> bool {
+    crate::tray::starts_hidden()
+}
+
 #[tauri::command]
 pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
     load_settings(&app)
@@ -117,6 +155,9 @@ pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
 #[tauri::command]
 pub async fn update_settings(app: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     persist_settings(&app, &settings)?;
+    // Applied after the write, so the login item follows what was stored rather
+    // than what was asked for and might have failed to save.
+    apply_autostart(&app);
     Ok(settings)
 }
 
@@ -191,7 +232,17 @@ mod tests {
         let settings = AppSettings::default();
         assert_eq!(settings.default_clean_mode, CleanMode::Trash);
         assert_eq!(settings.appearance, Appearance::Light);
-        assert!(!settings.open_at_startup);
+    }
+
+    /// The two background defaults are on, and neither is destructive: one
+    /// registers a login item that launches minimized, the other hides the
+    /// window instead of quitting. Both are reversible from Settings, and the
+    /// tray keeps a way out of both.
+    #[test]
+    fn the_app_is_present_in_the_background_by_default() {
+        let settings = AppSettings::default();
+        assert!(settings.open_at_startup);
+        assert!(settings.keep_running_in_background);
     }
 
     #[test]

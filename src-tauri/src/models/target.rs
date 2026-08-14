@@ -162,7 +162,9 @@ fn simple_hash(input: &str) -> String {
     format!("{:x}", hasher.finish())
 }
 
-fn format_size(bytes: u64) -> String {
+/// Shared with the tray, so a notification reports the same size the
+/// interface would have shown for it.
+pub fn format_size(bytes: u64) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;
     const GB: u64 = MB * 1024;

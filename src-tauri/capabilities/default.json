@@ -15,6 +15,10 @@
     "opener:default",
     "opener:allow-open-path",
     "opener:allow-reveal-item-in-dir",
-    "dialog:default"
+    "dialog:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-unminimize"
   ]
 }

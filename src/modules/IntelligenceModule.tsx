@@ -66,6 +66,24 @@ export function IntelligenceModule({
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto pt-5 pb-6 [scrollbar-gutter:stable]">
+        {!proEnabled && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pro-200/30 bg-pro-surface px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-mist-100">Maintenance is part of Pro</p>
+              <p className="mt-1 text-xs leading-5 text-mist-500">
+                Set the policy here, and Pro shows what it selects across your workspace.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => openExternalUrl("https://uncached.app/pro")}
+              className="shrink-0 rounded-xl bg-pro-200 px-3 py-2 text-xs font-semibold text-forest-950 transition-colors hover:bg-pro-100"
+            >
+              Get Uncached Pro
+            </button>
+          </div>
+        )}
+
         <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-mist-500">Policy</p>
 
@@ -97,7 +115,7 @@ export function IntelligenceModule({
           </p>
         </div>
 
-        {proEnabled ? (
+        {proEnabled && (
           <div className="mt-4 rounded-2xl border border-forest-800 bg-forest-900 p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <p className="text-sm font-semibold text-mist-100">
@@ -150,22 +168,6 @@ export function IntelligenceModule({
                   : `${preview.protectedCount} projects hold work that exists only on this disk`}
               </button>
             )}
-          </div>
-        ) : (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pro-200/30 bg-pro-surface px-4 py-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-mist-100">Maintenance is part of Pro</p>
-              <p className="mt-1 text-xs leading-5 text-mist-500">
-                Set the policy here, and Pro shows what it selects across your workspace.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => openExternalUrl("https://uncached.app/pro")}
-              className="shrink-0 rounded-xl bg-pro-200 px-3 py-2 text-xs font-semibold text-forest-950 transition-colors hover:bg-pro-100"
-            >
-              Get Uncached Pro
-            </button>
           </div>
         )}
 

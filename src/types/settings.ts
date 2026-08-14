@@ -3,6 +3,8 @@ export type Appearance = "dark" | "light" | "system";
 
 export type AppSettings = {
   openAtStartup: boolean;
+  /** Closing the window hides it to the tray instead of quitting. */
+  keepRunningInBackground: boolean;
   rememberLastWorkspace: boolean;
   checkForUpdates: boolean;
   detectNodeModules: boolean;
