@@ -82,24 +82,6 @@ Request:
 
 An optional `trigger` is `Manual` or `Scheduled`, defaulting to `Manual`. It is recorded with the cleanup and never changes what the command does — only what the history says about who asked for it.
 
-### `cleanup_history`
-
-No request. Returns `{ "events": [...], "totals": {...} }`, and returns both empty on Free, where nothing is written down.
-
-```json
-{
-  "at": "2026-08-14T11:02:14Z",
-  "freedBytes": 4194304,
-  "category": "NodeModules",
-  "path": "/work/api/node_modules",
-  "workspace": "/work",
-  "mode": "Trash",
-  "trigger": "Manual"
-}
-```
-
-One event per cleaned target, appended when the removal succeeded. Every field past `at` and `freedBytes` is `null` on an event written before that field existed; the report groups those as unrecorded rather than guessing. The whole log is returned unaggregated because filtering a report is interactive, and a round trip per filter change would make the screen feel like a query console.
-
 Response is a v1 envelope. Success data contains the command result; failure
 uses `data: null` and sanitized Core `error` information.
 
@@ -121,6 +103,40 @@ uses `data: null` and sanitized Core `error` information.
 
 `targetPath` and `message` are command-level fields. Cleanup events use a
 separate Desktop event DTO and intentionally omit `targetPath`.
+
+### `available_launchers`
+
+No request. Returns the editors and terminals this machine was found to have.
+
+```json
+[{ "id": "zed", "name": "Zed", "kind": "editor", "program": "Zed" }]
+```
+
+`program` is what the platform's launcher understands — an application name on macOS, an executable on PATH everywhere else. Detected by looking on disk rather than by asking Launch Services, because every way of asking goes through `open` and can put a window in front of the user as a side effect of drawing a menu.
+
+### `reveal_project` / `open_project_with`
+
+`{ "path": "/work/api" }`, and `{ "path": "/work/api", "program": "Zed" }`.
+
+Both refuse a path that is not inside one of `workspaceRoots`, compared component-wise on canonical paths — `/work-archive` is not inside `/work` however the two are spelled. `open_project_with` also refuses a `program` that is not in `available_launchers`: a caller that could name any program could start any process, and these commands exist to open an editor.
+
+### `cleanup_history`
+
+No request. Returns `{ "events": [...], "totals": {...} }`, and returns both empty on Free, where nothing is written down.
+
+```json
+{
+  "at": "2026-08-14T11:02:14Z",
+  "freedBytes": 4194304,
+  "category": "NodeModules",
+  "path": "/work/api/node_modules",
+  "workspace": "/work",
+  "mode": "Trash",
+  "trigger": "Manual"
+}
+```
+
+One event per cleaned target, appended when the removal succeeded. Every field past `at` and `freedBytes` is `null` on an event written before that field existed; the report groups those as unrecorded rather than guessing. The whole log is returned unaggregated because filtering a report is interactive, and a round trip per filter change would make the screen feel like a query console.
 
 ### `cancel_cleanup`
 

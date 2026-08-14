@@ -1,10 +1,11 @@
-import { ArrowRight, Copy, FolderOpen, GitBranch, Plus, RefreshCw, Search, X } from "lucide-react";
+import { ArrowRight, Command, Copy, FolderOpen, GitBranch, Plus, RefreshCw, Search, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Footprint, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
 import { formatBytes } from "../../utils/format";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
 import { ProLockButton } from "../shared/ProLockButton";
+import { useOpenCommandPalette } from "../../hooks/useCommandPalette";
 import { VERDICT_ORDER, VERDICT_PRESENTATION, projectEvidence } from "./verdictPresentation";
 
 type WorkspaceMapProps = {
@@ -32,6 +33,11 @@ type WorkspaceMapProps = {
   setActiveVerdict: (verdict: Verdict | null) => void;
 };
 
+/** `⌘` where it means something, `Ctrl` where it does not. */
+function commandKeyLabel(): string {
+  return /Macintosh|Mac OS X/.test(navigator.userAgent) ? "\u2318" : "Ctrl ";
+}
+
 function rootName(path: string): string {
   const segments = path.split(/[/\\]/).filter(Boolean);
   return segments[segments.length - 1] ?? path;
@@ -57,6 +63,7 @@ export function WorkspaceMap({
   setActiveVerdict,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
+  const openPalette = useOpenCommandPalette();
   const searchRef = useRef<HTMLInputElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -329,6 +336,22 @@ export function WorkspaceMap({
                 </kbd>
               )}
             </label>
+
+            {/* The palette's only advertisement. A shortcut nobody is told
+                about is a shortcut nobody uses, and this is the screen where
+                someone is already looking at the projects it acts on. */}
+            <button
+              type="button"
+              onClick={openPalette}
+              title="Open a project in your editor, terminal or file manager"
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3 py-2.5 text-xs text-mist-500 transition-colors hover:border-sage-400 hover:text-mist-100"
+            >
+              <Command size={13} aria-hidden="true" />
+              Actions
+              <kbd className="rounded border border-forest-800 px-1.5 py-0.5 font-mono text-[10px]">
+                {commandKeyLabel()}K
+              </kbd>
+            </button>
           </div>
         </header>
 

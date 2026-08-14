@@ -1,6 +1,8 @@
-import { useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { CommandPalette } from "../components/shared/CommandPalette";
+import { CommandPaletteContext } from "../hooks/useCommandPalette";
 import { Footer } from "../components/layout/Footer";
 import { ModuleBar } from "../components/layout/ModuleBar";
 import { Screen } from "../components/layout/Screen";
@@ -37,21 +39,53 @@ export function AppLayout({
 }: AppLayoutProps) {
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
   const { step, view, listenersReady } = usePurgeFlow();
+  const [paletteOpen, setPaletteOpen] = useState(false);
   useSplashScreen(!settings.loading && listenersReady);
+  useCommandPaletteShortcut(setPaletteOpen);
+  // Stable, because it is handed to every screen through a context.
+  const openPalette = useCallback(() => setPaletteOpen(true), []);
 
   return (
     <main className="relative flex h-screen flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
       <Titlebar step={step} view={view} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="mx-auto flex min-h-0 w-full max-w-[72rem] flex-1 flex-col overflow-hidden">
-          <Screen align={align}>{children}</Screen>
+          <CommandPaletteContext.Provider value={openPalette}>
+            <Screen align={align}>{children}</Screen>
+          </CommandPaletteContext.Provider>
           {!isMac && activeModule === "reclaim" && <Footer onOpenSettings={() => onSettingsOpenChange(true)} />}
         </div>
         <ModuleBar activeModule={activeModule} onChange={onModuleChange} proEnabled={proEnabled} />
       </div>
       <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} {...settings} />
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onModuleChange={onModuleChange}
+        onOpenSettings={() => onSettingsOpenChange(true)}
+      />
     </main>
   );
+}
+
+/**
+ * The one shortcut the whole app answers to.
+ *
+ * Bound on the window rather than inside the palette, because the point is
+ * reaching it from anywhere — including from a screen that has its own
+ * keyboard handling. It toggles: the same keys that opened it close it, which
+ * is what the hand expects when it is already on them.
+ */
+function useCommandPaletteShortcut(setOpen: (update: (open: boolean) => boolean) => void) {
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "k" || !(event.metaKey || event.ctrlKey)) return;
+      event.preventDefault();
+      setOpen((open) => !open);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [setOpen]);
 }
 
 /** Reveals the window and dismisses the splash once the app can be used. */
