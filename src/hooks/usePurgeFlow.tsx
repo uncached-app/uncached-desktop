@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useScanWorkspace } from "./useScanWorkspace";
 import { useWorkspaceIndex } from "./useWorkspaceIndex";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
@@ -8,11 +8,19 @@ import type { WorkspaceProject } from "../types/workspace";
 
 const NO_PROJECTS: WorkspaceProject[] = [];
 
+/** Which reading of the scan is on screen: the projects, or the artifacts. */
+export type ResultsView = "projects" | "artifacts";
+
 type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   index: ReturnType<typeof useWorkspaceIndex>;
   footprints: Record<string, import("../types/workspace").Footprint>;
   measuring: boolean;
   verdicts: ReturnType<typeof useWorkspaceVerdicts>;
+  view: ResultsView;
+  setView: (view: ResultsView) => void;
+  /** The verdict the workspace list is narrowed to, if any. */
+  activeVerdict: string | null;
+  setActiveVerdict: (verdict: string | null) => void;
 };
 
 const PurgeFlowContext = createContext<PurgeFlow | null>(null);
@@ -40,6 +48,11 @@ export function PurgeFlowProvider({
   const projects = index.index?.projects ?? NO_PROJECTS;
   const { footprints, measuring } = useWorkspaceFootprints(projects);
   const verdicts = useWorkspaceVerdicts(projects, footprints);
+  const [view, setView] = useState<ResultsView>("projects");
+  // Held here rather than in the list: Insights sends the user to a filtered
+  // workspace, and a sentence that cannot reach its own destination is the
+  // decoration this module is supposed to avoid.
+  const [activeVerdict, setActiveVerdict] = useState<string | null>(null);
 
   // Reopening the app lands on the folders the user last chose, already being
   // read. Discovery is milliseconds; the weights fill in behind it as always.
@@ -52,8 +65,50 @@ export function PurgeFlowProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedRoots]);
 
+  // The index is read again when the window comes back, and only then: there is
+  // no refresh control to press, so returning to the app is the gesture that
+  // means "read it again". `refreshIfStale` decides whether that is worth doing.
+  const roots = flow.extraRoots;
+  useEffect(() => {
+    if (roots.length === 0) return;
+    function refresh() {
+      if (document.visibilityState === "hidden") return;
+      void index.refreshIfStale(roots);
+    }
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roots]);
+
+  // Changing the folders while results are on screen re-reads both of them. The
+  // artifact list authorizes deletion, so it can never outlive the folders it
+  // was built from; step 1 is excluded because it has its own scan button.
+  const rootsKey = useRef<string | null>(null);
+  useEffect(() => {
+    const key = roots.join("\n");
+    const first = rootsKey.current === null;
+    if (rootsKey.current === key) return;
+    rootsKey.current = key;
+    if (first || roots.length === 0 || flow.step === 1) return;
+    // `startScan` re-indexes the projects as well, so this covers both readings.
+    void flow.startScan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roots]);
+
+  // A new scan replaces both readings, so it also puts the projects back in
+  // front: the artifact list it would otherwise return to no longer exists.
+  useEffect(() => {
+    if (flow.step !== 3) setView("projects");
+  }, [flow.step]);
+
   return (
-    <PurgeFlowContext.Provider value={{ ...flow, index, footprints, measuring, verdicts }}>
+    <PurgeFlowContext.Provider
+      value={{ ...flow, index, footprints, measuring, verdicts, view, setView, activeVerdict, setActiveVerdict }}
+    >
       {children}
     </PurgeFlowContext.Provider>
   );
