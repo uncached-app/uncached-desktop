@@ -21,12 +21,16 @@ pub struct EntitlementStatus {
 /// What stays Pro is what is not a project artifact: the machine-wide stores a
 /// tool shares across every project, where emptying them slows down every
 /// future restore rather than reclaiming a build output.
+///
+/// `Docker` is deliberately absent. It exists in the category model with no
+/// scanner behind it, and pricing a capability that finds nothing is the one
+/// thing a paywall must never do. It moves back beside the other shared stores
+/// on the day a provider makes it real, not before.
 pub fn plan_for_category(category: &Category) -> Plan {
     match category {
         Category::PackageManagerCache
         | Category::AiToolCache
         | Category::EditorCache
-        | Category::Docker
         | Category::Custom(_) => Plan::Pro,
         _ => Plan::Free,
     }
@@ -162,7 +166,6 @@ mod tests {
             Category::PackageManagerCache,
             Category::AiToolCache,
             Category::EditorCache,
-            Category::Docker,
             Category::Custom("anything".to_string()),
         ] {
             assert_eq!(plan_for_category(&category), Plan::Pro);
@@ -170,11 +173,21 @@ mod tests {
         }
     }
 
+    /// A category with no scanner behind it finds nothing, and a plan that
+    /// charges for nothing is worse than one that charges for too little. This
+    /// stays here until a Docker provider exists — at which point the failure is
+    /// the reminder to price it.
+    #[test]
+    fn a_category_no_scanner_can_find_is_not_sold() {
+        assert_eq!(plan_for_category(&Category::Docker), Plan::Free);
+        assert!(is_free_category(&Category::Docker));
+    }
+
     #[test]
     fn plan_serializes_as_the_lowercase_wire_form() {
         let value = serde_json::to_value(plan_for_category(&Category::NodeModules)).unwrap();
         assert_eq!(value, "free");
-        let value = serde_json::to_value(plan_for_category(&Category::Docker)).unwrap();
+        let value = serde_json::to_value(plan_for_category(&Category::EditorCache)).unwrap();
         assert_eq!(value, "pro");
     }
 }
