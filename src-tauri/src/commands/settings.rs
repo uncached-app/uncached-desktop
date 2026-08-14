@@ -65,6 +65,21 @@ pub struct AppSettings {
     /// not a setting.
     #[serde(default)]
     pub maintenance: crate::workspace::maintenance::MaintenancePolicy,
+    /// Whether that policy also runs with nobody present, and how often. Kept
+    /// beside the policy rather than inside it because they answer different
+    /// questions: the policy decides what may be removed, the schedule decides
+    /// whether anyone has to be watching.
+    #[serde(default)]
+    pub maintenance_schedule: crate::workspace::schedule::Schedule,
+    /// Unix seconds of the last unattended attempt, whether or not it selected
+    /// anything.
+    ///
+    /// Recorded here rather than read back from the cleanup log because a run
+    /// that correctly selected nothing writes no log line, and a schedule keyed
+    /// off the last deletion would rescan the whole workspace on every tick for
+    /// as long as the policy matched nothing.
+    #[serde(default)]
+    pub maintenance_last_run_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +117,8 @@ impl Default for AppSettings {
             appearance: Appearance::Light,
             last_cleanup: None,
             maintenance: crate::workspace::maintenance::MaintenancePolicy::default(),
+            maintenance_schedule: crate::workspace::schedule::Schedule::default(),
+            maintenance_last_run_at: None,
         }
     }
 }
@@ -246,6 +263,18 @@ pub fn record_cleanup(app: &AppHandle, freed_bytes: u64) -> Result<(), String> {
     persist_settings(app, &settings)
 }
 
+/// Stamps an unattended attempt, before it does any work rather than after.
+///
+/// Written first so that a run which crashes the process — or a machine that
+/// loses power mid-scan — does not come back and immediately try the same thing
+/// again. The cost of stamping early is one skipped interval; the cost of
+/// stamping late is a loop.
+pub fn record_maintenance_run(app: &AppHandle, at: i64) -> Result<(), String> {
+    let mut settings = load_settings(app)?;
+    settings.maintenance_last_run_at = Some(at);
+    persist_settings(app, &settings)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{load_settings_from_path, AppSettings, Appearance};
@@ -308,6 +337,11 @@ mod tests {
             crate::workspace::maintenance::MaintenancePolicy::default(),
             "and so does a whole block the file predates"
         );
+        assert!(
+            !settings.maintenance_schedule.enabled,
+            "an upgrade never switches on unattended deletion"
+        );
+        assert_eq!(settings.maintenance_last_run_at, None);
         let _ = std::fs::remove_file(path);
     }
 

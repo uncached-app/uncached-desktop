@@ -4,6 +4,7 @@ pub mod filesystem;
 pub mod logging;
 pub mod models;
 pub mod scanner;
+pub mod scheduler;
 pub mod services;
 pub mod tray;
 pub mod workspace;
@@ -26,8 +27,8 @@ use commands::settings::{
     get_app_info, get_settings, review_ignore_rules, starts_hidden, update_settings,
 };
 use commands::workspace::{
-    assess_project, maintenance_targets, measure_project_footprint, normalize_workspace_roots,
-    preview_maintenance, scan_workspace_index,
+    assess_project, maintenance_schedule_status, maintenance_targets, measure_project_footprint,
+    normalize_workspace_roots, preview_maintenance, scan_workspace_index,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -51,6 +52,7 @@ pub fn run() {
             tray::install(handle)?;
             tray::watch_scans(handle);
             commands::settings::apply_autostart(handle);
+            scheduler::install(handle);
             Ok(())
         })
         // Closing hides rather than quits when the user asked for that, so the
@@ -91,6 +93,7 @@ pub fn run() {
             assess_project,
             preview_maintenance,
             maintenance_targets,
+            maintenance_schedule_status,
             project_hygiene,
             fetch_project,
             prune_branches,

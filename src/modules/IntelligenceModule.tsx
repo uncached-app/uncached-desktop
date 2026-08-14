@@ -12,9 +12,11 @@ import {
   ProPanel,
   ReadingFolders,
 } from "./maintenance/states";
+import { ScheduleCard } from "./maintenance/ScheduleCard";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useMaintenancePreview } from "../hooks/useMaintenancePreview";
-import type { MaintenancePolicy } from "../types/maintenance";
+import { useScheduleStatus } from "../hooks/useScheduleStatus";
+import type { MaintenancePolicy, Schedule } from "../types/maintenance";
 
 /**
  * What a maintenance policy would do, and — on Pro — doing it.
@@ -26,23 +28,28 @@ import type { MaintenancePolicy } from "../types/maintenance";
  * same command a person clicking a row uses, so every check that applies there
  * applies here.
  *
- * Nothing on this screen runs on its own yet. A schedule is the next thing, and
- * it is not dressed as being here already.
+ * The schedule is a switch, not an engine. What acts on it is a thread in
+ * `src-tauri/src/scheduler.rs` that outlives this window and runs whether or not
+ * it was ever opened — which is why this screen reports where the schedule
+ * stands rather than tracking it.
  */
 export function IntelligenceModule({
   proEnabled,
   policy,
   onPolicyChange,
+  onScheduleChange,
   onOpenWorkspace,
 }: {
   proEnabled: boolean;
   policy: MaintenancePolicy;
   onPolicyChange: (policy: MaintenancePolicy) => void;
+  onScheduleChange: (schedule: Schedule) => void;
   onOpenWorkspace: () => void;
 }) {
   const flow = usePurgeFlow();
   const projects = flow.index.index?.projects ?? [];
   const [run, setRun] = useState<RunState>({ kind: "idle" });
+  const { status: schedule, refresh: refreshSchedule } = useScheduleStatus(proEnabled);
 
   // A result describes the selection it was run against. Change the policy and
   // it is describing something else, so it goes rather than sits there being
@@ -149,6 +156,22 @@ export function IntelligenceModule({
 
           <PolicyCard policy={policy} onChange={onPolicyChange} />
 
+          {/* Pro only, and absent rather than disabled: a switch that cannot be
+              flipped is a control with no operation behind it. */}
+          {proEnabled && schedule && (
+            <ScheduleCard
+              status={schedule}
+              onChange={(next) => {
+                onScheduleChange(next);
+                // Asked again rather than assumed. The stored schedule is one
+                // thing; the interval in force and whether a run would start
+                // now are the backend's answers, and turning the switch on can
+                // make a run due this minute.
+                void refreshSchedule();
+              }}
+            />
+          )}
+
           <PolicyResult
             error={flow.index.error}
             indexed={flow.index.index !== null}
@@ -169,9 +192,15 @@ export function IntelligenceModule({
             />
           </PolicyResult>
 
+          {/* The one thing neither card above says, and the one most worth
+              saying: this is a thread inside the app, not a system daemon. Quit
+              Uncached and the schedule stops with it. Both settings it depends
+              on ship on, so it holds by default — but a schedule that silently
+              never fires because the app was quit is worse than no schedule. */}
           <p className="flex items-start gap-2 px-1 text-xs leading-5 text-mist-500">
             <CalendarClock size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-            Recurring background automation is enabled as part of unattended maintenance scheduling. Until scheduled, runs are triggered on demand.
+            Scheduled runs happen while Uncached is running, including from the menu bar. Quitting
+            it stops them until the app opens again.
           </p>
         </div>
       </div>

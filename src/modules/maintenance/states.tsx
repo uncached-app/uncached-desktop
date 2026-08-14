@@ -98,8 +98,8 @@ export function ProPanel() {
 
           <p className="mt-2 text-xs leading-relaxed text-mist-500">
             The selection below is the one a run acts on, and it is the same on every plan. Pro
-            performs the run, records what each one removed, and is where running without you comes
-            next.
+            performs the run, repeats it on a schedule without you, and records what each one
+            removed.
           </p>
         </div>
 

@@ -44,6 +44,9 @@ function App() {
             proEnabled={entitlement.proEnabled}
             policy={settings.settings?.maintenance ?? DEFAULT_POLICY}
             onPolicyChange={(maintenance) => void settings.updateSettings({ maintenance })}
+            onScheduleChange={(maintenanceSchedule) =>
+              void settings.updateSettings({ maintenanceSchedule })
+            }
             onOpenWorkspace={() => setActiveModule("reclaim")}
           />
         ) : (

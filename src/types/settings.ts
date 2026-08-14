@@ -1,4 +1,4 @@
-import type { MaintenancePolicy } from "./maintenance";
+import type { MaintenancePolicy, Schedule } from "./maintenance";
 
 export type CleanMode = "Trash" | "Permanent";
 export type Appearance = "dark" | "light" | "system";
@@ -22,6 +22,10 @@ export type AppSettings = {
   lastCleanup: LastCleanup | null;
   /** What a maintenance run may select. Decided in Rust; stored here. */
   maintenance: MaintenancePolicy;
+  /** Whether that policy also runs with nobody present, and how often. */
+  maintenanceSchedule: Schedule;
+  /** Unix seconds of the last unattended attempt. Written by the backend only. */
+  maintenanceLastRunAt: number | null;
 };
 
 export type IgnoreRuleProblem = {

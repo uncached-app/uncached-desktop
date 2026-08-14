@@ -883,6 +883,22 @@ impl ScanService {
         ids
     }
 
+    /// How many scans are open right now.
+    ///
+    /// Sessions are a map and nothing here serialises them, which is fine while
+    /// a person starts every scan — they cannot click twice at once, and a
+    /// second scan they did ask for is theirs to have. It stops being fine with
+    /// a scheduler: two scans over one folder register two target ids for the
+    /// same directory, and `claim_target_for_cleanup` keys off the id, so both
+    /// can be claimed and both handed to a cleanup. The core's identity check
+    /// makes the loser fail rather than delete twice, but the user would read
+    /// that failure as a bug rather than as a collision.
+    ///
+    /// So the caller that has no user behind it asks first and waits its turn.
+    pub fn active_scan_count() -> usize {
+        registry().lock().unwrap().sessions.len()
+    }
+
     pub fn refresh_target_size(target_id: &str) -> NukeResult<TargetSizeUpdate> {
         let path = {
             let mut registry = registry().lock().unwrap();

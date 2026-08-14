@@ -285,6 +285,34 @@ An empty list when no scan session is live is the expected answer, not an error.
 without it the command fails. The removal still goes through `clean_target`, one id at a time, and
 maintenance always passes `mode: "Trash"`.
 
+### `maintenance_schedule_status`
+
+No request payload. Raw response:
+
+```json
+{
+  "schedule": { "enabled": true, "everyHours": 168 },
+  "intervalHours": 168,
+  "lastRunAt": 1755100800,
+  "nextRunAt": 1755705600,
+  "held": null,
+  "minEveryHours": 24,
+  "maxEveryHours": 720
+}
+```
+
+Where the unattended schedule stands. `intervalHours` is the interval actually in force, which a
+hand-edited settings file can differ from — it is clamped to the two bounds returned beside it, so
+a stored zero never becomes a scan without pause. `nextRunAt` is `null` until there has been a run,
+and while the schedule is off; neither has a next time that is a fact rather than a guess.
+
+`held` is `null` when a run would start this minute, and otherwise the first reason it would not:
+`disabled`, `notLicensed`, `noWorkspace`, `tooSoon` or `scanInProgress`. The order is fixed, so an
+expired licence reads as `notLicensed` rather than as perpetually `tooSoon`.
+
+Reading the status is free. The runs themselves are Pro, and the thread that performs them checks
+the entitlement again before removing anything.
+
 ### `cancel_cleanup`
 
 Request: `{ "targetId": "scan-1-abc123" }`
@@ -317,7 +345,9 @@ authorization; the backend still performs the final target and policy checks.
 
 `maintenance` is a stored block, `{ minIdleDays, minBytes }`, defaulting to 90 days and 500 MiB. A settings file written before it existed loads and takes the default, like every other field.
 
-There is no background-fetch setting. Fetch is something the user asks for, one repository at a time; running it on a schedule needs the same scheduler the maintenance policy is waiting on, and neither is dressed as existing.
+`maintenanceSchedule` is `{ enabled, everyHours }`, and it is **off by default** — the first unattended deletion on a machine is one the user turned on, never one an install inherited. `maintenanceLastRunAt` is Unix seconds, written by the backend only: it records the last *attempt*, stamped before the work rather than after, so a run interrupted by a crash or a power loss does not come back and immediately try again. A run that correctly selected nothing writes no cleanup log line, which is why the attempt is stored rather than derived from the history.
+
+There is no background-fetch setting. Fetch is something the user asks for, one repository at a time. It could now run on the maintenance thread, but reaching the network unattended is a separate decision from removing a regenerable directory, and it is not dressed as existing.
 
 ## Workspace index
 

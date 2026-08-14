@@ -1,5 +1,6 @@
 use crate::workspace::git::{self, GitContext};
 use crate::workspace::maintenance;
+use crate::workspace::schedule;
 use crate::workspace::verdict::{self, ActivityState, Verdict};
 use serde::Serialize;
 use std::path::Path;
@@ -468,6 +469,102 @@ pub async fn maintenance_targets(
     Ok(crate::services::scan_service::ScanService::targets_under(
         &selected,
     ))
+}
+
+/// Where the schedule stands: when it last ran, when it runs next, and what is
+/// stopping it right now.
+///
+/// The interval comes back clamped and the next run comes back computed, rather
+/// than the interface doing either. Neither is a decision about what may be
+/// deleted, but both are answers the screen states as fact, and a screen that
+/// derives them separately is a screen that can disagree with the thread.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduleStatus {
+    pub schedule: schedule::Schedule,
+    /// The interval actually in force, which a hand-edited file can differ from.
+    pub interval_hours: u32,
+    pub last_run_at: Option<i64>,
+    pub next_run_at: Option<i64>,
+    /// Why a run would not start this minute, or `None` if one would.
+    pub held: Option<schedule::Held>,
+    pub min_every_hours: u32,
+    pub max_every_hours: u32,
+}
+
+#[tauri::command]
+pub async fn maintenance_schedule_status(app: tauri::AppHandle) -> Result<ScheduleStatus, String> {
+    let settings = crate::commands::settings::load_settings(&app)?;
+    let stored = settings.maintenance_schedule;
+
+    let held = match schedule::due(&schedule::Conditions {
+        schedule: stored,
+        pro_enabled: crate::commands::entitlements::current_status().pro_enabled,
+        has_workspace: !settings.workspace_roots.is_empty(),
+        scan_in_progress: crate::services::scan_service::ScanService::active_scan_count() > 0,
+        last_run_at: settings.maintenance_last_run_at,
+        now: chrono::Utc::now().timestamp(),
+    }) {
+        schedule::Due::Now => None,
+        schedule::Due::Held(reason) => Some(reason),
+    };
+
+    Ok(ScheduleStatus {
+        interval_hours: stored.interval_hours(),
+        next_run_at: schedule::next_run_at(&stored, settings.maintenance_last_run_at),
+        last_run_at: settings.maintenance_last_run_at,
+        schedule: stored,
+        held,
+        min_every_hours: schedule::MIN_EVERY_HOURS,
+        max_every_hours: schedule::MAX_EVERY_HOURS,
+    })
+}
+
+/// Every project under these folders, reduced to what a policy reads.
+///
+/// The interface reaches the same answer by chaining `scan_workspace_index`,
+/// `measure_project_footprint` and `assess_project` across a window's lifetime,
+/// filling weights in a few at a time so the screen can report progress. A
+/// scheduler has no screen and nobody to report to, so it walks the same three
+/// steps here, in order, and blocks.
+///
+/// Measuring every project is the expensive part and there is no way around it:
+/// the policy's whole question is which projects are large and cold, and a
+/// project that was not weighed is unknown rather than small. That is why this
+/// runs on a timer measured in days.
+pub(crate) fn candidates_for(
+    paths: &[String],
+    settings: &crate::commands::settings::AppSettings,
+) -> Result<Vec<maintenance::Candidate>, String> {
+    let index = build_index(paths, crate::commands::entitlements::root_limit())?;
+
+    Ok(index
+        .projects
+        .into_iter()
+        .map(|project| {
+            // A project whose footprint could not be read stays a candidate with
+            // no weight, which the policy skips as `Unmeasured`. Dropping it here
+            // would report the same refusal as a project that does not exist.
+            let footprint = measure_footprint(Path::new(&project.path), settings).ok();
+            let verdict = match footprint.as_ref() {
+                Some(measured) => verdict::assess(verdict::VerdictInput {
+                    recoverability: Some(project.git.recoverability.level),
+                    activity: project.activity.state,
+                    reclaimable_bytes: measured.reclaimable_bytes,
+                    install_missing: project.install_missing,
+                    install_stale: project.install_stale,
+                }),
+                None => Verdict::Unknown,
+            };
+            maintenance::Candidate {
+                path: project.path,
+                name: project.name,
+                verdict,
+                idle_days: project.activity.idle_days,
+                reclaimable_bytes: footprint.map(|measured| measured.reclaimable_bytes),
+            }
+        })
+        .collect())
 }
 
 fn measure_footprint(

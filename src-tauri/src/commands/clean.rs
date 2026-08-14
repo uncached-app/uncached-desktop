@@ -292,6 +292,22 @@ pub async fn clean_target(
     app: AppHandle,
     request: CleanRequest,
 ) -> uncached_core::contract::v1::ApiEnvelope<CleanResult> {
+    perform_clean(&app, request).await
+}
+
+/// Removes one registered target: claim, entitlement, validation, removal,
+/// history.
+///
+/// Separated from the command so that the scheduler calls *this* rather than
+/// reimplementing it. Everything that decides whether a deletion is allowed
+/// lives between here and `CleanService`, and only one of those two re-checks
+/// the licence — a second caller that reproduced the sequence and dropped the
+/// check at line one would clean Pro categories on a Free install. There is one
+/// door, and a run nobody is watching goes through it exactly like a click.
+pub(crate) async fn perform_clean(
+    app: &AppHandle,
+    request: CleanRequest,
+) -> uncached_core::contract::v1::ApiEnvelope<CleanResult> {
     let target_id = request.target_id.clone();
     let mode = request.mode;
     let confirmation = request.confirmation.clone();
@@ -307,7 +323,7 @@ pub async fn clean_target(
             "This cleaner requires Uncached Pro".to_string(),
         ));
     }
-    let settings = match settings_for_clean(mode, || crate::commands::settings::load_settings(&app))
+    let settings = match settings_for_clean(mode, || crate::commands::settings::load_settings(app))
     {
         Ok(settings) => settings,
         Err(_error) => {
@@ -355,7 +371,7 @@ pub async fn clean_target(
             ScanService::finish_cleanup(&target_id);
             if should_record_cleanup(mode) {
                 if let Err(error) =
-                    crate::commands::settings::record_cleanup(&app, clean_result.freed_bytes)
+                    crate::commands::settings::record_cleanup(app, clean_result.freed_bytes)
                 {
                     crate::logging::warn(
                         "settings",
@@ -368,7 +384,7 @@ pub async fn clean_target(
             // has this product removed for me", and a permanent delete removed
             // it just as much.
             if let Err(error) = crate::commands::history::record_cleanup(
-                &app,
+                app,
                 crate::commands::history::CleanupRecord {
                     freed_bytes: clean_result.freed_bytes,
                     category: &category,

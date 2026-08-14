@@ -66,3 +66,41 @@ export const EMPTY_PREVIEW: MaintenancePreview = {
   bytes: 0,
   protectedCount: 0,
 };
+
+/** Mirrors `src-tauri/src/workspace/schedule.rs`. */
+export type Schedule = {
+  enabled: boolean;
+  everyHours: number;
+};
+
+/** Off by default. The first unattended deletion on a machine is one the user turned on. */
+export const DEFAULT_SCHEDULE: Schedule = {
+  enabled: false,
+  everyHours: 24 * 7,
+};
+
+/** Why a run would not start this minute. */
+export type Held =
+  | "disabled"
+  | "notLicensed"
+  | "noWorkspace"
+  | "tooSoon"
+  | "scanInProgress";
+
+/**
+ * Where the schedule stands, as Rust reports it.
+ *
+ * `intervalHours` and `nextRunAt` arrive computed rather than derived here. A
+ * settings file can be hand-edited, so the stored interval and the one in force
+ * are not always the same number, and a screen that did its own arithmetic could
+ * state a next run the thread does not agree with.
+ */
+export type ScheduleStatus = {
+  schedule: Schedule;
+  intervalHours: number;
+  lastRunAt: number | null;
+  nextRunAt: number | null;
+  held: Held | null;
+  minEveryHours: number;
+  maxEveryHours: number;
+};
