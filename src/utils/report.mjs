@@ -9,13 +9,19 @@
 // without a filesystem, a window or a plan — and so the module that draws it
 // has no opinions of its own about what the numbers mean.
 
-/** The windows the report offers, and the only ones it offers. */
-export const RANGES = [
-  { id: "7d", label: "7 days", days: 7 },
-  { id: "30d", label: "30 days", days: 30 },
-  { id: "90d", label: "90 days", days: 90 },
-  { id: "12m", label: "12 months", days: 365 },
-  { id: "all", label: "All time", days: null },
+/**
+ * The grains the report offers, and the only ones it offers.
+ *
+ * The grain is the window: a bar is a day and there are thirty of them, or a
+ * bar is a month and there are twelve. Choosing one thing rather than two is
+ * what lets the control be the word in the sentence — "reclaimed by month" is
+ * the setting, written out.
+ */
+export const GRAINS = [
+  { id: "day", label: "day", window: "30 days", bucket: "day", buckets: 30 },
+  { id: "week", label: "week", window: "12 weeks", bucket: "week", buckets: 12 },
+  { id: "month", label: "month", window: "12 months", bucket: "month", buckets: 12 },
+  { id: "all", label: "all time", window: "all time", bucket: "month", buckets: null },
 ];
 
 /**
@@ -27,15 +33,6 @@ export const RANGES = [
  * put a number on screen that nothing measured.
  */
 export const DIMENSIONS = ["category", "workspace", "trigger", "mode"];
-
-const DAY = 24 * 60 * 60 * 1000;
-
-/** Below a month of window, a day is a bar; past that it stops being readable. */
-function bucketFor(days) {
-  if (days <= 31) return "day";
-  if (days <= 120) return "week";
-  return "month";
-}
 
 function startOfDay(time) {
   const date = new Date(time);
@@ -74,6 +71,20 @@ function nextBucket(time, bucket) {
   if (bucket === "month") return new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime();
   date.setDate(date.getDate() + (bucket === "week" ? 7 : 1));
   return date.getTime();
+}
+
+function earlierBucket(time, bucket, count) {
+  let start = time;
+  for (let step = 0; step < count; step += 1) {
+    const date = new Date(start);
+    if (bucket === "month") {
+      start = new Date(date.getFullYear(), date.getMonth() - 1, 1).getTime();
+    } else {
+      date.setDate(date.getDate() - (bucket === "week" ? 7 : 1));
+      start = date.getTime();
+    }
+  }
+  return start;
 }
 
 function timeOf(event) {
@@ -155,20 +166,27 @@ function series(events, from, to, bucket) {
  * `now` is injected rather than read so a test can assert on a fixed timeline,
  * and so the window cannot shift between the chart and the table beneath it.
  */
-export function buildReport({ events = [], now = Date.now(), rangeDays = 30, filters = {} } = {}) {
+export function buildReport({ events = [], now = Date.now(), grain = "month", filters = {} } = {}) {
+  const chosen = GRAINS.find((entry) => entry.id === grain) ?? GRAINS[2];
+  const bucket = chosen.bucket;
   const to = now + 1;
   const earliest = events.length > 0 ? Math.min(...events.map(timeOf)) : now;
-  const from = rangeDays === null ? startOfDay(earliest) : startOfDay(now - (rangeDays - 1) * DAY);
-  const spanDays = Math.max(1, Math.ceil((to - from) / DAY));
-  const bucket = bucketFor(spanDays);
+  const from =
+    chosen.buckets === null
+      ? bucketStart(earliest, bucket)
+      : earlierBucket(bucketStart(now, bucket), bucket, chosen.buckets - 1);
 
   const inWindow = within(events, from, to);
   const filtered = inWindow.filter((event) => matches(event, filters));
 
-  // The window immediately before this one, same length. Absent for all-time,
-  // where there is nothing before the first cleanup to compare against.
+  // The same number of buckets, immediately before. Absent for all time, where
+  // there is nothing before the first cleanup to compare against.
   const previousEvents =
-    rangeDays === null ? [] : within(events, from - spanDays * DAY, from).filter((event) => matches(event, filters));
+    chosen.buckets === null
+      ? []
+      : within(events, earlierBucket(from, bucket, chosen.buckets), from).filter((event) =>
+          matches(event, filters),
+        );
   const previousBytes = sumBytes(previousEvents);
   const bytes = sumBytes(filtered);
 
@@ -178,7 +196,8 @@ export function buildReport({ events = [], now = Date.now(), rangeDays = 30, fil
   const activeBuckets = new Set(filtered.map((event) => startOfDay(timeOf(event))));
 
   return {
-    window: { from: new Date(from).toISOString(), to: new Date(now).toISOString(), days: spanDays },
+    grain: chosen,
+    window: { from: new Date(from).toISOString(), to: new Date(now).toISOString() },
     bucket,
     totals: {
       freedBytes: bytes,
@@ -186,12 +205,11 @@ export function buildReport({ events = [], now = Date.now(), rangeDays = 30, fil
       activeDays: activeBuckets.size,
       largestBytes: filtered.reduce((most, event) => Math.max(most, event.freedBytes ?? 0), 0),
       averageBytes: filtered.length > 0 ? Math.round(bytes / filtered.length) : 0,
-      perDayBytes: Math.round(bytes / spanDays),
     },
     previous: { freedBytes: previousBytes, cleanups: previousEvents.length },
     // Null rather than zero when there is no previous window to compare with:
     // "no change" and "nothing to compare" are different answers.
-    trend: rangeDays === null || previousBytes === 0 ? null : (bytes - previousBytes) / previousBytes,
+    trend: chosen.buckets === null || previousBytes === 0 ? null : (bytes - previousBytes) / previousBytes,
     series: series(filtered, from, to, bucket),
     breakdowns,
     events: [...filtered].sort((left, right) => timeOf(right) - timeOf(left)),

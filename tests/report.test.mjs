@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RANGES, buildReport } from "../src/utils/report.mjs";
+import { GRAINS, buildReport } from "../src/utils/report.mjs";
 
 const DAY = 24 * 60 * 60 * 1000;
 const GB = 1024 * 1024 * 1024;
@@ -22,7 +22,7 @@ function event(daysAgo, bytes, overrides = {}) {
 }
 
 function report(events, options = {}) {
-  return buildReport({ events, now: NOW, rangeDays: 30, ...options });
+  return buildReport({ events, now: NOW, grain: "day", ...options });
 }
 
 test("an empty history reports zero rather than nothing", () => {
@@ -42,7 +42,7 @@ test("only what falls inside the window is counted", () => {
 });
 
 test("all time reaches back to the first cleanup", () => {
-  const result = report([event(400, GB), event(1, GB)], { rangeDays: null });
+  const result = report([event(400, GB), event(1, GB)], { grain: "all" });
 
   assert.equal(result.totals.cleanups, 2);
   assert.equal(result.bucket, "month", "a year of days is not a chart");
@@ -65,9 +65,9 @@ test("no previous activity is not a hundred percent increase", () => {
 
 /** The empty buckets are the point: without them the chart invents a cadence. */
 test("the timeline includes the days nothing happened", () => {
-  const result = report([event(0, GB), event(3, GB)], { rangeDays: 7 });
+  const result = report([event(0, GB), event(3, GB)], { grain: "day" });
 
-  assert.equal(result.series.length, 7);
+  assert.equal(result.series.length, 30);
   assert.equal(result.series.filter((bucket) => bucket.bytes > 0).length, 2);
   assert.equal(
     result.series.at(-1).bytes,
@@ -76,11 +76,10 @@ test("the timeline includes the days nothing happened", () => {
   );
 });
 
-test("a wider window switches to weeks and then to months", () => {
-  assert.equal(report([], { rangeDays: 7 }).bucket, "day");
-  assert.equal(report([], { rangeDays: 30 }).bucket, "day");
-  assert.equal(report([], { rangeDays: 90 }).bucket, "week");
-  assert.equal(report([], { rangeDays: 365 }).bucket, "month");
+test("the grain is the window: a bar, and how many of them", () => {
+  assert.equal(report([], { grain: "day" }).series.length, 30);
+  assert.equal(report([], { grain: "week" }).series.length, 12);
+  assert.equal(report([], { grain: "month" }).series.length, 12);
 });
 
 test("breakdowns rank by bytes and carry their share", () => {
@@ -165,10 +164,11 @@ test("averages and the largest single cleanup come from the filtered set", () =>
   assert.equal(result.totals.activeDays, 2);
 });
 
-test("every offered range produces a report", () => {
-  for (const range of RANGES) {
-    const result = report([event(1, GB)], { rangeDays: range.days });
-    assert.ok(result.series.length > 0, `${range.id} has a timeline`);
+test("every offered grain produces a report", () => {
+  for (const grain of GRAINS) {
+    const result = report([event(1, GB)], { grain: grain.id });
+    assert.ok(result.series.length > 0, `${grain.id} has a timeline`);
+    assert.equal(result.grain.id, grain.id, "the report says which grain it is");
   }
 });
 
@@ -180,14 +180,14 @@ test("the timeline steps by calendar, across a daylight saving change", () => {
   const spring = new Date("2026-03-30T12:00:00Z").getTime();
   const events = [{ at: new Date(spring - 2 * DAY).toISOString(), freedBytes: GB }];
 
-  for (const days of [7, 30, 90, 365]) {
-    const result = buildReport({ events, now: spring, rangeDays: days });
+  for (const grain of GRAINS) {
+    const result = buildReport({ events, now: spring, grain: grain.id });
     const starts = result.series.map((bucket) => bucket.start);
-    assert.equal(new Set(starts).size, starts.length, `${days}d repeated a bucket`);
+    assert.equal(new Set(starts).size, starts.length, `${grain.id} repeated a bucket`);
     assert.equal(
       result.series.reduce((sum, bucket) => sum + bucket.bytes, 0),
       GB,
-      `${days}d dropped an event between buckets`,
+      `${grain.id} dropped an event between buckets`,
     );
   }
 });

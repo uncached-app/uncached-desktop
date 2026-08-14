@@ -14,7 +14,16 @@ export type Dimension = "category" | "workspace" | "trigger" | "mode";
 
 export type Filters = Partial<Record<Dimension, string | null>>;
 
-export type Range = { id: string; label: string; days: number | null };
+export type Grain = {
+  id: string;
+  /** The word the header underlines. */
+  label: string;
+  /** How much time the grain covers, spelled out. */
+  window: string;
+  bucket: "day" | "week" | "month";
+  /** How many bars, or null for everything since the first cleanup. */
+  buckets: number | null;
+};
 
 export type BreakdownRow = {
   /** Null for an event recorded before the dimension existed. */
@@ -27,7 +36,8 @@ export type BreakdownRow = {
 export type Bucket = { start: string; bytes: number; cleanups: number };
 
 export type Report = {
-  window: { from: string; to: string; days: number };
+  grain: Grain;
+  window: { from: string; to: string };
   bucket: "day" | "week" | "month";
   totals: {
     freedBytes: number;
@@ -35,7 +45,6 @@ export type Report = {
     activeDays: number;
     largestBytes: number;
     averageBytes: number;
-    perDayBytes: number;
   };
   previous: { freedBytes: number; cleanups: number };
   trend: number | null;
@@ -44,12 +53,12 @@ export type Report = {
   events: CleanupEvent[];
 };
 
-export const RANGES: Range[];
+export const GRAINS: Grain[];
 export const DIMENSIONS: Dimension[];
 
 export function buildReport(input: {
   events?: CleanupEvent[];
   now?: number;
-  rangeDays?: number | null;
+  grain?: string;
   filters?: Filters;
 }): Report;

@@ -1,11 +1,11 @@
-import { ArrowRight, Clock, HardDrive, Sparkles, TrendingDown, TrendingUp, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Clock, HardDrive, Sparkles, TrendingDown, TrendingUp, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useCleanupHistory } from "../hooks/useWorkspaceHistory";
 import { buildInsights } from "../utils/insights.mjs";
-import { DIMENSIONS, RANGES, buildReport } from "../utils/report.mjs";
-import type { BreakdownRow, Dimension, Filters, Report } from "../utils/report.d.mts";
+import { DIMENSIONS, GRAINS, buildReport } from "../utils/report.mjs";
+import type { BreakdownRow, Dimension, Filters, Grain, Report } from "../utils/report.d.mts";
 import { categoryPresentation } from "../components/findings/TargetCard";
 import { formatBytes } from "../utils/format";
 import { openExternalUrl } from "../utils/externalLink";
@@ -45,8 +45,16 @@ function labelFor(dimension: Dimension, key: string | null) {
   return key === "Scheduled" ? "A schedule" : "You";
 }
 
-function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+/**
+ * Names a bucket at the grain it was measured at.
+ *
+ * A month bucket labelled "1 Aug" reads as a day, and two of them a year apart
+ * read as the same bucket — which is exactly how an axis stops meaning anything.
+ */
+function formatBucket(iso: string, bucket: Report["bucket"]) {
+  const date = new Date(iso);
+  if (bucket === "month") return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function formatMoment(iso: string) {
@@ -82,14 +90,13 @@ export function InsightsModule({
   const projects = flow.index.index?.projects ?? [];
   const { events, totals, loading } = useCleanupHistory();
 
-  const [rangeId, setRangeId] = useState("30d");
+  const [grain, setGrain] = useState("month");
   const [filters, setFilters] = useState<Filters>({});
   const [shown, setShown] = useState(EVENT_PAGE);
 
-  const range = RANGES.find((entry) => entry.id === rangeId) ?? RANGES[1];
   const report = useMemo(
-    () => buildReport({ events, rangeDays: range.days, filters }) as Report,
-    [events, range.days, filters],
+    () => buildReport({ events, grain, filters }) as Report,
+    [events, grain, filters],
   );
 
   const insights = useMemo(
@@ -116,38 +123,12 @@ export function InsightsModule({
   return (
     <section aria-label="Insights" className="flex h-full w-full flex-1 flex-col overflow-hidden">
       <header className="shrink-0 border-b border-forest-800 pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-[-0.045em] text-mist-100">Insights</h1>
-            <p className="mt-1.5 text-sm text-mist-500">
-              {proEnabled
-                ? "Every cleanup this machine has recorded, and what the last scan adds up to."
-                : "What the last scan adds up to. Pro keeps the record of every cleanup."}
-            </p>
-          </div>
-
-          {proEnabled && hasHistory && (
-            <div className="flex shrink-0 items-center gap-0.5 rounded-xl border border-forest-800 bg-forest-900 p-0.5">
-              {RANGES.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => {
-                    setRangeId(entry.id);
-                    setShown(EVENT_PAGE);
-                  }}
-                  className={`rounded-lg px-2.5 py-1.5 font-mono text-[11px] transition-colors ${
-                    entry.id === rangeId
-                      ? "bg-forest-800 text-mist-100"
-                      : "text-mist-500 hover:text-mist-300"
-                  }`}
-                >
-                  {entry.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <h1 className="text-2xl font-semibold tracking-[-0.045em] text-mist-100">Insights</h1>
+        <p className="mt-1.5 text-sm text-mist-500">
+          {proEnabled
+            ? "Every cleanup this machine has recorded, and what the last scan adds up to."
+            : "What the last scan adds up to. Pro keeps the record of every cleanup."}
+        </p>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto pt-5 pb-6 [scrollbar-gutter:stable]">
@@ -177,8 +158,14 @@ export function InsightsModule({
               </div>
             )}
 
-            <Summary report={report} rangeLabel={range.label} />
-            <Timeline report={report} />
+            <Summary report={report} />
+            <Timeline
+              report={report}
+              onGrain={(next) => {
+                setGrain(next);
+                setShown(EVENT_PAGE);
+              }}
+            />
 
             <div className="grid gap-4 lg:grid-cols-2">
               {DIMENSIONS.map((dimension) => (
@@ -258,8 +245,9 @@ export function InsightsModule({
 }
 
 /** The four numbers, and whether the window beat the one before it. */
-function Summary({ report, rangeLabel }: { report: Report; rangeLabel: string }) {
+function Summary({ report }: { report: Report }) {
   const { totals, trend } = report;
+  const window = report.grain.window;
   const up = (trend ?? 0) > 0;
 
   return (
@@ -270,7 +258,9 @@ function Summary({ report, rangeLabel }: { report: Report; rangeLabel: string })
           {formatBytes(totals.freedBytes)}
         </p>
         {trend === null ? (
-          <p className="mt-1 text-xs text-mist-500">Last {rangeLabel.toLowerCase()}</p>
+          <p className="mt-1 text-xs text-mist-500">
+            {report.grain.buckets === null ? "All time" : `Last ${window}`}
+          </p>
         ) : (
           <p className="mt-1 flex items-center gap-1.5 text-xs text-mist-500">
             {up ? (
@@ -278,7 +268,7 @@ function Summary({ report, rangeLabel }: { report: Report; rangeLabel: string })
             ) : (
               <TrendingDown size={13} aria-hidden="true" />
             )}
-            {Math.abs(Math.round(trend * 100))}% {up ? "more" : "less"} than the previous {rangeLabel.toLowerCase()}
+            {Math.abs(Math.round(trend * 100))}% {up ? "more" : "less"} than the previous {window}
           </p>
         )}
       </div>
@@ -306,14 +296,20 @@ function Stat({ label, value, note }: { label: string; value: string; note: stri
  * Empty buckets are drawn as empty rather than skipped: a chart built only from
  * the days something happened reports a cadence that never existed.
  */
-function Timeline({ report }: { report: Report }) {
+function Timeline({ report, onGrain }: { report: Report; onGrain: (grain: string) => void }) {
   const peak = report.series.reduce((most, bucket) => Math.max(most, bucket.bytes), 0);
+  const first = report.series[0];
+  const last = report.series[report.series.length - 1];
 
   return (
     <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5">
       <div className="flex items-baseline justify-between gap-3">
+        {/* The window has no control of its own: it is the last word of the
+            sentence that describes the chart, and changing it is changing that
+            word. One affordance instead of a row of tabs saying the same thing. */}
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-mist-500">
-          Reclaimed by {report.bucket}
+          Reclaimed {report.grain.buckets === null ? "" : "by "}
+          <GrainPicker grain={report.grain} onSelect={onGrain} />
         </p>
         <p className="font-mono text-[10px] text-mist-500">
           peak {peak > 0 ? formatBytes(peak) : "—"}
@@ -324,7 +320,7 @@ function Timeline({ report }: { report: Report }) {
         {report.series.map((bucket) => (
           <div
             key={bucket.start}
-            title={`${formatDay(bucket.start)} — ${formatBytes(bucket.bytes)}, ${bucket.cleanups} ${bucket.cleanups === 1 ? "cleanup" : "cleanups"}`}
+            title={`${formatBucket(bucket.start, report.bucket)} — ${formatBytes(bucket.bytes)}, ${bucket.cleanups} ${bucket.cleanups === 1 ? "cleanup" : "cleanups"}`}
             className="flex h-full flex-1 items-end"
           >
             <div
@@ -336,10 +332,86 @@ function Timeline({ report }: { report: Report }) {
       </div>
 
       <div className="mt-2 flex justify-between font-mono text-[10px] text-mist-500">
-        <span>{report.series.length > 0 ? formatDay(report.series[0].start) : ""}</span>
-        <span>{report.series.length > 0 ? formatDay(report.series[report.series.length - 1].start) : ""}</span>
+        <span>{first ? formatBucket(first.start, report.bucket) : ""}</span>
+        <span>{last ? formatBucket(last.start, report.bucket) : ""}</span>
       </div>
     </div>
+  );
+}
+
+/**
+ * The grain, as the word it is.
+ *
+ * Underlined because that is what a word you can change looks like, and closed
+ * by anything that means "not this" — a click elsewhere, Escape, or a choice.
+ */
+function GrainPicker({ grain, onSelect }: { grain: Grain; onSelect: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const anchor = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function dismiss(event: MouseEvent) {
+      if (!anchor.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("mousedown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
+  return (
+    <span ref={anchor} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-mist-100 underline decoration-mist-500 decoration-dotted underline-offset-4 transition-colors hover:decoration-sage-400"
+      >
+        {grain.label}
+        <ChevronDown size={10} aria-hidden="true" />
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          className="absolute left-0 top-full z-20 mt-2 min-w-36 overflow-hidden rounded-xl border border-forest-800 bg-forest-900 py-1 shadow-xl"
+        >
+          {GRAINS.map((entry) => (
+            <li key={entry.id}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={entry.id === grain.id}
+                onClick={() => {
+                  onSelect(entry.id);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-baseline justify-between gap-4 px-3 py-1.5 text-left text-xs transition-colors ${
+                  entry.id === grain.id
+                    ? "bg-forest-800 text-mist-100"
+                    : "text-mist-300 hover:bg-forest-850 hover:text-mist-100"
+                }`}
+              >
+                {entry.id === "all" ? "All time" : `By ${entry.label}`}
+                {/* The window is what the grain costs you: choosing days is
+                    choosing to see a month. Saying it beside the word is the
+                    only thing the dropdown owes the reader. */}
+                <span className="font-mono text-[10px] text-mist-500">
+                  {entry.buckets === null ? "" : entry.window}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </span>
   );
 }
 
