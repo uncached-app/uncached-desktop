@@ -17,6 +17,10 @@ pub fn get_default_providers(
     settings: &crate::commands::settings::AppSettings,
 ) -> uncached_core::ProviderSet {
     let mut providers = uncached_core::ProviderSet::new();
+    // First, for the same reason as in the core's own set: it claims paths
+    // inside `ios/` and `android/` that the platform tooling would otherwise
+    // claim by their bare names, and the first provider to confirm wins.
+    providers.add_scanner(uncached_core::ecosystems::react_native());
     if settings.detect_node_modules {
         providers.add_scanner(uncached_core::NodeModulesScanner);
     }
@@ -42,6 +46,11 @@ pub fn get_default_providers(
     providers.add_scanner(uncached_core::SwiftBuildScanner);
     providers.add_scanner(uncached_core::DotNetObjScanner);
     providers.add_scanner(uncached_core::DartToolScanner);
+    // Every project-type provider carries its own marker requirement, so the
+    // same rule applies: on a machine without that ecosystem they match nothing.
+    for scanner in uncached_core::ecosystems::all() {
+        providers.add_scanner(scanner);
+    }
     providers.with_ignore_rules(compile_ignore_rules(&settings.ignore_rules).0)
 }
 
@@ -110,6 +119,7 @@ mod tests {
         assert_eq!(
             categories,
             vec![
+                Category::ReactNative,
                 Category::NodeModules,
                 Category::CargoTarget,
                 Category::NextJs,
@@ -120,6 +130,24 @@ mod tests {
                 Category::SwiftBuild,
                 Category::DotNetObj,
                 Category::DartTool,
+                Category::MavenTarget,
+                Category::SbtTarget,
+                Category::GradleBuild,
+                Category::CMakeBuild,
+                Category::UnityLibrary,
+                Category::UnrealIntermediate,
+                Category::GodotCache,
+                Category::ElixirBuild,
+                Category::HaskellBuild,
+                Category::ZigCache,
+                Category::FlutterBuild,
+                Category::JupyterCheckpoints,
+                Category::PixiEnv,
+                Category::ComposerVendor,
+                Category::TerraformDir,
+                Category::CocoapodsPods,
+                Category::NuxtCache,
+                Category::SvelteKitCache,
             ]
         );
     }

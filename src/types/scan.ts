@@ -21,6 +21,8 @@ export type ScanTarget = {
   category: Category;
   plan: Plan;
   confidence: Confidence;
+  /** False for a catalogued location the product reports but never removes. */
+  cleanable: boolean;
   sizeBytes: number;
   sizeHasErrors: boolean;
   sizePending: boolean;

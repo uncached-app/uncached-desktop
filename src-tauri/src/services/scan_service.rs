@@ -1318,7 +1318,7 @@ mod tests {
     fn target_found_event_carries_every_field_the_ui_contract_requires() {
         for (category, expected_plan) in [
             (Category::NodeModules, "free"),
-            (Category::CargoTarget, "pro"),
+            (Category::PackageManagerCache, "pro"),
         ] {
             let target = ScanTarget::new(
                 PathBuf::from(r"C:\workspace\artifact"),
@@ -1336,6 +1336,7 @@ mod tests {
                 keys,
                 [
                     "category",
+                    "cleanable",
                     "confidence",
                     "formattedSize",
                     "id",
@@ -1598,7 +1599,16 @@ mod tests {
         );
         let target = &events[0]["data"]["target"];
         assert_eq!(target["label"], location.label);
-        assert_eq!(target["plan"], "pro");
+        // Read from the boundary rather than pinned to a literal: which plan a
+        // catalogued location needs is the entitlement module's decision, and
+        // this test is about discovery registering the target at all.
+        assert_eq!(
+            target["plan"],
+            serde_json::to_value(crate::commands::entitlements::plan_for_category(
+                &location.category
+            ))
+            .unwrap()
+        );
 
         let target_id = target["id"].as_str().unwrap().to_owned();
         let registered = ScanService::get_target(&target_id).expect("discovery should register");

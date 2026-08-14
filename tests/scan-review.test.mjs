@@ -106,3 +106,16 @@ test("on pro, confidence alone decides the order", () => {
     ["pro-review", "pro-medium", "free-high"],
   );
 });
+
+test("a target the catalogue reports but never removes is not cleanup-ready", () => {
+  const ready = getCleanupReadyTargets([
+    { id: "a", cleanable: true, sizePending: false, sizeHasErrors: false },
+    { id: "b", cleanable: false, sizePending: false, sizeHasErrors: false },
+    { id: "c", sizePending: false, sizeHasErrors: false },
+  ]);
+  assert.deepEqual(
+    ready.map((target) => target.id),
+    ["a", "c"],
+    "an absent flag still means cleanable",
+  );
+});

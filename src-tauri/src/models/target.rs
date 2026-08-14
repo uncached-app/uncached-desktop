@@ -32,6 +32,11 @@ pub struct ScanTarget {
     /// How sure the core is that this is a disposable artifact, with the
     /// reasons behind it. Decided in Rust for the same reason as `plan`.
     pub confidence: uncached_core::Confidence,
+    /// False for a location the catalogue reports but never removes, and the
+    /// reason the interface can leave the control out instead of offering one
+    /// the backend would refuse. The refusal exists either way — no provider
+    /// vouches for these — so this field is what keeps the two in agreement.
+    pub cleanable: bool,
     pub size_bytes: u64,
     pub size_has_errors: bool,
     pub size_pending: bool,
@@ -76,6 +81,7 @@ impl ScanTarget {
         target.label = Some(discovery.label.to_owned());
         target.confidence = uncached_core::assess(uncached_core::discovery::signals_for(discovery));
         target.identity = uncached_core::filesystem::file_identity(&discovery.path);
+        target.cleanable = discovery.kind != uncached_core::LocationKind::ReportOnly;
         target
     }
 
@@ -106,6 +112,11 @@ impl ScanTarget {
             category,
             plan,
             confidence,
+            // A target found by walking a workspace was confirmed by a
+            // provider, which is the same thing that authorizes removing it.
+            // Only the catalogue can produce something reportable but not
+            // removable, and `from_discovery` sets this from the entry's kind.
+            cleanable: true,
             size_bytes,
             size_has_errors,
             size_pending: false,
@@ -188,7 +199,8 @@ mod tests {
     #[test]
     fn every_target_carries_the_plan_decided_by_the_native_layer() {
         assert_eq!(wire(Category::NodeModules)["plan"], "free");
-        assert_eq!(wire(Category::CargoTarget)["plan"], "pro");
+        assert_eq!(wire(Category::CargoTarget)["plan"], "free");
+        assert_eq!(wire(Category::PackageManagerCache)["plan"], "pro");
         assert_eq!(wire(Category::Custom("unknown".to_string()))["plan"], "pro");
     }
 

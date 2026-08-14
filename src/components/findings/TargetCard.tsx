@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bird, Box, Boxes, Check, Code, Coffee, Container, Copy, Database, Feather, Folder, Hammer, Layers, LoaderCircle, LockKeyhole, Package, RefreshCw, ShieldCheck, ShieldQuestion, Sparkles, TriangleAlert } from "lucide-react";
+import { Binary, Bird, Eye, Blocks, Box, Boxes, Check, Cloud, Code, Coffee, Component, Container, Copy, Cpu, Database, Droplet, Feather, Folder, Gamepad2, Hammer, Layers, LoaderCircle, LockKeyhole, Notebook, Package, RefreshCw, ShieldCheck, ShieldQuestion, Sigma, Smartphone, Sparkles, TriangleAlert } from "lucide-react";
 import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
 
 // The level is decided in Rust and arrives as a reason code. The wording is
@@ -54,14 +54,33 @@ const CATEGORY_PRESENTATION: Record<string, { label: string; icon: typeof Packag
   NodeModules: { label: "Node", icon: Package },
   NextJs: { label: "Node", icon: Package },
   Turbo: { label: "Node", icon: Package },
+  NuxtCache: { label: "Node", icon: Package },
+  SvelteKitCache: { label: "Node", icon: Package },
+  ReactNative: { label: "React Native", icon: Smartphone },
   CargoTarget: { label: "Rust", icon: Box },
   PyCache: { label: "Python", icon: Layers },
+  PixiEnv: { label: "Pixi", icon: Layers },
+  JupyterCheckpoints: { label: "Jupyter", icon: Notebook },
   Gradle: { label: "JVM", icon: Coffee },
+  GradleBuild: { label: "JVM", icon: Coffee },
+  MavenTarget: { label: "JVM", icon: Coffee },
+  SbtTarget: { label: "JVM", icon: Coffee },
+  CMakeBuild: { label: "C/C++", icon: Cpu },
+  ZigCache: { label: "Zig", icon: Binary },
+  ElixirBuild: { label: "Elixir", icon: Droplet },
+  HaskellBuild: { label: "Haskell", icon: Sigma },
+  ComposerVendor: { label: "PHP", icon: Blocks },
+  TerraformDir: { label: "Terraform", icon: Cloud },
+  UnityLibrary: { label: "Unity", icon: Gamepad2 },
+  UnrealIntermediate: { label: "Unreal", icon: Gamepad2 },
+  GodotCache: { label: "Godot", icon: Gamepad2 },
   DotNetObj: { label: ".NET", icon: Boxes },
   Docker: { label: "Docker", icon: Container },
   XcodeDerivedData: { label: "Xcode", icon: Hammer },
   SwiftBuild: { label: "Swift", icon: Bird },
+  CocoapodsPods: { label: "CocoaPods", icon: Component },
   DartTool: { label: "Dart", icon: Feather },
+  FlutterBuild: { label: "Flutter", icon: Feather },
   // The three below only ever come from discovery, where the badge names the
   // kind of cache and the finding's own label names the tool that wrote it.
   PackageManagerCache: { label: "Package cache", icon: Database },
@@ -154,7 +173,10 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
   const [copiedPath, setCopiedPath] = useState(false);
   const [confidenceOpen, setConfidenceOpen] = useState(false);
   const proLocked = target.plan === "pro" && !proEnabled;
-  const disabled = isCleaning || target.sizePending || target.sizeHasErrors || proLocked;
+  // Reported, never removed. The backend refuses it because no provider vouches
+  // for it; the card leaves the checkbox out so the refusal is never reached.
+  const reportOnly = target.cleanable === false;
+  const disabled = isCleaning || target.sizePending || target.sizeHasErrors || proLocked || reportOnly;
   const category = categoryPresentation(target.category);
   const CategoryIcon = category.icon;
 
@@ -189,6 +211,14 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
       }`}
     >
       <div className="flex min-w-0 items-start gap-3.5">
+        {reportOnly ? (
+          <span
+            aria-hidden="true"
+            className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-forest-800 text-mist-500"
+          >
+            <Eye size={12} />
+          </span>
+        ) : (
         <div
           role="checkbox"
           aria-checked={selected}
@@ -211,6 +241,7 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
         >
           <Check size={13} strokeWidth={3} aria-hidden="true" />
         </div>
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -265,7 +296,12 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
 
       <div className="flex items-center justify-end gap-3 pl-8 sm:gap-4 sm:pl-0">
         <div className="text-right">
-          {proLocked ? (
+          {reportOnly ? (
+            <div className="flex flex-col items-end gap-0.5">
+              <strong className="block text-lg font-semibold text-mist-300">{target.formattedSize}</strong>
+              <span className="text-[10px] font-medium text-mist-500">reported, not removed</span>
+            </div>
+          ) : proLocked ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-pro-100">
               <LockKeyhole size={14} aria-hidden="true" /> Unlock to clean
             </span>

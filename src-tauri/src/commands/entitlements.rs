@@ -12,10 +12,23 @@ pub struct EntitlementStatus {
 /// boundary: the cleanup gate and the plan stamped on every scan target both
 /// read it, so what the UI shows can never drift from what the native layer
 /// allows.
+///
+/// The boundary is drawn around what the artifact belongs to, not around how
+/// much it weighs. Anything a project can regenerate from its own build is
+/// Free, in every ecosystem — that is the job, and charging for a subset of it
+/// would make the product worse at the one thing it claims to do.
+///
+/// What stays Pro is what is not a project artifact: the machine-wide stores a
+/// tool shares across every project, where emptying them slows down every
+/// future restore rather than reclaiming a build output.
 pub fn plan_for_category(category: &Category) -> Plan {
     match category {
-        Category::NodeModules => Plan::Free,
-        _ => Plan::Pro,
+        Category::PackageManagerCache
+        | Category::AiToolCache
+        | Category::EditorCache
+        | Category::Docker
+        | Category::Custom(_) => Plan::Pro,
+        _ => Plan::Free,
     }
 }
 
@@ -50,10 +63,20 @@ impl Default for EntitlementStatus {
     }
 }
 
-// Billing and signed license verification will populate this boundary later.
-// Keeping the default closed prevents a client-side flag from unlocking cleanup.
+/// The plan this process is running under.
+///
+/// Read from the verified licence rather than from anything the UI can set: the
+/// frontend is told what the plan is and never the other way round. The default
+/// stays closed, so a licence that fails to verify — or a build with no signing
+/// key — leaves the app on Free instead of open.
 pub fn current_status() -> EntitlementStatus {
     if cfg!(debug_assertions) && std::env::var_os("UNCACHED_DEV_PRO").is_some() {
+        return EntitlementStatus {
+            plan: Plan::Pro,
+            pro_enabled: true,
+        };
+    }
+    if crate::commands::license::active_license().is_some() {
         return EntitlementStatus {
             plan: Plan::Pro,
             pro_enabled: true,
@@ -92,17 +115,53 @@ mod tests {
     }
 
     #[test]
-    fn only_node_modules_is_free() {
-        assert_eq!(plan_for_category(&Category::NodeModules), Plan::Free);
-        assert!(is_free_category(&Category::NodeModules));
-
+    fn every_project_artifact_is_free_whatever_ecosystem_wrote_it() {
         for category in [
+            Category::NodeModules,
             Category::CargoTarget,
             Category::NextJs,
             Category::Turbo,
             Category::DotNetObj,
             Category::PyCache,
             Category::Gradle,
+            Category::GradleBuild,
+            Category::MavenTarget,
+            Category::SbtTarget,
+            Category::CMakeBuild,
+            Category::UnityLibrary,
+            Category::UnrealIntermediate,
+            Category::GodotCache,
+            Category::ElixirBuild,
+            Category::HaskellBuild,
+            Category::ZigCache,
+            Category::FlutterBuild,
+            Category::DartTool,
+            Category::SwiftBuild,
+            Category::XcodeDerivedData,
+            Category::JupyterCheckpoints,
+            Category::PixiEnv,
+            Category::ComposerVendor,
+            Category::TerraformDir,
+            Category::CocoapodsPods,
+            Category::ReactNative,
+            Category::NuxtCache,
+            Category::SvelteKitCache,
+        ] {
+            assert_eq!(
+                plan_for_category(&category),
+                Plan::Free,
+                "{category:?} is a project artifact and must be free"
+            );
+            assert!(is_free_category(&category));
+        }
+    }
+
+    #[test]
+    fn what_is_shared_across_every_project_is_not_a_project_artifact() {
+        for category in [
+            Category::PackageManagerCache,
+            Category::AiToolCache,
+            Category::EditorCache,
             Category::Docker,
             Category::Custom("anything".to_string()),
         ] {

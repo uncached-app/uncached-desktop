@@ -13,8 +13,14 @@ export function shouldOpenReview(step, scanFinished, targetCount, targets) {
   return step === 2 && canOpenReview(scanFinished, targetCount, targets);
 }
 
+// `cleanable === false` is a catalogued location the product reports and never
+// removes. It is excluded here rather than only in the card, so it stays out of
+// Select all, out of the delete count and out of the reclaimable total — every
+// number that would otherwise promise an operation the backend refuses.
 export function getCleanupReadyTargets(targets) {
-  return targets.filter((target) => !target.sizePending && !target.sizeHasErrors);
+  return targets.filter(
+    (target) => target.cleanable !== false && !target.sizePending && !target.sizeHasErrors,
+  );
 }
 
 // Review first, then medium, then high. A target the core is unsure about is

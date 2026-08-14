@@ -81,6 +81,7 @@ export type RawTargetFound = {
     category: string;
     plan: Plan;
     confidence: Confidence;
+    cleanable: boolean;
     sizeBytes: number;
     sizePending: boolean;
     sizeHasErrors: boolean;
@@ -338,6 +339,9 @@ export function normalizeTargetFound(payload: RawTargetFound) {
     // The plan is decided in Rust; the UI reads it and never recomputes it.
     (target.plan !== "free" && target.plan !== "pro") ||
     !isConfidence(target.confidence) ||
+    // Absent means cleanable: a native layer that predates the field only ever
+    // produced targets a provider had already vouched for.
+    (hasOwn(target, "cleanable") && typeof target.cleanable !== "boolean") ||
     !isFiniteNonNegativeNumber(target.sizeBytes) ||
     typeof target.sizePending !== "boolean" ||
     typeof target.sizeHasErrors !== "boolean" ||
@@ -364,6 +368,7 @@ export function normalizeTargetFound(payload: RawTargetFound) {
       ...target,
       name: target.name || targetName(target.path),
       label: target.label ?? null,
+      cleanable: target.cleanable ?? true,
       formattedSize: target.sizePending ? "" : target.formattedSize,
       lastModified: target.lastModified ?? null,
     },
