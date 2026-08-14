@@ -356,6 +356,17 @@ pub async fn clean_target(
                     );
                 }
             }
+            // Recorded for every mode, unlike the line above. The running total
+            // in settings is tied to the Trash flow; the history answers "what
+            // has this product removed for me", and a permanent delete removed
+            // it just as much.
+            if let Err(error) = crate::commands::history::record_cleanup(&app, clean_result.freed_bytes)
+            {
+                crate::logging::warn(
+                    "history",
+                    &format!("failed to append cleanup entry error=\"{}\"", error),
+                );
+            }
             crate::logging::info(
                 "clean",
                 &format!(

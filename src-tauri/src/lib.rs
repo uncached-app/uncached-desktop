@@ -13,6 +13,8 @@ use commands::cancel::{cancel_cleanup, cancel_scan};
 use commands::clean::clean_target;
 use commands::cleanup_capabilities;
 use commands::entitlements::get_entitlement_status;
+use commands::history::{cleanup_totals, clear_history, record_workspace_visit};
+use commands::license::{activate_license, deactivate_license, get_license};
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{get_app_info, get_settings, review_ignore_rules, update_settings};
 use commands::workspace::{
@@ -24,6 +26,13 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        // Verified once, before anything can ask what the plan is. A licence
+        // that no longer holds leaves the app on Free rather than refusing to
+        // start: losing Pro is recoverable, a window that will not open is not.
+        .setup(|app| {
+            commands::license::install(app.handle());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             cancel_scan,
             cancel_cleanup,
@@ -32,6 +41,12 @@ pub fn run() {
             clean_target,
             cleanup_capabilities,
             get_entitlement_status,
+            activate_license,
+            deactivate_license,
+            get_license,
+            record_workspace_visit,
+            cleanup_totals,
+            clear_history,
             get_settings,
             update_settings,
             get_app_info,
