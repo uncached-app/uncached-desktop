@@ -4,6 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { ArtifactList } from "./project/ArtifactList";
 import { ActivityPanel, GitPanel } from "./project/ContextPanels";
 import { DuplicatePanel } from "./project/DuplicatePanel";
+import { FootprintPanel } from "./project/FootprintPanel";
 import { HygienePanel } from "./project/HygienePanel";
 import { ProjectActions } from "./project/ProjectActions";
 import { ProjectHeader } from "./project/ProjectHeader";
@@ -88,6 +89,10 @@ export function ProjectPage({
         {/* Clean, un-nested modular panels */}
         <div className="mt-4 grid gap-4">
           <VerdictPanel project={project} verdict={verdict} footprint={footprint} />
+
+          {/* Above Git and Activity: "why is this so big" is the question the
+              page is opened with, and the answer was computed all along. */}
+          {footprint && <FootprintPanel footprint={footprint} />}
 
           <div className="grid gap-4 lg:grid-cols-2">
             <GitPanel git={project.git} />
