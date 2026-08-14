@@ -490,6 +490,15 @@ pub struct ScheduleStatus {
     pub held: Option<schedule::Held>,
     pub min_every_hours: u32,
     pub max_every_hours: u32,
+    /// Whether closing the window leaves the app running.
+    ///
+    /// Not a `Held` reason: the app is running right now, so a run would start.
+    /// It decides whether there will be a *next* one — the schedule lives in
+    /// this process, and with this off, closing the window ends the process and
+    /// the schedule with it. A schedule switched on beside this switched off is
+    /// the one combination the product can promise and not deliver, so it is
+    /// reported rather than left for the user to discover by it not happening.
+    pub keeps_running_in_background: bool,
 }
 
 #[tauri::command]
@@ -517,6 +526,7 @@ pub async fn maintenance_schedule_status(app: tauri::AppHandle) -> Result<Schedu
         held,
         min_every_hours: schedule::MIN_EVERY_HOURS,
         max_every_hours: schedule::MAX_EVERY_HOURS,
+        keeps_running_in_background: settings.keep_running_in_background,
     })
 }
 

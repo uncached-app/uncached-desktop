@@ -297,7 +297,8 @@ No request payload. Raw response:
   "nextRunAt": 1755705600,
   "held": null,
   "minEveryHours": 24,
-  "maxEveryHours": 720
+  "maxEveryHours": 720,
+  "keepsRunningInBackground": true
 }
 ```
 
@@ -309,6 +310,13 @@ and while the schedule is off; neither has a next time that is a fact rather tha
 `held` is `null` when a run would start this minute, and otherwise the first reason it would not:
 `disabled`, `notLicensed`, `noWorkspace`, `tooSoon` or `scanInProgress`. The order is fixed, so an
 expired licence reads as `notLicensed` rather than as perpetually `tooSoon`.
+
+`keepsRunningInBackground` mirrors the setting of the same name, and is not a `held` reason: the
+app is running as the status is read, so a run would start. It decides whether there will be a next
+one. The schedule is a thread in this process rather than a system service, so with that setting
+off, closing the window ends the process and the schedule with it — a schedule enabled beside it is
+the one combination the product can promise and fail to deliver, and the screen says so next to the
+switch rather than letting it be discovered by nothing happening.
 
 Reading the status is free. The runs themselves are Pro, and the thread that performs them checks
 the entitlement again before removing anything.

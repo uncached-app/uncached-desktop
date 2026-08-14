@@ -103,4 +103,13 @@ export type ScheduleStatus = {
   held: Held | null;
   minEveryHours: number;
   maxEveryHours: number;
+  /**
+   * Whether closing the window leaves the app running.
+   *
+   * Not a `held` reason — the app is running now, so a run would start. It
+   * decides whether there is a next one, because the schedule lives in this
+   * process. On beside a schedule that is also on is the only combination the
+   * product can promise and not deliver.
+   */
+  keepsRunningInBackground: boolean;
 };

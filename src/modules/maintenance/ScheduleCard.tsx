@@ -1,4 +1,4 @@
-import { CalendarClock, Repeat, ShieldCheck } from "lucide-react";
+import { CalendarClock, Repeat, ShieldCheck, TriangleAlert } from "lucide-react";
 import type { Held, Schedule, ScheduleStatus } from "../../types/maintenance";
 
 const INTERVAL_CHOICES = [
@@ -136,6 +136,22 @@ export function ScheduleCard({
           </span>
         </div>
       </div>
+
+      {/* The one combination the product can promise and not deliver. The
+          schedule lives in this process, so with the app set to quit on close,
+          a run only ever happens while this window is open — which is not a
+          schedule. Said here, next to the switch that caused it, rather than
+          left to be discovered by it never firing. */}
+      {schedule.enabled && !status.keepsRunningInBackground && (
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs leading-5 text-mist-300">
+          <TriangleAlert size={14} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
+          <span>
+            Closing the window quits Uncached, so this schedule only runs while the window is open.
+            Turn on <span className="font-semibold text-mist-100">Keep running in the background</span>{" "}
+            in Settings to let it close to the menu bar instead.
+          </span>
+        </div>
+      )}
     </div>
   );
 }

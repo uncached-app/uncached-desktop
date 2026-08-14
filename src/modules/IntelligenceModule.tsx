@@ -192,15 +192,16 @@ export function IntelligenceModule({
             />
           </PolicyResult>
 
-          {/* The one thing neither card above says, and the one most worth
-              saying: this is a thread inside the app, not a system daemon. Quit
-              Uncached and the schedule stops with it. Both settings it depends
-              on ship on, so it holds by default — but a schedule that silently
-              never fires because the app was quit is worse than no schedule. */}
+          {/* Where the schedule actually lives, said once. It is a thread in
+              this process rather than a system service, so closing to the menu
+              bar keeps it and Quit ends it. That is the intended bargain, not a
+              gap: something that deleted files on a timer after being told to
+              quit would be a different product. The card above says the rest,
+              and says it louder when the two settings disagree. */}
           <p className="flex items-start gap-2 px-1 text-xs leading-5 text-mist-500">
             <CalendarClock size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-            Scheduled runs happen while Uncached is running, including from the menu bar. Quitting
-            it stops them until the app opens again.
+            The schedule runs inside Uncached, so closing to the menu bar keeps it going and Quit
+            stops it. It picks up any run it missed the next time the app opens.
           </p>
         </div>
       </div>
