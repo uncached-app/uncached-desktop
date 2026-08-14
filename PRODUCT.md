@@ -34,13 +34,15 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - No virtual environment and no fetched-dependency directory is ever a target where restoring it costs network rather than a local build.
 - Every workspace scanner runs unconditionally. Excluding something inside a workspace is an ignore rule, which reaches every category and wins against the provider, the confidence and a schedule. Settings § Scanning covers only what lives outside the chosen folders: package manager, AI tool and editor caches.
 - A command palette reaches every project and every module from the keyboard, and is where a project is opened in an editor, a terminal or the file manager. A project row opens that project's own page: the evidence behind its verdict, its git and activity context, and the artifacts under it, each reclaimable on its own. Opening is a native command: it refuses any path outside the chosen folders, and any application the machine was not found to have.
-- `Docker` exists in the category model but has no scanner implementation.
+- `Docker` exists in the category model but has no scanner implementation, and is priced Free for exactly that reason: a plan never charges for a capability that finds nothing.
+- A project's own page reports what its repository is carrying that nothing uses: local branches whose remote branch was deleted, forgotten stashes, and worktrees whose directory is gone. Only a branch `git branch -d` would accept is offered for deletion; one holding commits reachable from nowhere else is named and left alone. Stashes and worktrees are reported and never acted on.
+- Fetching a repository is the only network operation in the product, is never automatic, and runs with credential prompting disabled. `pull` is not offered: it merges into a working tree, and nothing here writes to one.
 - Scanner coverage grows release to release. Copy must never enumerate it in prose — see `DESIGN.md` § Voice & Copy.
 - Default cleanup moves targets to the native Recycle Bin/Trash.
 - Permanent deletion exists as a destructive backend mode and requires exact `Nuke` confirmation.
 - Backend canonicalizes paths, rejects symlinks and critical roots, enforces scan-root scope, and protects against arbitrary frontend paths.
 - Targets are held in memory and become invalid when the application restarts.
-- Current desktop window is resizable, starts at 1080x800, and has an 800x600 minimum.
+- Current desktop window is resizable and undecorated, and the app is inset from its edges by a transparent gutter its shadow falls into. The visible app starts at 1080x800 and has an 800x600 minimum; the window itself carries the gutter on top, and drops it while maximized or fullscreen.
 - Default appearance is light. Dark and system-follow are opt-in from Settings § Appearance.
 - Cleanup completion may celebrate confirmed results with positive copy, reclaimed-byte emphasis, animation, and confetti. Active, failed, and cancelled states remain factual.
 

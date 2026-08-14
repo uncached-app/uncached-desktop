@@ -120,6 +120,69 @@ No request. Returns the editors and terminals this machine was found to have.
 
 Both refuse a path that is not inside one of `workspaceRoots`, compared component-wise on canonical paths — `/work-archive` is not inside `/work` however the two are spelled. `open_project_with` also refuses a `program` that is not in `available_launchers`: a caller that could name any program could start any process, and these commands exist to open an editor.
 
+### `project_hygiene`
+
+Request: `{ "path": "/work/api" }`. Read-only, offline, Free on every plan.
+
+```json
+{
+  "deadBranches": [
+    { "name": "feature/x", "state": "prunable", "lastCommitAt": 1699000000 }
+  ],
+  "stashes": [{ "reference": "stash@{0}", "message": "WIP on main", "at": 1680000000 }],
+  "worktrees": [{ "path": "/w/api-hotfix", "branch": "hotfix", "missing": false, "primary": false }]
+}
+```
+
+A dead branch is one whose upstream Git reports as `gone` — the shape a merged
+pull request leaves behind. `state` splits them in two, and the split is the
+point: `prunable` means `git branch --merged HEAD` lists it, so `git branch -d`
+will accept it; `holdsWork` means its commits are reachable from nowhere else
+here, and it is reported and never offered for deletion. The checked-out branch
+is never listed, because Git will not delete it.
+
+`gone` is only accurate after a fetch with `--prune`, so the interface reads
+`git.lastFetchAt` beside this and says when the answer was last checked.
+
+The primary worktree is filtered out. `missing` means the registration in
+`.git/worktrees` outlived the directory it points at.
+
+### `fetch_project`
+
+Request: `{ "path": "/work/api" }`. The app's only network operation.
+
+```json
+{ "hygiene": { }, "fetchedAt": 1755000000 }
+```
+
+`git fetch --prune`: it rewrites `refs/remotes/*` and nothing else — never a
+local branch, a commit or a file — and it never merges. `pull` is deliberately
+not exposed. Prompting is disabled on every channel (`GIT_TERMINAL_PROMPT`,
+`GIT_ASKPASS`, `SSH_ASKPASS`, `GIT_SSH_COMMAND` with `BatchMode=yes`), because a
+repository that wants a password would otherwise wait for a terminal that does
+not exist. A failure returns Git's own first line of stderr.
+
+The re-read hygiene comes back with it: a fetch that changed nothing still has to
+return an answer, because the interface is showing the previous one.
+
+### `prune_branches`
+
+Request: `{ "path": "/work/api", "branches": ["feature/x"] }`
+
+```json
+{
+  "deleted": ["feature/x"],
+  "refused": [{ "name": "feature/y", "reason": "not fully merged" }],
+  "hygiene": { }
+}
+```
+
+The names are re-checked against a freshly read report rather than trusted — the
+interface sends what it was showing, which may be a minute old — and the deletion
+itself is `git branch -d`, never `-D`. Git's reachability check is the last word,
+so a stale list costs a refusal and never a commit. A batch that half worked says
+which half.
+
 ### `cleanup_history`
 
 No request. Returns `{ "events": [...], "totals": {...} }`, and returns both empty on Free, where nothing is written down.
@@ -137,6 +200,47 @@ No request. Returns `{ "events": [...], "totals": {...} }`, and returns both emp
 ```
 
 One event per cleaned target, appended when the removal succeeded. Every field past `at` and `freedBytes` is `null` on an event written before that field existed; the report groups those as unrecorded rather than guessing. The whole log is returned unaggregated because filtering a report is interactive, and a round trip per filter change would make the screen feel like a query console.
+
+### `preview_maintenance`
+
+Request: `{ "candidates": [...], "policy": { "minIdleDays": 90, "minBytes": 524288000 } }`
+
+A candidate is `{ path, name, verdict, idleDays, reclaimableBytes }`, where `idleDays` and
+`reclaimableBytes` are nullable — an unmeasured project is unknown, never zero. Every field was
+produced by the backend, so the frontend carries facts back rather than deriving them.
+
+Raw response:
+
+```json
+{
+  "selected": [{ "path": "/w/old", "name": "old", "bytes": 23622320128, "idleDays": 218 }],
+  "skipped": [{ "path": "/w/api", "name": "api", "reason": "tooRecent", "verdict": "safe" }],
+  "bytes": 23622320128,
+  "protectedCount": 1
+}
+```
+
+`reason` is one of `verdict`, `unmeasured`, `unknownActivity`, `tooRecent`, `tooSmall`. Skipped
+entries are returned rather than counted in the backend because a policy that quietly matches
+nothing is indistinguishable from a broken one. Free on every plan: reading is not the capability
+being sold.
+
+### `maintenance_targets`
+
+Same request shape as `preview_maintenance`. Raw response is a list of target ids:
+
+```json
+["scan-1-abc123", "scan-1-def456"]
+```
+
+The selection is made in Rust from the same function the preview uses; a caller never sends the
+projects. What comes back are ids into the current scan session's registry, matched against the
+selected projects component-wise on paths — `/w/api-old` is not inside `/w/api`. Targets that are
+not cleanable, still being sized, or whose size failed are left out, because cleanup refuses them.
+
+An empty list when no scan session is live is the expected answer, not an error. Requires Pro;
+without it the command fails. The removal still goes through `clean_target`, one id at a time, and
+maintenance always passes `mode: "Trash"`.
 
 ### `cancel_cleanup`
 
@@ -167,6 +271,16 @@ authorization; the backend still performs the final target and policy checks.
 ### Settings and app info
 
 `get_settings`, `update_settings`, and `get_app_info` currently return raw command DTOs. Their fields are camelCase. Settings persistence is implemented in `settings.json`; missing settings use safe defaults, while invalid or unreadable settings return command errors.
+
+`maintenance` is a stored block, `{ minIdleDays, minBytes }`, defaulting to 90 days and 500 MiB. A settings file written before it existed loads and takes the default, like every other field.
+
+There is no background-fetch setting. Fetch is something the user asks for, one repository at a time; running it on a schedule needs the same scheduler the maintenance policy is waiting on, and neither is dressed as existing.
+
+## Workspace index
+
+`scan_workspace_index` project entries carry `git.behind` and `git.lastFetchAt`. `behind` is the largest distance across branches that have an upstream — not the sum, which would describe no branch that exists — and is `null` when nothing has an upstream to be behind. `lastFetchAt` is the modification time of `.git/FETCH_HEAD`, and `null` means the repository has never been fetched.
+
+Neither reaches `recoverability`. Being behind says something exists elsewhere, not that something here is at risk, and letting it decide would make a `git fetch` change what may be deleted unattended.
 
 ## Events
 
