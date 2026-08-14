@@ -28,6 +28,12 @@
         position: fixed;
         inset: 0;
         z-index: 99999;
+        /* The window is undecorated and transparent, so its corners are drawn
+           in CSS. This element paints before the bundle's stylesheet exists,
+           which is the whole point of a splash — so it has to round itself, or
+           the first thing the user sees is a square covering a rounded window. */
+        border-radius: 18px;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         align-items: center;

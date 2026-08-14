@@ -259,7 +259,13 @@ export function WorkspaceMap({
                 {index.projects.length} {index.projects.length === 1 ? "project" : "projects"}
               </h1>
               <Portrait value={formatBytes(totals.totalBytes)} label="on disk" />
-              <Portrait value={formatBytes(totals.reclaimableBytes)} label="reclaimable" accent />
+              {totals.reclaimableBytes > 0 ? (
+                <Portrait value={formatBytes(totals.reclaimableBytes)} label="reclaimable" accent />
+              ) : (
+                <span className="flex items-baseline text-sm font-semibold text-sage-300">
+                  Nothing to reclaim
+                </span>
+              )}
               {measuring && (
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-mist-500">
                   <RefreshCw size={11} className="animate-spin" /> measuring
@@ -614,13 +620,19 @@ function ProjectRow({
               <span className="text-[10px] text-mist-500">on disk</span>
             </span>
             <span className="mt-1.5 flex items-center justify-end gap-2">
-              <span className="block h-1 w-10 shrink-0 overflow-hidden rounded-full bg-forest-800" aria-hidden="true">
-                <span className="block h-full rounded-full bg-sage-400" style={{ width: `${share * 100}%` }} />
-              </span>
-              <span className="font-mono text-[11px] text-sage-300">
-                {formatBytes(footprint.reclaimableBytes)}
-              </span>
-              <span className="text-[10px] text-mist-500">reclaimable</span>
+              {footprint.reclaimableBytes > 0 ? (
+                <>
+                  <span className="block h-1 w-10 shrink-0 overflow-hidden rounded-full bg-forest-800" aria-hidden="true">
+                    <span className="block h-full rounded-full bg-sage-400" style={{ width: `${share * 100}%` }} />
+                  </span>
+                  <span className="font-mono text-[11px] text-sage-300">
+                    {formatBytes(footprint.reclaimableBytes)}
+                  </span>
+                  <span className="text-[10px] text-mist-500">reclaimable</span>
+                </>
+              ) : (
+                <span className="text-[11px] font-medium text-sage-300">Nothing to reclaim</span>
+              )}
             </span>
           </span>
         ) : (

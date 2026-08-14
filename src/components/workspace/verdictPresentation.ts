@@ -77,7 +77,7 @@ export function projectEvidence(
   if (verdict === "unknown") return project.git.remote ? "Git could not be read." : "Not a repository.";
 
   const idle = idleFor(project.activity);
-  const reclaimable = footprint ? formatBytes(footprint.reclaimableBytes) : null;
+  const reclaimable = footprint && footprint.reclaimableBytes > 0 ? formatBytes(footprint.reclaimableBytes) : null;
 
   if (verdict === "archivable") {
     return idle ? `${idle}, and every commit is on the remote.` : "Every commit is on the remote.";
