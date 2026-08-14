@@ -85,7 +85,11 @@ Estas ausências são decisão, não lacuna, e seguem o Kondo:
 
 ## Registro
 
-`get_default_providers()` recebe `AppSettings`. `NodeModules`, `CargoTarget`, `Gradle`, `NextJs` e `Turbo` dependem do toggle correspondente em Settings § Scanning. Todo o resto é registrado incondicionalmente: cada um exige o arquivo-marcador do seu ecossistema, então numa máquina sem aquele ecossistema não casa com nada e não custa nada. Um toggle por provider só se justifica quando existir razão para desligar um.
+`get_default_providers()` registra **todos** os providers de workspace, sempre. Os cinco toggles que existiam foram removidos: uma regra de ignoração diz "nunca toque em nada com esse nome, em lugar nenhum", vale para as trinta categorias em vez de cinco, e vence contra o provider, a confiança e um agendamento. Um interruptor ao lado disso era duplicata mais fraca de um mecanismo que o usuário já tinha.
+
+O que restou em Settings § Scanning cobre só o que o walk nunca alcança: `PackageManagerCache`, `AiToolCache` e `EditorCache`. Esses não têm equivalente em regra de ignoração — vivem sob caminhos que ninguém escolheu, pertencem a ferramentas e não a projetos, e cada um custa uma coisa diferente ao ser perdido. `discovery_categories()` traduz os toggles, e a filtragem acontece antes de qualquer medição: desligar uma categoria faz o scan trabalhar menos, não esconder resultado depois.
+
+`XcodeDerivedData` segue o workspace e não esses interruptores: é a mesma categoria que o walk reporta.
 
 `ReactNative` é registrado **primeiro**, no core e no desktop. Ele reivindica caminhos dentro de `ios/` e `android/` que Gradle e CocoaPods reivindicariam pelo nome solto, e `classify` devolve o primeiro provider que confirmar.
 

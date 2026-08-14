@@ -5,13 +5,12 @@ export type AppSettings = {
   openAtStartup: boolean;
   /** Closing the window hides it to the tray instead of quitting. */
   keepRunningInBackground: boolean;
+  /** What the scan looks at outside the chosen folders. */
+  detectPackageManagerCaches: boolean;
+  detectAiToolCaches: boolean;
+  detectEditorCaches: boolean;
   rememberLastWorkspace: boolean;
   checkForUpdates: boolean;
-  detectNodeModules: boolean;
-  detectCargoTarget: boolean;
-  detectGradleCache: boolean;
-  detectNextCache: boolean;
-  detectTurboCache: boolean;
   defaultCleanMode: CleanMode;
   /** Paths to leave alone, one rule per line, in .gitignore syntax. */
   ignoreRules: string;

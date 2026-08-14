@@ -72,7 +72,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
 
 function SettingsContent({ section, settings, updateSettings, onRequestPermanentDelete }: { section: Section; settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"]; onRequestPermanentDelete: () => void }) {
   if (section === "General") return <SettingsGroup><SettingToggle label="Open at startup" checked={settings.openAtStartup} onChange={(value) => updateSettings({ openAtStartup: value })} /><SettingToggle label="Keep running in the background" checked={settings.keepRunningInBackground} onChange={(value) => updateSettings({ keepRunningInBackground: value })} /><SettingToggle label="Remember last workspace" checked={settings.rememberLastWorkspace} onChange={(value) => updateSettings({ rememberLastWorkspace: value })} /><SettingToggle label="Check for updates" checked={settings.checkForUpdates} onChange={(value) => updateSettings({ checkForUpdates: value })} /></SettingsGroup>;
-  if (section === "Scanning") return <SettingsGroup><SettingToggle label="Detect node_modules" checked={settings.detectNodeModules} onChange={(value) => updateSettings({ detectNodeModules: value })} /><SettingToggle label="Detect Cargo target" checked={settings.detectCargoTarget} onChange={(value) => updateSettings({ detectCargoTarget: value })} /><SettingToggle label="Detect Gradle cache" checked={settings.detectGradleCache} onChange={(value) => updateSettings({ detectGradleCache: value })} /><SettingToggle label="Detect Next.js cache" checked={settings.detectNextCache} onChange={(value) => updateSettings({ detectNextCache: value })} /><SettingToggle label="Detect Turbo cache" checked={settings.detectTurboCache} onChange={(value) => updateSettings({ detectTurboCache: value })} /></SettingsGroup>;
+  if (section === "Scanning") return <ScanningContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Ignore rules") return <IgnoreRulesContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Deletion") return <SettingsGroup><SettingRadio label="Move to Recycle Bin" selected={settings.defaultCleanMode === "Trash"} onClick={() => updateSettings({ defaultCleanMode: "Trash" })} /><SettingRadio label="Permanently delete" selected={settings.defaultCleanMode === "Permanent"} onClick={onRequestPermanentDelete} /></SettingsGroup>;
   return <SettingsGroup><SettingRadio icon={<Moon size={16} />} label="Dark" selected={settings.appearance === "dark"} onClick={() => updateSettings({ appearance: "dark" as Appearance })} /><SettingRadio icon={<Sun size={16} />} label="Light" selected={settings.appearance === "light"} onClick={() => updateSettings({ appearance: "light" as Appearance })} /><SettingRadio icon={<Monitor size={16} />} label="System" selected={settings.appearance === "system"} onClick={() => updateSettings({ appearance: "system" as Appearance })} /></SettingsGroup>;
@@ -179,6 +179,49 @@ function IgnoreRulesContent({ settings, updateSettings }: { settings: AppSetting
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * What the scan looks at outside the chosen folders.
+ *
+ * Inside a workspace there is nothing to switch: an ignore rule already says
+ * "never touch anything called this, anywhere", reaches every category rather
+ * than the five that used to have toggles, and wins against the provider, the
+ * confidence and a schedule. A switch beside it would be a weaker duplicate.
+ *
+ * These have no such equivalent. They live under paths nobody chose, belong to
+ * tools rather than to projects, and each costs something different to lose.
+ */
+function ScanningContent({ settings, updateSettings }: { settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"] }) {
+  return (
+    <>
+      <p className="mb-5 text-sm leading-6 text-mist-500">
+        Build artifacts inside your folders are always detected. These are the caches that live
+        elsewhere, written by tools rather than by a project.
+      </p>
+      <SettingsGroup>
+        <SettingToggle
+          label="Package manager caches"
+          checked={settings.detectPackageManagerCaches}
+          onChange={(value) => updateSettings({ detectPackageManagerCaches: value })}
+        />
+        <SettingToggle
+          label="AI tool caches"
+          checked={settings.detectAiToolCaches}
+          onChange={(value) => updateSettings({ detectAiToolCaches: value })}
+        />
+        <SettingToggle
+          label="Editor caches"
+          checked={settings.detectEditorCaches}
+          onChange={(value) => updateSettings({ detectEditorCaches: value })}
+        />
+      </SettingsGroup>
+      <p className="mt-5 text-xs leading-5 text-mist-500">
+        To leave something inside a workspace alone, add it under Ignore rules — a rule there covers
+        every kind of artifact and applies to scheduled runs too.
+      </p>
+    </>
   );
 }
 

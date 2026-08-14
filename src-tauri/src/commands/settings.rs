@@ -29,13 +29,23 @@ pub struct AppSettings {
     pub open_at_startup: bool,
     /// Closing the window hides it to the tray instead of quitting.
     pub keep_running_in_background: bool,
+    /// Whether the scan looks outside the chosen folders, and at what.
+    ///
+    /// These are the only detection switches left. Inside a workspace, an
+    /// ignore rule already says "never touch anything called this, anywhere",
+    /// covers every category rather than five of them, and wins against the
+    /// provider, the confidence and a schedule. A toggle beside it would be a
+    /// weaker duplicate.
+    ///
+    /// Outside the workspace there is no equivalent: these caches live under
+    /// paths the user never chose, belong to tools rather than to projects, and
+    /// each is a different decision — emptying a package manager store slows
+    /// every future install, while an editor's index costs a reopen.
+    pub detect_package_manager_caches: bool,
+    pub detect_ai_tool_caches: bool,
+    pub detect_editor_caches: bool,
     pub remember_last_workspace: bool,
     pub check_for_updates: bool,
-    pub detect_node_modules: bool,
-    pub detect_cargo_target: bool,
-    pub detect_gradle_cache: bool,
-    pub detect_next_cache: bool,
-    pub detect_turbo_cache: bool,
     pub default_clean_mode: CleanMode,
     /// Paths the user has told us to leave alone, one rule per line, in
     /// `.gitignore` syntax. Stored as the text they typed rather than as
@@ -75,13 +85,11 @@ impl Default for AppSettings {
             // has to be remembered is a background utility nobody uses.
             open_at_startup: true,
             keep_running_in_background: true,
+            detect_package_manager_caches: true,
+            detect_ai_tool_caches: true,
+            detect_editor_caches: true,
             remember_last_workspace: true,
             check_for_updates: true,
-            detect_node_modules: true,
-            detect_cargo_target: true,
-            detect_gradle_cache: true,
-            detect_next_cache: true,
-            detect_turbo_cache: true,
             default_clean_mode: CleanMode::Trash,
             ignore_rules: String::new(),
             workspace_roots: Vec::new(),
@@ -280,7 +288,6 @@ mod tests {
 
         let settings = load_settings_from_path(&path).expect("an older file must still load");
         assert!(!settings.open_at_startup, "a stored value is never overwritten");
-        assert!(!settings.detect_node_modules);
         assert_eq!(settings.appearance, Appearance::Dark);
         assert!(
             settings.keep_running_in_background,
@@ -299,7 +306,7 @@ mod tests {
 
         let settings = load_settings_from_path(&path).unwrap();
 
-        assert!(settings.detect_node_modules);
+        assert!(settings.detect_package_manager_caches);
     }
 
     #[test]

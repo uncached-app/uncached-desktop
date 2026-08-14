@@ -13,45 +13,60 @@ pub fn outermost_roots(roots: Vec<PathBuf>) -> Vec<PathBuf> {
     kept
 }
 
+/// Every workspace provider, always.
+///
+/// The five toggles that used to gate some of these are gone. An ignore rule
+/// says "never touch anything called this, anywhere", applies to all thirty
+/// categories rather than five, and wins against the provider, the confidence
+/// and a schedule — so a switch beside it was a weaker duplicate of a mechanism
+/// the user already had.
+///
+/// React Native is registered first: it claims paths inside `ios/` and
+/// `android/` that the platform tooling would otherwise claim by their bare
+/// names, and the first provider to confirm wins.
 pub fn get_default_providers(
     settings: &crate::commands::settings::AppSettings,
 ) -> uncached_core::ProviderSet {
     let mut providers = uncached_core::ProviderSet::new();
-    // First, for the same reason as in the core's own set: it claims paths
-    // inside `ios/` and `android/` that the platform tooling would otherwise
-    // claim by their bare names, and the first provider to confirm wins.
     providers.add_scanner(uncached_core::ecosystems::react_native());
-    if settings.detect_node_modules {
-        providers.add_scanner(uncached_core::NodeModulesScanner);
-    }
-    if settings.detect_cargo_target {
-        providers.add_scanner(uncached_core::CargoTargetScanner);
-    }
-    if settings.detect_next_cache {
-        providers.add_scanner(uncached_core::NextCacheScanner);
-    }
-    if settings.detect_turbo_cache {
-        providers.add_scanner(uncached_core::TurboCacheScanner);
-    }
+    providers.add_scanner(uncached_core::NodeModulesScanner);
+    providers.add_scanner(uncached_core::CargoTargetScanner);
+    providers.add_scanner(uncached_core::NextCacheScanner);
+    providers.add_scanner(uncached_core::TurboCacheScanner);
     providers.add_scanner(uncached_core::PyCacheScanner);
-    if settings.detect_gradle_cache {
-        providers.add_scanner(uncached_core::GradleScanner);
-    }
-    // Registered unconditionally, like the Python cache above: each of these
-    // requires its ecosystem's project file beside the directory, so on a
-    // machine without that ecosystem they match nothing and cost nothing. A
-    // toggle per provider only earns its place in the settings screen once
-    // there is a reason to turn one off.
+    providers.add_scanner(uncached_core::GradleScanner);
     providers.add_scanner(uncached_core::XcodeDerivedDataScanner);
     providers.add_scanner(uncached_core::SwiftBuildScanner);
     providers.add_scanner(uncached_core::DotNetObjScanner);
     providers.add_scanner(uncached_core::DartToolScanner);
-    // Every project-type provider carries its own marker requirement, so the
-    // same rule applies: on a machine without that ecosystem they match nothing.
     for scanner in uncached_core::ecosystems::all() {
         providers.add_scanner(scanner);
     }
     providers.with_ignore_rules(compile_ignore_rules(&settings.ignore_rules).0)
+}
+
+/// The catalogued categories the user still wants looked at.
+///
+/// Unlike the workspace, these live under paths nobody chose and belong to
+/// tools rather than to projects, so each is its own decision.
+pub fn discovery_categories(
+    settings: &crate::commands::settings::AppSettings,
+) -> Vec<uncached_core::Category> {
+    let mut categories = Vec::new();
+    if settings.detect_package_manager_caches {
+        categories.push(uncached_core::Category::PackageManagerCache);
+    }
+    if settings.detect_ai_tool_caches {
+        categories.push(uncached_core::Category::AiToolCache);
+    }
+    if settings.detect_editor_caches {
+        categories.push(uncached_core::Category::EditorCache);
+    }
+    // Xcode's developer data is reached by the same probe but is not a tool
+    // cache the user opted into: it is the same category the workspace walk
+    // reports, and it follows the workspace rather than these switches.
+    categories.push(uncached_core::Category::XcodeDerivedData);
+    categories
 }
 
 /// Compiles the user's rules, returning the lines that failed alongside them.
@@ -112,92 +127,57 @@ mod tests {
     }
 
     #[test]
-    fn default_settings_register_every_provider_category() {
-        let providers = get_default_providers(&AppSettings::default());
-        let categories = active_categories(&providers);
+    fn every_workspace_provider_is_registered() {
+        let categories = active_categories(&get_default_providers(&AppSettings::default()));
+
+        assert_eq!(categories.first(), Some(&Category::ReactNative), "claims nested paths first");
+        assert_eq!(categories.len(), 29);
+        for expected in [
+            Category::NodeModules,
+            Category::CargoTarget,
+            Category::PyCache,
+            Category::UnityLibrary,
+            Category::ComposerVendor,
+        ] {
+            assert!(categories.contains(&expected), "{expected:?} must be registered");
+        }
+    }
+
+    /// The five detection toggles are gone on purpose. An ignore rule reaches
+    /// every category rather than five, and it wins in more places, so a switch
+    /// beside it would have been a weaker duplicate.
+    #[test]
+    fn a_workspace_provider_is_never_switched_off_by_settings() {
+        let mut settings = AppSettings::default();
+        settings.ignore_rules = String::new();
+        let bare = active_categories(&get_default_providers(&settings)).len();
+
+        settings.detect_package_manager_caches = false;
+        settings.detect_ai_tool_caches = false;
+        settings.detect_editor_caches = false;
 
         assert_eq!(
-            categories,
-            vec![
-                Category::ReactNative,
-                Category::NodeModules,
-                Category::CargoTarget,
-                Category::NextJs,
-                Category::Turbo,
-                Category::PyCache,
-                Category::Gradle,
-                Category::XcodeDerivedData,
-                Category::SwiftBuild,
-                Category::DotNetObj,
-                Category::DartTool,
-                Category::MavenTarget,
-                Category::SbtTarget,
-                Category::GradleBuild,
-                Category::CMakeBuild,
-                Category::UnityLibrary,
-                Category::UnrealIntermediate,
-                Category::GodotCache,
-                Category::ElixirBuild,
-                Category::HaskellBuild,
-                Category::ZigCache,
-                Category::FlutterBuild,
-                Category::JupyterCheckpoints,
-                Category::PixiEnv,
-                Category::ComposerVendor,
-                Category::TerraformDir,
-                Category::CocoapodsPods,
-                Category::NuxtCache,
-                Category::SvelteKitCache,
-            ]
+            active_categories(&get_default_providers(&settings)).len(),
+            bare,
+            "the discovery switches never touch the workspace walk"
         );
     }
 
     #[test]
-    fn disabling_optional_provider_removes_only_that_category() {
-        let cases = [
-            ("node_modules", Category::NodeModules),
-            ("cargo target", Category::CargoTarget),
-            ("gradle", Category::Gradle),
-            ("next", Category::NextJs),
-            ("turbo", Category::Turbo),
-        ];
+    fn discovery_follows_its_switches_and_xcode_follows_the_workspace() {
+        use uncached_core::Category as C;
+        let all = super::discovery_categories(&AppSettings::default());
+        assert!(all.contains(&C::PackageManagerCache));
+        assert!(all.contains(&C::AiToolCache));
+        assert!(all.contains(&C::EditorCache));
 
-        for (name, removed) in cases {
-            let mut settings = AppSettings::default();
-            match removed {
-                Category::NodeModules => {
-                    assert!(settings.detect_node_modules);
-                    settings.detect_node_modules = false;
-                }
-                Category::CargoTarget => {
-                    assert!(settings.detect_cargo_target);
-                    settings.detect_cargo_target = false;
-                }
-                Category::Gradle => {
-                    assert!(settings.detect_gradle_cache);
-                    settings.detect_gradle_cache = false;
-                }
-                Category::NextJs => {
-                    assert!(settings.detect_next_cache);
-                    settings.detect_next_cache = false;
-                }
-                Category::Turbo => {
-                    assert!(settings.detect_turbo_cache);
-                    settings.detect_turbo_cache = false;
-                }
-                _ => unreachable!(),
-            }
-            let providers = get_default_providers(&settings);
-            let categories = active_categories(&providers);
-
-            let all = get_default_providers(&AppSettings::default()).len();
-            assert_eq!(providers.len(), all - 1, "{name} provider count");
-            assert_eq!(categories.len(), all - 1, "{name} active categories");
-            assert!(providers.scanner_for(&Category::PyCache).is_some());
-            assert!(
-                providers.scanner_for(&removed).is_none(),
-                "{name} should be removed"
-            );
-        }
+        let mut settings = AppSettings::default();
+        settings.detect_ai_tool_caches = false;
+        let reduced = super::discovery_categories(&settings);
+        assert!(!reduced.contains(&C::AiToolCache));
+        assert!(
+            reduced.contains(&C::XcodeDerivedData),
+            "Xcode data is the workspace's category, not a tool cache switch"
+        );
     }
 }

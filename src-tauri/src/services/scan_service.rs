@@ -710,6 +710,7 @@ impl ScanService {
                     discover_home_locations(
                         &worker_scan_id,
                         &home,
+                        &crate::scanner::discovery_categories(&settings),
                         &settings.ignore_rules,
                         &discovery_event_sink,
                         &stats,
@@ -1190,13 +1191,20 @@ fn emit_finished(
 fn discover_home_locations(
     scan_id: &str,
     home: &Path,
+    wanted: &[uncached_core::Category],
     ignore_rules: &str,
     event_sink: &EventSink,
     stats: &Arc<Mutex<ScanStats>>,
     cancel_token: &Arc<AtomicBool>,
     sizing: &SizingSubmitter,
 ) {
-    let discoveries = uncached_core::probe_home(home);
+    // Filtered before anything is measured. A category the user turned off is
+    // not walked, not sized and not reported — switching it off has to mean the
+    // scan does less work, not that the results are hidden afterwards.
+    let discoveries: Vec<_> = uncached_core::probe_home(home)
+        .into_iter()
+        .filter(|discovery| wanted.contains(&discovery.category))
+        .collect();
     if discoveries.is_empty() {
         return;
     }
@@ -1583,6 +1591,7 @@ mod tests {
         super::discover_home_locations(
             &scan_id,
             &home,
+            &crate::scanner::discovery_categories(&crate::commands::settings::AppSettings::default()),
             "",
             &event_sink,
             &Arc::new(Mutex::new(ScanStats::default())),
@@ -1673,6 +1682,7 @@ mod tests {
         super::discover_home_locations(
             &scan_id,
             &home,
+            &crate::scanner::discovery_categories(&crate::commands::settings::AppSettings::default()),
             &location.resolve(&home).to_string_lossy(),
             &event_sink,
             &Arc::new(Mutex::new(ScanStats::default())),
@@ -1865,8 +1875,12 @@ mod tests {
         std::fs::create_dir_all(&target_path).unwrap();
         std::fs::write(root.join("project/package.json"), b"{}").unwrap();
 
+        // The snapshot has to be the set this scan ran with, not whatever the
+        // settings say later. Ignore rules are now the only thing that shapes
+        // it, so an excluded path is what proves the set travelled with the
+        // target rather than being rebuilt at cleanup time.
         let settings = AppSettings {
-            detect_cargo_target: false,
+            ignore_rules: "/never/touch/this".to_string(),
             ..AppSettings::default()
         };
         let providers = std::sync::Arc::new(providers_for_scan(&settings));
@@ -1879,10 +1893,12 @@ mod tests {
             providers: std::sync::Arc::clone(&providers),
         };
 
-        assert!(registered
-            .providers
-            .scanner_for(&uncached_core::Category::CargoTarget)
-            .is_none());
+        assert!(
+            registered
+                .providers
+                .excludes(std::path::Path::new("/never/touch/this")),
+            "the rules in force at scan time travel with the target"
+        );
         assert!(registered
             .providers
             .scanner_for(&uncached_core::Category::NodeModules)

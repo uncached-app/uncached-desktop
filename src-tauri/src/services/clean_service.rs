@@ -229,7 +229,6 @@ mod tests {
         .unwrap();
         let target = ScanTarget::new(target_path.clone(), Category::CargoTarget, 0, false, None);
         let settings = AppSettings {
-            detect_cargo_target: false,
             ..AppSettings::default()
         };
 

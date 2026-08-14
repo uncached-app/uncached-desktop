@@ -32,7 +32,7 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - Scanner coverage spans the dependency, build and cache directories of every ecosystem the product claims to support; `docs/SCANNERS.md` is the authority on which, and is the only place the list is written down.
 - Every detected artifact is confirmed by its ecosystem's marker file sitting beside it, and artifacts that only count in one place are declared as paths relative to the project root rather than as bare directory names.
 - No virtual environment and no fetched-dependency directory is ever a target where restoring it costs network rather than a local build.
-- Five scanners are gated by a Settings § Scanning toggle; the rest run unconditionally, because a marker requirement already makes them free on a machine without that ecosystem.
+- Every workspace scanner runs unconditionally. Excluding something inside a workspace is an ignore rule, which reaches every category and wins against the provider, the confidence and a schedule. Settings § Scanning covers only what lives outside the chosen folders: package manager, AI tool and editor caches.
 - `Docker` exists in the category model but has no scanner implementation.
 - Scanner coverage grows release to release. Copy must never enumerate it in prose — see `DESIGN.md` § Voice & Copy.
 - Default cleanup moves targets to the native Recycle Bin/Trash.
