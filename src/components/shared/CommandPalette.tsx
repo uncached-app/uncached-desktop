@@ -179,13 +179,16 @@ export function CommandPalette({
       id: "focus",
       group: "actions",
       title: "Show in workspace",
-      keywords: ["find", "list", "map"],
+      keywords: ["find", "list", "map", "locate", "scroll"],
       icon: Compass,
+      // Asking rather than navigating. Getting to the right screen is the easy
+      // half; the list is the only thing that knows which filter is currently
+      // hiding the row, so it is what answers the request.
       run: () =>
         run(async () => {
           onModuleChange("reclaim");
           flow.setView("projects");
-          flow.setActiveVerdict(null);
+          flow.focusProject(scope.path);
         }, true),
     });
 

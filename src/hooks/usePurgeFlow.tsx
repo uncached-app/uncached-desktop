@@ -21,6 +21,10 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   /** The verdict the workspace list is narrowed to, if any. */
   activeVerdict: string | null;
   setActiveVerdict: (verdict: string | null) => void;
+  /** A project the user asked to be shown, until the list has shown it. */
+  focusPath: string | null;
+  focusProject: (path: string) => void;
+  clearFocus: () => void;
 };
 
 const PurgeFlowContext = createContext<PurgeFlow | null>(null);
@@ -53,6 +57,10 @@ export function PurgeFlowProvider({
   // workspace, and a sentence that cannot reach its own destination is the
   // decoration this module is supposed to avoid.
   const [activeVerdict, setActiveVerdict] = useState<string | null>(null);
+  // A request, not a selection. Anywhere in the app can ask for a project to
+  // be put in front of the user; only the list knows what is currently hiding
+  // it, so the list is what answers and then clears the request.
+  const [focusPath, setFocusPath] = useState<string | null>(null);
 
   // Reopening the app lands on the folders the user last chose, already being
   // read. Discovery is milliseconds; the weights fill in behind it as always.
@@ -107,7 +115,20 @@ export function PurgeFlowProvider({
 
   return (
     <PurgeFlowContext.Provider
-      value={{ ...flow, index, footprints, measuring, verdicts, view, setView, activeVerdict, setActiveVerdict }}
+      value={{
+        ...flow,
+        index,
+        footprints,
+        measuring,
+        verdicts,
+        view,
+        setView,
+        activeVerdict,
+        setActiveVerdict,
+        focusPath,
+        focusProject: setFocusPath,
+        clearFocus: () => setFocusPath(null),
+      }}
     >
       {children}
     </PurgeFlowContext.Provider>

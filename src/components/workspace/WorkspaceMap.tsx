@@ -31,6 +31,9 @@ type WorkspaceMapProps = {
   /** Lifted so Insights can send the user to a narrowed list. */
   activeVerdict: Verdict | null;
   setActiveVerdict: (verdict: Verdict | null) => void;
+  /** A project someone asked to be shown. The list is what makes it visible. */
+  focusPath: string | null;
+  onFocusHandled: () => void;
 };
 
 /** `⌘` where it means something, `Ctrl` where it does not. */
@@ -61,10 +64,13 @@ export function WorkspaceMap({
   reclaimed,
   activeVerdict,
   setActiveVerdict,
+  focusPath,
+  onFocusHandled,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
   const openPalette = useOpenCommandPalette();
   const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
 
   // Folder and text narrow the set the verdict counts are taken from; the
@@ -109,6 +115,35 @@ export function WorkspaceMap({
     window.addEventListener("keydown", focusSearch);
     return () => window.removeEventListener("keydown", focusSearch);
   }, []);
+
+  // Showing a project means first stopping hiding it. Every narrowing on this
+  // screen is dropped, because any one of them can be the reason the row is not
+  // on screen and the user asked to see it, not to keep their filters.
+  useEffect(() => {
+    if (!focusPath) return;
+    onQueryChange("");
+    setActiveRoot(null);
+    setActiveVerdict(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusPath]);
+
+  // Scrolls once the filters have actually cleared, which is why this waits on
+  // the visible list rather than running in the same pass as the clearing.
+  useEffect(() => {
+    if (!focusPath) return;
+    const row = listRef.current?.querySelector(`[data-path="${CSS.escape(focusPath)}"]`);
+    row?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focusPath, visible]);
+
+  // The highlight is a moment, not a state. It ends on its own whether or not
+  // the row was ever found — a project that left the index between the request
+  // and this render would otherwise leave the app waiting forever.
+  useEffect(() => {
+    if (!focusPath) return;
+    const timer = setTimeout(onFocusHandled, 2400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusPath]);
 
   // Summed over the projects that are in the index right now, not over every
   // footprint ever measured: the cache outlives the workspace it was read for,
@@ -360,7 +395,7 @@ export function WorkspaceMap({
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
         <div className="min-h-0 flex-1">
-          <div className="h-full overflow-y-auto pb-6 [scrollbar-gutter:stable]">
+          <div ref={listRef} className="h-full overflow-y-auto pb-6 [scrollbar-gutter:stable]">
             {grouped.map(([verdict, projects]) => (
               <VerdictGroup
                 key={verdict}
@@ -368,6 +403,7 @@ export function WorkspaceMap({
                 projects={projects}
                 footprints={footprints}
                 showRoot={index.roots.length > 1 && activeRoot === null}
+                focusPath={focusPath}
               />
             ))}
             {visible.length === 0 && (
@@ -536,11 +572,13 @@ function VerdictGroup({
   projects,
   footprints,
   showRoot,
+  focusPath,
 }: {
   verdict: Verdict;
   projects: WorkspaceProject[];
   footprints: Record<string, Footprint>;
   showRoot: boolean;
+  focusPath: string | null;
 }) {
   const presentation = VERDICT_PRESENTATION[verdict];
   const reclaimable = projects.reduce(
@@ -573,6 +611,7 @@ function VerdictGroup({
             footprint={footprints[project.path] ?? null}
             first={position === 0}
             showRoot={showRoot}
+            focused={project.path === focusPath}
           />
         ))}
       </div>
@@ -586,12 +625,14 @@ function ProjectRow({
   footprint,
   first,
   showRoot,
+  focused,
 }: {
   project: WorkspaceProject;
   verdict: Verdict;
   footprint: Footprint | null;
   first: boolean;
   showRoot: boolean;
+  focused: boolean;
 }) {
   const evidence = projectEvidence(project, verdict, footprint);
   const share = footprint && footprint.totalBytes > 0 ? footprint.reclaimableBytes / footprint.totalBytes : 0;
@@ -603,12 +644,14 @@ function ProjectRow({
     // keyboard and the focus ring without either being reimplemented here.
     <motion.button
       type="button"
+      data-path={project.path}
       onClick={() => openPalette(project)}
       title={`${project.name} — open, reveal, copy path`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition-colors hover:bg-forest-850 ${first ? "" : "border-t border-forest-800"
-        }`}
+      className={`group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition-colors hover:bg-forest-850 ${
+        first ? "" : "border-t border-forest-800"
+      } ${focused ? "bg-forest-850 ring-1 ring-inset ring-sage-400" : ""}`}
     >
       {/* Line one is identity, line two is the finding. Both keep their own row
           of the grid so the size column lines up across every group. */}

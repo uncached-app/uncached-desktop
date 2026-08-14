@@ -103,6 +103,8 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
           reclaimed={history.totals}
           activeVerdict={flow.activeVerdict as never}
           setActiveVerdict={flow.setActiveVerdict as never}
+          focusPath={flow.focusPath}
+          onFocusHandled={flow.clearFocus}
         />
       )}
 
