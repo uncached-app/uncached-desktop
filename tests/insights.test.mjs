@@ -127,9 +127,23 @@ test("nothing invents urgency", () => {
   }
 });
 
-test("every sentence has somewhere to go, except the one about the past", () => {
-  const projects = [project("old", { activity: { idleDays: 300, state: "cold" } })];
-  const footprints = { "/w/old": footprint(20 * GB) };
+/**
+ * The rule is that an action must be honourable, not that every sentence has
+ * one. The workspace map filters by root, by text and by verdict — nothing
+ * else — so a sentence about a category or a clone has nowhere to send anyone,
+ * and a button that opens an unfiltered list is a worse answer than no button.
+ *
+ * Asserted as a closed set rather than as "has an action", because the way this
+ * regressed the first time was an action nobody had written a handler for.
+ */
+const REACHABLE = new Set(["verdict", "project"]);
+
+test("every sentence that offers a destination has one the map can reach", () => {
+  const projects = [
+    project("old", { activity: { idleDays: 300, state: "cold" } }),
+    project("dup", { duplicateOf: ["/elsewhere/dup"] }),
+  ];
+  const footprints = { "/w/old": footprint(20 * GB), "/w/dup": footprint(5 * GB) };
   const totals = { allTimeBytes: 238 * GB, last30DaysBytes: 0, cleanups: 12, firstRecordedAt: null };
 
   const insights = build(projects, footprints, {}, totals);
@@ -138,9 +152,30 @@ test("every sentence has somewhere to go, except the one about the past", () => 
   assert.equal(reclaimed.id, "reclaimed", "history closes the list");
   assert.match(reclaimed.text, /238\.00 GB with Uncached across 12 cleanups/);
   assert.equal(reclaimed.action, undefined, "the past has no destination");
-  for (const insight of insights.slice(0, -1)) {
-    assert.ok(insight.action, `${insight.id} needs a destination`);
+
+  // The fixture has to actually produce the two that carry no action, or this
+  // passes by never reaching them — which is how the old assertion survived.
+  const ids = insights.map((insight) => insight.id);
+  assert.ok(ids.includes("duplicates"), "the fixture must exercise a clone finding");
+
+  for (const insight of insights) {
+    if (!insight.action) continue;
+    assert.ok(
+      REACHABLE.has(insight.action.kind),
+      `${insight.id} points at "${insight.action.kind}", which the map cannot filter by`,
+    );
   }
+});
+
+test("a finding the map cannot filter by is a sentence rather than a button", () => {
+  const insights = build(
+    [project("dup", { duplicateOf: ["/elsewhere/dup"] })],
+    { "/w/dup": footprint(5 * GB) },
+  );
+  const duplicates = insights.find((insight) => insight.id === "duplicates");
+
+  assert.ok(duplicates, "a clone is still reported");
+  assert.equal(duplicates.action, undefined, "and reported without a destination it does not have");
 });
 
 test("history alone still speaks, on a workspace with nothing to report", () => {

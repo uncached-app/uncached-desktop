@@ -2,7 +2,7 @@ import { ChevronRight, Copy, GitBranch } from "lucide-react";
 import { motion } from "motion/react";
 import { rootName } from "./naming";
 import { formatBytes } from "../../../utils/format";
-import { projectEvidence } from "../verdictPresentation";
+import { VERDICT_PRESENTATION, projectEvidence } from "../verdictPresentation";
 import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
 
 /**
@@ -37,6 +37,7 @@ export function ProjectRow({
   footprint,
   first,
   showRoot,
+  showVerdict = false,
   focused,
   onOpen,
 }: {
@@ -45,6 +46,16 @@ export function ProjectRow({
   footprint: Footprint | null;
   first: boolean;
   showRoot: boolean;
+  /**
+   * Carry the verdict on the row itself.
+   *
+   * Off inside a verdict group, where the sticky heading already says it and a
+   * badge on every row would repeat it forty times. On in a flat list, where
+   * nothing else does — and a row that offers a reclaim without saying whether
+   * the project holds work that exists nowhere else is the one row this product
+   * must never render.
+   */
+  showVerdict?: boolean;
   focused: boolean;
   onOpen: (path: string) => void;
 }) {
@@ -71,6 +82,20 @@ export function ProjectRow({
       {/* Left side: Project identity & evidence line */}
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {showVerdict && (
+            <span
+              className="inline-flex shrink-0 items-center gap-1.5"
+              title={VERDICT_PRESENTATION[verdict].summary}
+            >
+              <span
+                className={`size-2 shrink-0 rounded-full ${VERDICT_PRESENTATION[verdict].dotClassName}`}
+                aria-hidden="true"
+              />
+              <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-mist-500">
+                {VERDICT_PRESENTATION[verdict].label}
+              </span>
+            </span>
+          )}
           <span className="truncate text-sm font-semibold tracking-tight text-mist-100">
             {project.name}
           </span>

@@ -107,8 +107,10 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
     insights.push({
       id: "concentration",
       bytes: topBytes,
+      // No action: the map has no category filter, so there is nowhere for a
+      // "view in workspace" to land. The sentence stands on its own, and the
+      // breakdown it summarises is on every project's own page.
       text: `${Math.round((topBytes / totalCategorised) * 100)}% of what you can reclaim is ${topCategory}, at ${formatBytes(topBytes)}.`,
-      action: { kind: "category", category: topCategory },
     });
   }
 
@@ -123,8 +125,9 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
     insights.push({
       id: "duplicates",
       bytes: duplicateBytes,
+      // No action, for the same reason: nothing in the map filters by clone.
+      // Each of these projects names its siblings on its own page.
       text: `${duplicated.length} ${duplicated.length === 1 ? "project is a second copy" : "projects are copies"} of a repository you already have elsewhere.`,
-      action: { kind: "duplicates" },
     });
   }
 

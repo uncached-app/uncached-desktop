@@ -1,5 +1,6 @@
 import { FolderOpen } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ProjectRow } from "./map/ProjectRow";
 import { VerdictGroup } from "./map/VerdictGroup";
 import { WorkspaceHeader } from "./map/WorkspaceHeader";
 import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
@@ -69,6 +70,11 @@ export function WorkspaceMap({
   onOpenProject,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
+  // Verdict first by default, because what a project holds decides whether its
+  // size is worth acting on at all. Size is the other reading, and until now it
+  // was unreachable: grouping runs before sorting, so the heaviest project on
+  // the machine could sit below three groups of smaller ones.
+  const [order, setOrder] = useState<"verdict" | "size">("verdict");
   const openPalette = useOpenCommandPalette();
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -158,6 +164,19 @@ export function WorkspaceMap({
     return counts;
   }, [index.projects]);
 
+  // Sorted by what is on disk rather than by what is reclaimable: the question
+  // this order answers is "what is taking up my space", and a 60 GB project with
+  // nothing to reclaim is still the answer to it. Reclaimable already leads
+  // inside every verdict group, which is the other question.
+  const ranked = useMemo(
+    () =>
+      [...visible].sort(
+        (left, right) =>
+          (footprints[right.path]?.totalBytes ?? 0) - (footprints[left.path]?.totalBytes ?? 0),
+      ),
+    [visible, footprints],
+  );
+
   const grouped = useMemo(() => {
     const groups = new Map<Verdict, WorkspaceProject[]>();
     for (const project of visible) {
@@ -221,19 +240,69 @@ export function WorkspaceMap({
             list moves under it, and each verdict keeps its title in view. The
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
+        {visible.length > 1 && (
+          <div className="flex shrink-0 items-center justify-end gap-1 pb-2 pr-2">
+            <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-mist-500">
+              Order
+            </span>
+            {(
+              [
+                ["verdict", "By verdict"],
+                ["size", "By size"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setOrder(value)}
+                aria-pressed={order === value}
+                className={`rounded-lg px-2.5 py-1 font-mono text-[11px] font-medium transition-all ${
+                  order === value
+                    ? "bg-forest-850 text-mist-100 font-semibold"
+                    : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="min-h-0 flex-1 overflow-hidden">
           <div ref={listRef} className="h-full overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
-            {grouped.map(([verdict, projects]) => (
-              <VerdictGroup
-                key={verdict}
-                verdict={verdict}
-                projects={projects}
-                footprints={footprints}
-                showRoot={index.roots.length > 1 && activeRoot === null}
-                focusPath={focusPath}
-                onOpenProject={onOpenProject}
-              />
-            ))}
+            {order === "size" && visible.length > 0 && (
+              <div className="overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-xs">
+                {ranked.map((project, position) => (
+                  <ProjectRow
+                    key={project.path}
+                    project={project}
+                    verdict={verdicts[project.path] ?? "unknown"}
+                    footprint={footprints[project.path] ?? null}
+                    first={position === 0}
+                    showRoot={index.roots.length > 1 && activeRoot === null}
+                    // Nothing else says it here: there is no group heading above
+                    // a flat list, and a heavy project is exactly the one whose
+                    // verdict has to be read before acting on the number.
+                    showVerdict
+                    focused={project.path === focusPath}
+                    onOpen={onOpenProject}
+                  />
+                ))}
+              </div>
+            )}
+
+            {order === "verdict" &&
+              grouped.map(([verdict, projects]) => (
+                <VerdictGroup
+                  key={verdict}
+                  verdict={verdict}
+                  projects={projects}
+                  footprints={footprints}
+                  showRoot={index.roots.length > 1 && activeRoot === null}
+                  focusPath={focusPath}
+                  onOpenProject={onOpenProject}
+                />
+              ))}
 
             {visible.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-center">

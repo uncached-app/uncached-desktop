@@ -74,9 +74,14 @@ export function InsightsModule({
     setShown(EVENT_PAGE);
   }
 
+  // Every branch has to land somewhere the sentence actually points at. A
+  // button reading "View in workspace" that opens an unfiltered workspace is
+  // worse than the same sentence with no button, which is why the two findings
+  // with no destination in the map no longer carry an action at all.
   function follow(insight: Insight) {
     if (!insight.action) return;
     if (insight.action.kind === "verdict") flow.setActiveVerdict(insight.action.verdict as Verdict);
+    if (insight.action.kind === "project") flow.focusProject(insight.action.path);
     onOpenWorkspace();
   }
 
