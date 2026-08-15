@@ -47,7 +47,7 @@ function getNodeStyle(node: GraphNode, verdicts: Record<string, Verdict>): NodeS
   switch (verdict) {
     case "protect":
       return {
-        fill: "var(--color-forest-900)",
+        fill: "var(--color-coral-surface)",
         stroke: "var(--color-coral-300)",
         dotColor: "var(--color-coral-300)",
         label: "Protect",
@@ -88,8 +88,11 @@ function getNodeStyle(node: GraphNode, verdicts: Record<string, Verdict>): NodeS
         label: "Fully on remote",
       };
     default:
+      // Filled like every other verdict rather than left as the page showing
+      // through: on the light theme `forest-900` is white, and a white circle
+      // on an off-white canvas is a hole where a project should be.
       return {
-        fill: "var(--color-forest-900)",
+        fill: "var(--color-forest-850)",
         stroke: "var(--color-forest-800)",
         dotColor: "var(--color-mist-500)",
         label: "Not established",
@@ -523,6 +526,7 @@ const MapBody = memo(function MapBody({
   wasDragged,
 }: BodyProps) {
   const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+  const centre = { x: (graph.width * SIDE) / 2, y: SIDE / 2 };
 
   return (
     <>
@@ -532,18 +536,16 @@ const MapBody = memo(function MapBody({
         if (!from || !to) return null;
 
         return (
-          <line
+          <path
             key={edge.id}
-            x1={from.x * SIDE}
-            y1={from.y * SIDE}
-            x2={to.x * SIDE}
-            y2={to.y * SIDE}
+            d={edgePath(from, to, centre, edge.kind)}
+            fill="none"
             stroke={EDGE_STROKE[edge.kind]}
-            strokeWidth={edge.kind === "family" ? 1.75 : edge.kind === "clone" ? 1.5 : 1.25}
+            strokeWidth={edge.kind === "family" ? 1.75 : edge.kind === "clone" ? 1.4 : 1}
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
             strokeDasharray={edge.kind === "clone" ? "6 5" : undefined}
-            opacity={edge.kind === "family" ? 0.6 : 1}
+            opacity={RESTING_EDGE[edge.kind]}
           />
         );
       })}
@@ -634,6 +636,7 @@ function MapHighlight({
   verdicts: Record<string, Verdict>;
   labelScale: number;
 }) {
+  const centre = { x: (graph.width * SIDE) / 2, y: SIDE / 2 };
   const edges = graph.edges.filter((edge) => edge.from === hovered || edge.to === hovered);
   const reached = new Set<string>([hovered]);
   for (const edge of edges) {
@@ -648,14 +651,18 @@ function MapHighlight({
         const to = byId.get(edge.to);
         if (!from || !to) return null;
         return (
-          <line
+          <path
             key={edge.id}
-            x1={from.x * SIDE}
-            y1={from.y * SIDE}
-            x2={to.x * SIDE}
-            y2={to.y * SIDE}
-            stroke={edge.kind === "clone" ? "var(--color-coral-300)" : edge.kind === "family" ? "var(--color-sage-400)" : "var(--color-pro-200)"}
-            strokeWidth={edge.kind === "family" ? 2.5 : edge.kind === "clone" ? 2.25 : 2}
+            d={edgePath(from, to, centre, edge.kind)}
+            fill="none"
+            stroke={
+              edge.kind === "clone"
+                ? "var(--color-coral-300)"
+                : edge.kind === "family"
+                  ? "var(--color-sage-400)"
+                  : "var(--color-pro-200)"
+            }
+            strokeWidth={edge.kind === "family" ? 2.5 : 2}
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
             strokeDasharray={edge.kind === "clone" ? "6 5" : undefined}
@@ -677,12 +684,9 @@ function MapHighlight({
               <circle
                 cx={node.x * SIDE}
                 cy={node.y * SIDE}
-                r={radius + 4.5}
-                fill="none"
-                stroke="var(--color-mist-300)"
-                strokeWidth="1"
-                strokeDasharray="3 3"
-                vectorEffect="non-scaling-stroke"
+                r={radius * 1.55}
+                fill={style.stroke}
+                opacity={0.14}
               />
             )}
             <circle
@@ -748,6 +752,51 @@ const EDGE_STROKE: Record<GraphEdge["kind"], string> = {
   clone: "var(--color-coral-300)",
   family: "var(--color-sage-400)",
 };
+
+/**
+ * How present a line is when nothing is asked of it.
+ *
+ * There are hundreds of `copy` lines and a handful of the others, and drawn
+ * alike the many bury the few: close in and the picture is a mesh with the
+ * nodes somewhere behind it. They are faint at rest and full strength under the
+ * pointer, which is the only time one line is worth following.
+ */
+const RESTING_EDGE: Record<GraphEdge["kind"], number> = {
+  copy: 0.28,
+  clone: 0.55,
+  family: 0.65,
+};
+
+/**
+ * A line, bent toward the middle.
+ *
+ * Straight chords from a dozen packages to a hundred projects cross everything
+ * on the way and read as static. Bending each one inward makes the lines
+ * leaving a package fan and run together — the same trick as bundling, at the
+ * cost of one control point — so a package reads as a hub rather than as the
+ * place a lot of lines happen to meet.
+ *
+ * A family's own lines are short and inside a cluster; bending those toward a
+ * centre a long way off would swing them out of it.
+ */
+function edgePath(
+  from: GraphNode,
+  to: GraphNode,
+  centre: { x: number; y: number },
+  kind: GraphEdge["kind"],
+): string {
+  const x1 = from.x * SIDE;
+  const y1 = from.y * SIDE;
+  const x2 = to.x * SIDE;
+  const y2 = to.y * SIDE;
+  if (kind === "family") return `M ${x1} ${y1} L ${x2} ${y2}`;
+
+  const bend = kind === "copy" ? 0.26 : 0.14;
+  const mid = { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+  const cx = mid.x + (centre.x - mid.x) * bend;
+  const cy = mid.y + (centre.y - mid.y) * bend;
+  return `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+}
 
 function radiusOf(
   node: GraphNode,
