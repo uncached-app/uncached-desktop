@@ -8,6 +8,7 @@ import { useEntitlement } from "./hooks/useEntitlement";
 import { useIgnoreRuleCount } from "./hooks/useIgnoreRuleCount";
 import { useSettings } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
+import { useThemeFiles } from "./hooks/useThemeFiles";
 import { DEFAULT_POLICY, DEFAULT_SCHEDULE } from "./types/maintenance";
 import type { AppModule } from "./types/module";
 
@@ -19,7 +20,11 @@ function App() {
   const cleanMode = settings.settings?.defaultCleanMode ?? "Trash";
   // Counted in Rust: comments and blanks are not rules.
   const activeIgnoreRules = useIgnoreRuleCount(settings.settings?.ignoreRules ?? "");
-  useTheme(settings.settings?.appearance);
+  // A theme whose file has since been deleted falls back to the built-in
+  // rather than leaving the window painted half by a file that is gone.
+  const { themes } = useThemeFiles();
+  const theme = themes.find((entry) => entry.id === settings.settings?.theme) ?? null;
+  useTheme(settings.settings?.appearance, theme);
 
   return (
     <PurgeFlowProvider

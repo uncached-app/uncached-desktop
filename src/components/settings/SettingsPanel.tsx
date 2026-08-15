@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { List, Monitor, Moon, Settings, Share2, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
 import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
@@ -17,6 +17,7 @@ type SettingsPanelProps = {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   /** The plan is native state; activating one has to re-read it. */
   onLicenseChange?: () => void;
+  proEnabled?: boolean;
 };
 
 const sections = [
@@ -40,6 +41,7 @@ export function SettingsPanel({
   error,
   updateSettings,
   onLicenseChange = () => {},
+  proEnabled = false,
 }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(
@@ -113,6 +115,7 @@ export function SettingsPanel({
             <h2 className="hidden text-base font-semibold text-mist-100 sm:block">{section}</h2>
             <Select
               label="Settings section"
+              size="sm"
               value={section}
               options={sections.map((item) => ({ value: item, label: item }))}
               onChange={(value) => setSection(value as Section)}
@@ -135,7 +138,7 @@ export function SettingsPanel({
             ) : section === "About" ? (
               <AboutContent appInfo={appInfo} />
             ) : loading || !settings ? (
-              <div className="grid h-full place-items-center text-sm text-mist-500">
+              <div className="grid h-full place-items-center text-xs text-mist-500">
                 Loading settings...
               </div>
             ) : (
@@ -143,6 +146,7 @@ export function SettingsPanel({
                 section={section}
                 settings={settings}
                 updateSettings={updateSettings}
+                proEnabled={proEnabled}
                 onRequestPermanentDelete={() => setConfirmPermanent(true)}
               />
             )}
@@ -217,38 +221,48 @@ function SettingsContent({
   section,
   settings,
   updateSettings,
+  proEnabled,
   onRequestPermanentDelete,
 }: {
   section: Section;
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
+  proEnabled: boolean;
   onRequestPermanentDelete: () => void;
 }) {
   if (section === "General") {
     return (
-      <SettingsGroup>
-        <SettingToggle
-          label="Open at startup"
-          checked={settings.openAtStartup}
-          onChange={(value) => updateSettings({ openAtStartup: value })}
-        />
-        <SettingToggle
-          label="Keep running in the background"
-          hint="Closing the window hides Uncached in the menu bar instead of quitting it. Scheduled maintenance runs from there; Quit ends it until you open the app again."
-          checked={settings.keepRunningInBackground}
-          onChange={(value) => updateSettings({ keepRunningInBackground: value })}
-        />
-        <SettingToggle
-          label="Remember last workspace"
-          checked={settings.rememberLastWorkspace}
-          onChange={(value) => updateSettings({ rememberLastWorkspace: value })}
-        />
-        <SettingToggle
-          label="Check for updates"
-          checked={settings.checkForUpdates}
-          onChange={(value) => updateSettings({ checkForUpdates: value })}
-        />
-      </SettingsGroup>
+      <>
+        <p className="mb-4 text-xs leading-5 text-mist-500">
+          Configure application startup, background operation and automatic updates.
+        </p>
+        <SettingsGroup>
+          <SettingToggle
+            label="Open at startup"
+            hint="Automatically start Uncached when you log in to your computer."
+            checked={settings.openAtStartup}
+            onChange={(value) => updateSettings({ openAtStartup: value })}
+          />
+          <SettingToggle
+            label="Keep running in the background"
+            hint="Closing the window hides Uncached in the menu bar instead of quitting it. Scheduled maintenance runs from there; Quit ends it until you open the app again."
+            checked={settings.keepRunningInBackground}
+            onChange={(value) => updateSettings({ keepRunningInBackground: value })}
+          />
+          <SettingToggle
+            label="Remember last workspace"
+            hint="Restore your previously open folders and analysis automatically on launch."
+            checked={settings.rememberLastWorkspace}
+            onChange={(value) => updateSettings({ rememberLastWorkspace: value })}
+          />
+          <SettingToggle
+            label="Check for updates"
+            hint="Periodically check for new releases and security improvements."
+            checked={settings.checkForUpdates}
+            onChange={(value) => updateSettings({ checkForUpdates: value })}
+          />
+        </SettingsGroup>
+      </>
     );
   }
   if (section === "Opening") {
@@ -262,65 +276,115 @@ function SettingsContent({
   }
   if (section === "Deletion") {
     return (
+      <DeletionContent
+        settings={settings}
+        updateSettings={updateSettings}
+        onRequestPermanentDelete={onRequestPermanentDelete}
+      />
+    );
+  }
+  return <AppearanceContent settings={settings} updateSettings={updateSettings} proEnabled={proEnabled} />;
+}
+
+function DeletionContent({
+  settings,
+  updateSettings,
+  onRequestPermanentDelete,
+}: {
+  settings: AppSettings;
+  updateSettings: SettingsPanelProps["updateSettings"];
+  onRequestPermanentDelete: () => void;
+}) {
+  return (
+    <>
+      <p className="mb-4 text-xs leading-5 text-mist-500">
+        Choose how build artifacts and caches are removed from your disk during cleanup.
+      </p>
       <SettingsGroup>
         <SettingRadio
           label="Move to Recycle Bin"
+          hint="Reclaimable artifacts are moved to the system Recycle Bin/Trash, so cleanups can be reversed."
           selected={settings.defaultCleanMode === "Trash"}
           onClick={() => updateSettings({ defaultCleanMode: "Trash" })}
         />
         <SettingRadio
           label="Permanently delete"
+          hint="Targets are deleted directly from disk to free up space immediately. Each run requires confirmation."
           selected={settings.defaultCleanMode === "Permanent"}
           onClick={onRequestPermanentDelete}
         />
       </SettingsGroup>
-    );
-  }
-  return <AppearanceContent settings={settings} updateSettings={updateSettings} />;
+    </>
+  );
 }
 
 function AppearanceContent({
   settings,
   updateSettings,
+  proEnabled,
 }: {
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
+  proEnabled: boolean;
 }) {
   return (
-    <div className="grid gap-7">
+    <div className="space-y-6">
       <div>
-        <SettingsLabel>Theme</SettingsLabel>
+        <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+          Theme
+        </p>
         <SettingsGroup>
           <SettingRadio
-            icon={<Moon size={16} />}
+            icon={<Moon size={15} />}
             label="Dark"
+            hint="Sleek dark theme optimized for low-light development environments."
             selected={settings.appearance === "dark"}
             onClick={() => updateSettings({ appearance: "dark" as Appearance })}
           />
           <SettingRadio
-            icon={<Sun size={16} />}
+            icon={<Sun size={15} />}
             label="Light"
+            hint="Clean high-contrast light theme."
             selected={settings.appearance === "light"}
             onClick={() => updateSettings({ appearance: "light" as Appearance })}
           />
           <SettingRadio
-            icon={<Monitor size={16} />}
+            icon={<Monitor size={15} />}
             label="System"
+            hint="Automatically follows your operating system appearance preference."
             selected={settings.appearance === "system"}
             onClick={() => updateSettings({ appearance: "system" as Appearance })}
           />
         </SettingsGroup>
       </div>
 
+      <div className="border-t border-forest-800 pt-5">
+        <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+          Default Workspace View
+        </p>
+        <SettingsGroup>
+          <SettingRadio
+            icon={<List size={15} />}
+            label="List"
+            hint="Every project, grouped by verdict or size. The standard keyboard-navigable list."
+            selected={!proEnabled || settings.workspaceView === "list"}
+            onClick={() => updateSettings({ workspaceView: "list" })}
+          />
+          <SettingRadio
+            icon={<Share2 size={15} />}
+            label="Map"
+            hint={
+              proEnabled
+                ? "The workspace as an interactive 2D graph: visual disk weights, dependencies, and shared packages."
+                : "Pro. Unlocks the interactive workspace constellation graph view."
+            }
+            selected={proEnabled && settings.workspaceView === "map"}
+            disabled={!proEnabled}
+            onClick={() => updateSettings({ workspaceView: "map" })}
+          />
+        </SettingsGroup>
+      </div>
     </div>
-  );
-}
-
-function SettingsLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="pb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
-      {children}
-    </p>
   );
 }
 
@@ -333,27 +397,47 @@ function AboutContent({
   const eulaUrl = "https://uncached.app/eula";
 
   return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
-      <img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-20" />
-      <img src="/brand/UNCACHED-ICON-DARK-NOBG.svg" alt="" className="theme-logo-dark size-20" />
-      <h3 className="mt-6 text-xl font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
-      <p className="mt-1 text-xs text-mist-500">Reclaim disk from build artifacts.</p>
-      <p className="mt-5 font-mono text-xs text-mist-500">Version {appInfo?.version ?? "..."}</p>
-      <div className="mt-4 flex flex-col items-center gap-2">
-        <a
-          href={websiteUrl}
-          onClick={(e) => openExternalUrl(websiteUrl, e)}
-          className="text-xs font-medium text-sage-300 hover:text-sage-400"
-        >
-          uncached.app
-        </a>
-        <a
-          href={eulaUrl}
-          onClick={(e) => openExternalUrl(eulaUrl, e)}
-          className="text-[11px] text-mist-500 hover:text-mist-300 underline"
-        >
-          End User License Agreement (EULA)
-        </a>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <div className="grid size-12 shrink-0 place-items-center rounded-2xl border border-forest-800 bg-forest-950 shadow-xs">
+          <img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-7" />
+          <img src="/brand/UNCACHED-ICON-DARK-NOBG.svg" alt="" className="theme-logo-dark size-7" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
+          <p className="text-xs text-mist-500">Reclaim disk space from heavy build artifacts and caches.</p>
+        </div>
+      </div>
+
+      <div className="divide-y divide-forest-800 border-y border-forest-800">
+        <div className="flex items-center justify-between gap-4 py-3 text-xs">
+          <dt className="font-medium text-mist-500">Version</dt>
+          <dd className="font-mono font-medium text-mist-100">{appInfo?.version ?? "..."}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-3 text-xs">
+          <dt className="font-medium text-mist-500">Official Website</dt>
+          <dd>
+            <a
+              href={websiteUrl}
+              onClick={(e) => openExternalUrl(websiteUrl, e)}
+              className="font-medium text-sage-300 transition-colors hover:text-sage-400 cursor-pointer"
+            >
+              uncached.app →
+            </a>
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-3 text-xs">
+          <dt className="font-medium text-mist-500">Legal Agreement</dt>
+          <dd>
+            <a
+              href={eulaUrl}
+              onClick={(e) => openExternalUrl(eulaUrl, e)}
+              className="text-mist-400 transition-colors hover:text-mist-100 underline cursor-pointer"
+            >
+              End User License Agreement (EULA)
+            </a>
+          </dd>
+        </div>
       </div>
     </div>
   );
@@ -413,7 +497,7 @@ function IgnoreRulesContent({
         placeholder={IGNORE_RULES_PLACEHOLDER}
         aria-label="Ignore rules"
         aria-invalid={problemLines.size > 0}
-        className="mt-4 min-h-44 flex-1 resize-none rounded-2xl border border-forest-800 bg-forest-950 p-4 font-mono text-xs leading-6 placeholder:text-mist-500/60 focus:outline-none"
+        className="mt-4 min-h-44 flex-1 resize-none rounded-2xl border border-forest-800 bg-forest-950 p-4 font-mono text-xs leading-6 placeholder:text-mist-500/60 focus:outline-none focus:border-sage-400/60 shadow-2xs"
       />
 
       <div className="mt-3.5 shrink-0 space-y-2" aria-live="polite">
@@ -457,16 +541,19 @@ function ScanningContent({
       <SettingsGroup>
         <SettingToggle
           label="Package manager caches"
+          hint="Include npm, pnpm, yarn, cargo, and pip global package caches."
           checked={settings.detectPackageManagerCaches}
           onChange={(value) => updateSettings({ detectPackageManagerCaches: value })}
         />
         <SettingToggle
           label="AI tool caches"
+          hint="Include local weights, completions, and embedding caches."
           checked={settings.detectAiToolCaches}
           onChange={(value) => updateSettings({ detectAiToolCaches: value })}
         />
         <SettingToggle
           label="Editor caches"
+          hint="Include VS Code, Xcode, and JetBrains workspace metadata caches."
           checked={settings.detectEditorCaches}
           onChange={(value) => updateSettings({ detectEditorCaches: value })}
         />
@@ -491,24 +578,29 @@ function OpeningContent({
   const terminals = launchers?.filter((launcher) => launcher.kind === "terminal") ?? null;
 
   return (
-    <SettingsGroup>
-      <LauncherChoice
-        label="Editor"
-        hint="Left automatic, the editor built for the project's language leads, then any general-purpose one."
-        empty="No editor was found in your Applications folder."
-        launchers={editors}
-        chosen={settings.preferredEditor}
-        onChoose={(preferredEditor) => updateSettings({ preferredEditor })}
-      />
-      <LauncherChoice
-        label="Terminal"
-        hint="No platform exposes a default terminal an app opening a directory could read, so automatic is whichever was found first."
-        empty="No terminal was found."
-        launchers={terminals}
-        chosen={settings.preferredTerminal}
-        onChoose={(preferredTerminal) => updateSettings({ preferredTerminal })}
-      />
-    </SettingsGroup>
+    <>
+      <p className="mb-4 text-xs leading-5 text-mist-500">
+        Choose which installed application opens when launching a project or terminal.
+      </p>
+      <SettingsGroup>
+        <LauncherChoice
+          label="Editor"
+          hint="Left automatic, the editor built for the project's language leads, then any general-purpose one."
+          empty="No editor was found in your Applications folder."
+          launchers={editors}
+          chosen={settings.preferredEditor}
+          onChoose={(preferredEditor) => updateSettings({ preferredEditor })}
+        />
+        <LauncherChoice
+          label="Terminal"
+          hint="No platform exposes a default terminal an app opening a directory could read, so automatic is whichever was found first."
+          empty="No terminal was found."
+          launchers={terminals}
+          chosen={settings.preferredTerminal}
+          onChoose={(preferredTerminal) => updateSettings({ preferredTerminal })}
+        />
+      </SettingsGroup>
+    </>
   );
 }
 
@@ -557,18 +649,19 @@ function LauncherChoice({
       </span>
       <Select
         label={label}
+        size="sm"
         value={chosen ?? ""}
         options={options}
         disabled={detecting || none}
         onChange={(value) => onChoose(value === "" ? null : value)}
-        className="w-44 shrink-0"
+        className="w-44 shrink-0 shadow-2xs"
       />
     </div>
   );
 }
 
 function SettingsGroup({ children }: { children: ReactNode }) {
-  return <div className="divide-y divide-forest-800">{children}</div>;
+  return <div className="divide-y divide-forest-800 border-y border-forest-800">{children}</div>;
 }
 
 /**

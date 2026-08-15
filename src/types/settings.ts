@@ -28,6 +28,8 @@ export type AppSettings = {
   insightsGrain: string;
   /** Keys the user bound differently, by action id. Overrides only. */
   shortcuts: Record<string, string>;
+  /** A theme file in the config folder, by name without `.json`. */
+  theme: string | null;
   /**
    * Which detected editor and terminal a project opens in, by launcher id.
    *

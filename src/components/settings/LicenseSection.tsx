@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import { Check, LoaderCircle, LockKeyhole } from "lucide-react";
+import { Check, LoaderCircle, LockKeyhole, Sparkles } from "lucide-react";
 import { openExternalUrl } from "../../utils/externalLink";
 
 type LicenseInfo = {
@@ -11,28 +11,14 @@ type LicenseInfo = {
   seats: number;
 };
 
-/**
- * An expired licence is still a purchase. Renewal arrives by email, so a paying
- * user can land here through no fault of their own — a message in spam, a card
- * that failed — and the screen has to say which of the two happened.
- */
 type LicenseState = {
   license: LicenseInfo;
   expired: boolean;
   expiresInDays: number | null;
 };
 
-/** How early the renewal notice appears, in days. */
 const RENEWAL_NOTICE_DAYS = 14;
 
-/**
- * Activation, and nothing else.
- *
- * The key is verified natively — a signature check against a key compiled into
- * the app — so this screen never decides whether someone is Pro. It pastes,
- * reports what the native layer answered, and shows the licence back to its
- * holder so an activation is verifiable by eye.
- */
 export function LicenseSection({ onActivated }: { onActivated: () => void }) {
   const [state, setState] = useState<LicenseState | null>(null);
   const [key, setKey] = useState("");
@@ -54,7 +40,6 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
       setKey("");
       onActivated();
     } catch (activationError) {
-      // The native layer writes these for people, not for logs.
       setError(typeof activationError === "string" ? activationError : "Activation failed.");
     } finally {
       setBusy(false);
@@ -77,32 +62,41 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
     const renewing = expiresInDays !== null && expiresInDays <= RENEWAL_NOTICE_DAYS;
 
     return (
-      <div className="rounded-2xl border border-forest-800 bg-forest-950 p-5">
-        <div className="flex items-center gap-2 text-sm font-semibold text-sage-300">
-          <Check size={16} strokeWidth={2.5} aria-hidden="true" /> Uncached Pro
+      <div className="space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-sage-300">
+            <Check size={16} strokeWidth={2.5} aria-hidden="true" />
+            <span className="text-sm text-mist-100 font-bold">Uncached Pro Active</span>
+          </div>
+          <span className="rounded-md border border-sage-400/40 bg-sage-400/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-sage-300">
+            LICENSED
+          </span>
         </div>
+
         {renewing && (
-          <p className="mt-3 rounded-xl border border-confidence-medium/30 bg-confidence-medium-surface px-3 py-2 text-xs leading-5 text-confidence-medium">
+          <p className="rounded-xl border border-confidence-medium/30 bg-confidence-medium-surface px-3 py-2 text-xs leading-5 text-confidence-medium">
             Renews in {expiresInDays === 1 ? "1 day" : `${expiresInDays} days`}. The new key arrives
             by email — paste it here when it does.
           </p>
         )}
-        <dl className="mt-4 grid gap-2 text-xs">
+
+        <div className="divide-y divide-forest-800 border-y border-forest-800">
           <Row label="Licensed to" value={license.holder} />
-          <Row label="Licence" value={license.id} />
-          <Row label="Machines" value={license.seats === 1 ? "1" : String(license.seats)} />
+          <Row label="Licence ID" value={license.id} />
+          <Row label="Machines" value={license.seats === 1 ? "1 seat" : `${license.seats} seats`} />
           <Row
-            label="Expires"
-            value={license.expiresAt ? new Date(license.expiresAt).toLocaleDateString() : "Never"}
+            label="Expiration"
+            value={license.expiresAt ? new Date(license.expiresAt).toLocaleDateString() : "Never (Perpetual)"}
           />
-        </dl>
+        </div>
+
         <button
           type="button"
           onClick={deactivate}
           disabled={busy}
-          className="mt-5 rounded-xl bg-forest-800 px-4 py-2 text-xs font-medium text-mist-300 transition-colors hover:bg-forest-850 disabled:opacity-50"
+          className="rounded-xl border border-forest-800 bg-forest-850 px-3.5 py-2 text-xs font-medium text-mist-300 transition-colors hover:border-coral-300/40 hover:bg-coral-300/10 hover:text-coral-300 disabled:opacity-50 cursor-pointer"
         >
-          Remove from this machine
+          Remove licence from this machine
         </button>
       </div>
     );
@@ -111,61 +105,70 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
   const lapsed = state?.expired ? state : null;
 
   return (
-    <div className="rounded-2xl border border-forest-800 bg-forest-950 p-5">
-      <div className="flex items-center gap-2 text-sm font-medium text-mist-100">
-        <LockKeyhole size={15} className="text-mist-500" aria-hidden="true" /> Uncached Free
+    <div className="space-y-5">
+      <div>
+        <div className="flex items-center gap-2 text-sm font-semibold text-mist-100">
+          <LockKeyhole size={15} className="text-mist-500" aria-hidden="true" />
+          <span>Uncached Free Plan</span>
+        </div>
+        {lapsed ? (
+          <p className="mt-2 rounded-xl border border-coral-300/30 bg-forest-950 px-3.5 py-2 text-xs leading-5 text-coral-300">
+            The licence for {lapsed.license.holder} expired on{" "}
+            {new Date(lapsed.license.expiresAt ?? "").toLocaleDateString()}. If you renewed, paste the new
+            key below.
+          </p>
+        ) : (
+          <p className="mt-1 text-xs leading-5 text-mist-500">
+            Cleanup is complete on Free, across all supported ecosystems. Pro unlocks the interactive workspace
+            canvas, delta tracking since last visit, duplicate package insights, and unattended background maintenance.
+          </p>
+        )}
       </div>
-      {lapsed ? (
-        <p className="mt-3 rounded-xl border border-coral-300/30 bg-forest-900 px-3 py-2 text-xs leading-5 text-coral-300">
-          The licence for {lapsed.license.holder} expired on{" "}
-          {new Date(lapsed.license.expiresAt ?? "").toLocaleDateString()}. If you renewed, the new
-          key was emailed to you — paste it below.
-        </p>
-      ) : (
-        <p className="mt-2 text-xs leading-5 text-mist-500">
-          Cleanup is complete on Free, in every ecosystem. Pro adds the workspace: what changed since
-          your last visit, what has been reclaimed over time, and maintenance that runs without you.
-        </p>
-      )}
 
-      <label className="mt-4 block text-xs text-mist-300">
-        Licence key
-        <input
-          value={key}
-          onChange={(event) => setKey(event.currentTarget.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") void activate();
-          }}
-          placeholder="Paste the key from your receipt"
-          spellCheck={false}
-          autoComplete="off"
-          className="mt-2 w-full rounded-xl border border-forest-800 bg-forest-900 px-3 py-2.5 font-mono text-xs text-mist-100 outline-none transition-colors focus:border-sage-400"
-        />
-      </label>
+      <div className="border-t border-forest-800 pt-4">
+        <label className="block text-xs font-medium text-mist-300">
+          <span>Licence key</span>
+          <input
+            value={key}
+            onChange={(event) => setKey(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") void activate();
+            }}
+            placeholder="Paste your licence key from your receipt"
+            spellCheck={false}
+            autoComplete="off"
+            className="mt-2 h-9 w-full rounded-xl border border-forest-800 bg-forest-950 px-3.5 font-mono text-xs text-mist-100 outline-none transition-colors focus:border-sage-400/60 placeholder:text-mist-500/60 shadow-2xs"
+          />
+        </label>
 
-      {error && (
-        <p role="alert" className="select-text mt-3 text-xs leading-5 text-coral-300">
-          {error}
-        </p>
-      )}
+        {error && (
+          <p role="alert" className="mt-2.5 text-xs leading-5 text-coral-300 select-text">
+            {error}
+          </p>
+        )}
 
-      <div className="mt-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={activate}
-          disabled={busy || key.trim().length === 0}
-          className="inline-flex min-h-9 items-center gap-2 rounded-xl bg-sage-400 px-4 text-xs font-semibold text-forest-950 transition-colors hover:bg-sage-300 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {busy && <LoaderCircle size={13} className="animate-spin" aria-hidden="true" />}
-          Activate
-        </button>
-        <button
-          type="button"
-          onClick={() => openExternalUrl("https://uncached.app/pro")}
-          className="text-xs font-medium text-mist-500 transition-colors hover:text-sage-300"
-        >
-          Get a licence
-        </button>
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={activate}
+            disabled={busy || key.trim().length === 0}
+            className="inline-flex h-9 items-center gap-2 rounded-xl bg-sage-400 px-4 text-xs font-semibold text-forest-950 shadow-xs transition-all hover:bg-sage-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+          >
+            {busy ? (
+              <LoaderCircle size={13} className="animate-spin text-forest-950" aria-hidden="true" />
+            ) : (
+              <Sparkles size={13} aria-hidden="true" />
+            )}
+            <span>Activate Pro</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openExternalUrl("https://uncached.app/pro")}
+            className="text-xs font-medium text-mist-500 transition-colors hover:text-sage-300 cursor-pointer"
+          >
+            Get a licence →
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -173,9 +176,9 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-mist-500">{label}</dt>
-      <dd className="truncate font-mono text-mist-100">{value}</dd>
+    <div className="flex items-center justify-between gap-4 py-3 text-xs">
+      <dt className="font-medium text-mist-500">{label}</dt>
+      <dd className="truncate font-mono font-medium text-mist-100">{value}</dd>
     </div>
   );
 }

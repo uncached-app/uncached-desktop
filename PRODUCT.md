@@ -60,6 +60,7 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - Targets are held in memory and become invalid when the application restarts.
 - Current desktop window is resizable and undecorated, and the app is inset from its edges by a transparent gutter its shadow falls into. The visible app starts at 1080x800 and has an 800x600 minimum; the window itself carries the gutter on top, and drops it while maximized or fullscreen.
 - Default appearance is light. Dark and system-follow are opt-in from Settings § Appearance.
+- The interface's colours are twenty-one named tokens, and a theme is a file in the user's own configuration folder that renames some of them and leaves the rest — partial on purpose, so a theme written today still works on a release that adds a colour. It carries the built-in it starts from, because a file of dark colours read over the light palette is nineteen light surfaces and two dark ones. A value that is not a colour is dropped and named rather than applied; a token this app does not have is named too. That folder is the one holding `settings.json`, it opens from Appearance, and both are read again when the window regains focus — which is the gesture anyone editing them is already making.
 - Cleanup completion may celebrate confirmed results with positive copy, reclaimed-byte emphasis, animation, and confetti. Active, failed, and cancelled states remain factual.
 
 ## Brand Commitments

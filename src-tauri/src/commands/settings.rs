@@ -89,6 +89,14 @@ pub struct AppSettings {
     /// rather than kept as a line nothing can obey.
     #[serde(default)]
     pub shortcuts: std::collections::HashMap<String, String>,
+    /// A theme file in `<config>/themes`, by its file name without `.json`.
+    ///
+    /// `None` is the palette the app ships with, which is what `appearance`
+    /// alone decides. A theme names some of the same colours and leaves the
+    /// rest; a theme whose file is gone falls back to the built-in rather than
+    /// leaving the window half-painted.
+    #[serde(default)]
+    pub theme: Option<String>,
     /// Which detected editor and terminal a project opens in.
     ///
     /// A launcher id, or `None` for "whichever detection ranks first". Stored
@@ -173,6 +181,7 @@ impl Default for AppSettings {
             workspace_sidebar_hidden: false,
             insights_grain: default_grain(),
             shortcuts: std::collections::HashMap::new(),
+            theme: None,
             preferred_editor: None,
             preferred_terminal: None,
             last_cleanup: None,

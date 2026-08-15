@@ -70,6 +70,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             menu::install_menu,
+            commands::theme::list_themes,
+            commands::theme::reveal_config,
             cancel_scan,
             cancel_cleanup,
             start_scan,
