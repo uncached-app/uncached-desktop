@@ -54,15 +54,22 @@ export function WorkspaceHeader({
     <header className="shrink-0 border-b border-forest-800 pb-4 pr-2">
       {/* Row 1: Sidebar Toggle and Workspace Title */}
       <div className="flex items-center gap-2 mb-3">
+        {/* Bare, and to the left of the count it belongs beside.
+            
+            A bordered box the size of a button competes with the numbers next
+            to it for a control that only folds a column away — the same weight
+            as `Reclaim disk`, for none of the consequence. It is an icon until
+            the pointer is on it. */}
         {onToggleSidebar && (
           <button
             type="button"
             onClick={onToggleSidebar}
-            title={sidebarCollapsed ? "Show sidebar (filters)" : "Collapse sidebar"}
-            aria-label={sidebarCollapsed ? "Show sidebar" : "Collapse sidebar"}
-            className="grid size-8 shrink-0 place-items-center rounded-xl border border-forest-800 bg-forest-900 text-mist-500 hover:bg-forest-850 hover:text-mist-100 transition-colors cursor-pointer mr-0.5"
+            title={sidebarCollapsed ? "Show filters" : "Hide filters"}
+            aria-label={sidebarCollapsed ? "Show filters" : "Hide filters"}
+            aria-pressed={!sidebarCollapsed}
+            className="-ml-1 grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
           >
-            {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+            {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </button>
         )}
 

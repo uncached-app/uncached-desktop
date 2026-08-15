@@ -38,7 +38,12 @@ function App() {
         proEnabled={entitlement.proEnabled}
       >
         {activeModule === "insights" ? (
-          <InsightsModule proEnabled={entitlement.proEnabled} onOpenWorkspace={() => setActiveModule("reclaim")} />
+          <InsightsModule
+            proEnabled={entitlement.proEnabled}
+            onOpenWorkspace={() => setActiveModule("reclaim")}
+            grain={settings.settings?.insightsGrain ?? "month"}
+            onGrainChange={(insightsGrain) => void settings.updateSettings({ insightsGrain })}
+          />
         ) : activeModule === "intelligence" ? (
           <IntelligenceModule
             proEnabled={entitlement.proEnabled}
@@ -55,6 +60,10 @@ function App() {
           proEnabled={entitlement.proEnabled}
           cleanMode={cleanMode}
           workspaceView={settings.settings?.workspaceView ?? "list"}
+          sidebarHidden={settings.settings?.workspaceSidebarHidden ?? false}
+          onSidebarHiddenChange={(workspaceSidebarHidden) =>
+            void settings.updateSettings({ workspaceSidebarHidden })
+          }
           lastCleanup={settings.settings?.lastCleanup ?? null}
           activeIgnoreRules={activeIgnoreRules}
         />

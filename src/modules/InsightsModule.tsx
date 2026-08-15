@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { Breakdown } from "./insights/Breakdown";
 import { Duplicates } from "./insights/Duplicates";
 import { Orphans } from "./insights/Orphans";
@@ -48,9 +48,18 @@ const STAGE_COPY: Record<NonNullable<AnalysisStage>, string> = {
 export function InsightsModule({
   proEnabled,
   onOpenWorkspace,
+  grain,
+  onGrainChange,
 }: {
   proEnabled: boolean;
   onOpenWorkspace: () => void;
+  /**
+   * Which span the report is read over. Held in settings rather than here: the
+   * screen is opened to answer a question, and being asked to choose the span
+   * again every time is the screen forgetting which question.
+   */
+  grain: string;
+  onGrainChange: (grain: string) => void;
 }) {
   const flow = usePurgeFlow();
   const projects = flow.index.index?.projects ?? [];
@@ -59,7 +68,6 @@ export function InsightsModule({
   // what it found rather than three buttons, and leaving does not throw it away.
   const { duplicates, repositories, orphans, stage, running, refresh } = flow.analysis;
 
-  const [grain, setGrain] = useState("month");
   const [filters, setFilters] = useState<Filters>({});
   const [shown, setShown] = useState(EVENT_PAGE);
 
@@ -153,7 +161,7 @@ export function InsightsModule({
             <Timeline
               report={report}
               onGrain={(next) => {
-                setGrain(next);
+                onGrainChange(next);
                 setShown(EVENT_PAGE);
               }}
             />
@@ -203,10 +211,19 @@ export function InsightsModule({
             type="button"
             onClick={refresh}
             disabled={running || projects.length === 0}
-            className="inline-flex min-h-8.5 shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 text-xs font-semibold text-mist-100 shadow-xs transition-colors hover:bg-forest-850 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            aria-label={running ? "Reading workspace" : "Read workspace again"}
+            className="group inline-flex min-h-8.5 shrink-0 items-center gap-2 rounded-xl bg-sage-400 px-3.5 text-xs font-semibold text-forest-950 shadow-xs transition-all hover:bg-sage-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
-            {running && <Loader2 size={13} className="animate-spin text-sage-300" aria-hidden="true" />}
-            <span>{running ? "Reading" : "Read again"}</span>
+            {running ? (
+              <Loader2 size={13} className="animate-spin text-forest-950" aria-hidden="true" />
+            ) : (
+              <RefreshCw
+                size={13}
+                className="text-forest-950 transition-transform duration-200 group-hover:rotate-45"
+                aria-hidden="true"
+              />
+            )}
+            <span>{running ? "Reading..." : "Read again"}</span>
           </button>
         </div>
 

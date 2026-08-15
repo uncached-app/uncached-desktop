@@ -66,6 +66,21 @@ pub struct AppSettings {
     /// map to open.
     #[serde(default)]
     pub workspace_view: WorkspaceView,
+    /// Whether the workspace's filter column is folded away.
+    ///
+    /// A view preference rather than a setting anyone goes looking for, and
+    /// kept here for the same reason the view is: it is a decision made once,
+    /// and a window that forgets it is a window that asks again every time.
+    #[serde(default)]
+    pub workspace_sidebar_hidden: bool,
+    /// Which span the Insights report is read over, by grain id.
+    ///
+    /// A string rather than an enum: the grains are `report.mjs`'s, the set has
+    /// grown before, and a value this side does not recognise is one the
+    /// frontend falls back from — which is a better failure than refusing to
+    /// load a settings file over a word.
+    #[serde(default = "default_grain")]
+    pub insights_grain: String,
     /// Which detected editor and terminal a project opens in.
     ///
     /// A launcher id, or `None` for "whichever detection ranks first". Stored
@@ -147,6 +162,8 @@ impl Default for AppSettings {
             workspace_roots: Vec::new(),
             appearance: Appearance::Light,
             workspace_view: WorkspaceView::default(),
+            workspace_sidebar_hidden: false,
+            insights_grain: default_grain(),
             preferred_editor: None,
             preferred_terminal: None,
             last_cleanup: None,
@@ -155,6 +172,11 @@ impl Default for AppSettings {
             maintenance_last_run_at: None,
         }
     }
+}
+
+/// Months, which is the span a cleanup history is usually read over.
+fn default_grain() -> String {
+    "month".to_string()
 }
 
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -370,6 +392,14 @@ mod tests {
             settings.workspace_view,
             WorkspaceView::List,
             "and the workspace opens as a list, which is what it did before the map existed"
+        );
+        assert!(
+            !settings.workspace_sidebar_hidden,
+            "the filters are there to begin with"
+        );
+        assert_eq!(
+            settings.insights_grain, "month",
+            "a defaulted string field takes its default rather than an empty one"
         );
         assert_eq!(
             settings.maintenance,

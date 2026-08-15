@@ -15,6 +15,9 @@ type PurgeModuleProps = {
   cleanMode: CleanMode;
   /** Which reading of the workspace opens. A preference, not a control. */
   workspaceView: WorkspaceView;
+  /** Whether the filter column is folded away, and how to say it changed. */
+  sidebarHidden: boolean;
+  onSidebarHiddenChange: (hidden: boolean) => void;
   lastCleanup: LastCleanup | null;
   activeIgnoreRules: number;
 };
@@ -25,7 +28,15 @@ type PurgeModuleProps = {
  * All four stay mounted and each renders only on its own step, which is what
  * lets their exit animations play. The step lives in the flow, not here.
  */
-export function PurgeModule({ proEnabled, cleanMode, workspaceView, lastCleanup, activeIgnoreRules }: PurgeModuleProps) {
+export function PurgeModule({
+  proEnabled,
+  cleanMode,
+  workspaceView,
+  sidebarHidden,
+  onSidebarHiddenChange,
+  lastCleanup,
+  activeIgnoreRules,
+}: PurgeModuleProps) {
   const flow = usePurgeFlow();
   const { view, setView } = flow;
   const [query, setQuery] = useState("");
@@ -151,6 +162,8 @@ export function PurgeModule({ proEnabled, cleanMode, workspaceView, lastCleanup,
           onFocusHandled={flow.clearFocus}
           onOpenProject={flow.openProject}
           view={workspaceView}
+          sidebarHidden={sidebarHidden}
+          onSidebarHiddenChange={onSidebarHiddenChange}
           packages={flow.analysis.duplicates.report?.packages ?? []}
           analysing={flow.analysis.stage === "duplicates" || !flow.analysis.taken}
         />

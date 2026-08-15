@@ -22,6 +22,10 @@ export type AppSettings = {
   workspaceRoots: string[];
   appearance: Appearance;
   workspaceView: WorkspaceView;
+  /** Whether the workspace's filter column is folded away. */
+  workspaceSidebarHidden: boolean;
+  /** Which span the Insights report is read over, by grain id. */
+  insightsGrain: string;
   /**
    * Which detected editor and terminal a project opens in, by launcher id.
    *

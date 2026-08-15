@@ -49,6 +49,14 @@ type WorkspaceMapProps = {
   onFocusHandled: () => void;
   /** Which reading opens, from Settings. */
   view: WorkspaceView;
+  /**
+   * Whether the filter column is folded away.
+   *
+   * Kept in settings rather than here: it is a decision made once, and a window
+   * that forgets it asks again on every visit.
+   */
+  sidebarHidden: boolean;
+  onSidebarHiddenChange: (hidden: boolean) => void;
   /** Shared packages, for the map. The list has no place to say this. */
   packages: DuplicatePackage[];
   /** That reading has not finished, so the middle of the map is not final. */
@@ -92,9 +100,10 @@ export function WorkspaceMap({
   packages,
   analysing,
   view,
+  sidebarHidden,
+  onSidebarHiddenChange,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Verdict first by default, because what a project holds decides whether its
   // size is worth acting on at all. Size is the other reading, and until now it
   // was unreachable: grouping runs before sorting, so the heaviest project on
@@ -216,7 +225,7 @@ export function WorkspaceMap({
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
         event.preventDefault();
-        setSidebarCollapsed((prev) => !prev);
+        onSidebarHiddenChange(!sidebarHidden);
         return;
       }
       if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
@@ -371,7 +380,7 @@ export function WorkspaceMap({
     <div className="flex min-h-0 w-full flex-1 gap-5 overflow-hidden">
       <div
         className={`shrink-0 transition-all duration-200 ease-in-out overflow-hidden ${
-          sidebarCollapsed ? "w-0 -mr-5 opacity-0 pointer-events-none" : "w-52 sm:w-60 opacity-100"
+          sidebarHidden ? "w-0 -mr-5 opacity-0 pointer-events-none" : "w-52 sm:w-60 opacity-100"
         }`}
       >
         <WorkspaceSidebar
@@ -416,8 +425,8 @@ export function WorkspaceMap({
           onOrderChange={setOrder}
           hasFamilies={families.length > 0}
           view={onMap ? "map" : "list"}
-          sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
+          sidebarCollapsed={sidebarHidden}
+          onToggleSidebar={() => onSidebarHiddenChange(!sidebarHidden)}
         />
 
         {/* The map reads the same narrowed set as the list. A filter is a
