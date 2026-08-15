@@ -889,8 +889,15 @@ function NodeName({
   );
 }
 
+/**
+ * A copy line is the faint version of the colour it becomes under the pointer,
+ * and of the ring it leaves. It was `forest-800`, which is a border token —
+ * something meant to be barely there — and on the light canvas that is 1.2:1
+ * whatever opacity it is given. No amount of alpha makes a border into a line
+ * you can follow; the token was the wrong one.
+ */
 const EDGE_STROKE: Record<GraphEdge["kind"], string> = {
-  copy: "var(--color-forest-800)",
+  copy: "var(--color-pro-200)",
   clone: "var(--color-coral-300)",
 };
 
@@ -903,7 +910,10 @@ const EDGE_STROKE: Record<GraphEdge["kind"], string> = {
  * pointer, which is the only time one line is worth following.
  */
 const RESTING_EDGE: Record<GraphEdge["kind"], number> = {
-  copy: 0.28,
+  // 2.2:1 against the light canvas and 3.1:1 against the dark one: followable,
+  // and well under the contrast the nodes carry, which is what keeps a hundred
+  // of them a texture rather than the subject.
+  copy: 0.45,
   clone: 0.55,
 };
 
