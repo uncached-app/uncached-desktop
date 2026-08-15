@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const MAX_PROJECTS: usize = 250;
+pub const MAX_PROJECTS: usize = 250;
 const MAX_DEPTH: usize = 4;
 /// How many unreadable folders are named back. The count is the whole story;
 /// the sample only has to be long enough to show which kind of folder it is.

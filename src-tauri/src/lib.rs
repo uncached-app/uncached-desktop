@@ -8,6 +8,7 @@ pub mod scanner;
 mod scheduler;
 pub mod services;
 pub mod tray;
+pub mod watch;
 pub mod workspace;
 
 pub use uncached_core as shared_core;
@@ -48,6 +49,7 @@ pub fn run() {
         // Verified once, before anything can ask what the plan is. A licence
         // that no longer holds leaves the app on Free rather than refusing to
         // start: losing Pro is recoverable, a window that will not open is not.
+        .manage(watch::Watching::default())
         .setup(|app| {
             let handle = app.handle();
             commands::license::install(handle);
@@ -70,6 +72,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             menu::install_menu,
+            watch::watch_workspace,
             commands::theme::list_themes,
             commands::theme::reveal_config,
             cancel_scan,

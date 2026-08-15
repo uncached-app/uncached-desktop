@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useScanWorkspace } from "./useScanWorkspace";
 import { useWorkspaceIndex } from "./useWorkspaceIndex";
+import { useWorkspaceWatch } from "./useWorkspaceWatch";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
 import { useWorkspaceVerdicts } from "./useWorkspaceVerdicts";
 import { useWorkspaceAnalysis } from "./useWorkspaceAnalysis";
@@ -106,9 +107,11 @@ export function PurgeFlowProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedRoots]);
 
-  // The index is read again when the window comes back, and only then: there is
-  // no refresh control to press, so returning to the app is the gesture that
-  // means "read it again". `refreshIfStale` decides whether that is worth doing.
+  // The index is read again when the window comes back, and when the disk says
+  // something under the chosen folders changed. There is no refresh control to
+  // press: returning to the app is one gesture that means "read it again", and
+  // a build finishing while the window is already in front is the other.
+  // `refreshIfStale` decides whether either is worth acting on.
   const roots = flow.extraRoots;
   useEffect(() => {
     if (roots.length === 0) return;
@@ -124,6 +127,13 @@ export function PurgeFlowProvider({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roots]);
+
+  useWorkspaceWatch({
+    roots,
+    // A scan and a cleanup are the app writing the tree it would re-read.
+    busy: flow.scanning || flow.cleaningTargetIds.size > 0,
+    onChanged: () => void index.refreshIfStale(roots),
+  });
 
   // Changing the folders while results are on screen re-reads both of them. The
   // artifact list authorizes deletion, so it can never outlive the folders it

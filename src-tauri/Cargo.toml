@@ -29,6 +29,10 @@ thiserror = "2.0"
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-autostart = "2"
+# The workspace changing while the window is in front. Default features off:
+# the crossbeam channel it would otherwise bring is a second one beside the
+# `std` channel this uses.
+notify = { version = "8", default-features = false, features = ["macos_fsevent"] }
 ed25519-dalek = { version = "2", default-features = false, features = ["std"] }
 base64 = "0.22"
 # Pinned as the full forty characters, which is what CI's drift check reads.

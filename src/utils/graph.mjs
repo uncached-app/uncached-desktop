@@ -32,6 +32,13 @@ export const MAX_PACKAGES = 12;
 const GAP = 5.4;
 
 /**
+ * How far a ring may be pushed out to fit one more unit before that unit starts
+ * a new ring instead. Rings that grow without limit are a hoop; rings that
+ * never grow are a hoop with gaps in it.
+ */
+const GROWTH = 1.3;
+
+/**
  * A node's radius, as a fraction of the drawing box's height.
  *
  * Constant, and that is the decision. Scaling the finished layout to fit the
@@ -224,35 +231,40 @@ function packUnits(units, inner) {
   const sized = units.map((unit) => ({ ...unit, radius: unitRadius(unit.members.length) }));
   const rings = [];
   let current = [];
-  let radius = Math.max(inner, sized[0] ? sized[0].radius + GAP : 0);
-  let filled = 0;
+  let floor = Math.max(inner, sized[0] ? sized[0].radius + GAP : 0);
+
+  const fits = (line, radius) =>
+    line.reduce((total, unit) => total + angularWidth(unit.radius + GAP / 2, radius), 0) <=
+    Math.PI * 2;
 
   for (const unit of sized) {
-    const width = angularWidth(unit.radius + GAP / 2, radius);
-    if (current.length > 0 && filled + width > Math.PI * 2) {
-      rings.push({ radius, units: current, widths: current.map((entry) => entry.width) });
-      const previous = Math.max(...current.map((entry) => entry.unit.radius));
-      radius += previous + unit.radius + GAP;
-      current = [];
-      filled = 0;
+    const next = [...current, unit];
+    // A ring grows to fit what is on it, but only so far. Without a ceiling it
+    // grows forever — every unit "fits" at some radius — and a hundred and
+    // forty projects come out as one enormous hoop with the middle empty.
+    if (current.length > 0 && tightestFor(next, floor) > floor * GROWTH) {
+      const radius = tightestFor(current, floor);
+      rings.push({ radius, units: current });
+      floor = radius + Math.max(...current.map((entry) => entry.radius)) + unit.radius + GAP;
+      current = [unit];
+      continue;
     }
-    const settled = angularWidth(unit.radius + GAP / 2, radius);
-    current.push({ unit, width: settled });
-    filled += settled;
+    current = next;
   }
-  if (current.length > 0) rings.push({ radius, units: current, widths: current.map((entry) => entry.width) });
+  if (current.length > 0) rings.push({ radius: tightestFor(current, floor), units: current });
 
   const nodes = [];
 
   for (const line of rings) {
-    const total = line.widths.reduce((sum, width) => sum + width, 0);
+    const widths = line.units.map((unit) => angularWidth(unit.radius + GAP / 2, line.radius));
+    const total = widths.reduce((sum, width) => sum + width, 0);
     // Normalised, so what is on this ring is spread across the whole of it
     // rather than crowding one side with the leftover behind them.
     const scale = total > 0 ? (Math.PI * 2) / total : 0;
     let angle = -Math.PI / 2;
 
-    for (const { unit, width } of line.units) {
-      const slot = width * scale;
+    for (const [index, unit] of line.units.entries()) {
+      const slot = widths[index] * scale;
       const centre = angle + slot / 2;
       angle += slot;
       const at = { x: Math.cos(centre) * line.radius, y: Math.sin(centre) * line.radius };
@@ -266,6 +278,31 @@ function packUnits(units, inner) {
   };
 }
 
+/**
+ * The smallest radius, at or above `floor`, where these units still fit.
+ *
+ * Without it the ring was as wide as its largest member needed and no tighter,
+ * and the rest were spread evenly around a circle sized for one of them — seven
+ * projects reading as three things as far apart as they could be. Fitting the
+ * radius to what is on the ring is what makes a small workspace a small
+ * picture.
+ */
+function tightestFor(line, floor) {
+  const width = (radius) =>
+    line.reduce((total, unit) => total + angularWidth(unit.radius + GAP / 2, radius), 0);
+
+  let low = floor;
+  let high = Math.max(floor, line.reduce((sum, unit) => sum + unit.radius + GAP, 0));
+  if (width(low) <= Math.PI * 2) return low;
+
+  for (let step = 0; step < 24; step += 1) {
+    const middle = (low + high) / 2;
+    if (width(middle) > Math.PI * 2) low = middle;
+    else high = middle;
+  }
+  return high;
+}
+
 /** Half the angle a circle of this radius takes up at this distance out. */
 function angularWidth(radius, distance) {
   if (distance <= radius) return Math.PI * 2;
@@ -276,12 +313,18 @@ function angularWidth(radius, distance) {
  * Room inside a cluster, in node radii.
  *
  * `1/sin(π/k)` is the radius at which k circles of radius 1 exactly meet around
- * a centre — which is to say, touch. Touching is not enough twice over: every
- * one of them carries a name underneath, and four names written under four
- * circles that are against each other is one unreadable line; and the family's
- * own name goes in the hole they leave, which has to be a hole worth the name.
+ * a centre — which is to say, touch. Touching is not enough: every one of them
+ * carries a name underneath, and four names written under four circles that are
+ * against each other is one unreadable line.
+ *
+ * It was wider still, sized so the family's own badge fit the hole at any zoom.
+ * That is one label deciding the shape of everything: a cluster inflated to
+ * three times what its members need forces the ring around it out to clear it,
+ * and a workspace of seven projects came out as a hoop with a hole. The badge
+ * appears when there is room for it instead, which is the bargain every other
+ * label on this map already makes.
  */
-const CLUSTER_SPREAD = 3.2;
+const CLUSTER_SPREAD = 1.9;
 
 /** Members on one ring before a cluster starts a second. */
 const CLUSTER_RING = 9;

@@ -298,6 +298,22 @@ test("a workspace sharing nothing says so rather than drawing an empty middle", 
   }).sharesNothing, false);
 });
 
+test("a small workspace is a small picture, not a hoop with a hole", () => {
+  // Seven projects, five of them one family, drew as three things as far apart
+  // as a ring sized for the largest of them could put them. The ring is fitted
+  // to what is on it now.
+  const members = ["a", "b", "c", "d", "e"];
+  const projects = [
+    ...members.map((name) => ({ ...project(name), path: `/w/app/${name}` })),
+    project("solo-1"),
+    project("solo-2"),
+  ];
+  const result = graph({ projects, families: [family("app", members)], aspect: 1.6 });
+
+  assert.ok(result.extent.width <= 1.6, `spans ${result.extent.width.toFixed(2)} of a 1.6 box`);
+  assert.ok(result.extent.height <= 1, `spans ${result.extent.height.toFixed(2)} of a 1.0 box`);
+});
+
 test("a large workspace reaches past the frame instead of being squeezed into it", () => {
   // The failure this replaces: fitting the finished layout to the window, which
   // drew a hundred and forty projects in the same rectangle as twelve with
