@@ -1,4 +1,4 @@
-import { FolderSearch, Gauge, LockKeyhole, Sparkles, TriangleAlert } from "lucide-react";
+import { FolderSearch, Loader2, LockKeyhole, Sparkles, TriangleAlert } from "lucide-react";
 import { openExternalUrl } from "../../utils/externalLink";
 
 function Panel({
@@ -29,7 +29,7 @@ export function NoFoldersChosen({ onChoose }: { onChoose: () => void }) {
       <button
         type="button"
         onClick={onChoose}
-        className="mt-4 rounded-xl border border-forest-800 bg-forest-950 px-3 py-2 text-xs font-medium text-mist-100 transition-colors hover:bg-forest-850"
+        className="mt-4 rounded-xl border border-forest-800 bg-forest-950 px-3 py-2 text-xs font-medium text-mist-100 transition-colors hover:bg-forest-850 cursor-pointer"
       >
         Choose a folder
       </button>
@@ -39,9 +39,11 @@ export function NoFoldersChosen({ onChoose }: { onChoose: () => void }) {
 
 export function ReadingFolders() {
   return (
-    <Panel icon={<FolderSearch size={22} strokeWidth={1.5} aria-hidden="true" />} title="Reading your folders">
-      <p>Projects are being discovered.</p>
-    </Panel>
+    <div className="flex flex-col items-center justify-center py-16 text-center select-none">
+      <Loader2 size={26} className="animate-spin text-sage-400" aria-hidden="true" />
+      <h3 className="mt-3 text-sm font-semibold text-mist-100">Reading your folders</h3>
+      <p className="mt-1 text-xs text-mist-500">Projects are being discovered...</p>
+    </div>
   );
 }
 
@@ -52,9 +54,11 @@ export function ReadingFolders() {
  */
 export function Measuring({ measured, total }: { measured: number; total: number }) {
   return (
-    <Panel icon={<Gauge size={22} strokeWidth={1.5} aria-hidden="true" />} title={`Measuring ${measured} of ${total} projects`}>
-      <p>The selection appears once every project has a weight. Nothing is measured twice.</p>
-    </Panel>
+    <div className="flex flex-col items-center justify-center py-16 text-center select-none">
+      <Loader2 size={26} className="animate-spin text-sage-400" aria-hidden="true" />
+      <h3 className="mt-3 text-sm font-semibold text-mist-100">Measuring {measured} of {total} projects</h3>
+      <p className="mt-1 text-xs text-mist-500">The selection appears once every project has a weight.</p>
+    </div>
   );
 }
 

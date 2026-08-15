@@ -66,8 +66,11 @@ export function WorkspaceSidebar({
   const singleRoot = chosenRoots.length === 1;
 
   return (
+    // `h-full min-h-0` and not just `overflow-y-auto`: a column with no height
+    // to be shorter than grows to its content and is clipped by the row it sits
+    // in, which is a scroller that never scrolls. It had one the whole time.
     <aside
-      className="flex w-52 shrink-0 flex-col overflow-y-auto overflow-x-hidden pr-2 sm:w-60 select-none"
+      className="flex h-full min-h-0 w-52 shrink-0 select-none flex-col overflow-hidden pr-2 sm:w-60"
       aria-label="Workspace filters"
     >
 
@@ -146,6 +149,12 @@ export function WorkspaceSidebar({
         </div>
       </div>
 
+      {/* The folders stay put and the filters move under them. Which folder is
+          being read is the question every one of these answers within, so
+          scrolling the filters out of reach of it would be scrolling away the
+          thing that gives them their meaning. */}
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 scrollbar-gutter-stable">
+
       {/* 2. Verdict Filter Section */}
       {/* Or while one is on: a section that vanishes because the filter inside
           it left nothing is a filter with no way back off. */}
@@ -219,7 +228,7 @@ export function WorkspaceSidebar({
         </div>
       )}
 
-      <div className="flex-1" aria-hidden="true" />
+      </div>
     </aside>
   );
 }

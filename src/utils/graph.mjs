@@ -283,14 +283,30 @@ function angularWidth(radius, distance) {
  */
 const CLUSTER_SPREAD = 3.2;
 
+/** Members on one ring before a cluster starts a second. */
+const CLUSTER_RING = 9;
+
 /** How much room a unit needs: one node, or a cluster of them. */
 function unitRadius(members) {
   if (members < 2) return 1;
-  return clusterSpread(members) + 1;
+  return clusterSpread(Math.min(members, CLUSTER_RING)) * ringsFor(members) + 1;
 }
 
 function clusterSpread(members) {
-  return (1 / Math.sin(Math.PI / members)) * CLUSTER_SPREAD;
+  return (1 / Math.sin(Math.PI / Math.max(members, 2))) * CLUSTER_SPREAD;
+}
+
+/**
+ * Rings a cluster needs, so a large one is a disc and not a hoop.
+ *
+ * A single ring of forty packages has a circumference forty nodes long and a
+ * hole the same size in the middle — on screen, a circle wider than the window
+ * with the rest of the workspace beside it. Past nine to a ring they stack
+ * outward instead, which grows as the square root of the count rather than
+ * linearly with it.
+ */
+function ringsFor(members) {
+  return Math.ceil(members / CLUSTER_RING);
 }
 
 /**
@@ -305,12 +321,21 @@ function placeMembers(unit, at, facing) {
     return [nodeFor(unit.members[0], at, facing, unit)];
   }
 
-  const spread = clusterSpread(unit.members.length);
+  const rings = ringsFor(unit.members.length);
+  const perRing = Math.ceil(unit.members.length / rings);
+  const step = clusterSpread(Math.min(unit.members.length, CLUSTER_RING));
+
   return unit.members.map((project, index) => {
-    const angle = facing + ring(index, unit.members.length) + Math.PI / 2;
+    const line = Math.floor(index / perRing);
+    const count = Math.min(perRing, unit.members.length - line * perRing);
+    // Each ring turned half a slot from the one inside it, so members do not
+    // line up on spokes and leave the cluster looking like a wheel.
+    const angle =
+      facing + ring(index % perRing, count) + Math.PI / 2 + (line % 2 === 1 ? Math.PI / count : 0);
+    const out = step * (line + 1);
     return nodeFor(
       project,
-      { x: at.x + Math.cos(angle) * spread, y: at.y + Math.sin(angle) * spread },
+      { x: at.x + Math.cos(angle) * out, y: at.y + Math.sin(angle) * out },
       facing,
       unit,
     );

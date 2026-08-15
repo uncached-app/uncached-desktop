@@ -226,6 +226,22 @@ test("a family is an outline round its cluster, not a wiring diagram", () => {
   assert.deepEqual(result.labels[0].paths.sort(), members.map((name) => `/w/mono/${name}`));
 });
 
+test("a large family is a disc, not a hoop the size of the window", () => {
+  // Forty packages on one ring is a circumference forty nodes long with a hole
+  // the same size in the middle — a circle wider than the window, with the rest
+  // of the workspace beside it. That is what a declared monorepo drew.
+  const size = (count) => {
+    const members = Array.from({ length: count }, (_, at) => `m-${at}`);
+    const projects = members.map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
+    const result = graph({ projects, families: [family("mono", members, "pnpm")] });
+    return result.labels[0].reach;
+  };
+
+  // Four times the members is twice the reach, not four times it.
+  const ratio = size(40) / size(10);
+  assert.ok(ratio < 2.6, `a family of forty reached ${ratio.toFixed(1)}x a family of ten`);
+});
+
 test("the outline passes outside every member, never through one", () => {
   const members = ["a", "b", "c", "d", "e"];
   const projects = members.map((name) => ({ ...project(name), path: `/w/mono/${name}` }));

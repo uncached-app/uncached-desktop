@@ -15,7 +15,19 @@
 //!
 //! The root itself is never a family. Everything in a chosen folder shares that
 //! folder by definition, so calling it a grouping would be calling the workspace
-//! a group of one.
+//! a group of one. Nor is any other *container* — the folder somebody keeps
+//! their projects in is a place, not a piece of work, and it looks exactly like
+//! a family until you ask what is under it. Two signs give it away, and both
+//! are structural rather than a guess about names:
+//!
+//! **It holds other families.** Families do not nest. A directory containing
+//! one is where families live, which is a different thing from being one.
+//!
+//! **It holds more than a dozen projects and no tool says otherwise.** Past
+//! that, "these are in the same folder" has stopped being a claim about the
+//! work and become a claim about filing. A declared workspace is exempt at any
+//! size, because there the claim is not being inferred — a `pnpm-workspace.yaml`
+//! over forty packages means all forty.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -24,6 +36,11 @@ use std::path::{Path, PathBuf};
 /// says so. Read in this order, so a repository with several gets the one that
 /// governs the most: a `pnpm-workspace.yaml` beside a `Cargo.toml` is a
 /// JavaScript monorepo that happens to contain Rust.
+/// How many projects an undeclared directory may hold and still be one piece of
+/// work. A number, and it has to be one: the difference between a monorepo
+/// nobody declared and a folder where projects are kept is a matter of degree.
+const MAX_UNDECLARED: usize = 12;
+
 const DECLARATIONS: &[(&str, &str)] = &[
     ("pnpm-workspace.yaml", "pnpm"),
     ("pnpm-workspace.yml", "pnpm"),
@@ -90,7 +107,7 @@ pub fn detect(
         entry.push(path.clone());
     }
 
-    order
+    let candidates: Vec<Family> = order
         .into_iter()
         .filter_map(|parent| {
             let members = by_parent.remove(&parent)?;
@@ -107,7 +124,31 @@ pub fn detect(
                 members,
             })
         })
+        .collect();
+
+    let directories: Vec<PathBuf> = candidates
+        .iter()
+        .map(|family| PathBuf::from(&family.path))
+        .collect();
+
+    candidates
+        .iter()
+        .enumerate()
+        .filter(|(at, family)| family.is_declared() || !is_container(*at, family, &directories))
+        .map(|(_, family)| family.clone())
         .collect()
+}
+
+/// Whether this candidate is the place families live rather than one of them.
+fn is_container(at: usize, family: &Family, directories: &[PathBuf]) -> bool {
+    if family.members.len() > MAX_UNDECLARED {
+        return true;
+    }
+    let here = &directories[at];
+    directories
+        .iter()
+        .enumerate()
+        .any(|(other, path)| other != at && path.starts_with(here))
 }
 
 /// Which tool, if any, calls this directory a workspace.
@@ -236,6 +277,74 @@ mod tests {
             Some("pnpm"),
             "a pnpm workspace containing a Turborepo is a pnpm workspace"
         );
+    }
+
+    #[test]
+    fn the_folder_where_projects_are_kept_is_not_one_of_them() {
+        // The workspace this came from: one chosen folder holding a `bench`
+        // directory with a hundred and thirty-four projects under it, drawn as
+        // a single ring the size of the screen with everything else beside it.
+        let mut paths: Vec<String> = (0..40).map(|at| format!("/w/bench/solo-{at}")).collect();
+        paths.push("/w/pair/one".into());
+        paths.push("/w/pair/two".into());
+
+        let families = detect(&paths, &["/w".into()], &nothing);
+
+        assert_eq!(families.len(), 1, "only the small one is a group");
+        assert_eq!(families[0].name, "pair");
+    }
+
+    #[test]
+    fn a_declared_workspace_is_a_family_at_any_size() {
+        // Forty packages under a `pnpm-workspace.yaml` are forty packages of
+        // one workspace. Nothing is being inferred there, so nothing is capped.
+        let paths: Vec<String> = (0..40).map(|at| format!("/w/mono/pkg-{at}")).collect();
+
+        let families = detect(&paths, &["/w".into()], &only(&["pnpm-workspace.yaml"]));
+
+        assert_eq!(families.len(), 1);
+        assert_eq!(families[0].members.len(), 40);
+    }
+
+    #[test]
+    fn a_directory_holding_a_family_is_where_families_live() {
+        // `Projects` holds a few loose projects and one real group. It is the
+        // place the group is kept, which is not the same as being one.
+        let families = detect(
+            &[
+                "/w/projects/loose-a".into(),
+                "/w/projects/loose-b".into(),
+                "/w/projects/uncached-app/desktop".into(),
+                "/w/projects/uncached-app/core".into(),
+            ],
+            &["/w".into()],
+            &nothing,
+        );
+
+        assert_eq!(families.len(), 1);
+        assert_eq!(families[0].name, "uncached-app");
+    }
+
+    #[test]
+    fn a_declared_workspace_still_counts_when_it_holds_another_one() {
+        // A pnpm workspace with a nested group inside it is a workspace. The
+        // exemption is for the declaration, not for the shape.
+        let families = detect(
+            &[
+                "/w/mono/app".into(),
+                "/w/mono/lib".into(),
+                "/w/mono/tools/one".into(),
+                "/w/mono/tools/two".into(),
+            ],
+            &["/w".into()],
+            &|directory: &Path, name: &str| {
+                name == "pnpm-workspace.yaml" && directory.ends_with("mono")
+            },
+        );
+
+        assert_eq!(families.len(), 2);
+        assert!(families.iter().any(|family| family.name == "mono"));
+        assert!(families.iter().any(|family| family.name == "tools"));
     }
 
     #[test]
