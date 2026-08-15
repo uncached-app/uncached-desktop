@@ -9,7 +9,7 @@ import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
 import { useFocusedProject } from "./map/useFocusedProject";
 import { VERDICT_ORDER } from "./verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
-import { MAX_NODES, workspaceGraph } from "../../utils/graph.mjs";
+import { workspaceGraph } from "../../utils/graph.mjs";
 import { WorkspaceCanvas, useDrawingAspect } from "./map/WorkspaceCanvas";
 import type { DuplicatePackage } from "../../types/duplicates";
 import type { WorkspaceView } from "../../types/settings";
@@ -93,6 +93,7 @@ export function WorkspaceMap({
   view,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Verdict first by default, because what a project holds decides whether its
   // size is worth acting on at all. Size is the other reading, and until now it
   // was unreachable: grouping runs before sorting, so the heaviest project on
@@ -188,19 +189,24 @@ export function WorkspaceMap({
     );
   }, [scoped, verdicts]);
 
-  // `/` reaches the filter from anywhere on the screen, the way a list-shaped
-  // tool is expected to behave. Typing into a field keeps its own slash.
+  // Keyboard shortcuts: `/` focuses search, `⌘B` or `Ctrl+B` toggles sidebar
   useEffect(() => {
-    function focusSearch(event: KeyboardEvent) {
-      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
-      const target = event.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable))
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
+        event.preventDefault();
+        setSidebarCollapsed((prev) => !prev);
         return;
-      event.preventDefault();
-      searchRef.current?.focus();
+      }
+      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        const target = event.target as HTMLElement | null;
+        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable))
+          return;
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
     }
-    window.addEventListener("keydown", focusSearch);
-    return () => window.removeEventListener("keydown", focusSearch);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   useFocusedProject({
@@ -327,7 +333,10 @@ export function WorkspaceMap({
         : null,
     [onMap, visible, footprints, verdicts, packages, families, aspect],
   );
-  const drawable = graph !== null && visible.length > 0 && !graph.tooLarge;
+  // There is no size the map refuses now that it can be navigated: it packs
+  // outward at a constant node size and the view is what moves. Only an empty
+  // set has nothing to draw.
+  const drawable = graph !== null && visible.length > 0;
 
   const filtering =
     normalizedQuery.length > 0 ||
@@ -338,27 +347,34 @@ export function WorkspaceMap({
 
   return (
     <div className="flex min-h-0 w-full flex-1 gap-5 overflow-hidden">
-      <WorkspaceSidebar
-        index={index}
-        chosenRoots={chosenRoots}
-        countByRoot={countByRoot}
-        activeRoot={activeRoot}
-        onActiveRoot={setActiveRoot}
-        verdictCounts={verdictCounts}
-        scopedCount={scoped.length}
-        activeVerdict={activeVerdict}
-        onActiveVerdict={setActiveVerdict}
-        categoryCounts={categoryCounts}
-        activeCategory={activeCategory}
-        onActiveCategory={setActiveCategory}
-        cloneCount={cloneCount}
-        clonesOnly={clonesOnly}
-        onClonesOnly={setClonesOnly}
-        proEnabled={proEnabled}
-        onAddRoot={onAddRoot}
-        onRemoveRoot={onRemoveRoot}
-        onRemoveAllRoots={onRemoveAllRoots}
-      />
+      <div
+        className={`shrink-0 transition-all duration-200 ease-in-out overflow-hidden ${
+          sidebarCollapsed ? "w-0 -mr-5 opacity-0 pointer-events-none" : "w-52 sm:w-60 opacity-100"
+        }`}
+      >
+        <WorkspaceSidebar
+          index={index}
+          chosenRoots={chosenRoots}
+          countByRoot={countByRoot}
+          activeRoot={activeRoot}
+          onActiveRoot={setActiveRoot}
+          verdictCounts={verdictCounts}
+          scopedCount={scoped.length}
+          activeVerdict={activeVerdict}
+          onActiveVerdict={setActiveVerdict}
+          categoryCounts={categoryCounts}
+          activeCategory={activeCategory}
+          onActiveCategory={setActiveCategory}
+          cloneCount={cloneCount}
+          clonesOnly={clonesOnly}
+          onClonesOnly={setClonesOnly}
+          proEnabled={proEnabled}
+          onAddRoot={onAddRoot}
+          onRemoveRoot={onRemoveRoot}
+          onRemoveAllRoots={onRemoveAllRoots}
+          onCollapse={() => setSidebarCollapsed(true)}
+        />
+      </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <WorkspaceHeader
@@ -378,6 +394,8 @@ export function WorkspaceMap({
           onOrderChange={setOrder}
           hasFamilies={families.length > 0}
           view={onMap ? "map" : "list"}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
         />
 
         {/* The map reads the same narrowed set as the list. A filter is a
@@ -403,14 +421,12 @@ export function WorkspaceMap({
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
         <div className={`flex min-h-0 flex-1 flex-col overflow-hidden pt-3.5 ${drawable ? "hidden" : ""}`}>
-          {/* The map was asked for and cannot be made. Saying so beside the list
-              that replaced it is the difference between a view that fell back
-              and a setting that appears not to have been saved. */}
+          {/* The map was asked for and there is nothing in it. Saying so beside
+              the list that replaced it is the difference between a view that
+              fell back and a setting that appears not to have been saved. */}
           {onMap && !drawable && (
             <p className="mb-3 shrink-0 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 text-xs leading-5 text-mist-500">
-              {visible.length === 0
-                ? "Nothing matches the filters, so there is no picture to draw."
-                : `${visible.length} projects, and the packages they share, is more than one picture holds. Narrow it and the map opens — ${MAX_NODES} nodes is the ceiling.`}
+              Nothing matches the filters, so there is no picture to draw.
             </p>
           )}
           <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">

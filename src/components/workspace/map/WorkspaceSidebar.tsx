@@ -1,15 +1,44 @@
-import { Folder, Layers, Plus, X } from "lucide-react";
+import {
+  Folder,
+  Layers,
+  PanelLeftClose,
+  Plus,
+  RotateCcw,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { rootName } from "./naming";
 import { ProLockButton } from "../../shared/ProLockButton";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
 import { categoryPresentation } from "../../findings/categoryPresentation";
 import type { Verdict, WorkspaceIndex } from "../../../types/workspace";
 
+type WorkspaceSidebarProps = {
+  index: WorkspaceIndex;
+  chosenRoots: string[];
+  countByRoot: Map<string, number>;
+  activeRoot: string | null;
+  onActiveRoot: (root: string | null) => void;
+  verdictCounts: ReadonlyArray<readonly [Verdict, number]>;
+  scopedCount: number;
+  activeVerdict: Verdict | null;
+  onActiveVerdict: (verdict: Verdict | null) => void;
+  /** Artifact kinds present in scope, most common first. */
+  categoryCounts: ReadonlyArray<readonly [string, number]>;
+  activeCategory: string | null;
+  onActiveCategory: (category: string | null) => void;
+  cloneCount: number;
+  clonesOnly: boolean;
+  onClonesOnly: (only: boolean) => void;
+  proEnabled: boolean;
+  onAddRoot: () => void;
+  onRemoveRoot: (root: string) => void;
+  onRemoveAllRoots: () => void;
+  onCollapse?: () => void;
+};
+
 /**
- * The folders are the workspace, so they get a column of their own: this is
- * where they are chosen, dropped, and used to narrow the list. The verdict
- * filter lives here too, because both answer the same question — which subset
- * of the list am I reading.
+ * Workspace filter sidebar with clean, non-overflowing layout and collapse button.
  */
 export function WorkspaceSidebar({
   index,
@@ -31,42 +60,62 @@ export function WorkspaceSidebar({
   onAddRoot,
   onRemoveRoot,
   onRemoveAllRoots,
-}: {
-  index: WorkspaceIndex;
-  chosenRoots: string[];
-  countByRoot: Map<string, number>;
-  activeRoot: string | null;
-  onActiveRoot: (root: string | null) => void;
-  verdictCounts: ReadonlyArray<readonly [Verdict, number]>;
-  scopedCount: number;
-  activeVerdict: Verdict | null;
-  onActiveVerdict: (verdict: Verdict | null) => void;
-  /** Artifact kinds present in scope, most common first. */
-  categoryCounts: ReadonlyArray<readonly [string, number]>;
-  activeCategory: string | null;
-  onActiveCategory: (category: string | null) => void;
-  cloneCount: number;
-  clonesOnly: boolean;
-  onClonesOnly: (only: boolean) => void;
-  proEnabled: boolean;
-  onAddRoot: () => void;
-  onRemoveRoot: (root: string) => void;
-  onRemoveAllRoots: () => void;
-}) {
+  onCollapse,
+}: WorkspaceSidebarProps) {
   const singleRoot = chosenRoots.length === 1;
 
-  return (
-    <aside className="flex w-48 shrink-0 flex-col overflow-y-auto pr-1 sm:w-56" aria-label="Workspace filters">
-      <div className="shrink-0 pb-2">
-        <p className="px-2 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
-          Folders
-        </p>
+  const hasActiveFilters =
+    activeRoot !== null || activeVerdict !== null || activeCategory !== null || clonesOnly;
 
-        {/* The list takes the height it needs and no more, so a workspace with one
-            folder does not leave a column of empty space above the button. */}
-        <div className="grid gap-1">
-          {/* With a single folder there is nothing to switch between: the folder
-              is the workspace, so "All projects" would name the same set twice. */}
+  const clearAllFilters = () => {
+    onActiveRoot(null);
+    onActiveVerdict(null);
+    onActiveCategory(null);
+    onClonesOnly(false);
+  };
+
+  return (
+    <aside
+      className="flex w-52 shrink-0 flex-col overflow-y-auto overflow-x-hidden pr-2 sm:w-60 select-none"
+      aria-label="Workspace filters"
+    >
+      {/* Quick Active Filter Indicator & Reset */}
+      {hasActiveFilters && (
+        <div className="mb-2 shrink-0 px-1">
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="flex w-full items-center justify-between rounded-lg border border-forest-800 bg-forest-900 px-2.5 py-1.5 text-xs text-sage-300 hover:bg-forest-850 transition-colors cursor-pointer"
+          >
+            <span className="flex items-center gap-1.5 font-medium">
+              <RotateCcw size={12} />
+              Reset active filters
+            </span>
+            <span className="font-mono text-[10px] text-mist-500">clear</span>
+          </button>
+        </div>
+      )}
+
+      {/* 1. Folders Section */}
+      <div className="shrink-0 pb-2">
+        <div className="flex items-center justify-between px-2 pb-2">
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+            Folders
+          </p>
+          {onCollapse && (
+            <button
+              type="button"
+              onClick={onCollapse}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+              className="grid size-5.5 place-items-center rounded-lg text-mist-500 hover:bg-forest-850 hover:text-mist-100 transition-colors cursor-pointer"
+            >
+              <PanelLeftClose size={13} />
+            </button>
+          )}
+        </div>
+
+        <div className="grid gap-1 min-w-0">
           {!singleRoot && (
             <RootItem
               active={activeRoot === null}
@@ -94,63 +143,54 @@ export function WorkspaceSidebar({
               }}
             />
           ))}
+
+          <div className="pt-1.5">
+            <ProLockButton
+              label="Add another folder"
+              reason="Scanning several folders at once is part of Pro"
+              locked={!proEnabled && chosenRoots.length > 0}
+              onClick={onAddRoot}
+              containerClassName="w-full"
+              className="w-full rounded-xl border border-forest-800/80 bg-forest-900 px-3 py-2 text-xs font-medium text-mist-300 hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 cursor-pointer"
+              tooltipClassName="inset-x-0 items-start whitespace-normal text-left leading-snug"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
+                Add folder
+              </span>
+            </ProLockButton>
+          </div>
+
+          {index.rootsOverLimit.length > 0 && (
+            <p className="mt-1.5 rounded-lg border border-pro-200/30 bg-pro-surface px-2.5 py-1.5 text-[10px] leading-4 text-pro-100">
+              This plan covers {index.rootLimit === 1 ? "one folder" : `${index.rootLimit} folders`} at a time.
+            </p>
+          )}
+
+          {index.unreadable > 0 && (
+            <p
+              className="mt-1.5 rounded-lg border border-forest-800 bg-forest-950 px-2.5 py-1.5 text-[10px] leading-4 text-mist-500"
+              title={index.unreadableSample.join("\n")}
+            >
+              {index.unreadable === 1 ? "1 folder was" : `${index.unreadable} folders were`} skipped.
+            </p>
+          )}
+
+          {index.truncated && (
+            <p className="mt-1.5 rounded-lg border border-forest-800 bg-forest-950 px-2.5 py-1.5 text-[10px] leading-4 text-mist-500">
+              Map capped at {index.projects.length} projects.
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="shrink-0 pt-2">
-        <ProLockButton
-          label="Add another folder"
-          reason="Scanning several folders at once is part of Pro"
-          locked={!proEnabled && chosenRoots.length > 0}
-          onClick={onAddRoot}
-          containerClassName="w-full"
-          className="w-full rounded-xl border border-forest-800/80 bg-forest-900 px-3 py-2 text-xs font-medium text-mist-300 hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100"
-          /* The sidebar scrolls, and a scrolling box clips both axes — a tooltip
-             wider than the column would be cut off at its edge. So it takes the
-             column's width and wraps instead of overflowing it. */
-          tooltipClassName="inset-x-0 items-start whitespace-normal text-left leading-snug"
-        >
-          <span className="inline-flex items-center gap-2">
-            <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
-            Add folder
-          </span>
-        </ProLockButton>
-        {index.rootsOverLimit.length > 0 && (
-          <p className="mt-2 rounded-lg border border-pro-200/30 bg-pro-surface px-2.5 py-1.5 text-[10px] leading-4 text-pro-100">
-            This plan covers {index.rootLimit === 1 ? "one folder" : `${index.rootLimit} folders`} at a time.
-          </p>
-        )}
-        {/* Said rather than left out: a folder the system refused is not a
-            folder without projects, and the difference is the user's to act on. */}
-        {index.unreadable > 0 && (
-          <p
-            className="mt-2 rounded-lg border border-forest-800 bg-forest-950 px-2.5 py-1.5 text-[10px] leading-4 text-mist-500"
-            title={index.unreadableSample.join("\n")}
-          >
-            {index.unreadable === 1 ? "1 folder was" : `${index.unreadable} folders were`} skipped:
-            the system did not grant access. Anything inside is missing from this map.
-          </p>
-        )}
-        {/* Discovery stops at a cap, and until now it stopped silently. A count
-            with nothing beside it reads as the whole workspace, so a map that
-            was cut off would have been indistinguishable from a complete one —
-            and every total below it would have been quietly short. */}
-        {index.truncated && (
-          <p className="mt-2 rounded-lg border border-forest-800 bg-forest-950 px-2.5 py-1.5 text-[10px] leading-4 text-mist-500">
-            This map stops at {index.projects.length} projects. There are more inside the folders you
-            chose, and the totals below cover only what is listed here.
-          </p>
-        )}
-      </div>
-
-      {/* The list is already grouped by verdict; this narrows it to one, so
-          "what is at risk" and "what is safe" can be read on their own. */}
+      {/* 2. Verdict Filter Section */}
       {verdictCounts.length > 1 && (
-        <div className="shrink-0 pt-5">
+        <div className="shrink-0 pt-4">
           <p className="px-2 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
             Verdict
           </p>
-          <div className="grid gap-1">
+          <div className="grid gap-1 min-w-0">
             <FilterRow
               active={activeVerdict === null}
               label="Every verdict"
@@ -172,41 +212,42 @@ export function WorkspaceSidebar({
         </div>
       )}
 
-      {/* What the artifacts actually are, as a filter. Insights can say "62% of
-          what you can reclaim is node_modules" and now has somewhere to send
-          anyone who wants to see which projects that is. */}
+      {/* 3. Artifact / Ecosystem Filter Section */}
       {categoryCounts.length > 1 && (
-        <div className="shrink-0 pt-5">
+        <div className="shrink-0 pt-4">
           <p className="px-2 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
             Artifact
           </p>
-          <div className="grid gap-1">
+          <div className="grid gap-1 min-w-0">
             <FilterRow
               active={activeCategory === null}
               label="Every kind"
               count={scopedCount}
               onSelect={() => onActiveCategory(null)}
             />
-            {categoryCounts.map(([category, count]) => (
-              <FilterRow
-                key={category}
-                active={activeCategory === category}
-                label={categoryPresentation(category).label}
-                count={count}
-                onSelect={() => onActiveCategory(activeCategory === category ? null : category)}
-              />
-            ))}
+            {categoryCounts.map(([category, count]) => {
+              const presentation = categoryPresentation(category);
+              return (
+                <FilterRow
+                  key={category}
+                  active={activeCategory === category}
+                  label={presentation.label}
+                  icon={presentation.icon}
+                  count={count}
+                  onSelect={() => onActiveCategory(activeCategory === category ? null : category)}
+                />
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* One toggle rather than a list: a clone is a yes or a no, and the
-          sibling paths are on each project's own page. */}
+      {/* 4. Repository Clones Section */}
       {cloneCount > 0 && (
-        <div className="shrink-0 pt-5">
+        <div className="shrink-0 pt-4">
           <FilterRow
             active={clonesOnly}
-            label="Copies of a repository"
+            label="Copies of a repo"
             title="Projects holding a repository that is also checked out somewhere else"
             count={cloneCount}
             onSelect={() => onClonesOnly(!clonesOnly)}
@@ -219,10 +260,6 @@ export function WorkspaceSidebar({
   );
 }
 
-/**
- * Selecting narrows the list; the cross drops the folder from the workspace.
- * Remove is not a delete: it stops the folder being read, nothing on disk moves.
- */
 function RootItem({
   active,
   label,
@@ -246,25 +283,35 @@ function RootItem({
 }) {
   return (
     <div
-      className={`group/root flex items-center gap-1 rounded-xl pr-1 transition-all ${active
-        ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
-        : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-        }`}
+      className={`group/root flex w-full min-w-0 items-center gap-1 rounded-xl pr-1 transition-all ${
+        active
+          ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
+          : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+      }`}
     >
       <button
         type="button"
         onClick={onSelect}
         title={title}
         aria-current={active ? "true" : undefined}
-        className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-xs transition-colors"
+        className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-xs transition-colors cursor-pointer"
       >
-        <Icon size={14} className={`shrink-0 ${active ? "text-sage-300" : "text-mist-500"}`} aria-hidden="true" />
-        <span className={`min-w-0 flex-1 truncate ${active ? "font-semibold text-mist-100" : "text-mist-500 group-hover/root:text-mist-100"}`}>
+        <Icon
+          size={14}
+          className={`shrink-0 ${active ? "text-sage-300" : "text-mist-500"}`}
+          aria-hidden="true"
+        />
+        <span
+          className={`min-w-0 flex-1 truncate ${
+            active ? "font-semibold text-mist-100" : "text-mist-500 group-hover/root:text-mist-100"
+          }`}
+        >
           {label}
         </span>
         <span
-          className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] ${active ? "bg-forest-900 text-mist-100 font-bold" : "bg-forest-850 text-mist-500"
-            }`}
+          className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] ${
+            active ? "bg-forest-900 text-mist-100 font-bold" : "bg-forest-850 text-mist-500"
+          }`}
         >
           {indexed ? count : "—"}
         </span>
@@ -274,7 +321,7 @@ function RootItem({
           type="button"
           onClick={onRemove}
           aria-label={removeLabel ?? `Remove ${label} from the workspace`}
-          className="grid size-6 shrink-0 place-items-center rounded-lg text-mist-500 opacity-0 transition-all group-hover/root:opacity-100 hover:bg-forest-900 hover:text-coral-300"
+          className="grid size-6 shrink-0 place-items-center rounded-lg text-mist-500 opacity-0 transition-all group-hover/root:opacity-100 hover:bg-forest-900 hover:text-coral-300 cursor-pointer"
         >
           <X size={12} aria-hidden="true" />
         </button>
@@ -289,6 +336,7 @@ function FilterRow({
   title,
   count,
   dotClassName,
+  icon: Icon,
   onSelect,
 }: {
   active: boolean;
@@ -296,6 +344,7 @@ function FilterRow({
   title?: string;
   count: number;
   dotClassName?: string;
+  icon?: LucideIcon;
   onSelect: () => void;
 }) {
   return (
@@ -304,16 +353,28 @@ function FilterRow({
       onClick={onSelect}
       title={title}
       aria-pressed={active}
-      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-all ${active
-        ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
-        : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-        }`}
+      className={`group flex w-full min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs transition-all cursor-pointer ${
+        active
+          ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
+          : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+      }`}
     >
-      <span className={`size-2 shrink-0 rounded-full ${dotClassName ?? "bg-transparent"}`} aria-hidden="true" />
+      {dotClassName ? (
+        <span className={`size-2 shrink-0 rounded-full ${dotClassName}`} aria-hidden="true" />
+      ) : Icon ? (
+        <Icon
+          size={13}
+          className={`shrink-0 ${active ? "text-mist-100" : "text-mist-500 group-hover:text-mist-300"}`}
+          aria-hidden="true"
+        />
+      ) : (
+        <span className="size-2 shrink-0 rounded-full bg-transparent" aria-hidden="true" />
+      )}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <span
-        className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] ${active ? "bg-forest-900 text-mist-100 font-bold" : "bg-forest-850 text-mist-500"
-          }`}
+        className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] ${
+          active ? "bg-forest-900 text-mist-100 font-bold" : "bg-forest-850 text-mist-500"
+        }`}
       >
         {count}
       </span>

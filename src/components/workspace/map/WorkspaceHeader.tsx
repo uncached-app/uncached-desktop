@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, RefreshCw, Search, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sparkles, X } from "lucide-react";
 import type { RefObject } from "react";
 import { formatBytes } from "../../../utils/format.mjs";
 import { ChoiceRow } from "../../shared/ChoiceRow";
@@ -23,6 +23,8 @@ export function WorkspaceHeader({
   onOrderChange,
   hasFamilies,
   view,
+  sidebarCollapsed = false,
+  onToggleSidebar,
 }: {
   projectCount: number;
   totalBytes: number;
@@ -43,6 +45,8 @@ export function WorkspaceHeader({
   hasFamilies: boolean;
   /** Which reading is open. Chosen in Settings, not here. */
   view: "list" | "map";
+  sidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }) {
   return (
     // `pr-2` matches the scrollbar gutter the list below reserves, so the
@@ -51,6 +55,18 @@ export function WorkspaceHeader({
       {/* Top summary row: Project count, metrics cluster and Primary Reclaim CTA */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
+          {onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              title={sidebarCollapsed ? "Show sidebar (filters)" : "Collapse sidebar"}
+              aria-label={sidebarCollapsed ? "Show sidebar" : "Collapse sidebar"}
+              className="grid size-8 shrink-0 place-items-center rounded-xl border border-forest-800 bg-forest-900 text-mist-500 hover:bg-forest-850 hover:text-mist-100 transition-colors cursor-pointer mr-0.5"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+            </button>
+          )}
+
           <h1 id="workspace-title" className="shrink-0 text-xl font-bold tracking-tight text-mist-100 sm:text-2xl mr-1">
             {projectCount} {projectCount === 1 ? "project" : "projects"}
           </h1>

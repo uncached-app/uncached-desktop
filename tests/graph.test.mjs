@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { MAX_NODES, nodeRadius, workspaceGraph } from "../src/utils/graph.mjs";
+import { nodeRadius, workspaceGraph } from "../src/utils/graph.mjs";
 
 const GB = 1024 * 1024 * 1024;
 
@@ -33,7 +33,7 @@ test("an empty workspace is an empty picture rather than a crash", () => {
 
   assert.deepEqual(result.nodes, []);
   assert.deepEqual(result.edges, []);
-  assert.equal(result.tooLarge, false);
+  assert.deepEqual(result.labels, []);
 });
 
 test("a package installed in one project is not shared and is not drawn", () => {
@@ -129,10 +129,10 @@ test("no two projects are ever drawn at the same point", () => {
 
 test("no two nodes are drawn through each other, at any size or shape", () => {
   // The ceiling is measured from the placed positions rather than derived from
-  // the ring, because two closed-form versions of it were wrong — and each was
-  // invisible except in the workspace that happened to hit it.
+  // the layout, because two closed-form versions of it were wrong — and each
+  // was invisible except in the workspace that happened to hit it.
   for (const aspect of [1, 1.6, 2.4]) {
-    for (let count = 1; count <= 140; count += 1) {
+    for (let count = 1; count <= 250; count += 3) {
       const projects = Array.from({ length: count }, (_, at) => project(`p-${at}`));
       const footprints = Object.fromEntries(
         projects.map((entry, at) => [entry.path, { totalBytes: (at + 1) * GB }]),
@@ -171,26 +171,19 @@ test("a family stays together instead of being sorted apart by name", () => {
   ];
   const result = graph({ projects, families: [family("uncached-app", members)] });
 
-  const angles = members
-    .map((name) => result.nodes.find((node) => node.path === `/w/uncached-app/${name}`).angle)
-    .sort((left, right) => left - right);
-
-  const step = (Math.PI * 2) / projects.length;
-  for (let at = 1; at < angles.length; at += 1) {
-    assert.ok(
-      angles[at] - angles[at - 1] <= step + 1e-9,
-      "members of one family are adjacent on the ring",
-    );
-  }
+  const placed = members.map((name) => result.nodes.find((node) => node.path === `/w/uncached-app/${name}`));
+  assert.ok(placed.every(Boolean));
+  assert.equal(new Set(placed.map((node) => node.unit)).size, 1, "one unit, placed once");
 });
 
-test("a family is a chain through its members, not a line between every pair", () => {
+test("a family is drawn round its cluster, not as a line between every pair", () => {
   const members = ["a", "b", "c", "d"];
   const projects = members.map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
   const result = graph({ projects, families: [family("mono", members)] });
 
-  // Four members: three hops, not six crossing lines saying the same thing.
-  assert.equal(result.edges.filter((edge) => edge.kind === "family").length, 3);
+  // Four members sitting on a small ring: four hops closing it, not six
+  // crossing lines saying the same thing once each.
+  assert.equal(result.edges.filter((edge) => edge.kind === "family").length, 4);
   assert.equal(result.labels.length, 1);
   assert.equal(result.labels[0].text, "mono");
 });
@@ -215,18 +208,24 @@ test("a workspace sharing nothing says so rather than drawing an empty middle", 
   }).sharesNothing, false);
 });
 
-test("a wide window is used rather than framed with empty margins", () => {
-  const projects = Array.from({ length: 12 }, (_, at) => project(`p-${at}`));
-  const square = graph({ projects, aspect: 1 });
-  const wide = graph({ projects, aspect: 2 });
+test("a large workspace reaches past the frame instead of being squeezed into it", () => {
+  // The failure this replaces: fitting the finished layout to the window, which
+  // drew a hundred and forty projects in the same rectangle as twelve with
+  // every gap shrunk to a tenth — a ball of dots with the names on top of each
+  // other, which is what fitting was supposed to avoid.
+  const box = { width: 1.6, height: 1 };
+  const small = graph({ projects: Array.from({ length: 8 }, (_, at) => project(`p-${at}`)), aspect: 1.6 });
+  const large = graph({ projects: Array.from({ length: 140 }, (_, at) => project(`p-${at}`)), aspect: 1.6 });
 
-  const span = (result) => {
-    const xs = result.nodes.map((node) => node.x);
-    return Math.max(...xs) - Math.min(...xs);
-  };
+  assert.ok(small.extent.height <= box.height, "a small workspace still fits");
+  assert.ok(large.extent.height > box.height * 2, "a large one goes well past it");
+});
 
-  assert.ok(span(wide) > span(square) * 1.4, "the picture widens with the box");
-  assert.equal(wide.width, 2);
+test("a node is the same size whatever the workspace holds", () => {
+  const size = (count) =>
+    graph({ projects: Array.from({ length: count }, (_, at) => project(`p-${at}`)) }).maxRadius;
+
+  assert.equal(size(30), size(200));
 });
 
 test("a project carrying packages on both sides of the top is not flung to the bottom", () => {
@@ -242,16 +241,18 @@ test("a project carrying packages on both sides of the top is not flung to the b
   assert.ok(api.x >= 0 && api.x <= 1 && api.y >= 0 && api.y <= 1);
 });
 
-test("every node lands inside the unit square whatever the shape of the workspace", () => {
-  const projects = Array.from({ length: 30 }, (_, at) => project(`p-${at}`));
-  const result = graph({
-    projects,
-    packages: [shared("react", ["p-1", "p-2", "p-3"])],
-  });
+test("every node lands inside the extent the graph reports", () => {
+  // Nodes are no longer inside the frame — that is the point — so what has to
+  // hold is that the rectangle handed to the view covers all of them. A view
+  // that fits the reported extent and still cuts something off is a corner the
+  // user cannot reach.
+  const projects = Array.from({ length: 60 }, (_, at) => project(`p-${at}`));
+  const result = graph({ projects, packages: [shared("react", ["p-1", "p-2", "p-3"])] });
+  const { x, y, width, height } = result.extent;
 
   for (const node of result.nodes) {
-    assert.ok(node.x >= 0 && node.x <= 1, `${node.id} x=${node.x}`);
-    assert.ok(node.y >= 0 && node.y <= 1, `${node.id} y=${node.y}`);
+    assert.ok(node.x >= x && node.x <= x + width, `${node.id} x=${node.x}`);
+    assert.ok(node.y >= y && node.y <= y + height, `${node.id} y=${node.y}`);
   }
 });
 
@@ -266,11 +267,62 @@ test("the same workspace draws the same picture every time", () => {
   assert.deepEqual(graph(input), graph(input));
 });
 
-test("past the node ceiling the graph says so instead of drawing a hairball", () => {
-  const projects = Array.from({ length: MAX_NODES + 1 }, (_, at) => project(`p-${at}`));
+test("a workspace of any size draws, because the view is what moves", () => {
+  // The ceiling this replaces was decided before the map could be panned or
+  // zoomed. Once it could, "too many to draw" stopped being true: the picture
+  // packs outward at a constant node size and reading it is a matter of how
+  // close you are.
+  for (const count of [1, 40, 150, 250]) {
+    const projects = Array.from({ length: count }, (_, at) => project(`p-${at}`));
+    const result = graph({ projects });
 
-  assert.equal(graph({ projects }).tooLarge, true);
-  assert.equal(graph({ projects: projects.slice(0, 10) }).tooLarge, false);
+    assert.equal(result.nodes.length, count);
+    for (const node of result.nodes) {
+      assert.ok(Number.isFinite(node.x) && Number.isFinite(node.y), `${count}: ${node.id} has no place`);
+    }
+  }
+});
+
+test("the picture grows with the workspace instead of the nodes shrinking", () => {
+  // A ring divided evenly halves every gap when the workspace doubles. Packing
+  // outward keeps the spacing and spends the room, which is what makes zooming
+  // worth anything.
+  const rings = (count) =>
+    new Set(
+      workspaceGraph({
+        projects: Array.from({ length: count }, (_, at) => project(`p-${at}`)),
+        footprints: {},
+        verdicts: {},
+        packages: [],
+        aspect: 1,
+      }).nodes.map((node) => Math.hypot(node.x - 0.5, node.y - 0.5).toFixed(2)),
+    ).size;
+
+  assert.ok(rings(160) > rings(12), "a large workspace uses more than one ring");
+});
+
+test("a family is a cluster, not four slots the size of unrelated projects", () => {
+  const members = ["a", "b", "c", "d"];
+  const projects = [
+    ...members.map((name) => ({ ...project(name), path: `/w/mono/${name}` })),
+    ...Array.from({ length: 20 }, (_, at) => project(`solo-${at}`)),
+  ];
+  const result = graph({ projects, families: [family("mono", members)] });
+
+  const inside = members.map((name) => result.nodes.find((node) => node.path === `/w/mono/${name}`));
+  const middle = {
+    x: inside.reduce((total, node) => total + node.x, 0) / inside.length,
+    y: inside.reduce((total, node) => total + node.y, 0) / inside.length,
+  };
+  const reach = Math.max(...inside.map((node) => Math.hypot(node.x - middle.x, node.y - middle.y)));
+
+  // Every member is nearer the cluster's middle than any outsider is.
+  const nearest = Math.min(
+    ...result.nodes
+      .filter((node) => !node.path?.startsWith("/w/mono/"))
+      .map((node) => Math.hypot(node.x - middle.x, node.y - middle.y)),
+  );
+  assert.ok(nearest > reach, "an unrelated project landed inside the family");
 });
 
 test("an unmeasured project draws at the floor rather than as the smallest thing here", () => {

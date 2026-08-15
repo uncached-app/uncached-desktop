@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RESET, clampView, isMoved, panBy, zoomAt, type View } from "../../../utils/viewport.mjs";
+import { RESET, clampView, fitTo, isMoved, panBy, zoomAt, type Rect, type View } from "../../../utils/viewport.mjs";
 
 /** Past this much movement a press was a drag, and never a click on a node. */
 const DRAG_SLOP = 4;
@@ -21,10 +21,17 @@ const WHEEL_ZOOM = 0.0022;
  * converted through the element's box, because the SVG scales to fit and the
  * two stop being the same number the moment the window is not the right shape.
  */
-export function useMapGestures(width: number, height: number) {
+export function useMapGestures(width: number, height: number, content: Rect) {
   // Built here rather than taken as an object: a fresh `{width, height}` each
   // render would tear down and re-attach the wheel listener on every one.
   const box = useMemo(() => ({ width, height }), [width, height]);
+  // What was drawn, which is larger than the box as soon as the workspace is.
+  // Panning is limited against this and not against the window, or the far side
+  // of a large map is there and unreachable.
+  const drawn = useMemo(
+    () => ({ x: content.x, y: content.y, width: content.width, height: content.height }),
+    [content.x, content.y, content.width, content.height],
+  );
   const ref = useRef<SVGSVGElement>(null);
   const [view, setView] = useState<View>(RESET);
   const [dragging, setDragging] = useState(false);
@@ -62,20 +69,20 @@ export function useMapGestures(width: number, height: number) {
       event.preventDefault();
       if (event.ctrlKey || event.metaKey) {
         const factor = Math.exp(-event.deltaY * WHEEL_ZOOM * 4);
-        setView((current) => clampView(zoomAt(current, factor, toDrawing(event)), box));
+        setView((current) => clampView(zoomAt(current, factor, toDrawing(event)), box, drawn));
         return;
       }
       if (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-        setView((current) => clampView(panBy(current, -event.deltaX, -event.deltaY), box));
+        setView((current) => clampView(panBy(current, -event.deltaX, -event.deltaY), box, drawn));
         return;
       }
       const factor = Math.exp(-event.deltaY * WHEEL_ZOOM);
-      setView((current) => clampView(zoomAt(current, factor, toDrawing(event)), box));
+      setView((current) => clampView(zoomAt(current, factor, toDrawing(event)), box, drawn));
     };
 
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => element.removeEventListener("wheel", onWheel);
-  }, [box, toDrawing]);
+  }, [box, drawn, toDrawing]);
 
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.button !== 0) return;
@@ -111,6 +118,7 @@ export function useMapGestures(width: number, height: number) {
         clampView(
           panBy(current, (event.clientX - previous.x) / scale, (event.clientY - previous.y) / scale),
           box,
+          drawn,
         ),
       );
     };
@@ -129,7 +137,7 @@ export function useMapGestures(width: number, height: number) {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [dragging, box]);
+  }, [dragging, box, drawn]);
 
   return {
     ref,
@@ -137,8 +145,12 @@ export function useMapGestures(width: number, height: number) {
     dragging,
     /** The buttons' way in, so they and the wheel share one rule. */
     zoomBy: (factor: number, at: { clientX: number; clientY: number }) =>
-      setView((current) => clampView(zoomAt(current, factor, toDrawing(at)), box)),
+      setView((current) => clampView(zoomAt(current, factor, toDrawing(at)), box, drawn)),
     moved: isMoved(view),
+    /** The drawing reaches past the frame, so there is something to fit to. */
+    overflows: drawn.width > box.width + 1 || drawn.height > box.height + 1,
+    /** The whole drawing, which is not the same as an untouched view. */
+    fit: () => setView(fitTo(drawn, box)),
     reset: () => setView(RESET),
     /** True when the press that just ended was a drag, so it opened nothing. */
     wasDragged: () => moved.current,

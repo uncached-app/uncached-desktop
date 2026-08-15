@@ -11,7 +11,13 @@
  * here knows about pixels or device ratios.
  */
 
-export const MIN_SCALE = 0.5;
+/**
+ * Low enough to see a whole workspace at once.
+ *
+ * The drawing is not fitted to the window — a large one extends well past it —
+ * so this is what decides whether "the whole thing" is a view that exists.
+ */
+export const MIN_SCALE = 0.08;
 export const MAX_SCALE = 8;
 
 /** Untouched: the whole picture, laid out to fit. */
@@ -43,21 +49,55 @@ export function panBy(view, dx, dy) {
 }
 
 /**
- * Keeps a corner of the drawing reachable.
+ * Keeps some of the drawing reachable, and all of it reachable.
  *
- * Without this a firm swipe sends everything off the edge and leaves an empty
- * frame with no clue which way to drag — the picture is still there, and the
- * app looks broken. `keep` is how much of it must stay inside, in drawing
- * units.
+ * Two failures, one rule. Without a limit a firm swipe sends everything off the
+ * edge and leaves an empty frame with no clue which way to drag. With a limit
+ * measured against the window instead of against the drawing, a workspace
+ * larger than the window cannot be panned to its own edges — the far side is
+ * there and unreachable, which is the worse of the two because it looks like
+ * the map simply stops.
+ *
+ * `content` is what was actually drawn, in drawing units. `keep` is how much of
+ * it must stay inside the frame.
  */
-export function clampView(view, box, keep = 0.15) {
+export function clampView(view, box, content, keep = 0.2) {
+  const drawn = content ?? { x: 0, y: 0, width: box.width, height: box.height };
   const held = { x: box.width * keep, y: box.height * keep };
-  const drawn = { width: box.width * view.scale, height: box.height * view.scale };
 
   return {
     scale: view.scale,
-    x: clamp(view.x, held.x - drawn.width, box.width - held.x),
-    y: clamp(view.y, held.y - drawn.height, box.height - held.y),
+    x: clamp(
+      view.x,
+      held.x - (drawn.x + drawn.width) * view.scale,
+      box.width - held.x - drawn.x * view.scale,
+    ),
+    y: clamp(
+      view.y,
+      held.y - (drawn.y + drawn.height) * view.scale,
+      box.height - held.y - drawn.y * view.scale,
+    ),
+  };
+}
+
+/**
+ * The view that shows all of it.
+ *
+ * What the fit control does, and what "the whole workspace" means once the
+ * drawing stopped being squeezed into the frame to begin with.
+ */
+export function fitTo(content, box, padding = 0.03) {
+  if (!content || content.width <= 0 || content.height <= 0) return RESET;
+  const scale = clamp(
+    Math.min(box.width / content.width, box.height / content.height) * (1 - padding),
+    MIN_SCALE,
+    MAX_SCALE,
+  );
+
+  return {
+    scale,
+    x: box.width / 2 - (content.x + content.width / 2) * scale,
+    y: box.height / 2 - (content.y + content.height / 2) * scale,
   };
 }
 

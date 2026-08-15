@@ -124,7 +124,7 @@ export function WorkspaceCanvas({
     [graph.nodes],
   );
 
-  const map = useMapGestures(graph.width * SIDE, SIDE);
+  const map = useMapGestures(graph.width * SIDE, SIDE, scaled(graph.extent));
   const active = hovered ? byId.get(hovered) : null;
   const activeProject = active?.path ? projects.find((entry) => entry.path === active.path) : null;
   const activeFootprint = activeProject ? footprints[activeProject.path] : null;
@@ -214,7 +214,7 @@ export function WorkspaceCanvas({
           {graph.labels.map((label) => (
             <g
               key={label.id}
-              transform={`translate(${label.x * SIDE}, ${label.y * SIDE})`}
+              transform={`translate(${label.x * SIDE}, ${label.y * SIDE}) scale(${1 / map.view.scale})`}
               className="pointer-events-none select-none"
             >
               <rect
@@ -306,10 +306,15 @@ export function WorkspaceCanvas({
                 {/* Clean label below node */}
                 {(nameEverything || on || isConnected) && (
                   <g
-                    transform={`translate(${node.x * SIDE}, ${node.y * SIDE + radius + 14})`}
+                    /* Counter-scaled: a name is a screen thing, not a world
+                       thing. Left to scale with the picture, zooming in makes
+                       the names you can already read collide instead of
+                       revealing the ones you cannot. */
+                    transform={`translate(${node.x * SIDE}, ${node.y * SIDE + radius}) scale(${1 / map.view.scale})`}
                     className="pointer-events-none select-none"
                   >
                     <text
+                      y="14"
                       textAnchor="middle"
                       className={`text-[12px] ${
                         on ? "fill-mist-100 font-semibold" : "fill-mist-300 font-normal"
@@ -319,7 +324,7 @@ export function WorkspaceCanvas({
                     </text>
                     {(on || map.view.scale > 1.6) && node.weight !== null && (
                       <text
-                        y="12"
+                        y="26"
                         textAnchor="middle"
                         className="fill-mist-500 font-mono text-[9px]"
                       >
@@ -493,10 +498,10 @@ function MapControls({ map }: { map: ReturnType<typeof useMapGestures> }) {
         <Minus size={14} aria-hidden="true" />
       </Control>
 
-      {map.moved && (
+      {(map.moved || map.overflows) && (
         <>
           <div className="h-3.5 w-px bg-forest-800 mx-0.5" />
-          <Control label="Fit whole workspace" onClick={map.reset}>
+          <Control label="Fit whole workspace" onClick={map.fit}>
             <Maximize2 size={13} aria-hidden="true" />
           </Control>
         </>
@@ -548,6 +553,16 @@ export function useDrawingAspect() {
   }, []);
 
   return { ref, aspect };
+}
+
+/** The drawing's own rectangle, in the coordinates the SVG uses. */
+function scaled(extent: WorkspaceGraph["extent"]) {
+  return {
+    x: extent.x * SIDE,
+    y: extent.y * SIDE,
+    width: extent.width * SIDE,
+    height: extent.height * SIDE,
+  };
 }
 
 function legend(graph: WorkspaceGraph): string {

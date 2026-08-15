@@ -2,7 +2,6 @@
 import type { DuplicatePackage } from "../types/duplicates";
 import type { Family, Footprint, Verdict, WorkspaceProject } from "../types/workspace";
 
-export declare const MAX_NODES: number;
 export declare const MAX_PACKAGES: number;
 
 export type GraphNode = {
@@ -22,6 +21,8 @@ export type GraphNode = {
   path?: string;
   verdict?: Verdict;
   family?: string | null;
+  /** What it was placed as: a family, or itself. */
+  unit?: string;
 };
 
 export type GraphEdge = {
@@ -40,8 +41,11 @@ export type GraphLabel = {
   text: string;
   detail: string;
   declared: boolean;
+  members: number;
   x: number;
   y: number;
+  /** How far the cluster reaches from its middle. */
+  reach: number;
 };
 
 export type WorkspaceGraph = {
@@ -50,12 +54,12 @@ export type WorkspaceGraph = {
   labels: GraphLabel[];
   packagesOmitted: number;
   sharesNothing: boolean;
-  /** Past `MAX_NODES` the picture stops being one. */
-  tooLarge: boolean;
   /** The largest any node may draw before two of them touch. */
   maxRadius: number;
   width: number;
   height: number;
+  /** What the whole drawing spans, which is larger than the box as soon as the workspace is. */
+  extent: { x: number; y: number; width: number; height: number };
 };
 
 export declare function workspaceGraph(input: {

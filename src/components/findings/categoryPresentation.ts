@@ -25,30 +25,26 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-// The badge names the ecosystem the artifact came from; the directory name
-// beside it already says which artifact it is. Naming the category after the
-// directory made the pair read "Gradle .gradle", which spends a badge to
-// repeat the next word.
 export const CATEGORY_PRESENTATION: Record<string, { label: string; icon: LucideIcon }> = {
-  NodeModules: { label: "Node", icon: Package },
-  NextJs: { label: "Node", icon: Package },
-  Turbo: { label: "Node", icon: Package },
-  NuxtCache: { label: "Node", icon: Package },
-  SvelteKitCache: { label: "Node", icon: Package },
+  NodeModules: { label: "node_modules", icon: Package },
+  NextJs: { label: "Next.js", icon: Package },
+  Turbo: { label: "Turborepo", icon: Package },
+  NuxtCache: { label: "Nuxt", icon: Package },
+  SvelteKitCache: { label: "SvelteKit", icon: Package },
   ReactNative: { label: "React Native", icon: Smartphone },
-  CargoTarget: { label: "Rust", icon: Box },
+  CargoTarget: { label: "Rust (Cargo)", icon: Box },
   PyCache: { label: "Python", icon: Layers },
   PixiEnv: { label: "Pixi", icon: Layers },
   JupyterCheckpoints: { label: "Jupyter", icon: Notebook },
-  Gradle: { label: "JVM", icon: Coffee },
-  GradleBuild: { label: "JVM", icon: Coffee },
-  MavenTarget: { label: "JVM", icon: Coffee },
-  SbtTarget: { label: "JVM", icon: Coffee },
+  Gradle: { label: "Gradle (.gradle)", icon: Coffee },
+  GradleBuild: { label: "Gradle (build)", icon: Coffee },
+  MavenTarget: { label: "Maven", icon: Coffee },
+  SbtTarget: { label: "Sbt", icon: Coffee },
   CMakeBuild: { label: "C/C++", icon: Cpu },
   ZigCache: { label: "Zig", icon: Binary },
   ElixirBuild: { label: "Elixir", icon: Droplet },
   HaskellBuild: { label: "Haskell", icon: Sigma },
-  ComposerVendor: { label: "PHP", icon: Blocks },
+  ComposerVendor: { label: "PHP (Composer)", icon: Blocks },
   TerraformDir: { label: "Terraform", icon: Cloud },
   UnityLibrary: { label: "Unity", icon: Gamepad2 },
   UnrealIntermediate: { label: "Unreal", icon: Gamepad2 },
@@ -60,11 +56,9 @@ export const CATEGORY_PRESENTATION: Record<string, { label: string; icon: Lucide
   CocoapodsPods: { label: "CocoaPods", icon: Component },
   DartTool: { label: "Dart", icon: Feather },
   FlutterBuild: { label: "Flutter", icon: Feather },
-  // The three below only ever come from discovery, where the badge names the
-  // kind of cache and the finding's own label names the tool that wrote it.
   PackageManagerCache: { label: "Package cache", icon: Database },
-  AiToolCache: { label: "AI tool", icon: Sparkles },
-  EditorCache: { label: "Editor", icon: Code },
+  AiToolCache: { label: "AI tool cache", icon: Sparkles },
+  EditorCache: { label: "Editor cache", icon: Code },
 };
 
 const CUSTOM_CATEGORY_PREFIX = "Custom:";
