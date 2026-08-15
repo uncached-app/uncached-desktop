@@ -78,6 +78,13 @@ export type ScanFinished = {
   totalTargets: number;
   totalBytesFound: number;
   durationMs: number;
+  /**
+   * Folders the walk was not allowed to open.
+   *
+   * Above zero, both figures beside it are short by whatever is inside them.
+   * On macOS without Full Disk Access that is the ordinary case.
+   */
+  unreadable: number;
 };
 
 export type ScanCancelled = {

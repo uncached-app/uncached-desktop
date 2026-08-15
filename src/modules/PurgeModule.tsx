@@ -169,6 +169,7 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
         cleanupModeSupported={flow.cleanupModeSupported}
         proEnabled={proEnabled}
         activeIgnoreRules={activeIgnoreRules}
+        unreadable={flow.unreadable}
       />}
 
       <CompletionView

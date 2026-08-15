@@ -64,6 +64,10 @@ export function useScanWorkspace(
   const [cleanupMode, setCleanupMode] = useState<CleanMode>("Trash");
   const [scanFinished, setScanFinished] = useState(false);
   const [scanTargetCount, setScanTargetCount] = useState<number | null>(null);
+  // Folders the walk was not allowed to open. Above zero, the target count and
+  // the byte total are both short by whatever is inside them, and the review
+  // screen has to say so rather than presenting either as the whole workspace.
+  const [unreadable, setUnreadable] = useState(0);
   const [capabilities, setCapabilities] = useState<CleanupCapabilities | null>(null);
 
   const activeScanId = useRef<string | null>(null);
@@ -88,6 +92,7 @@ export function useScanWorkspace(
     setProgress(null);
     setScanFinished(false);
     setScanTargetCount(null);
+    setUnreadable(0);
     setStep(1);
     setStatus("Scan failed");
     setError(message);
@@ -141,6 +146,7 @@ export function useScanWorkspace(
       setStatus(`Scan complete · ${event.payload.totalTargets} targets · ${event.payload.durationMs} ms`);
       setScanFinished(true);
       setScanTargetCount(event.payload.totalTargets);
+      setUnreadable(event.payload.unreadable);
     } else if (event.kind === "cancelled") {
       pendingScan.current = false;
       pendingEvents.current = [];
@@ -312,6 +318,7 @@ export function useScanWorkspace(
     setCleanupSummary({ removed: 0, freedBytes: 0 });
     setScanFinished(false);
     setScanTargetCount(null);
+    setUnreadable(0);
     pendingSizeUpdates.current.clear();
     setProgress(null);
     setScanning(true);
@@ -390,6 +397,7 @@ export function useScanWorkspace(
       setStep(1);
       setScanFinished(false);
       setScanTargetCount(null);
+    setUnreadable(0);
       } else {
         setCancelling(false);
         setStatus("Scan already complete");
@@ -494,6 +502,7 @@ export function useScanWorkspace(
     setStep(1);
     setScanFinished(false);
     setScanTargetCount(null);
+    setUnreadable(0);
     setStatus("Ready to scan");
     setCleanupMode("Trash");
   }
@@ -532,5 +541,6 @@ export function useScanWorkspace(
     refreshTargetSize,
     deleteAll,
     resetScan,
+    unreadable,
   };
 }

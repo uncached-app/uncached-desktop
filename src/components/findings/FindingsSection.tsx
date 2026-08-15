@@ -24,6 +24,8 @@ interface FindingsSectionProps {
   proEnabled: boolean;
   /** How many of the user's ignore rules were in force when this list was built. */
   activeIgnoreRules: number;
+  /** Folders the walk was not allowed to open, so the totals can say they are a floor. */
+  unreadable: number;
   onBack: () => void;
 }
 
@@ -40,6 +42,7 @@ export function FindingsSection({
   cleanupModeSupported,
   proEnabled,
   activeIgnoreRules,
+  unreadable,
 }: FindingsSectionProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
@@ -155,6 +158,21 @@ export function FindingsSection({
                   {readyTargets.length < targets.length && (
                     <span className="text-[11px] text-mist-500">
                       across {readyTargets.length} of them
+                    </span>
+                  )}
+
+                  {/* Both figures above are short by whatever is inside these.
+                      The count and the total are the scan's whole claim, and a
+                      claim the walk could not complete has to say so — on macOS
+                      without Full Disk Access this is the ordinary case, not
+                      the unlucky one. */}
+                  {unreadable > 0 && (
+                    <span
+                      className="text-[11px] text-confidence-medium"
+                      title="Grant Uncached Full Disk Access to read them."
+                    >
+                      {unreadable} {unreadable === 1 ? "folder was" : "folders were"} withheld by the
+                      system — both figures are a floor
                     </span>
                   )}
 

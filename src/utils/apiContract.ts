@@ -267,7 +267,13 @@ export function validateScanFinished(value: unknown): ScanFinished {
   ) {
     throw new Error("Invalid scan finished payload");
   }
-  return value as ScanFinished;
+  // Defaulted rather than required: the core defaults it too, so a desktop
+  // running against a core that predates the field gets a scan rather than a
+  // thrown event.
+  return {
+    ...(value as ScanFinished),
+    unreadable: isNonNegativeInteger(value.unreadable) ? value.unreadable : 0,
+  };
 }
 
 export function validateScanFailed(value: unknown): ScanFailed {

@@ -304,6 +304,7 @@ pub fn scan_finished_event(
     total_targets: u64,
     total_bytes: u64,
     duration_ms: u128,
+    unreadable: u64,
 ) -> uncached_core::contract::v1::ApiEnvelope<uncached_core::contract::v1::ScanFinishedDto> {
     uncached_core::contract::v1::ApiEnvelope::success(
         platform(),
@@ -312,6 +313,7 @@ pub fn scan_finished_event(
             total_targets,
             total_bytes_found: total_bytes,
             duration_ms,
+            unreadable,
         },
     )
 }
@@ -518,6 +520,12 @@ struct ScanStats {
     directories_scanned: u64,
     targets_found: u64,
     total_bytes_found: u64,
+    /// Folders the walk was not allowed to open, summed across every root.
+    ///
+    /// Recorded rather than only logged: the counts beside it are short by
+    /// whatever is inside them, and a total the user cannot tell is partial is
+    /// the one thing the scan must not report.
+    unreadable: u64,
 }
 
 static REGISTRY: OnceLock<Arc<Mutex<ScanRegistry>>> = OnceLock::new();
@@ -781,6 +789,7 @@ impl ScanService {
                 }
                 Ok(uncached_core::TraversalOutcome::Completed { unreadable }) => {
                     if unreadable > 0 {
+                        stats.lock().unwrap().unreadable += unreadable as u64;
                         crate::logging::warn(
                             "walker",
                             &format!(
@@ -1253,6 +1262,7 @@ fn emit_finished(
             stats.targets_found,
             stats.total_bytes_found,
             started_at.elapsed().as_millis(),
+            stats.unreadable,
         ))
         .unwrap(),
     );
@@ -1456,14 +1466,21 @@ mod tests {
 
     #[test]
     fn scan_finished_event_serializes_settled_totals() {
-        let value = serde_json::to_value(scan_finished_event("scan-1", 3, 99, 7)).unwrap();
+        let value = serde_json::to_value(scan_finished_event("scan-1", 3, 99, 7, 0)).unwrap();
 
         assert_eq!(value["apiVersion"], "v1");
         assert_eq!(value["data"]["scanId"], "scan-1");
         assert_eq!(value["data"]["totalTargets"], 3);
         assert_eq!(value["data"]["totalBytesFound"], 99);
         assert_eq!(value["data"]["durationMs"], 7);
+        assert_eq!(value["data"]["unreadable"], 0);
         assert!(value["error"].is_null());
+
+        // The case the field exists for: a walk that was refused folders reports
+        // how many, so the two totals above it can be read as a floor rather
+        // than as the workspace.
+        let withheld = serde_json::to_value(scan_finished_event("scan-1", 3, 99, 7, 12)).unwrap();
+        assert_eq!(withheld["data"]["unreadable"], 12);
     }
 
     #[test]

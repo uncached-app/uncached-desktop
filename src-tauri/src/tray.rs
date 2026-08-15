@@ -190,7 +190,7 @@ mod tests {
     #[test]
     fn the_finished_event_yields_its_two_numbers() {
         let payload = serde_json::to_string(&crate::services::scan_service::scan_finished_event(
-            "s", 12, 4096, 7,
+            "s", 12, 4096, 7, 0,
         ))
         .unwrap();
 
