@@ -1,0 +1,14 @@
+{
+  "name": "Garbage Man",
+  "base": "dark",
+  "colors": {
+    "forest-950": "#14140f", "forest-900": "#1b1b15", "forest-850": "#24241c", "forest-800": "#38382b",
+    "mist-100": "#f5f3e8", "mist-300": "#ccc8b4", "mist-500": "#99957f",
+    "sage-300": "#ffd83d", "sage-400": "#f5c518", "sage-500": "#d9a800",
+    "coral-300": "#ff7a4d", "coral-surface": "#33201a",
+    "pro-100": "#dcc7ff", "pro-200": "#b28cff", "pro-surface": "#221c33",
+    "confidence-high": "#a8d84a", "confidence-high-surface": "#212a12",
+    "confidence-medium": "#ffb03a", "confidence-medium-surface": "#2e2312",
+    "confidence-review": "#6ec6ff", "confidence-review-surface": "#12222e"
+  }
+}

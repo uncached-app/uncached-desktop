@@ -1,0 +1,14 @@
+{
+  "name": "Dusty",
+  "base": "light",
+  "colors": {
+    "forest-950": "#f3efe7", "forest-900": "#fbf8f2", "forest-850": "#e9e2d6", "forest-800": "#d8cfbe",
+    "mist-100": "#2a241b", "mist-300": "#4d4436", "mist-500": "#6f6455",
+    "sage-300": "#4c5a2d", "sage-400": "#5f7038", "sage-500": "#4c5a2d",
+    "coral-300": "#a13c2f", "coral-surface": "#f6e3de",
+    "pro-100": "#4a3570", "pro-200": "#6b4e9e", "pro-surface": "#efe8f7",
+    "confidence-high": "#4a6539", "confidence-high-surface": "#e4ecd9",
+    "confidence-medium": "#7d5816", "confidence-medium-surface": "#f7ecd4",
+    "confidence-review": "#3f5f76", "confidence-review-surface": "#e0eaf1"
+  }
+}

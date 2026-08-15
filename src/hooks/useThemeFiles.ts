@@ -9,10 +9,12 @@ export type UserTheme = {
   colors: Array<[string, string]>;
   /** Lines that named nothing, or named a colour that is not one. */
   problems: string[];
+  /** Shipped with the app rather than found in the folder. */
+  builtIn: boolean;
 };
 
 /**
- * The themes in the user's config folder.
+ * The themes the app ships with, and the ones in the user's config folder.
  *
  * Re-read when the window comes back, because the way anyone writes one of
  * these is to open the folder, edit a file, and come back — the same gesture

@@ -380,15 +380,20 @@ function AppearanceContent({
           <span className="flex min-w-0 flex-col gap-0.5">
             <span>Theme</span>
             <span className="text-xs leading-5 text-mist-500">
-              {problems.length > 0 ? problems[0] : `${themes.length} in your themes folder.`}
+              {problems.length > 0
+                ? problems[0]
+                : `${themes.filter((entry) => !entry.builtIn).length} of these are yours.`}
             </span>
           </span>
           <Select
             label="Theme"
             value={settings.theme ?? ""}
             options={[
-              { value: "", label: "Built in" },
-              ...themes.map((entry) => ({ value: entry.id, label: entry.name })),
+              { value: "", label: "Uncached" },
+              ...themes.map((entry) => ({
+                value: entry.id,
+                label: entry.builtIn ? entry.name : `${entry.name} (yours)`,
+              })),
             ]}
             onChange={(value) => void updateSettings({ theme: value === "" ? null : value })}
             className="w-44 shrink-0"

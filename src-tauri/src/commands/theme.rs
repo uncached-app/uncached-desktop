@@ -44,6 +44,22 @@ const TOKENS: &[&str] = &[
     "confidence-review-surface",
 ];
 
+/// The ones that ship. Compiled in rather than written to the user's folder on
+/// first run: a theme the app provides is not the user's to lose, and one they
+/// deleted would come back on the next launch looking like the app disagreeing
+/// with them. Read through the same parser as a file, so a mistake in one of
+/// these is caught by the tests that catch a mistake in theirs.
+const BUILT_IN: &[(&str, &str)] = &[
+    (
+        "cleaning-lady",
+        include_str!("../../themes/cleaning-lady.json"),
+    ),
+    ("janitor", include_str!("../../themes/janitor.json")),
+    ("cached", include_str!("../../themes/cached.json")),
+    ("dusty", include_str!("../../themes/dusty.json")),
+    ("garbage-man", include_str!("../../themes/garbage-man.json")),
+];
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Theme {
@@ -56,6 +72,8 @@ pub struct Theme {
     pub colors: Vec<(String, String)>,
     /// Lines that named nothing, or named a colour that is not one.
     pub problems: Vec<String>,
+    /// Shipped with the app rather than found in the folder.
+    pub built_in: bool,
 }
 
 #[derive(serde::Deserialize)]
@@ -103,6 +121,7 @@ pub fn parse_theme(id: &str, contents: &str) -> Result<Theme, String> {
         id: id.to_string(),
         colors,
         problems,
+        built_in: false,
     })
 }
 
@@ -123,17 +142,38 @@ pub fn themes_directory(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|error| error.to_string())
 }
 
-/// Every theme in the folder, by name.
+fn built_in_themes() -> Vec<Theme> {
+    BUILT_IN
+        .iter()
+        .filter_map(|(id, contents)| parse_theme(id, contents).ok())
+        .map(|theme| Theme {
+            built_in: true,
+            ..theme
+        })
+        .collect()
+}
+
+/// The ones that ship and the ones in the folder, by name.
 #[tauri::command]
 pub fn list_themes(app: AppHandle) -> Result<Vec<Theme>, String> {
     let directory = themes_directory(&app)?;
     ensure_example(&directory);
 
     let Ok(entries) = std::fs::read_dir(&directory) else {
-        return Ok(Vec::new());
+        // No folder is not no themes: the ones that ship are in the binary.
+        return Ok(built_in_themes());
     };
 
     let mut themes = Vec::new();
+    for (id, contents) in BUILT_IN {
+        if let Ok(theme) = parse_theme(id, contents) {
+            themes.push(Theme {
+                built_in: true,
+                ..theme
+            });
+        }
+    }
+
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().and_then(|value| value.to_str()) != Some("json") {
@@ -148,6 +188,9 @@ pub fn list_themes(app: AppHandle) -> Result<Vec<Theme>, String> {
         // A file that will not parse is dropped rather than failing the list:
         // one bad theme is not a reason to offer none of the others.
         if let Ok(theme) = parse_theme(id, &contents) {
+            // A file wins over the built-in of the same name, which is what
+            // makes "copy one of these and change a colour" a thing that works.
+            themes.retain(|existing| existing.id != theme.id);
             themes.push(theme);
         }
     }
@@ -305,5 +348,38 @@ mod tests {
         for value in ["fff", "#ffff", "#gggggg", "red", "var(--x)", "", "#"] {
             assert!(!is_colour(value), "{value}");
         }
+    }
+
+    #[test]
+    fn every_theme_that_ships_is_one() {
+        // Written by hand, so read by the same parser that reads a user's — a
+        // typo in one of these would otherwise reach a release as a surface
+        // that quietly did not repaint.
+        for (id, contents) in super::BUILT_IN {
+            let theme = parse_theme(id, contents)
+                .unwrap_or_else(|error| panic!("{id} does not parse: {error}"));
+            assert!(
+                theme.problems.is_empty(),
+                "{id}: {}",
+                theme.problems.join(", ")
+            );
+            assert_eq!(
+                theme.colors.len(),
+                21,
+                "{id} leaves a colour to the built-in palette; the ones that ship name all of them"
+            );
+        }
+    }
+
+    #[test]
+    fn the_ones_that_ship_have_distinct_names() {
+        let mut names: Vec<String> = super::built_in_themes()
+            .into_iter()
+            .map(|theme| theme.name)
+            .collect();
+        names.sort();
+        let count = names.len();
+        names.dedup();
+        assert_eq!(names.len(), count);
     }
 }

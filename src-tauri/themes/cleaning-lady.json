@@ -1,0 +1,14 @@
+{
+  "name": "Cleaning Lady",
+  "base": "light",
+  "colors": {
+    "forest-950": "#f7f9fb", "forest-900": "#ffffff", "forest-850": "#eef2f6", "forest-800": "#dbe3ec",
+    "mist-100": "#10202e", "mist-300": "#33475a", "mist-500": "#5d7086",
+    "sage-300": "#0f6ea8", "sage-400": "#0e6ba6", "sage-500": "#0f6ea8",
+    "coral-300": "#b8372a", "coral-surface": "#fbe6e3",
+    "pro-100": "#5b21b6", "pro-200": "#7c3aed", "pro-surface": "#f1e9ff",
+    "confidence-high": "#0f7a5a", "confidence-high-surface": "#dcf4ea",
+    "confidence-medium": "#8a5a00", "confidence-medium-surface": "#fdf0d5",
+    "confidence-review": "#14608f", "confidence-review-surface": "#ddeefa"
+  }
+}

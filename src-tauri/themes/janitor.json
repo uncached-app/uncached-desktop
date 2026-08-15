@@ -1,0 +1,14 @@
+{
+  "name": "Janitor",
+  "base": "dark",
+  "colors": {
+    "forest-950": "#161b22", "forest-900": "#1c232c", "forest-850": "#232c37", "forest-800": "#34404e",
+    "mist-100": "#e6edf3", "mist-300": "#b9c6d2", "mist-500": "#8b9aa8",
+    "sage-300": "#e3b341", "sage-400": "#d9a520", "sage-500": "#b8860b",
+    "coral-300": "#ff8080", "coral-surface": "#33201f",
+    "pro-100": "#d7c4ff", "pro-200": "#a78bfa", "pro-surface": "#241f33",
+    "confidence-high": "#7ee787", "confidence-high-surface": "#17241a",
+    "confidence-medium": "#e3b341", "confidence-medium-surface": "#2a2413",
+    "confidence-review": "#79c0ff", "confidence-review-surface": "#14202e"
+  }
+}

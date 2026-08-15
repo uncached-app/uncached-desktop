@@ -1,0 +1,14 @@
+{
+  "name": "Cached",
+  "base": "dark",
+  "colors": {
+    "forest-950": "#07120f", "forest-900": "#0c1a16", "forest-850": "#12231e", "forest-800": "#1d3730",
+    "mist-100": "#e3fff6", "mist-300": "#a8d5c7", "mist-500": "#7d9e93",
+    "sage-300": "#5ef2c0", "sage-400": "#34e0a8", "sage-500": "#16b98a",
+    "coral-300": "#ff7a86", "coral-surface": "#2b1418",
+    "pro-100": "#d9c2ff", "pro-200": "#b490ff", "pro-surface": "#1d1730",
+    "confidence-high": "#34e0a8", "confidence-high-surface": "#0c2620",
+    "confidence-medium": "#ffd479", "confidence-medium-surface": "#2b2412",
+    "confidence-review": "#6fc7ff", "confidence-review-surface": "#0d2233"
+  }
+}
