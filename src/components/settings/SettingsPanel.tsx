@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { List, Monitor, Moon, Settings, Share2, Sun, X } from "lucide-react";
+import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
 import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
+import { useThemeFiles, type UserTheme } from "../../hooks/useThemeFiles";
 import type { AppSettings, Appearance, IgnoreRuleReview } from "../../types/settings";
 import { openExternalUrl } from "../../utils/externalLink";
 
@@ -17,7 +18,6 @@ type SettingsPanelProps = {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   /** The plan is native state; activating one has to re-read it. */
   onLicenseChange?: () => void;
-  proEnabled?: boolean;
 };
 
 const sections = [
@@ -41,13 +41,15 @@ export function SettingsPanel({
   error,
   updateSettings,
   onLicenseChange = () => {},
-  proEnabled = false,
 }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(
     null,
   );
   const [confirmPermanent, setConfirmPermanent] = useState(false);
+  // Re-read when the window comes back, because writing one of these means
+  // leaving for an editor and returning.
+  const { themes } = useThemeFiles();
 
   useEffect(() => {
     if (!open) return;
@@ -146,7 +148,7 @@ export function SettingsPanel({
                 section={section}
                 settings={settings}
                 updateSettings={updateSettings}
-                proEnabled={proEnabled}
+                themes={themes}
                 onRequestPermanentDelete={() => setConfirmPermanent(true)}
               />
             )}
@@ -221,13 +223,13 @@ function SettingsContent({
   section,
   settings,
   updateSettings,
-  proEnabled,
+  themes,
   onRequestPermanentDelete,
 }: {
+  themes: UserTheme[];
   section: Section;
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
-  proEnabled: boolean;
   onRequestPermanentDelete: () => void;
 }) {
   if (section === "General") {
@@ -283,7 +285,7 @@ function SettingsContent({
       />
     );
   }
-  return <AppearanceContent settings={settings} updateSettings={updateSettings} proEnabled={proEnabled} />;
+  return <AppearanceContent settings={settings} updateSettings={updateSettings} themes={themes} />;
 }
 
 function DeletionContent({
@@ -321,123 +323,118 @@ function DeletionContent({
 function AppearanceContent({
   settings,
   updateSettings,
-  proEnabled,
+  themes,
 }: {
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
-  proEnabled: boolean;
+  themes: UserTheme[];
 }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
-          Theme
-        </p>
-        <SettingsGroup>
-          <SettingRadio
-            icon={<Moon size={15} />}
-            label="Dark"
-            hint="Sleek dark theme optimized for low-light development environments."
-            selected={settings.appearance === "dark"}
-            onClick={() => updateSettings({ appearance: "dark" as Appearance })}
-          />
-          <SettingRadio
-            icon={<Sun size={15} />}
-            label="Light"
-            hint="Clean high-contrast light theme."
-            selected={settings.appearance === "light"}
-            onClick={() => updateSettings({ appearance: "light" as Appearance })}
-          />
-          <SettingRadio
-            icon={<Monitor size={15} />}
-            label="System"
-            hint="Automatically follows your operating system appearance preference."
-            selected={settings.appearance === "system"}
-            onClick={() => updateSettings({ appearance: "system" as Appearance })}
-          />
-        </SettingsGroup>
-      </div>
+  // Named rather than swallowed: a colour the app could not read is a line
+  // somebody typed, and the only thing worse than not applying it is not
+  // saying so.
+  const problems = themes.find((entry) => entry.id === settings.theme)?.problems ?? [];
 
-      <div className="border-t border-forest-800 pt-5">
-        <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
-          Default Workspace View
-        </p>
-        <SettingsGroup>
-          <SettingRadio
-            icon={<List size={15} />}
-            label="List"
-            hint="Every project, grouped by verdict or size. The standard keyboard-navigable list."
-            selected={!proEnabled || settings.workspaceView === "list"}
-            onClick={() => updateSettings({ workspaceView: "list" })}
+  return (
+    <>
+      <p className="mb-4 text-xs leading-5 text-mist-500">
+        Choose your interface theme.
+      </p>
+      <SettingsGroup>
+        <SettingRadio
+          icon={<Moon size={15} />}
+          label="Dark"
+          hint="Sleek dark theme optimized for low-light development environments."
+          selected={settings.appearance === "dark"}
+          onClick={() => updateSettings({ appearance: "dark" as Appearance })}
+        />
+        <SettingRadio
+          icon={<Sun size={15} />}
+          label="Light"
+          hint="Clean high-contrast light theme."
+          selected={settings.appearance === "light"}
+          onClick={() => updateSettings({ appearance: "light" as Appearance })}
+        />
+        <SettingRadio
+          icon={<Monitor size={15} />}
+          label="System"
+          hint="Automatically follows your operating system appearance preference."
+          selected={settings.appearance === "system"}
+          onClick={() => updateSettings({ appearance: "system" as Appearance })}
+        />
+      </SettingsGroup>
+
+      <p className="mt-7 mb-4 text-xs leading-5 text-mist-500">
+        A theme file renames some of the app's colours and leaves the rest, so one written today
+        still works after a release adds a surface.
+      </p>
+      <SettingsGroup>
+        <div className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span>Theme</span>
+            <span className="text-xs leading-5 text-mist-500">
+              {problems.length > 0 ? problems[0] : `${themes.length} in your themes folder.`}
+            </span>
+          </span>
+          <Select
+            label="Theme"
+            value={settings.theme ?? ""}
+            options={[
+              { value: "", label: "Built in" },
+              ...themes.map((entry) => ({ value: entry.id, label: entry.name })),
+            ]}
+            onChange={(value) => void updateSettings({ theme: value === "" ? null : value })}
+            className="w-44 shrink-0"
           />
-          <SettingRadio
-            icon={<Share2 size={15} />}
-            label="Map"
-            hint={
-              proEnabled
-                ? "The workspace as an interactive 2D graph: visual disk weights, dependencies, and shared packages."
-                : "Pro. Unlocks the interactive workspace constellation graph view."
-            }
-            selected={proEnabled && settings.workspaceView === "map"}
-            disabled={!proEnabled}
-            onClick={() => updateSettings({ workspaceView: "map" })}
-          />
-        </SettingsGroup>
-      </div>
-    </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span>Your settings and themes</span>
+            <span className="text-xs leading-5 text-mist-500">
+              <span className="font-mono text-mist-300">settings.json</span> and a{" "}
+              <span className="font-mono text-mist-300">themes</span> folder, in your own Library.
+              Edit either and come back — both are read again when the window is.
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => void invoke("reveal_config")}
+            className="shrink-0 cursor-pointer rounded-xl border border-forest-800 bg-forest-950 px-3 py-2 text-xs font-medium text-mist-300 transition-colors hover:border-sage-400/60 hover:text-mist-100"
+          >
+            Open folder
+          </button>
+        </div>
+      </SettingsGroup>
+    </>
   );
 }
 
-function AboutContent({
-  appInfo,
-}: {
-  appInfo: { name: string; version: string; website: string } | null;
-}) {
+function AboutContent({ appInfo }: { appInfo: { name: string; version: string; website: string } | null }) {
   const websiteUrl = appInfo?.website ?? "https://uncached.app";
   const eulaUrl = "https://uncached.app/eula";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="grid size-12 shrink-0 place-items-center rounded-2xl border border-forest-800 bg-forest-950 shadow-xs">
-          <img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-7" />
-          <img src="/brand/UNCACHED-ICON-DARK-NOBG.svg" alt="" className="theme-logo-dark size-7" />
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
-          <p className="text-xs text-mist-500">Reclaim disk space from heavy build artifacts and caches.</p>
-        </div>
-      </div>
-
-      <div className="divide-y divide-forest-800 border-y border-forest-800">
-        <div className="flex items-center justify-between gap-4 py-3 text-xs">
-          <dt className="font-medium text-mist-500">Version</dt>
-          <dd className="font-mono font-medium text-mist-100">{appInfo?.version ?? "..."}</dd>
-        </div>
-        <div className="flex items-center justify-between gap-4 py-3 text-xs">
-          <dt className="font-medium text-mist-500">Official Website</dt>
-          <dd>
-            <a
-              href={websiteUrl}
-              onClick={(e) => openExternalUrl(websiteUrl, e)}
-              className="font-medium text-sage-300 transition-colors hover:text-sage-400 cursor-pointer"
-            >
-              uncached.app →
-            </a>
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-4 py-3 text-xs">
-          <dt className="font-medium text-mist-500">Legal Agreement</dt>
-          <dd>
-            <a
-              href={eulaUrl}
-              onClick={(e) => openExternalUrl(eulaUrl, e)}
-              className="text-mist-400 transition-colors hover:text-mist-100 underline cursor-pointer"
-            >
-              End User License Agreement (EULA)
-            </a>
-          </dd>
-        </div>
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-20" />
+      <img src="/brand/UNCACHED-ICON-DARK-NOBG.svg" alt="" className="theme-logo-dark size-20" />
+      <h3 className="mt-6 text-2xl font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
+      <p className="mt-2 text-sm text-mist-500">Reclaim disk from build artifacts.</p>
+      <p className="mt-6 font-mono text-xs text-mist-500">Version {appInfo?.version ?? "..."}</p>
+      <div className="mt-5 flex flex-col items-center gap-2">
+        <a
+          href={websiteUrl}
+          onClick={(e) => openExternalUrl(websiteUrl, e)}
+          className="text-sm text-sage-300 hover:text-sage-400"
+        >
+          uncached.app
+        </a>
+        <a
+          href={eulaUrl}
+          onClick={(e) => openExternalUrl(eulaUrl, e)}
+          className="text-xs text-mist-500 hover:text-mist-300 underline"
+        >
+          End User License Agreement (EULA)
+        </a>
       </div>
     </div>
   );
