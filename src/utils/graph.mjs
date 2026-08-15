@@ -255,11 +255,12 @@ function angularWidth(radius, distance) {
  * Room inside a cluster, in node radii.
  *
  * `1/sin(π/k)` is the radius at which k circles of radius 1 exactly meet around
- * a centre — which is to say, touch. Touching is not enough: every one of them
- * carries a name underneath, and four names written under four circles that are
- * against each other is one unreadable line.
+ * a centre — which is to say, touch. Touching is not enough twice over: every
+ * one of them carries a name underneath, and four names written under four
+ * circles that are against each other is one unreadable line; and the family's
+ * own name goes in the hole they leave, which has to be a hole worth the name.
  */
-const CLUSTER_SPREAD = 2.5;
+const CLUSTER_SPREAD = 3.2;
 
 /** How much room a unit needs: one node, or a cluster of them. */
 function unitRadius(members) {
@@ -440,10 +441,13 @@ function familyLabels(families, placed) {
         detail: family.declaredBy ? `${family.declaredBy} workspace` : "one folder",
         declared: Boolean(family.declaredBy),
         members: members.length,
+        // Dead centre. Members sit on a ring with a hole in it, and the hole is
+        // the name's place: hung below the cluster it lands wherever that
+        // cluster happens to sit, over whatever is beneath it, and reads as a
+        // label for the neighbour rather than for the group.
         x: middle.x,
-        // Below the cluster rather than through it: a name written across four
-        // circles is a name over four circles.
-        y: middle.y + reach,
+        y: middle.y,
+        /** How far members reach from that centre, so the name can check it fits. */
         reach,
       };
     })

@@ -372,7 +372,6 @@ export function WorkspaceMap({
           onAddRoot={onAddRoot}
           onRemoveRoot={onRemoveRoot}
           onRemoveAllRoots={onRemoveAllRoots}
-          onCollapse={() => setSidebarCollapsed(true)}
         />
       </div>
 

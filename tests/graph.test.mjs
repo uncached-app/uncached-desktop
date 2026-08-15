@@ -188,6 +188,30 @@ test("a family is drawn round its cluster, not as a line between every pair", ()
   assert.equal(result.labels[0].text, "mono");
 });
 
+test("a family's name sits in the middle of its own cluster", () => {
+  // Hung below it, the name lands wherever the cluster happens to sit on the
+  // ring — over whatever is beneath it, reading as a label for the neighbour.
+  const members = ["a", "b", "c", "d"];
+  const projects = members.map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
+  const result = graph({ projects, families: [family("mono", members)] });
+
+  const placed = result.nodes.filter((node) => node.path?.startsWith("/w/mono/"));
+  const label = result.labels[0];
+  const middle = {
+    x: placed.reduce((total, node) => total + node.x, 0) / placed.length,
+    y: placed.reduce((total, node) => total + node.y, 0) / placed.length,
+  };
+
+  assert.ok(Math.abs(label.x - middle.x) < 1e-9);
+  assert.ok(Math.abs(label.y - middle.y) < 1e-9);
+  // And every member is further out than the name is, which is what makes the
+  // middle a place to put one.
+  for (const node of placed) {
+    assert.ok(Math.hypot(node.x - label.x, node.y - label.y) > 0, "a member sits on the name");
+  }
+  assert.ok(label.reach > 0);
+});
+
 test("a family label says whether a tool declared it or somebody just filed it there", () => {
   const projects = ["a", "b"].map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
 

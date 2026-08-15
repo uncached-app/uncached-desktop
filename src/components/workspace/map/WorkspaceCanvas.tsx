@@ -211,7 +211,7 @@ export function WorkspaceCanvas({
           })}
 
           {/* Directory & Monorepo Hub Badges */}
-          {graph.labels.map((label) => (
+          {graph.labels.map((label) => nameFits(label, map.view.scale, graph.maxRadius * SIDE) && (
             <g
               key={label.id}
               transform={`translate(${label.x * SIDE}, ${label.y * SIDE}) scale(${1 / map.view.scale})`}
@@ -553,6 +553,21 @@ export function useDrawingAspect() {
   }, []);
 
   return { ref, aspect };
+}
+
+/**
+ * Whether a family's name fits inside the ring of its own members.
+ *
+ * The name sits at the cluster's centre and is counter-scaled, so zooming out
+ * grows it relative to the cluster until it covers the projects it is naming.
+ * Below the fit it is not drawn: the shape is still there, and closing in is
+ * what asks for the name — the same bargain every other label on this map
+ * makes.
+ */
+function nameFits(label: WorkspaceGraph["labels"][number], scale: number, node: number): boolean {
+  // `reach` is to the members' centres, so their own radius comes off it: the
+  // hole is what is left between them, not the circle they sit on.
+  return (label.reach * SIDE - node) * scale > 82;
 }
 
 /** The drawing's own rectangle, in the coordinates the SVG uses. */

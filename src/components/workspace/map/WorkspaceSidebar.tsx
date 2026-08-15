@@ -1,9 +1,7 @@
 import {
   Folder,
   Layers,
-  PanelLeftClose,
   Plus,
-  RotateCcw,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -34,11 +32,10 @@ type WorkspaceSidebarProps = {
   onAddRoot: () => void;
   onRemoveRoot: (root: string) => void;
   onRemoveAllRoots: () => void;
-  onCollapse?: () => void;
 };
 
 /**
- * Workspace filter sidebar with clean, non-overflowing layout and collapse button.
+ * Workspace filter sidebar with clean, non-overflowing layout.
  */
 export function WorkspaceSidebar({
   index,
@@ -60,60 +57,20 @@ export function WorkspaceSidebar({
   onAddRoot,
   onRemoveRoot,
   onRemoveAllRoots,
-  onCollapse,
 }: WorkspaceSidebarProps) {
   const singleRoot = chosenRoots.length === 1;
-
-  const hasActiveFilters =
-    activeRoot !== null || activeVerdict !== null || activeCategory !== null || clonesOnly;
-
-  const clearAllFilters = () => {
-    onActiveRoot(null);
-    onActiveVerdict(null);
-    onActiveCategory(null);
-    onClonesOnly(false);
-  };
 
   return (
     <aside
       className="flex w-52 shrink-0 flex-col overflow-y-auto overflow-x-hidden pr-2 sm:w-60 select-none"
       aria-label="Workspace filters"
     >
-      {/* Quick Active Filter Indicator & Reset */}
-      {hasActiveFilters && (
-        <div className="mb-2 shrink-0 px-1">
-          <button
-            type="button"
-            onClick={clearAllFilters}
-            className="flex w-full items-center justify-between rounded-lg border border-forest-800 bg-forest-900 px-2.5 py-1.5 text-xs text-sage-300 hover:bg-forest-850 transition-colors cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5 font-medium">
-              <RotateCcw size={12} />
-              Reset active filters
-            </span>
-            <span className="font-mono text-[10px] text-mist-500">clear</span>
-          </button>
-        </div>
-      )}
 
       {/* 1. Folders Section */}
       <div className="shrink-0 pb-2">
-        <div className="flex items-center justify-between px-2 pb-2">
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
-            Folders
-          </p>
-          {onCollapse && (
-            <button
-              type="button"
-              onClick={onCollapse}
-              title="Collapse sidebar"
-              aria-label="Collapse sidebar"
-              className="grid size-5.5 place-items-center rounded-lg text-mist-500 hover:bg-forest-850 hover:text-mist-100 transition-colors cursor-pointer"
-            >
-              <PanelLeftClose size={13} />
-            </button>
-          )}
-        </div>
+        <p className="px-2 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+          Folders
+        </p>
 
         <div className="grid gap-1 min-w-0">
           {!singleRoot && (
