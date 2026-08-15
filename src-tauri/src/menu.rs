@@ -36,6 +36,16 @@ pub struct MenuAction {
 /// native objects with no notion of "the accelerator for this id", and the
 /// whole thing costs less than keeping a map of what was where.
 pub fn install<R: Runtime>(app: &AppHandle<R>, actions: &[MenuAction]) -> tauri::Result<()> {
+    // macOS keeps the menu bar at the top of the screen, where it exists
+    // whatever the window looks like. Windows and Linux hang it off the window
+    // frame, and this window has none — `decorations: false`, because the app
+    // draws its own titlebar. A menu with nowhere to be drawn is worse than no
+    // menu: every key it would have advertised still works, and the palette
+    // reaches everything by name.
+    if !cfg!(target_os = "macos") {
+        return Ok(());
+    }
+
     let mut file = SubmenuBuilder::new(app, "File");
     let mut view = SubmenuBuilder::new(app, "View");
     let mut workspace = SubmenuBuilder::new(app, "Workspace");

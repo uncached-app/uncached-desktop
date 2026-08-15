@@ -13,6 +13,11 @@ import { toAccelerator } from "../utils/keys.mjs";
  * Only the items that asked for a menu. Settings is bound and not listed:
  * macOS keeps that under the application menu, and a second copy under `File`
  * is the app disagreeing with the platform about where a thing lives.
+ *
+ * Sent on every platform and hung on the window by none but macOS, which is
+ * where the decision belongs — the native side is the only one that knows this
+ * window has no frame for a menu bar to live in. Every key still works
+ * everywhere, and the palette reaches all of it by name.
  */
 export function useNativeMenu(bindings: Record<string, string>) {
   useEffect(() => {

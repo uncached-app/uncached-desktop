@@ -398,7 +398,7 @@ function AppearanceContent({
           </span>
           <button
             type="button"
-            onClick={() => void invoke("reveal_config")}
+            onClick={() => void invoke("reveal_config").catch(() => {})}
             className="shrink-0 cursor-pointer rounded-xl border border-forest-800 bg-forest-950 px-3 py-2 text-xs font-medium text-mist-300 transition-colors hover:border-sage-400/60 hover:text-mist-100"
           >
             Open folder

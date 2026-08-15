@@ -157,11 +157,25 @@ pub fn list_themes(app: AppHandle) -> Result<Vec<Theme>, String> {
 }
 
 /// Opens the folder these live in, which is also where `settings.json` is.
+///
+/// Revealing rather than opening, and revealing the `themes` folder rather than
+/// the configuration folder: the file manager then shows the directory that
+/// holds *both* files with one of them selected, which is the view somebody
+/// asking this question wants either way.
+///
+/// Falls back to opening it. Revealing is a desktop-environment feature — a
+/// D-Bus interface on Linux, Explorer's `/select` on Windows — and on a Linux
+/// session with no file manager offering it, the plugin says so rather than
+/// doing something. Opening the folder is worse and it is not nothing.
 #[tauri::command]
 pub fn reveal_config(app: AppHandle) -> Result<(), String> {
     let directory = themes_directory(&app)?;
     ensure_example(&directory);
-    tauri_plugin_opener::reveal_item_in_dir(directory).map_err(|error| error.to_string())
+
+    if tauri_plugin_opener::reveal_item_in_dir(&directory).is_ok() {
+        return Ok(());
+    }
+    tauri_plugin_opener::open_path(&directory, None::<&str>).map_err(|error| error.to_string())
 }
 
 /// Writes one theme to copy from, once.
