@@ -1,7 +1,7 @@
 import { PanelRight } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { MenuRow, MenuSection } from "../../shared/MenuRow";
-import { useProjectActions } from "../../../hooks/useProjectActions";
+import { MenuRow } from "../../shared/MenuRow";
+import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
 import type { WorkspaceProject } from "../../../types/workspace";
 
 /** Where the pointer was, in viewport coordinates. */
@@ -20,6 +20,10 @@ const MARGIN = 8;
  * destructive action one right-click and one small target away from a row is
  * how a workspace loses a project nobody meant to touch. Opening the page,
  * which is where reclaiming lives, is the first entry instead.
+ *
+ * Verbs only — no headings, no descriptions, no right-hand column. Each of
+ * those was carrying something the reader already had: which project (they
+ * right-clicked it), what the project page holds, and the absolute path.
  */
 export function ProjectContextMenu({
   anchor,
@@ -32,7 +36,9 @@ export function ProjectContextMenu({
   onResult: (message: string | null) => void;
   onClose: () => void;
 }) {
-  const actions = useProjectActions(anchor.project);
+  // One editor, and no more. Choosing between them is what the palette is
+  // for; here it would be a run of identical pencils.
+  const actions = withOneEditor(useProjectActions(anchor.project));
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: anchor.x, top: anchor.y });
 
@@ -78,32 +84,26 @@ export function ProjectContextMenu({
       role="menu"
       aria-label={`${anchor.project.name} actions`}
       style={{ left: position.left, top: position.top }}
-      /* The palette's surface, because it is the same kind of thing: a floating
-         list of the app's verbs. It was drawn separately with a tighter radius,
-         smaller rows and a smaller icon, which made two surfaces that do the
-         same job look like they came from different products. */
-      className="fixed z-50 max-h-[70vh] min-w-64 overflow-y-auto overflow-x-hidden rounded-2xl border border-forest-800 bg-forest-900 py-2 shadow-2xl"
+      /* The palette's tokens, at a menu's size. Sized to its content rather
+         than to a minimum: the width was being set by a right-hand column
+         carrying absolute paths, which is a detail you cannot need about the
+         row you just right-clicked. */
+      className="fixed z-50 max-w-xs overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 py-1.5 shadow-2xl"
     >
-      <MenuSection label={anchor.project.name} />
-
       <MenuRow
         icon={PanelRight}
         title="Open project page"
-        subtitle="Verdict, git, artifacts — and where reclaiming happens"
         onSelect={() => {
           onOpenProject(anchor.project.path);
           onClose();
         }}
       />
 
-      {actions.length > 0 && <MenuSection label="Elsewhere" />}
-
       {actions.map((action) => (
         <MenuRow
           key={action.id}
           icon={action.icon}
           title={action.title}
-          detail={action.detail}
           onSelect={() => {
             onClose();
             void action.perform().then(

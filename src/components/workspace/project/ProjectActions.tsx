@@ -1,5 +1,5 @@
 import { Compass, type LucideIcon } from "lucide-react";
-import { useProjectActions } from "../../../hooks/useProjectActions";
+import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
 import type { WorkspaceProject } from "../../../types/workspace";
 
 /**
@@ -78,17 +78,7 @@ export function ProjectActions({
 }) {
   const actions = useProjectActions(project);
 
-  // One button per verb, not one per installed editor. `useProjectActions`
-  // returns every editor because the palette lists them all and lets you pick;
-  // a row of identical pencil icons is a row nobody can read, so this takes the
-  // best one for this project and leaves the rest to the palette.
-  const shown = actions.filter(
-    (action, position) =>
-      !action.id.startsWith("open-") ||
-      action.id === "open-terminal" ||
-      actions.findIndex((first) => first.id.startsWith("open-") && first.id !== "open-terminal") ===
-        position,
-  );
+  const shown = withOneEditor(actions);
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">

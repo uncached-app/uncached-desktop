@@ -28,6 +28,23 @@ export type ProjectAction = {
 };
 
 /**
+ * The same list with one editor instead of every installed one.
+ *
+ * The palette is where you choose between editors — it has a search field and
+ * room for the list. Anywhere else, a run of identical pencil icons is a run
+ * nobody can read, and `editorsFor` has already put the best one first.
+ */
+export function withOneEditor(actions: ProjectAction[]): ProjectAction[] {
+  const first = actions.findIndex(
+    (action) => action.id.startsWith("open-") && action.id !== "open-terminal",
+  );
+  return actions.filter(
+    (action, position) =>
+      !action.id.startsWith("open-") || action.id === "open-terminal" || position === first,
+  );
+}
+
+/**
  * Everything you can do with a project that happens outside this window.
  *
  * Shared rather than written twice: the palette and the project page offer the

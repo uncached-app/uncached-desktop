@@ -57,12 +57,3 @@ export function MenuRow({
     </button>
   );
 }
-
-/** The label above a run of rows, in the shape the palette uses. */
-export function MenuSection({ label }: { label: string }) {
-  return (
-    <p className="truncate px-4 pb-1 pt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-mist-500">
-      {label}
-    </p>
-  );
-}
