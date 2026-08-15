@@ -1,0 +1,33 @@
+{
+  "name": "Vercel Light",
+  "base": "light",
+
+  "colors": {
+    "forest-950": "#fafafa",
+    "forest-900": "#ffffff",
+    "forest-850": "#f2f2f2",
+    "forest-800": "#eaeaea",
+
+    "mist-100": "#000000",
+    "mist-300": "#444444",
+    "mist-500": "#666666",
+
+    "sage-300": "#0053b3",
+    "sage-400": "#0062d1",
+    "sage-500": "#0053b3",
+
+    "coral-300": "#b3272c",
+    "coral-surface": "#fde8e9",
+
+    "pro-100": "#4c1d95",
+    "pro-200": "#7928ca",
+    "pro-surface": "#f3e8ff",
+
+    "confidence-high": "#067a6f",
+    "confidence-high-surface": "#d9f5f0",
+    "confidence-medium": "#a35200",
+    "confidence-medium-surface": "#fdf0d9",
+    "confidence-review": "#0761d1",
+    "confidence-review-surface": "#dcebfb"
+  }
+}

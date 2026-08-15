@@ -1,0 +1,33 @@
+{
+  "name": "Vercel Dark",
+  "base": "dark",
+
+  "colors": {
+    "forest-950": "#000000",
+    "forest-900": "#0a0a0a",
+    "forest-850": "#171717",
+    "forest-800": "#2e2e2e",
+
+    "mist-100": "#ededed",
+    "mist-300": "#a1a1a1",
+    "mist-500": "#8f8f8f",
+
+    "sage-300": "#52a8ff",
+    "sage-400": "#3291ff",
+    "sage-500": "#0070f3",
+
+    "coral-300": "#ff6369",
+    "coral-surface": "#2a1a1c",
+
+    "pro-100": "#ddb8ff",
+    "pro-200": "#a855f7",
+    "pro-surface": "#1e1526",
+
+    "confidence-high": "#50e3c2",
+    "confidence-high-surface": "#10231f",
+    "confidence-medium": "#f5a623",
+    "confidence-medium-surface": "#241b0e",
+    "confidence-review": "#3291ff",
+    "confidence-review-surface": "#0d1b2e"
+  }
+}

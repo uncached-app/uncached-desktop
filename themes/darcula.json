@@ -1,0 +1,33 @@
+{
+  "name": "Darcula",
+  "base": "dark",
+
+  "colors": {
+    "forest-950": "#2b2b2b",
+    "forest-900": "#313335",
+    "forest-850": "#3c3f41",
+    "forest-800": "#4e5254",
+
+    "mist-100": "#cfd8e3",
+    "mist-300": "#a9b7c6",
+    "mist-500": "#9aa7b0",
+
+    "sage-300": "#bfd99a",
+    "sage-400": "#a9c47e",
+    "sage-500": "#8faf68",
+
+    "coral-300": "#ff6b68",
+    "coral-surface": "#3b2a2a",
+
+    "pro-100": "#d0bfff",
+    "pro-200": "#b389ff",
+    "pro-surface": "#2b2540",
+
+    "confidence-high": "#a9c47e",
+    "confidence-high-surface": "#2e3327",
+    "confidence-medium": "#ffc66d",
+    "confidence-medium-surface": "#3a3323",
+    "confidence-review": "#6897bb",
+    "confidence-review-surface": "#1e2831"
+  }
+}
