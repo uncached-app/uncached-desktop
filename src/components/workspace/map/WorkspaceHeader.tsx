@@ -21,6 +21,7 @@ export function WorkspaceHeader({
   searchRef,
   order,
   onOrderChange,
+  hasFamilies,
   view,
 }: {
   projectCount: number;
@@ -36,8 +37,10 @@ export function WorkspaceHeader({
   query: string;
   onQueryChange: (query: string) => void;
   searchRef: RefObject<HTMLInputElement | null>;
-  order: "verdict" | "size";
-  onOrderChange: (order: "verdict" | "size") => void;
+  order: "verdict" | "size" | "folder";
+  onOrderChange: (order: "verdict" | "size" | "folder") => void;
+  /** Only offered when something here actually shares a directory. */
+  hasFamilies: boolean;
   /** Which reading is open. Chosen in Settings, not here. */
   view: "list" | "map";
 }) {
@@ -145,6 +148,9 @@ export function WorkspaceHeader({
             options={[
               ["verdict", "By verdict", "What a project holds decides whether its size is worth acting on"],
               ["size", "By size", "Heaviest on disk first"],
+              ...(hasFamilies
+                ? ([["folder", "By folder", "Projects that sit in one directory, together"]] as const)
+                : []),
             ]}
           />
         )}

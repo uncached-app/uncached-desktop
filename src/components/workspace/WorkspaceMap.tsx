@@ -2,6 +2,7 @@ import { FolderOpen } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProjectContextMenu, type MenuAnchor } from "./map/ProjectContextMenu";
 import { ProjectRow } from "./map/ProjectRow";
+import { FamilyGroup } from "./map/FamilyGroup";
 import { VerdictGroup } from "./map/VerdictGroup";
 import { WorkspaceHeader } from "./map/WorkspaceHeader";
 import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
@@ -9,7 +10,7 @@ import { useFocusedProject } from "./map/useFocusedProject";
 import { VERDICT_ORDER } from "./verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
 import { MAX_NODES, workspaceGraph } from "../../utils/graph.mjs";
-import { WorkspaceCanvas } from "./map/WorkspaceCanvas";
+import { WorkspaceCanvas, useDrawingAspect } from "./map/WorkspaceCanvas";
 import type { DuplicatePackage } from "../../types/duplicates";
 import type { WorkspaceView } from "../../types/settings";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
@@ -96,12 +97,13 @@ export function WorkspaceMap({
   // size is worth acting on at all. Size is the other reading, and until now it
   // was unreachable: grouping runs before sorting, so the heaviest project on
   // the machine could sit below three groups of smaller ones.
-  const [order, setOrder] = useState<"verdict" | "size">("verdict");
+  const [order, setOrder] = useState<"verdict" | "size" | "folder">("verdict");
   // Which reading opens is a preference, kept in Settings — the header used to
   // ask it on every visit and forget the answer on every close. Pro decides
   // whether the map exists at all, so a preference set before a licence lapsed
   // reads as the list rather than as an empty screen.
   const onMap = view === "map" && proEnabled;
+  const { ref: drawing, aspect } = useDrawingAspect();
   const [menu, setMenu] = useState<MenuAnchor | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -253,6 +255,46 @@ export function WorkspaceMap({
     [visible, footprints],
   );
 
+  // Families are read from the whole index, then narrowed to what is on
+  // screen: a filter that hides two of four members leaves a pair, not a group
+  // of four with two of them missing.
+  const families = useMemo(() => {
+    const shown = new Set(visible.map((project) => project.path));
+    return (index.families ?? [])
+      .map((family) => ({ ...family, members: family.members.filter((member) => shown.has(member)) }))
+      .filter((family) => family.members.length > 1);
+  }, [index.families, visible]);
+
+  // The reading the list did not have: what shares a directory. Members keep
+  // the heaviest-first order every other group uses, and everything standing
+  // alone falls into one block at the end.
+  const byFamily = useMemo(() => {
+    const heaviest = (left: WorkspaceProject, right: WorkspaceProject) =>
+      (footprints[right.path]?.reclaimableBytes ?? 0) - (footprints[left.path]?.reclaimableBytes ?? 0);
+    const shown = new Map(visible.map((project) => [project.path, project]));
+
+    const groups = families
+      .map((family) => ({
+        id: family.path,
+        name: family.name,
+        detail: family.declaredBy ? `${family.declaredBy} workspace` : "One folder, several projects",
+        declared: Boolean(family.declaredBy),
+        projects: family.members
+          .map((member) => shown.get(member))
+          .filter((project): project is WorkspaceProject => Boolean(project))
+          .sort(heaviest),
+      }))
+      .filter((group) => group.projects.length > 1)
+      .sort((left, right) => right.projects.length - left.projects.length || left.name.localeCompare(right.name));
+
+    const grouped = new Set(groups.flatMap((group) => group.projects.map((project) => project.path)));
+    const alone = visible.filter((project) => !grouped.has(project.path)).sort(heaviest);
+
+    return alone.length > 0
+      ? [...groups, { id: "alone", name: "On their own", detail: "In no directory with another project", declared: false, projects: alone }]
+      : groups;
+  }, [families, visible, footprints]);
+
   const grouped = useMemo(() => {
     const groups = new Map<Verdict, WorkspaceProject[]>();
     for (const project of visible) {
@@ -279,8 +321,11 @@ export function WorkspaceMap({
   // at all is what decides which view renders — and the answer to "no" is the
   // list, not an empty frame where a picture would have been.
   const graph = useMemo(
-    () => (onMap ? workspaceGraph({ projects: visible, footprints, verdicts, packages }) : null),
-    [onMap, visible, footprints, verdicts, packages],
+    () =>
+      onMap
+        ? workspaceGraph({ projects: visible, footprints, verdicts, packages, families, aspect })
+        : null,
+    [onMap, visible, footprints, verdicts, packages, families, aspect],
   );
   const drawable = graph !== null && visible.length > 0 && !graph.tooLarge;
 
@@ -331,6 +376,7 @@ export function WorkspaceMap({
           searchRef={searchRef}
           order={order}
           onOrderChange={setOrder}
+          hasFamilies={families.length > 0}
           view={onMap ? "map" : "list"}
         />
 
@@ -338,7 +384,7 @@ export function WorkspaceMap({
             question about the workspace, and switching view is not answering a
             different one. */}
         {drawable && graph && (
-          <div className="min-h-0 flex-1 overflow-hidden pt-3.5 pr-2 pb-2">
+          <div ref={drawing} className="min-h-0 flex-1 overflow-hidden pt-3.5 pr-2 pb-2">
             <WorkspaceCanvas
               graph={graph}
               projects={visible}
@@ -366,6 +412,24 @@ export function WorkspaceMap({
             </p>
           )}
           <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
+            {order === "folder" &&
+              byFamily.map((group) => (
+                <FamilyGroup
+                  key={group.id}
+                  id={group.id}
+                  name={group.name}
+                  detail={group.detail}
+                  declared={group.declared}
+                  projects={group.projects}
+                  verdicts={verdicts}
+                  footprints={footprints}
+                  showRoot={index.roots.length > 1 && activeRoot === null}
+                  focusPath={focusPath}
+                  onOpenProject={onOpenProject}
+                  onContextMenu={openMenu}
+                />
+              ))}
+
             {order === "size" && visible.length > 0 && (
               <section aria-label="Projects ranked by size" className="pb-5">
                 <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-x-2.5 rounded-t-none rounded-b-xl bg-forest-950/90 px-2.5 py-2 backdrop-blur-md">

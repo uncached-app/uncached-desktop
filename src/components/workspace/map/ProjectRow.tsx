@@ -109,9 +109,16 @@ export function ProjectRow({
               <span className="truncate max-w-28">{project.git.branch}</span>
             </span>
           )}
-          {showRoot && (
-            <span className="shrink-0 truncate font-mono text-[10px] text-mist-500">
-              {rootName(project.root)}
+          {/* The directory it shares with other projects, when it has one:
+              four folders under `uncached-app` are one piece of work, and the
+              root they all share says nothing about which. Falls back to the
+              root, which is the only answer for a project standing alone. */}
+          {(project.family || showRoot) && (
+            <span
+              title={project.family ?? project.root}
+              className={`shrink-0 truncate font-mono text-[10px] ${project.family ? "text-sage-300" : "text-mist-500"}`}
+            >
+              {project.family ? rootName(project.family) : rootName(project.root)}
             </span>
           )}
           {project.duplicateOf.length > 0 && (

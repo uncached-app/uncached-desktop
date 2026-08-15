@@ -1,6 +1,6 @@
 /** Mirrors `graph.mjs` so the module can be consumed from TypeScript. */
 import type { DuplicatePackage } from "../types/duplicates";
-import type { Footprint, Verdict, WorkspaceProject } from "../types/workspace";
+import type { Family, Footprint, Verdict, WorkspaceProject } from "../types/workspace";
 
 export declare const MAX_NODES: number;
 export declare const MAX_PACKAGES: number;
@@ -15,28 +15,47 @@ export type GraphNode = {
   /** What it weighs, for drawing. `null` when it has not been measured. */
   weight: number | null;
   angle: number;
-  /** 0..1 in a unit square. The component scales it. */
+  /** In a box `width` by `height`. The component scales it. */
   x: number;
   y: number;
   /** Project nodes only. */
   path?: string;
   verdict?: Verdict;
+  family?: string | null;
 };
 
 export type GraphEdge = {
   id: string;
-  /** `copy`: a project holds this package. `clone`: one repository, two checkouts. */
-  kind: "copy" | "clone";
+  /**
+   * `copy`: a project holds this package. `clone`: one repository, two
+   * checkouts. `family`: one directory, several projects.
+   */
+  kind: "copy" | "clone" | "family";
   from: string;
   to: string;
+};
+
+export type GraphLabel = {
+  id: string;
+  text: string;
+  detail: string;
+  declared: boolean;
+  x: number;
+  y: number;
 };
 
 export type WorkspaceGraph = {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  labels: GraphLabel[];
   packagesOmitted: number;
+  sharesNothing: boolean;
   /** Past `MAX_NODES` the picture stops being one. */
   tooLarge: boolean;
+  /** The largest any node may draw before two of them touch. */
+  maxRadius: number;
+  width: number;
+  height: number;
 };
 
 export declare function workspaceGraph(input: {
@@ -44,21 +63,14 @@ export declare function workspaceGraph(input: {
   footprints: Record<string, Footprint>;
   verdicts: Record<string, Verdict>;
   packages: DuplicatePackage[];
+  families?: Family[];
   limit?: number;
+  /** Width over height of the area being drawn into. */
+  aspect?: number;
 }): WorkspaceGraph;
-
-export declare function projectRadiusCeiling(
-  count: number,
-  bounds?: { max?: number; min?: number },
-): number;
-
-export declare function packageRadiusCeiling(
-  count: number,
-  bounds?: { max?: number; min?: number },
-): number;
 
 export declare function nodeRadius(
   weight: number | null,
   heaviest: number,
-  bounds?: { min?: number; max?: number },
+  ceiling: number,
 ): number;

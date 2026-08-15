@@ -31,6 +31,8 @@ pub struct WorkspaceProject {
     /// How what a reclaim removes would come back, and whether it would come
     /// back the same. `None` when nothing here identifies a package manager.
     pub restore: Option<crate::workspace::restore::Restore>,
+    /// The directory this shares with at least one other project, if any.
+    pub family: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -75,6 +77,10 @@ pub struct WorkspaceIndex {
     pub unreadable: usize,
     /// The first few of them, so the user can see which access to grant.
     pub unreadable_sample: Vec<String>,
+    /// Directories holding more than one of these projects. What the index used
+    /// to leave on the disk: four folders under one `uncached-app` are one
+    /// piece of work, and every screen was drawing four unrelated things.
+    pub families: Vec<crate::workspace::family::Family>,
 }
 
 /// Folders discovery had to skip.
@@ -149,6 +155,14 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
     mark_duplicates(&mut projects);
     projects.sort_by_cached_key(|project| project.name.to_lowercase());
 
+    let families = detect_families(&projects, &roots);
+    for project in projects.iter_mut() {
+        project.family = families
+            .iter()
+            .find(|family| family.members.iter().any(|member| member == &project.path))
+            .map(|family| family.path.clone());
+    }
+
     Ok(WorkspaceIndex {
         roots,
         projects,
@@ -160,6 +174,32 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
         truncated,
         unreadable: skipped.count,
         unreadable_sample: skipped.sample,
+        families,
+    })
+}
+
+/// The disk half of `family::detect`, which is pure and takes this as a probe.
+///
+/// Two of the markers cannot be recognised by name. Every crate has a
+/// `Cargo.toml` and every package has a `package.json`; only what is inside
+/// says whether the directories beside it are members, so those two are read
+/// and the rest are a `try_exists`.
+fn detect_families(
+    projects: &[WorkspaceProject],
+    roots: &[String],
+) -> Vec<crate::workspace::family::Family> {
+    use crate::workspace::family;
+
+    let paths: Vec<String> = projects
+        .iter()
+        .map(|project| project.path.clone())
+        .collect();
+    family::detect(&paths, roots, &|directory: &Path, name: &str| match name {
+        "Cargo.toml" => std::fs::read_to_string(directory.join(name))
+            .is_ok_and(|contents| family::cargo_declares_workspace(&contents)),
+        "package.json" => std::fs::read_to_string(directory.join(name))
+            .is_ok_and(|contents| family::package_declares_workspaces(&contents)),
+        _ => directory.join(name).try_exists().unwrap_or(false),
     })
 }
 
@@ -294,6 +334,9 @@ fn project_from_directory(path: &Path, root: &Path) -> WorkspaceProject {
         install_missing,
         install_stale,
         restore: restore_for(path),
+        // Filled once every project is known: belonging is a fact about the set,
+        // not about the folder in front of the walker.
+        family: None,
     }
 }
 
@@ -929,6 +972,7 @@ mod tests {
             install_missing: false,
             install_stale: false,
             restore: None,
+            family: None,
         }
     }
 

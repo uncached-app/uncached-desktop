@@ -1,4 +1,5 @@
 pub mod duplicates;
+pub mod family;
 pub mod git;
 pub mod hygiene;
 pub mod maintenance;

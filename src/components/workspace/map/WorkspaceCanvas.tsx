@@ -1,16 +1,10 @@
-import { useMemo, useState } from "react";
-import {
-  nodeRadius,
-  packageRadiusCeiling,
-  projectRadiusCeiling,
-  type GraphNode,
-  type WorkspaceGraph,
-} from "../../../utils/graph.mjs";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { nodeRadius, type GraphEdge, type GraphNode, type WorkspaceGraph } from "../../../utils/graph.mjs";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
 import type { WorkspaceProject } from "../../../types/workspace";
 
-/** The unit square, in the coordinates the SVG is drawn in. */
+/** Height of the drawing, in the coordinates the SVG uses. Width follows it. */
 const SIDE = 1000;
 
 type WorkspaceCanvasProps = {
@@ -24,21 +18,24 @@ type WorkspaceCanvasProps = {
   onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
 };
 
+const EDGE_CLASS: Record<GraphEdge["kind"], string> = {
+  copy: "stroke-forest-800",
+  clone: "stroke-coral-300/45",
+  family: "stroke-sage-400/50",
+};
+
 /**
  * The workspace as one picture.
  *
- * The list answers "what do I have and what is it worth". This answers the
- * question a list cannot hold: what is shared. A shared package is a node of
- * its own, sitting in the middle with a line to every project carrying a copy
- * of it, because "eleven projects each keep their own React" is a shape and not
- * a row. Without those nodes a graph of a workspace is folders joined by
- * folders, which is what the sidebar already draws.
+ * The list answers "what do I have and what is it worth". This answers what a
+ * list cannot hold: what is shared. A package sitting in eleven projects is a
+ * node of its own with a line to each of them; four folders under one directory
+ * are a chain with that directory's name on it; one repository checked out
+ * twice is a dashed chord. Without those, a graph of a workspace is folders
+ * joined by folders, which is what the sidebar already draws.
  *
  * The list stays the default and stays the way through by keyboard. This is the
- * other reading, not the replacement: a graph cannot be tabbed through, and a
- * workspace of two hundred projects is a hairball however it is laid out — past
- * that size the caller draws the list instead, which is why nothing here has to
- * handle a picture it cannot make.
+ * other reading, not the replacement.
  */
 export function WorkspaceCanvas({
   graph,
@@ -59,32 +56,28 @@ export function WorkspaceCanvas({
     [graph.nodes],
   );
 
-  // Both rings give up size as they fill: an arc that has to hold eighty nodes
-  // cannot also hold eighty large ones.
-  const packageCount = graph.nodes.length - projects.length;
-  const ceiling = {
-    project: projectRadiusCeiling(projects.length),
-    package: packageRadiusCeiling(packageCount),
-  };
   const active = hovered ? byId.get(hovered) : null;
-  // A line is lit when either end is. Hovering a package is the gesture that
-  // answers "who else has this", so the answer has to light up with it.
-  const lit = (id: string) => hovered !== null && id === hovered;
+  // A line lights with either end. Hovering a package is the gesture that asks
+  // "who else has this", so the answer has to light up with it.
+  const isLit = (edge: GraphEdge) => edge.from === hovered || edge.to === hovered;
+  // Enough room to name everything, or only what is pointed at: a map printing
+  // sixty overlapping names is a map nobody reads one of.
+  const nameEverything = graph.nodes.length <= 34;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <svg
-        viewBox={`0 0 ${SIDE} ${SIDE}`}
+        viewBox={`0 0 ${graph.width * SIDE} ${SIDE}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label={`${projects.length} projects and ${graph.nodes.length - projects.length} shared packages. The list beside this reads the same workspace.`}
+        aria-label={`${projects.length} projects and ${graph.nodes.length - projects.length} shared packages. The list reads the same workspace.`}
         className="min-h-0 w-full flex-1"
       >
         {graph.edges.map((edge) => {
           const from = byId.get(edge.from);
           const to = byId.get(edge.to);
           if (!from || !to) return null;
-          const on = lit(edge.from) || lit(edge.to);
+          const on = isLit(edge);
           return (
             <line
               key={edge.id}
@@ -92,31 +85,40 @@ export function WorkspaceCanvas({
               y1={from.y * SIDE}
               x2={to.x * SIDE}
               y2={to.y * SIDE}
-              className={
-                edge.kind === "clone"
-                  ? "stroke-coral-300/50"
-                  : on
-                    ? "stroke-sage-400/70"
-                    : "stroke-forest-800"
-              }
-              strokeWidth={on ? 2 : 1}
-              strokeDasharray={edge.kind === "clone" ? "6 5" : undefined}
+              className={on ? "stroke-sage-400" : EDGE_CLASS[edge.kind]}
+              strokeWidth={edge.kind === "family" ? 3 : on ? 2 : 1.25}
+              strokeLinecap="round"
+              strokeDasharray={edge.kind === "clone" ? "7 6" : undefined}
             />
           );
         })}
 
+        {/* The directory's name, once, in the middle of what it holds. Four
+            folders under one `uncached-app` are one piece of work, and drawing
+            them as four unrelated dots is what needed fixing here. */}
+        {graph.labels.map((label) => (
+          <text
+            key={label.id}
+            x={label.x * SIDE}
+            y={label.y * SIDE}
+            textAnchor="middle"
+            className="pointer-events-none fill-mist-300 text-[15px] font-semibold"
+          >
+            {label.text}
+            <tspan x={label.x * SIDE} dy="15" className="fill-mist-500 text-[11px] font-normal">
+              {label.detail}
+            </tspan>
+          </text>
+        ))}
+
         {graph.nodes.map((node) => {
           const radius =
-            (node.kind === "project"
-              ? nodeRadius(node.weight, heaviest.project, {
-                  max: ceiling.project,
-                  min: Math.min(0.012, ceiling.project),
-                })
-              : nodeRadius(node.weight, heaviest.package, {
-                  max: ceiling.package,
-                  min: Math.min(0.012, ceiling.package),
-                })) * SIDE;
-          const on = lit(node.id);
+            nodeRadius(
+              node.weight,
+              node.kind === "project" ? heaviest.project : heaviest.package,
+              graph.maxRadius,
+            ) * SIDE;
+          const on = node.id === hovered;
           return (
             <g
               key={node.id}
@@ -136,23 +138,20 @@ export function WorkspaceCanvas({
                 className={
                   node.kind === "package"
                     ? "fill-forest-900 stroke-sage-400"
-                    : `${VERDICT_PRESENTATION[node.verdict ?? "unknown"].fillClassName} ${
-                        node.weight === null ? "opacity-30" : "opacity-80"
+                    : `${VERDICT_PRESENTATION[node.verdict ?? "unknown"].mapClassName} ${
+                        node.weight === null ? "opacity-45" : ""
                       }`
                 }
-                strokeWidth={node.kind === "package" ? 2 : 0}
+                strokeWidth={on ? 3 : 1.75}
               />
-              {/* Only what can be read at this size. Everything else is one
-                  hover away, and a map printing 60 overlapping names is a map
-                  nobody reads a single one of. */}
-              {(node.kind === "package" || on || radius > 22) && (
+              {(nameEverything || on) && (
                 <text
                   x={node.x * SIDE}
-                  y={node.y * SIDE + radius + 15}
+                  y={node.y * SIDE + radius + 17}
                   textAnchor="middle"
-                  className={`pointer-events-none text-[13px] ${on ? "fill-mist-100" : "fill-mist-500"}`}
+                  className={`pointer-events-none text-[13px] ${on ? "fill-mist-100 font-medium" : "fill-mist-500"}`}
                 >
-                  {node.label}
+                  {clip(node.label)}
                 </text>
               )}
             </g>
@@ -174,22 +173,64 @@ export function WorkspaceCanvas({
               </span>
             </>
           ) : (
-            <span className="text-mist-500">
-              A ring is a shared package. A line is a project holding a copy of it.
-            </span>
+            // Names what is on screen, not what the picture can hold: a legend
+            // describing rings and dashes that are not there reads as a view
+            // that failed to load.
+            <span className="truncate text-mist-500">{legend(graph)}</span>
           )}
         </div>
 
         <div className="flex shrink-0 items-center gap-4 text-mist-500">
           {measuring && <span>Weighing projects...</span>}
           {analysing && <span>Reading shared packages...</span>}
-          {graph.packagesOmitted > 0 && (
-            <span>{graph.packagesOmitted} lighter packages not drawn</span>
-          )}
+          {graph.packagesOmitted > 0 && <span>{graph.packagesOmitted} lighter packages not drawn</span>}
         </div>
       </div>
     </div>
   );
+}
+
+/**
+ * The shape of the drawing area, so the picture fills it.
+ *
+ * A layout computed square and centred in a wide window is a square of content
+ * with an empty column either side of it, which is what this looked like first.
+ */
+export function useDrawingAspect() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [aspect, setAspect] = useState(1.6);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const measure = () => {
+      const { width, height } = element.getBoundingClientRect();
+      if (width > 0 && height > 0) setAspect(width / height);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, aspect };
+}
+
+function legend(graph: WorkspaceGraph): string {
+  const parts = [];
+  if (!graph.sharesNothing) parts.push("a ring is a package more than one project keeps its own copy of");
+  if (graph.labels.length > 0) parts.push("a green chain is one directory holding several");
+  if (graph.edges.some((edge) => edge.kind === "clone")) parts.push("a dashed line is one repository checked out twice");
+
+  if (parts.length === 0) {
+    return "Nothing here is shared: no package sits in more than one of these projects, and no two are the same repository.";
+  }
+  return `${parts.join(" · ")}.`;
+}
+
+/** Long enough to recognise, short enough not to collide with the next one. */
+function clip(label: string): string {
+  return label.length > 22 ? `${label.slice(0, 21)}…` : label;
 }
 
 function max(nodes: GraphNode[], kind: GraphNode["kind"]): number {

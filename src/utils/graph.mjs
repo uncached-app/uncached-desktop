@@ -1,18 +1,21 @@
 /**
  * The workspace as a graph, positioned.
  *
- * Two kinds of node and two kinds of edge, and the choice of which is the whole
- * point. A canvas of project nodes joined by folder membership draws what the
- * sidebar already says. What it cannot say is that one package sits in eleven
- * projects at once — so the shared packages are nodes too, and the edges are
- * "this project carries a copy of that". That is the sentence the picture
- * exists to make: the duplication has a shape, and the shape has a middle.
+ * Three kinds of relationship, and the choice of which is the whole point. A
+ * canvas of project nodes joined by folder membership draws what the sidebar
+ * already says. What it cannot say is what is *shared*: one package sitting in
+ * eleven projects at once, one repository checked out twice, and four folders
+ * under one directory that are a single piece of work. So packages are nodes
+ * too, families are chains, and clones are chords.
  *
  * Positions are computed, never simulated. A force layout settles somewhere
  * slightly different every run, which destroys the one thing a map is for —
  * that a project stays where you last saw it. Here the same workspace always
  * produces the same picture, so stability costs no stored file and there is
  * nothing to migrate later.
+ *
+ * Coordinates come out in a box `aspect` wide and `1` tall, so the picture
+ * fills whatever it is drawn into rather than a square in the middle of it.
  */
 
 /** Above this the picture stops being one, and the list is the honest answer. */
@@ -21,31 +24,54 @@ export const MAX_NODES = 150;
 /** Shared packages worth drawing. The tail is a list, not a shape. */
 export const MAX_PACKAGES = 12;
 
-const INNER_RADIUS = 0.34;
-const OUTER_RADIUS = 0.82;
-/** The outer ring is two rows, so neighbours have somewhere to be. */
-const STAGGER = 0.11;
+/** Kept clear at the edge, so a node's label has somewhere to go. */
+const MARGIN = 0.1;
 
 /**
- * Builds the graph in a unit square: every x and y is 0..1, every radius is a
- * fraction of the shorter side. The component scales it, so the same graph
- * draws at any window size and nothing here knows about pixels.
+ * How far the picture may stretch to fill a wide window. Beyond this a ring is
+ * a horizon: two arcs at the top and bottom with the middle spent on nothing.
  */
-export function workspaceGraph({ projects, footprints, verdicts, packages, limit = MAX_PACKAGES }) {
-  const shared = sharedPackages(packages, limit);
-  const carried = new Set(shared.flatMap((entry) => entry.projects));
+const MAX_STRETCH = 1.9;
 
-  const nodes = [
-    ...packageNodes(shared),
-    ...projectNodes(projects, footprints, verdicts, shared, carried),
-  ];
+export function workspaceGraph({
+  projects,
+  footprints,
+  verdicts,
+  packages,
+  families = [],
+  limit = MAX_PACKAGES,
+  aspect = 1,
+}) {
+  const shared = sharedPackages(packages, limit);
+  const box = { width: Math.max(0.4, aspect), height: 1 };
+
+  const packageNodes = placePackages(shared, box);
+  const projectNodes = placeProjects({ projects, footprints, verdicts, shared, families, box });
+  const nodes = [...packageNodes, ...projectNodes];
 
   return {
     nodes,
-    edges: [...copyEdges(shared, projects), ...cloneEdges(projects)],
+    edges: [
+      ...copyEdges(shared, projects),
+      ...cloneEdges(projects),
+      ...familyEdges(families, projectNodes),
+    ],
+    /** One label per family, at the middle of its members. */
+    labels: familyLabels(families, projectNodes),
     /** Packages left out of the picture because it only holds so many. */
     packagesOmitted: Math.max(0, countable(packages).length - shared.length),
+    /** Nothing is installed in more than one project, so there is no middle. */
+    sharesNothing: shared.length === 0,
     tooLarge: projects.length + shared.length > MAX_NODES,
+    /**
+     * The largest any node may draw before two of them touch — measured from
+     * the positions rather than derived from the ring, because the layout is
+     * the thing that changes and the arithmetic for each variant of it was
+     * wrong twice before this replaced it.
+     */
+    maxRadius: separation(nodes) / 2,
+    width: box.width,
+    height: box.height,
   };
 }
 
@@ -61,73 +87,95 @@ function sharedPackages(packages, limit) {
 }
 
 /**
- * The shared packages on an inner ring, heaviest first, going clockwise from
- * the top. Their angle is what every project's angle is derived from, so this
- * ordering decides the whole picture and has to be a total order — hence the
- * name as the tiebreaker on equal weight.
+ * The shared packages in the middle, heaviest first, clockwise from the top.
+ * Their angle is what every project's angle is derived from, so this ordering
+ * decides the whole picture and has to be a total order — hence the name as the
+ * tiebreaker on equal weight.
  */
-function packageNodes(shared) {
+function placePackages(shared, box) {
   return shared.map((entry, at) => {
     const angle = ring(at, shared.length);
     return {
-      id: `package:${entry.name}@${entry.version}`,
+      id: `package:${key(entry)}`,
       kind: "package",
       label: entry.name,
       detail: `${entry.copies} copies`,
       bytes: entry.wastedBytes,
       weight: entry.wastedBytes,
       angle,
-      ...polar(angle, shared.length === 1 ? 0 : INNER_RADIUS),
+      ...polar(angle, shared.length === 1 ? 0 : 0.36, box),
     };
   });
 }
 
 /**
- * Every project on the outer ring, ordered by the packages it carries.
+ * Every project around the outside, in an order that means something.
  *
- * Each project wants the average angle of its shared packages, so projects
- * holding the same ones want the same place. Wanting is not getting: eleven
- * projects that all carry React want one identical point, and drawing them
- * there is one circle with ten hidden behind it. So the wanted angle decides
- * the *order* around the ring, and the ring itself is divided evenly — which
- * keeps neighbours meaningful and keeps every node visible, the two things a
- * force layout spends a simulation arriving at.
+ * A family is contiguous, because four folders under one directory are one
+ * piece of work and a map that scatters them by name is the map that started
+ * this. Everything else is ordered by the average angle of the packages it
+ * carries, so projects sharing dependencies sit together.
  *
- * A project carrying nothing shared wants a spot in the free arc, so those fall
- * between the clusters rather than into them.
+ * Wanting a place is not getting it: eleven projects that all carry React want
+ * one identical point, and drawing them there is one circle with ten behind it.
+ * So the wants decide the *order* and the ring divides evenly.
  *
- * The ring is two rows deep, alternating. A single row of eighty nodes has
- * nowhere to put them; two rows halve the crowding without a second ring
- * having to mean anything.
+ * Rows alternate inward. With nothing in the middle to protect there are three
+ * of them, spread wide enough to read as a disc rather than a hoop drawn around
+ * an empty centre.
  */
-function projectNodes(projects, footprints, verdicts, shared, carried) {
+function placeProjects({ projects, footprints, verdicts, shared, families, box }) {
   const angleOf = new Map(shared.map((entry, at) => [key(entry), ring(at, shared.length)]));
-  const unattached = projects.filter((project) => !carried.has(project.path));
+  const familyOf = new Map();
+  for (const family of families) {
+    for (const member of family.members) familyOf.set(member, family.path);
+  }
 
-  let free = 0;
-  const wanted = projects.map((project) => {
+  const wantOf = (project) => {
     const angles = shared
       .filter((entry) => entry.projects.includes(project.path))
       .map((entry) => angleOf.get(key(entry)));
-    return {
-      project,
-      want:
-        angles.length > 0
-          ? meanAngle(angles)
-          : ring(free++, unattached.length) + Math.PI / Math.max(1, unattached.length),
-    };
+    return angles.length > 0 ? meanAngle(angles) : null;
+  };
+
+  // The ring is ordered by unit, not by project: a family is one unit and
+  // arrives whole, which is the entire point of knowing it is a family.
+  const units = new Map();
+  for (const project of projects) {
+    const id = familyOf.get(project.path) ?? project.path;
+    const unit = units.get(id) ?? { id, members: [], wants: [] };
+    unit.members.push(project);
+    const want = wantOf(project);
+    if (want !== null) unit.wants.push(want);
+    units.set(id, unit);
+  }
+
+  const placed = [...units.values()].map((unit) => ({
+    ...unit,
+    want: unit.wants.length > 0 ? meanAngle(unit.wants) : null,
+  }));
+
+  // A unit carrying nothing shared has no opinion, and giving all of them the
+  // same non-opinion piles them into one arc while the rest of the ring stays
+  // empty. They are spread across it instead, so they fall between the
+  // clusters rather than all beside each other.
+  const opinionless = placed.filter((unit) => unit.want === null);
+  opinionless.forEach((unit, at) => {
+    unit.want = ring(at, opinionless.length) + Math.PI / Math.max(1, opinionless.length);
   });
 
-  const order = [...wanted].sort(
-    (left, right) => left.want - right.want || left.project.path.localeCompare(right.project.path),
-  );
-  const rank = new Map(order.map((entry, at) => [entry.project.path, at]));
+  const order = placed
+    .sort((left, right) => left.want - right.want || left.id.localeCompare(right.id))
+    .flatMap((unit) => unit.members);
 
-  return wanted.map(({ project }) => {
+  const rows = shared.length > 0 ? 2 : 3;
+  const rank = new Map(order.map((project, at) => [project.path, at]));
+
+  return projects.map((project) => {
     const footprint = footprints[project.path] ?? null;
     const at = rank.get(project.path);
     const angle = ring(at, projects.length);
-    const radius = OUTER_RADIUS - (at % 2 === 0 ? 0 : STAGGER);
+    const row = projects.length > rows ? at % rows : 0;
 
     return {
       id: `project:${project.path}`,
@@ -136,12 +184,13 @@ function projectNodes(projects, footprints, verdicts, shared, carried) {
       label: project.name,
       detail: project.kind,
       verdict: verdicts[project.path] ?? "unknown",
+      family: familyOf.get(project.path) ?? null,
       bytes: footprint?.totalBytes ?? 0,
       // An unmeasured project is not a project of no size. It draws at the
       // floor and says so, rather than appearing as the smallest thing here.
       weight: footprint?.totalBytes ?? null,
       angle,
-      ...polar(angle, radius),
+      ...polar(angle, 1 - row * (rows === 3 ? 0.26 : 0.15), box),
     };
   });
 }
@@ -186,6 +235,50 @@ function cloneEdges(projects) {
   return edges;
 }
 
+/**
+ * A family as a chain through its members rather than a line between every
+ * pair. The members are already adjacent, so the chain is short hops that read
+ * as one shape; a clique of the same four projects is six crossing lines
+ * saying the same thing once each.
+ */
+function familyEdges(families, placed) {
+  const at = new Map(placed.map((node) => [node.path, node]));
+
+  return families.flatMap((family) => {
+    const members = family.members
+      .map((path) => at.get(path))
+      .filter(Boolean)
+      .sort((left, right) => left.angle - right.angle);
+
+    return members.slice(1).map((node, index) => ({
+      id: `family:${family.path}:${index}`,
+      kind: "family",
+      from: `project:${members[index].path}`,
+      to: `project:${node.path}`,
+    }));
+  });
+}
+
+/** The family's name, once, at the middle of what it holds. */
+function familyLabels(families, placed) {
+  const at = new Map(placed.map((node) => [node.path, node]));
+
+  return families
+    .map((family) => {
+      const members = family.members.map((path) => at.get(path)).filter(Boolean);
+      if (members.length < 2) return null;
+      return {
+        id: `family:${family.path}`,
+        text: family.name,
+        detail: family.declaredBy ? `${family.declaredBy} workspace` : "one folder",
+        declared: Boolean(family.declaredBy),
+        x: members.reduce((total, node) => total + node.x, 0) / members.length,
+        y: members.reduce((total, node) => total + node.y, 0) / members.length,
+      };
+    })
+    .filter(Boolean);
+}
+
 function key(entry) {
   return `${entry.name}@${entry.version}`;
 }
@@ -210,73 +303,44 @@ function meanAngle(angles) {
   return Math.atan2(y, x);
 }
 
-function polar(angle, radius) {
+/**
+ * A point on an ellipse inscribed in the box, at `scale` of its full size.
+ *
+ * Elliptical rather than circular so a wide window is used rather than framed
+ * with empty margins, and capped so a very wide one does not flatten the ring
+ * into a horizon.
+ */
+function polar(angle, scale, box) {
+  const ry = (box.height / 2) * (1 - MARGIN * 2);
+  const rx = Math.min((box.width / 2) * (1 - MARGIN * 2), ry * MAX_STRETCH);
+
   return {
-    x: 0.5 + (Math.cos(angle) * radius) / 2,
-    y: 0.5 + (Math.sin(angle) * radius) / 2,
+    x: box.width / 2 + Math.cos(angle) * rx * scale,
+    y: box.height / 2 + Math.sin(angle) * ry * scale,
   };
 }
 
+/** The closest any two nodes come to each other. */
+function separation(nodes) {
+  let closest = Infinity;
+  for (let left = 0; left < nodes.length; left += 1) {
+    for (let right = left + 1; right < nodes.length; right += 1) {
+      closest = Math.min(closest, Math.hypot(nodes[left].x - nodes[right].x, nodes[left].y - nodes[right].y));
+    }
+  }
+  return closest === Infinity ? 0.11 : closest;
+}
+
 /**
- * Node radius from what it weighs, as a fraction of the shorter side.
+ * Node radius from what it weighs, bounded by what the layout left room for.
  *
  * Area is proportional to the weight, not the radius: doubling a radius
  * quadruples the ink, and a picture that overstates its heaviest node by that
  * much is not a measurement.
  */
-export function nodeRadius(weight, heaviest, { min = 0.012, max = 0.055 } = {}) {
+export function nodeRadius(weight, heaviest, ceiling) {
+  const max = Math.min(0.055, ceiling);
+  const min = Math.min(0.014, max);
   if (!weight || !heaviest || heaviest <= 0) return min;
   return min + (max - min) * Math.sqrt(Math.min(weight, heaviest) / heaviest);
-}
-
-/**
- * How large the heaviest node on a ring may draw before neighbours touch.
- *
- * A fixed ceiling is right for eight projects and wrong for eighty: the arc
- * each one gets shrinks with the count, and a node wider than its arc overlaps
- * whatever is beside it however carefully it was placed. Forty small circles
- * are a legible ring; forty overlapping ones are a smear that also hides which
- * is heaviest — so when something has to give, it is the size channel.
- *
- * Measured rather than estimated, because the two neighbours are at different
- * distances. On a staggered ring the next node along is one step round and one
- * row in, while the one after it is two steps round and in the same row; which
- * of those is the tighter fit changes with the count, so both are computed.
- */
-export function ringCeiling({ ring, count, stagger = 0, max = 0.055, min = 0.006 }) {
-  if (count <= 1) return max;
-  const radius = ring / 2;
-  const step = (Math.PI * 2) / count;
-  const inner = radius - stagger / 2;
-
-  // Chord to the node one step along, which sits on the other row.
-  const adjacent = Math.hypot(
-    radius - inner * Math.cos(step),
-    inner * Math.sin(step),
-  );
-  // And to the one two steps along, back on this row — measured on the inner
-  // row, which is the shorter of the two and therefore the one that decides.
-  const sameRow = 2 * inner * Math.sin(step);
-
-  // An odd ring cannot alternate all the way round: somewhere the last node
-  // meets the first on the same row, one step apart instead of two. That seam
-  // is the tightest fit on the ring, and forgetting it is a pair of circles
-  // drawn through each other exactly once, at the top, every time.
-  const seam =
-    stagger > 0 && count % 2 === 1 ? 2 * radius * Math.sin(step / 2) : Infinity;
-
-  return Math.min(
-    max,
-    Math.max(min, Math.min(adjacent, seam, count > 2 ? sameRow : Infinity) / 2),
-  );
-}
-
-/** The outer ring, which is where projects are. */
-export function projectRadiusCeiling(count, bounds = {}) {
-  return ringCeiling({ ring: OUTER_RADIUS, count, stagger: STAGGER, ...bounds });
-}
-
-/** The inner ring, which holds at most `MAX_PACKAGES` and is not staggered. */
-export function packageRadiusCeiling(count, bounds = {}) {
-  return ringCeiling({ ring: INNER_RADIUS, count, ...bounds });
 }

@@ -72,6 +72,22 @@ export type WorkspaceProject = {
    * the same. `null` when nothing here identifies a package manager.
    */
   restore: Restore | null;
+  /** The directory this shares with at least one other project, if any. */
+  family: string | null;
+};
+
+/**
+ * A directory holding more than one of the indexed projects.
+ *
+ * Two strengths of belonging: `declaredBy` names the tool that calls this a
+ * workspace, and its absence means somebody filed them together — a decision,
+ * but not one any tool enforces.
+ */
+export type Family = {
+  path: string;
+  name: string;
+  declaredBy: string | null;
+  members: string[];
 };
 
 export type CategoryBytes = {
@@ -100,4 +116,6 @@ export type WorkspaceIndex = {
   unreadable: number;
   /** The first few of them, so the user can see which access to grant. */
   unreadableSample: string[];
+  /** Directories holding more than one of these projects. */
+  families: Family[];
 };

@@ -7,8 +7,15 @@ type VerdictPresentation = {
   summary: string;
   className: string;
   dotClassName: string;
-  /** The same colour as ink rather than as a background, for the map. */
-  fillClassName: string;
+  /**
+   * The map, where a verdict is a filled circle rather than a word.
+   *
+   * A surface token filled and an ink token outlined, never ink filled: these
+   * palettes put the readable colour on text — light theme's caution is
+   * `#7a4f10`, a dark brown — so a circle painted with it is a mud blot on a
+   * pale page, and six of them are a workspace that looks broken.
+   */
+  mapClassName: string;
 };
 
 /** Order of triage: what could lose work comes before what could save space. */
@@ -28,49 +35,49 @@ export const VERDICT_PRESENTATION: Record<Verdict, VerdictPresentation> = {
     summary: "Holds work that exists only on this disk.",
     className: "border-coral-300/30 bg-coral-300/10 text-coral-300",
     dotClassName: "bg-coral-300",
-    fillClassName: "fill-coral-300",
+    mapClassName: "fill-coral-300/15 stroke-coral-300",
   },
   broken: {
     label: "Needs install",
     summary: "A lockfile with nothing installed behind it.",
     className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
     dotClassName: "bg-confidence-medium",
-    fillClassName: "fill-confidence-medium",
+    mapClassName: "fill-confidence-medium-surface stroke-confidence-medium",
   },
   staleDeps: {
     label: "Stale install",
     summary: "The lockfile changed after the last install.",
     className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
     dotClassName: "bg-confidence-medium",
-    fillClassName: "fill-confidence-medium",
+    mapClassName: "fill-confidence-medium-surface stroke-confidence-medium",
   },
   tradeOff: {
     label: "In use",
     summary: "Reclaimable, but you will pay to reinstall.",
     className: "border-confidence-review/30 bg-confidence-review-surface text-confidence-review",
     dotClassName: "bg-confidence-review",
-    fillClassName: "fill-confidence-review",
+    mapClassName: "fill-confidence-review-surface stroke-confidence-review",
   },
   safe: {
     label: "Safe to reclaim",
     summary: "Everything is on a remote and nobody has touched it in months.",
     className: "border-confidence-high/30 bg-confidence-high-surface text-confidence-high",
     dotClassName: "bg-confidence-high",
-    fillClassName: "fill-confidence-high",
+    mapClassName: "fill-confidence-high-surface stroke-confidence-high",
   },
   archivable: {
     label: "Fully on remote",
     summary: "Nothing left to reclaim. The local copy is yours to keep or drop.",
     className: "border-forest-800 bg-forest-850 text-mist-300",
     dotClassName: "bg-mist-500",
-    fillClassName: "fill-mist-500",
+    mapClassName: "fill-forest-850 stroke-mist-500",
   },
   unknown: {
     label: "Not established",
     summary: "Not enough was readable to judge. Never touched automatically.",
     className: "border-forest-800 bg-forest-850 text-mist-500",
     dotClassName: "bg-mist-500",
-    fillClassName: "fill-mist-500",
+    mapClassName: "fill-forest-850 stroke-mist-500",
   },
 };
 

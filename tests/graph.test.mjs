@@ -1,12 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  MAX_NODES,
-  nodeRadius,
-  packageRadiusCeiling,
-  projectRadiusCeiling,
-  workspaceGraph,
-} from "../src/utils/graph.mjs";
+import { MAX_NODES, nodeRadius, workspaceGraph } from "../src/utils/graph.mjs";
 
 const GB = 1024 * 1024 * 1024;
 
@@ -26,8 +20,12 @@ function shared(name, projects, wastedBytes = GB) {
   };
 }
 
-function graph({ projects = [], footprints = {}, verdicts = {}, packages = [] } = {}) {
-  return workspaceGraph({ projects, footprints, verdicts, packages });
+function family(name, members, declaredBy = null) {
+  return { path: `/w/${name}`, name, declaredBy, members: members.map((entry) => `/w/${name}/${entry}`) };
+}
+
+function graph({ projects = [], footprints = {}, verdicts = {}, packages = [], families = [], aspect } = {}) {
+  return workspaceGraph({ projects, footprints, verdicts, packages, families, aspect });
 }
 
 test("an empty workspace is an empty picture rather than a crash", () => {
@@ -129,43 +127,106 @@ test("no two projects are ever drawn at the same point", () => {
   assert.equal(new Set(places).size, names.length);
 });
 
-test("the heaviest node gives up size before it overlaps its neighbours", () => {
-  assert.equal(projectRadiusCeiling(1), 0.055);
-  assert.ok(projectRadiusCeiling(80) < projectRadiusCeiling(20));
-  assert.ok(projectRadiusCeiling(140) > 0);
-  assert.ok(packageRadiusCeiling(12) <= packageRadiusCeiling(4));
-});
+test("no two nodes are drawn through each other, at any size or shape", () => {
+  // The ceiling is measured from the placed positions rather than derived from
+  // the ring, because two closed-form versions of it were wrong — and each was
+  // invisible except in the workspace that happened to hit it.
+  for (const aspect of [1, 1.6, 2.4]) {
+    for (let count = 1; count <= 140; count += 1) {
+      const projects = Array.from({ length: count }, (_, at) => project(`p-${at}`));
+      const footprints = Object.fromEntries(
+        projects.map((entry, at) => [entry.path, { totalBytes: (at + 1) * GB }]),
+      );
+      const packages = count > 6 ? [shared("react", ["p-1", "p-2", "p-3"])] : [];
+      const result = workspaceGraph({ projects, footprints, verdicts: {}, packages, aspect });
+      const heaviest = count * GB;
 
-test("no two nodes are drawn through each other, at any size of workspace", () => {
-  // The ring alternates between two rows, so its tightest fit moves with the
-  // count: neighbours are diagonal on an even ring and side by side at the one
-  // seam an odd ring must have. Both were wrong once, and the wrong one is
-  // invisible in every screenshot except the workspace that happens to hit it.
-  for (let count = 1; count <= 140; count += 1) {
-    const projects = Array.from({ length: count }, (_, at) => project(`p-${at}`));
-    const footprints = Object.fromEntries(
-      projects.map((entry, at) => [entry.path, { totalBytes: (at + 1) * GB }]),
-    );
-    const result = workspaceGraph({ projects, footprints, verdicts: {}, packages: [] });
-    const ceiling = projectRadiusCeiling(count);
-    const heaviest = count * GB;
+      const drawn = result.nodes.map((node) => ({
+        x: node.x,
+        y: node.y,
+        r: nodeRadius(node.weight, heaviest, result.maxRadius),
+      }));
 
-    const drawn = result.nodes.map((node) => ({
-      x: node.x,
-      y: node.y,
-      r: nodeRadius(node.weight, heaviest, { max: ceiling, min: Math.min(0.012, ceiling) }),
-    }));
-
-    for (let left = 0; left < drawn.length; left += 1) {
-      for (let right = left + 1; right < drawn.length; right += 1) {
-        const gap = Math.hypot(drawn[left].x - drawn[right].x, drawn[left].y - drawn[right].y);
-        assert.ok(
-          gap >= drawn[left].r + drawn[right].r - 1e-9,
-          `${count} projects: nodes ${left} and ${right} overlap`,
-        );
+      for (let left = 0; left < drawn.length; left += 1) {
+        for (let right = left + 1; right < drawn.length; right += 1) {
+          const gap = Math.hypot(drawn[left].x - drawn[right].x, drawn[left].y - drawn[right].y);
+          assert.ok(
+            gap >= drawn[left].r + drawn[right].r - 1e-9,
+            `${count} projects at aspect ${aspect}: nodes ${left} and ${right} overlap`,
+          );
+        }
       }
     }
   }
+});
+
+test("a family stays together instead of being sorted apart by name", () => {
+  // The workspace this came from: four folders under one `uncached-app`, drawn
+  // as four unrelated dots because the index never said they were one thing.
+  const members = ["uncached-desktop", "uncached-core", "uncached-cli", "uncached-web"];
+  const projects = [
+    project("alpha"),
+    ...members.map((name) => ({ ...project(name), path: `/w/uncached-app/${name}` })),
+    project("zulu"),
+  ];
+  const result = graph({ projects, families: [family("uncached-app", members)] });
+
+  const angles = members
+    .map((name) => result.nodes.find((node) => node.path === `/w/uncached-app/${name}`).angle)
+    .sort((left, right) => left - right);
+
+  const step = (Math.PI * 2) / projects.length;
+  for (let at = 1; at < angles.length; at += 1) {
+    assert.ok(
+      angles[at] - angles[at - 1] <= step + 1e-9,
+      "members of one family are adjacent on the ring",
+    );
+  }
+});
+
+test("a family is a chain through its members, not a line between every pair", () => {
+  const members = ["a", "b", "c", "d"];
+  const projects = members.map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
+  const result = graph({ projects, families: [family("mono", members)] });
+
+  // Four members: three hops, not six crossing lines saying the same thing.
+  assert.equal(result.edges.filter((edge) => edge.kind === "family").length, 3);
+  assert.equal(result.labels.length, 1);
+  assert.equal(result.labels[0].text, "mono");
+});
+
+test("a family label says whether a tool declared it or somebody just filed it there", () => {
+  const projects = ["a", "b"].map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
+
+  assert.equal(graph({ projects, families: [family("mono", ["a", "b"])] }).labels[0].detail, "one folder");
+  assert.equal(
+    graph({ projects, families: [family("mono", ["a", "b"], "pnpm")] }).labels[0].detail,
+    "pnpm workspace",
+  );
+});
+
+test("a workspace sharing nothing says so rather than drawing an empty middle", () => {
+  const result = graph({ projects: [project("api"), project("web")] });
+
+  assert.equal(result.sharesNothing, true);
+  assert.equal(graph({
+    projects: [project("api"), project("web")],
+    packages: [shared("react", ["api", "web"])],
+  }).sharesNothing, false);
+});
+
+test("a wide window is used rather than framed with empty margins", () => {
+  const projects = Array.from({ length: 12 }, (_, at) => project(`p-${at}`));
+  const square = graph({ projects, aspect: 1 });
+  const wide = graph({ projects, aspect: 2 });
+
+  const span = (result) => {
+    const xs = result.nodes.map((node) => node.x);
+    return Math.max(...xs) - Math.min(...xs);
+  };
+
+  assert.ok(span(wide) > span(square) * 1.4, "the picture widens with the box");
+  assert.equal(wide.width, 2);
 });
 
 test("a project carrying packages on both sides of the top is not flung to the bottom", () => {
@@ -221,12 +282,14 @@ test("an unmeasured project draws at the floor rather than as the smallest thing
   const unweighed = result.nodes.find((node) => node.path === "/w/unweighed");
   assert.equal(unweighed.weight, null);
   assert.equal(unweighed.bytes, 0);
-  assert.equal(nodeRadius(unweighed.weight, 4 * GB), nodeRadius(0, 4 * GB));
+  assert.equal(nodeRadius(unweighed.weight, 4 * GB, 0.05), nodeRadius(0, 4 * GB, 0.05));
 });
 
 test("node area is proportional to weight, so radius is not", () => {
-  const quarter = nodeRadius(GB, 4 * GB, { min: 0, max: 1 });
-  const whole = nodeRadius(4 * GB, 4 * GB, { min: 0, max: 1 });
+  // Read against the floor, which every node gets before weight adds anything.
+  const floor = nodeRadius(0, 4 * GB, 0.055);
+  const quarter = nodeRadius(GB, 4 * GB, 0.055) - floor;
+  const whole = nodeRadius(4 * GB, 4 * GB, 0.055) - floor;
 
   // Four times the bytes is four times the ink, which is twice the radius.
   assert.ok(Math.abs(whole / quarter - 2) < 1e-9);
