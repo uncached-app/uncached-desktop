@@ -66,22 +66,33 @@ pub struct Theme {
     /// The file's own name, which is how it is chosen and stored.
     pub id: String,
     pub name: String,
-    /// Which built-in it starts from, so a partial theme has a floor.
-    pub base: String,
-    /// Token name without the `--theme-` prefix, to a colour.
-    pub colors: Vec<(String, String)>,
+    /// What it offers for each. A theme may carry one or both, and which it
+    /// carries is what decides whether the appearance choice is still the
+    /// user's — a file with only dark colours cannot honour a request for light.
+    pub light: Option<Vec<(String, String)>>,
+    pub dark: Option<Vec<(String, String)>>,
     /// Lines that named nothing, or named a colour that is not one.
     pub problems: Vec<String>,
     /// Shipped with the app rather than found in the folder.
     pub built_in: bool,
 }
 
+type Palette = std::collections::HashMap<String, String>;
+
+/// Both shapes a theme file may be written in.
+///
+/// `light` and `dark` are the ones to write. `base` and `colors` came first and
+/// still work: a file somebody wrote before this existed is not a file that
+/// should stop working, and the older shape is exactly the newer one with a
+/// single mode named at the top.
 #[derive(serde::Deserialize)]
 struct ThemeFile {
     name: Option<String>,
     base: Option<String>,
     #[serde(default)]
-    colors: std::collections::HashMap<String, String>,
+    colors: Palette,
+    light: Option<Palette>,
+    dark: Option<Palette>,
 }
 
 /// Reads one theme's text into what the app can paint with.
@@ -93,36 +104,60 @@ pub fn parse_theme(id: &str, contents: &str) -> Result<Theme, String> {
     let file: ThemeFile = serde_json::from_str(contents)
         .map_err(|error| format!("{id}.json is not JSON: {error}"))?;
 
-    let mut colors = Vec::new();
     let mut problems = Vec::new();
 
-    for token in TOKENS {
-        if let Some(value) = file.colors.get(*token) {
-            if is_colour(value) {
-                colors.push(((*token).to_string(), value.clone()));
-            } else {
-                problems.push(format!("{token}: \"{value}\" is not a colour"));
-            }
+    // The older shape is the newer one with a single mode named at the top, so
+    // it is turned into that and nothing below has to know which was written.
+    let (mut light, mut dark) = (file.light, file.dark);
+    if light.is_none() && dark.is_none() && !file.colors.is_empty() {
+        match file.base.as_deref() {
+            Some("light") => light = Some(file.colors),
+            _ => dark = Some(file.colors),
         }
     }
-    for name in file.colors.keys() {
-        if !TOKENS.contains(&name.as_str()) {
-            problems.push(format!("{name} is not one of this app's colours"));
-        }
+
+    let light = light.map(|palette| read_palette("light", &palette, &mut problems));
+    let dark = dark.map(|palette| read_palette("dark", &palette, &mut problems));
+
+    if light.is_none() && dark.is_none() {
+        problems.push("names no colours, for either light or dark".to_string());
     }
     problems.sort();
 
     Ok(Theme {
         name: file.name.unwrap_or_else(|| id.to_string()),
-        base: match file.base.as_deref() {
-            Some("light") => "light".to_string(),
-            _ => "dark".to_string(),
-        },
         id: id.to_string(),
-        colors,
+        light,
+        dark,
         problems,
         built_in: false,
     })
+}
+
+/// One mode's colours, keeping what is a colour and naming what is not.
+fn read_palette(
+    mode: &str,
+    palette: &Palette,
+    problems: &mut Vec<String>,
+) -> Vec<(String, String)> {
+    let mut colors = Vec::new();
+
+    for token in TOKENS {
+        if let Some(value) = palette.get(*token) {
+            if is_colour(value) {
+                colors.push(((*token).to_string(), value.clone()));
+            } else {
+                problems.push(format!("{mode} {token}: \"{value}\" is not a colour"));
+            }
+        }
+    }
+    for name in palette.keys() {
+        if !TOKENS.contains(&name.as_str()) {
+            problems.push(format!("{mode} {name} is not one of this app's colours"));
+        }
+    }
+
+    colors
 }
 
 /// `#rgb`, `#rrggbb`, `#rrggbbaa`. Deliberately narrow: a theme is a set of
@@ -240,9 +275,9 @@ fn ensure_example(directory: &Path) {
 
 const EXAMPLE: &str = r##"{
   "name": "Example",
-  "base": "dark",
+  "note": "Carry \"light\", \"dark\", or both. With one, the appearance choice follows it; with both it stays yours. Name only the colours you are changing.",
 
-  "colors": {
+  "dark": {
     "forest-950": "#0e120f",
     "forest-900": "#141a15",
     "forest-850": "#1b231d",
@@ -269,6 +304,35 @@ const EXAMPLE: &str = r##"{
     "confidence-medium-surface": "#262017",
     "confidence-review": "#a6cde6",
     "confidence-review-surface": "#16212a"
+  },
+
+  "light": {
+    "forest-950": "#f4f6f1",
+    "forest-900": "#ffffff",
+    "forest-850": "#e2e8df",
+    "forest-800": "#ccdac9",
+
+    "mist-100": "#111711",
+    "mist-300": "#2b362c",
+    "mist-500": "#4c5a4d",
+
+    "sage-300": "#386641",
+    "sage-400": "#57843d",
+    "sage-500": "#7fa84e",
+
+    "coral-300": "#bc4749",
+    "coral-surface": "#f7dedd",
+
+    "pro-100": "#4a2d6f",
+    "pro-200": "#5e3d85",
+    "pro-surface": "#efe7fa",
+
+    "confidence-high": "#2e5535",
+    "confidence-high-surface": "#e1ecd1",
+    "confidence-medium": "#7a4f10",
+    "confidence-medium-surface": "#f7ebcf",
+    "confidence-review": "#2b5470",
+    "confidence-review-surface": "#dde9f2"
   }
 }
 "##;
@@ -280,57 +344,94 @@ mod tests {
     #[test]
     fn a_theme_names_only_what_it_changes() {
         // The point of the format: one colour, and the other twenty stay.
-        let theme = parse_theme(
-            "mine",
-            r##"{"name":"Mine","colors":{"sage-400":"#ff0000"}}"##,
-        )
-        .unwrap();
+        let theme =
+            parse_theme("mine", r##"{"name":"Mine","dark":{"sage-400":"#ff0000"}}"##).unwrap();
 
         assert_eq!(theme.name, "Mine");
-        assert_eq!(theme.colors, vec![("sage-400".into(), "#ff0000".into())]);
+        assert_eq!(
+            theme.dark,
+            Some(vec![("sage-400".into(), "#ff0000".into())])
+        );
+        assert_eq!(theme.light, None);
         assert!(theme.problems.is_empty());
     }
 
     #[test]
+    fn a_theme_may_carry_both_modes() {
+        let theme = parse_theme(
+            "both",
+            r##"{"light":{"mist-100":"#000000"},"dark":{"mist-100":"#ffffff"}}"##,
+        )
+        .unwrap();
+
+        assert_eq!(
+            theme.light,
+            Some(vec![("mist-100".into(), "#000000".into())])
+        );
+        assert_eq!(
+            theme.dark,
+            Some(vec![("mist-100".into(), "#ffffff".into())])
+        );
+    }
+
+    #[test]
+    fn the_shape_that_came_first_still_works() {
+        // A file written before two modes existed is not a file that should
+        // stop working: `base` plus `colors` is the newer shape with the mode
+        // named at the top.
+        let older = parse_theme(
+            "old",
+            r##"{"base":"light","colors":{"mist-100":"#111111"}}"##,
+        )
+        .unwrap();
+        assert_eq!(
+            older.light,
+            Some(vec![("mist-100".into(), "#111111".into())])
+        );
+        assert_eq!(older.dark, None);
+
+        let defaulted = parse_theme("old", r##"{"colors":{"mist-100":"#111111"}}"##).unwrap();
+        assert!(
+            defaulted.dark.is_some(),
+            "no base named means dark, as it always did"
+        );
+    }
+
+    #[test]
     fn a_theme_with_no_name_is_called_after_its_file() {
-        let theme = parse_theme("nord", r#"{"colors":{}}"#).unwrap();
+        let theme = parse_theme("nord", r##"{"dark":{}}"##).unwrap();
         assert_eq!(theme.name, "nord");
     }
 
     #[test]
-    fn dark_is_the_base_unless_the_file_says_light() {
-        assert_eq!(
-            parse_theme("a", r#"{"base":"light"}"#).unwrap().base,
-            "light"
-        );
-        assert_eq!(parse_theme("a", r#"{"base":"dark"}"#).unwrap().base, "dark");
-        assert_eq!(
-            parse_theme("a", r#"{}"#).unwrap().base,
-            "dark",
-            "a partial theme has to start from something"
-        );
+    fn a_theme_with_no_colours_at_all_says_so() {
+        let theme = parse_theme("empty", r##"{"name":"Empty"}"##).unwrap();
+
+        assert_eq!(theme.light, None);
+        assert_eq!(theme.dark, None);
+        assert_eq!(theme.problems.len(), 1);
     }
 
     #[test]
-    fn a_value_that_is_not_a_colour_is_dropped_and_named() {
-        // Silently painting one surface transparent is the failure here. The
-        // rest of the theme still applies.
+    fn a_value_that_is_not_a_colour_is_dropped_and_named_with_its_mode() {
+        // Silently painting one surface transparent is the failure here, and
+        // which mode it was in is half of finding the line.
         let theme = parse_theme(
             "mine",
-            r##"{"colors":{"sage-400":"not a colour","mist-100":"#fff"}}"##,
+            r##"{"dark":{"sage-400":"not a colour","mist-100":"#fff"}}"##,
         )
         .unwrap();
 
-        assert_eq!(theme.colors, vec![("mist-100".into(), "#fff".into())]);
+        assert_eq!(theme.dark, Some(vec![("mist-100".into(), "#fff".into())]));
         assert_eq!(theme.problems.len(), 1);
-        assert!(theme.problems[0].contains("sage-400"));
+        assert!(theme.problems[0].starts_with("dark sage-400"));
     }
 
     #[test]
     fn a_token_this_app_does_not_have_is_named_rather_than_applied() {
-        let theme = parse_theme("mine", r##"{"colors":{"background":"#fff"}}"##).unwrap();
+        let theme = parse_theme("mine", r##"{"dark":{"background":"#fff"}}"##).unwrap();
 
-        assert!(theme.colors.is_empty());
+        assert_eq!(theme.dark, Some(Vec::new()));
         assert_eq!(theme.problems.len(), 1);
         assert!(theme.problems[0].contains("background"));
     }
@@ -351,6 +452,19 @@ mod tests {
     }
 
     #[test]
+    fn the_example_is_a_theme() {
+        // It is written into the user's folder as the thing to copy, and JSON
+        // has no comments — a line of guidance in the wrong syntax makes the
+        // one file somebody starts from the one file that does not load.
+        let theme = parse_theme("example", super::EXAMPLE)
+            .unwrap_or_else(|error| panic!("the example does not parse: {error}"));
+
+        assert!(theme.problems.is_empty(), "{}", theme.problems.join(", "));
+        assert_eq!(theme.light.map(|colors| colors.len()), Some(21));
+        assert_eq!(theme.dark.map(|colors| colors.len()), Some(21));
+    }
+
+    #[test]
     fn every_theme_that_ships_is_one() {
         // Written by hand, so read by the same parser that reads a user's — a
         // typo in one of these would otherwise reach a release as a surface
@@ -363,8 +477,9 @@ mod tests {
                 "{id}: {}",
                 theme.problems.join(", ")
             );
+            let named = theme.light.or(theme.dark).unwrap_or_default();
             assert_eq!(
-                theme.colors.len(),
+                named.len(),
                 21,
                 "{id} leaves a colour to the built-in palette; the ones that ship name all of them"
             );

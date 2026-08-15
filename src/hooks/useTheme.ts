@@ -19,15 +19,13 @@ export function useTheme(appearance: Appearance | undefined, custom?: UserTheme 
       const stored = (localStorage.getItem("uncached_appearance") as Appearance | null) ?? "system";
       const activeAppearance = appearance ?? stored;
 
-      // A theme brings its own base, because a file of dark colours read over
-      // the light stylesheet is nineteen light surfaces and two dark ones.
-      const theme = custom
-        ? custom.base
-        : activeAppearance === "system"
-          ? media.matches
-            ? "dark"
-            : "light"
-          : activeAppearance;
+      const asked =
+        activeAppearance === "system" ? (media.matches ? "dark" : "light") : activeAppearance;
+
+      // A theme carrying only one mode decides which. Reading a file of dark
+      // colours over the light stylesheet is nineteen light surfaces and two
+      // dark ones, which is not the appearance anybody asked for either.
+      const theme = custom ? (offeredBy(custom, asked) ?? asked) : asked;
 
       document.documentElement.dataset.theme = theme;
 
@@ -35,7 +33,7 @@ export function useTheme(appearance: Appearance | undefined, custom?: UserTheme 
       // colours leaves the previous one's showing through the gaps.
       const root = document.documentElement;
       for (const token of TOKENS) root.style.removeProperty(`--theme-${token}`);
-      for (const [token, colour] of custom?.colors ?? []) {
+      for (const [token, colour] of (theme === "dark" ? custom?.dark : custom?.light) ?? []) {
         root.style.setProperty(`--theme-${token}`, colour);
       }
 
@@ -56,6 +54,19 @@ export function useTheme(appearance: Appearance | undefined, custom?: UserTheme 
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
   }, [appearance, custom]);
+}
+
+/**
+ * Which mode a theme can actually paint, given the one asked for.
+ *
+ * `null` when it names no colours at all. A theme with both leaves the choice
+ * where it was; a theme with one answers with that one whatever was asked.
+ */
+export function offeredBy(theme: UserTheme, asked: "light" | "dark"): "light" | "dark" | null {
+  if (theme.light && theme.dark) return asked;
+  if (theme.light) return "light";
+  if (theme.dark) return "dark";
+  return null;
 }
 
 /**

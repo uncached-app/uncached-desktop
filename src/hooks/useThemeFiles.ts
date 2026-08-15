@@ -4,9 +4,14 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 export type UserTheme = {
   id: string;
   name: string;
-  base: "light" | "dark";
-  /** Token name without the `--theme-` prefix, to a colour. */
-  colors: Array<[string, string]>;
+  /**
+   * What it offers for each mode, token name to colour. A theme may carry one
+   * or both, and which it carries decides whether the appearance choice is
+   * still the user's: a file of only dark colours cannot honour a request for
+   * light.
+   */
+  light: Array<[string, string]> | null;
+  dark: Array<[string, string]> | null;
   /** Lines that named nothing, or named a colour that is not one. */
   problems: string[];
   /** Shipped with the app rather than found in the folder. */

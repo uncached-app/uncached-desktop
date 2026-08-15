@@ -338,33 +338,46 @@ function AppearanceContent({
   // Named rather than swallowed: a colour the app could not read is a line
   // somebody typed, and the only thing worse than not applying it is not
   // saying so.
-  const problems = themes.find((entry) => entry.id === settings.theme)?.problems ?? [];
+  const chosen = themes.find((entry) => entry.id === settings.theme) ?? null;
+  const problems = chosen?.problems ?? [];
+
+  // A theme carrying one mode answers with that mode whatever is asked, so the
+  // other choices are shown as unavailable rather than offered and overruled.
+  // Which is what the appearance row would otherwise be: a control that keeps
+  // its selection and changes nothing on screen.
+  const only = chosen && !(chosen.light && chosen.dark) ? (chosen.light ? "light" : "dark") : null;
+  const locked = (mode: Appearance) => only !== null && mode !== only;
 
   return (
     <>
       <p className="mb-4 text-xs leading-5 text-mist-500">
-        Choose your interface theme.
+        {only
+          ? `${chosen?.name} is a ${only} theme — it carries no colours for the other, so this follows it.`
+          : "Choose your interface theme."}
       </p>
       <SettingsGroup>
         <SettingRadio
           icon={<Moon size={15} />}
           label="Dark"
           hint="Sleek dark theme optimized for low-light development environments."
-          selected={settings.appearance === "dark"}
+          selected={only ? only === "dark" : settings.appearance === "dark"}
+          disabled={locked("dark")}
           onClick={() => updateSettings({ appearance: "dark" as Appearance })}
         />
         <SettingRadio
           icon={<Sun size={15} />}
           label="Light"
           hint="Clean high-contrast light theme."
-          selected={settings.appearance === "light"}
+          selected={only ? only === "light" : settings.appearance === "light"}
+          disabled={locked("light")}
           onClick={() => updateSettings({ appearance: "light" as Appearance })}
         />
         <SettingRadio
           icon={<Monitor size={15} />}
           label="System"
           hint="Automatically follows your operating system appearance preference."
-          selected={settings.appearance === "system"}
+          selected={only ? false : settings.appearance === "system"}
+          disabled={only !== null}
           onClick={() => updateSettings({ appearance: "system" as Appearance })}
         />
       </SettingsGroup>
@@ -380,7 +393,9 @@ function AppearanceContent({
             <span className="text-xs leading-5 text-mist-500">
               {problems.length > 0
                 ? problems[0]
-                : `${themes.filter((entry) => !entry.builtIn).length} of these are yours.`}
+                : chosen && chosen.light && chosen.dark
+                  ? "Carries both light and dark."
+                  : `${themes.filter((entry) => !entry.builtIn).length} of these are yours.`}
             </span>
           </span>
           <Select
