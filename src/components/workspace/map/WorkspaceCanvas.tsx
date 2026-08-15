@@ -198,8 +198,28 @@ export function WorkspaceCanvas({
     placeTooltip();
   };
 
-  // The tooltip appears where the pointer already is, which nothing would know
-  // if its position had stopped being state and gone nowhere else.
+  /**
+   * Places the tooltip the moment it attaches, whatever caused it to.
+   *
+   * A press starts a drag, a drag unmounts the tooltip, and letting go mounts
+   * it again — at which point an effect keyed on what is hovered has no reason
+   * to run, because nothing about what is hovered changed. The element came
+   * back with no `left` or `top` and rendered wherever an unpositioned absolute
+   * box lands, which is a tooltip that jumps to a corner when you click.
+   *
+   * A ref callback fires on every attach, so there is no list of reasons to
+   * keep in step with the list of things that can unmount it.
+   */
+  const attachTooltip = useCallback(
+    (node: HTMLDivElement | null) => {
+      tooltipRef.current = node;
+      if (node) placeTooltip();
+    },
+    [placeTooltip],
+  );
+
+  // And again when the pointer moves to a different node without the tooltip
+  // ever leaving the screen, which the attach above never sees.
   useLayoutEffect(placeTooltip, [placeTooltip, hovered]);
 
   // Stable, so the memoised body is not rebuilt by a new function each render.
@@ -271,7 +291,7 @@ export function WorkspaceCanvas({
       {/* Modern, Minimalist Floating Tooltip on Hover */}
       {activeFamily && familyWeight && !map.dragging && (
         <div
-          ref={tooltipRef}
+          ref={attachTooltip}
           className="pointer-events-none absolute z-30 flex flex-col gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 text-xs shadow-lg"
         >
           <div className="flex items-center justify-between gap-3">
@@ -313,7 +333,7 @@ export function WorkspaceCanvas({
 
       {active && !map.dragging && (
         <div
-          ref={tooltipRef}
+          ref={attachTooltip}
           className="pointer-events-none absolute z-30 flex flex-col gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 shadow-lg text-xs transition-all duration-75 ease-out"
         >
           {/* Header */}
