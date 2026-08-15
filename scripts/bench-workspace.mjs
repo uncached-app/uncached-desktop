@@ -109,6 +109,11 @@ function build() {
   fillProject(second, { random, kind: "node" });
   made.push(second);
 
+  // Both ends of the pair take the same URL, which is what makes them one
+  // repository rather than two projects that happen to look alike.
+  offMachine(first, "payments");
+  offMachine(second, "payments");
+
   for (let at = 0; at < options.projects; at += 1) {
     made.push(makeProject(join(root, `solo-${String(at + 1).padStart(3, "0")}`), { origins, random }));
   }
@@ -157,6 +162,7 @@ function makeProject(path, { origins, random }) {
   git(path, ["add", "-A"]);
   commit(path, "first", age + 30);
   git(path, ["push", "-q", "-u", "origin", "main"]);
+  offMachine(path, name);
 
   fillProject(path, { random, kind });
 
@@ -297,6 +303,24 @@ function declareWorkspace(directory, family) {
       `${JSON.stringify({ name: family.name, private: true, workspaces: family.members }, null, 2)}\n`,
     );
   }
+}
+
+/**
+ * Repoints a finished repository at a remote that is not this disk.
+ *
+ * The fixture pushes to a bare repository beside it, because that is how you
+ * get real ahead/behind counts with no network. But `git.rs` asks whether a
+ * remote *leaves the machine*, and a path on the same disk does not — so every
+ * project read as having no remote, every verdict came out `Protect`, and the
+ * maintenance policy could never match a thing. The app was right and the
+ * fixture was lying to it.
+ *
+ * Rewritten after the push, so `refs/remotes/origin/main` is already there:
+ * ahead, behind and upstream all keep working offline. Only the URL is
+ * cosmetic, and the URL is the whole of what "off machine" reads.
+ */
+function offMachine(path, name) {
+  git(path, ["remote", "set-url", "origin", `git@github.com:uncached-bench/${name}.git`]);
 }
 
 function makeOrigin(origins, name) {
