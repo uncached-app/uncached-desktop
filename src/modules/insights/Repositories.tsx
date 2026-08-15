@@ -29,43 +29,48 @@ export function Repositories({
   onOpen: (path: string) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs">
+    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs transition-all">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-forest-800 pb-3">
-        <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-mist-100">
-            <GitBranch size={15} className="text-mist-500" aria-hidden="true" />
+        <div className="flex items-center gap-2">
+          <GitBranch size={14} className="text-mist-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-mist-100">
             Repository hygiene
           </h2>
-          <p className="mt-0.5 text-xs text-mist-500">
-            {report
-              ? `${report.examined} ${report.examined === 1 ? "repository" : "repositories"} read.`
-              : "Dead branches, forgotten stashes and worktrees whose folder is gone. Offline; nothing is fetched."}
-          </p>
         </div>
 
-        {running && (
-          <span className="inline-flex shrink-0 items-center gap-2 text-xs text-mist-500">
-            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+        {running ? (
+          <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-xs text-mist-500">
+            <Loader2 size={12} className="animate-spin text-sage-300" aria-hidden="true" />
             Reading
           </span>
-        )}
+        ) : report ? (
+          <span className="font-mono text-xs text-mist-500">
+            {report.examined} {report.examined === 1 ? "repository" : "repositories"}
+          </span>
+        ) : null}
       </div>
 
       {error && <p className="mt-3 font-mono text-[11px] leading-5 text-coral-300">{error}</p>}
 
       {report && (
         <>
-          <p className="mt-4 text-sm font-semibold text-mist-100">
-            {report.repositories.length > 0 ? (
-              <>
-                <span className="font-mono text-sage-300">{report.repositories.length}</span>{" "}
-                {report.repositories.length === 1 ? "repository is" : "repositories are"} carrying
-                something
-              </>
-            ) : (
-              "Every repository here is clean"
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-mist-300">
+              {report.repositories.length > 0 ? (
+                <>
+                  <span className="font-mono font-semibold text-sage-300">{report.repositories.length}</span>{" "}
+                  {report.repositories.length === 1 ? "repository is" : "repositories are"} carrying unmerged items
+                </>
+              ) : (
+                "Every repository here is clean."
+              )}
+            </p>
+            {report.prunable > 0 && (
+              <span className="font-mono text-xs font-medium text-sage-300 shrink-0">
+                {report.prunable} prunable
+              </span>
             )}
-          </p>
+          </div>
 
           {report.repositories.length > 0 && (
             <>
@@ -75,53 +80,56 @@ export function Repositories({
                     <button
                       type="button"
                       onClick={() => onOpen(repository.path)}
-                      className="group flex w-full items-center justify-between gap-4 py-2.5 text-left"
+                      className="group flex w-full items-center justify-between gap-4 py-2.5 px-1 rounded-lg transition-colors hover:bg-forest-850/30 cursor-pointer text-left"
                     >
-                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-mist-100 group-hover:text-sage-300">
+                      <span className="min-w-0 flex-1 truncate font-mono text-xs font-medium text-mist-100 group-hover:text-sage-300 transition-colors">
                         {repository.name}
                       </span>
-                      <span className="flex shrink-0 items-center gap-3 font-mono text-[11px] text-mist-500">
-                        {/* Only what this repository actually has. A row of
-                            zeroes reads as a table; three counts read as a
-                            sentence. */}
+
+                      <div className="flex shrink-0 items-center gap-2 font-mono text-[11px] text-mist-500">
                         {repository.hygiene.deadBranches.length > 0 && (
-                          <Count
-                            icon={Scissors}
-                            value={repository.hygiene.deadBranches.length}
-                            label="dead"
-                            /* Prunable is the half with a button behind it. */
-                            accent={repository.prunable > 0}
-                          />
+                          <span
+                            className={`inline-flex items-center gap-1 rounded bg-forest-850 px-1.5 py-0.5 text-[10px] ${
+                              repository.prunable > 0 ? "text-sage-300 font-medium" : "text-mist-400"
+                            }`}
+                            title={`${repository.hygiene.deadBranches.length} dead branches`}
+                          >
+                            <Scissors size={10} aria-hidden="true" />
+                            <span>{repository.hygiene.deadBranches.length} dead</span>
+                          </span>
                         )}
                         {repository.hygiene.stashes.length > 0 && (
-                          <Count
-                            icon={Archive}
-                            value={repository.hygiene.stashes.length}
-                            label="stashed"
-                          />
+                          <span
+                            className="inline-flex items-center gap-1 rounded bg-forest-850 px-1.5 py-0.5 text-[10px] text-mist-400"
+                            title={`${repository.hygiene.stashes.length} stashes`}
+                          >
+                            <Archive size={10} aria-hidden="true" />
+                            <span>{repository.hygiene.stashes.length} stashed</span>
+                          </span>
                         )}
                         {repository.hygiene.worktrees.length > 0 && (
-                          <Count
-                            icon={TreeDeciduous}
-                            value={repository.hygiene.worktrees.length}
-                            label="worktrees"
-                          />
+                          <span
+                            className="inline-flex items-center gap-1 rounded bg-forest-850 px-1.5 py-0.5 text-[10px] text-mist-400"
+                            title={`${repository.hygiene.worktrees.length} worktrees`}
+                          >
+                            <TreeDeciduous size={10} aria-hidden="true" />
+                            <span>{repository.hygiene.worktrees.length} worktrees</span>
+                          </span>
                         )}
-                      </span>
+                      </div>
                     </button>
                   </li>
                 ))}
               </ul>
 
-              <p className="mt-3 border-t border-forest-800 pt-3 text-[11px] leading-5 text-mist-500">
+              <p className="mt-3 border-t border-forest-800 pt-3 text-[11px] leading-relaxed text-mist-500">
                 {report.prunable > 0 ? (
                   <>
                     <span className="font-semibold text-mist-300">
                       {report.prunable} of {report.deadBranches}
                     </span>{" "}
-                    dead {report.deadBranches === 1 ? "branch" : "branches"} could be deleted; the
-                    rest hold commits reachable from nowhere else. Open a repository to prune it —
-                    deleting happens one at a time, where you can read what goes.
+                    dead {report.deadBranches === 1 ? "branch" : "branches"} could be deleted; the rest
+                    hold commits reachable from nowhere else. Open a repository to prune it.
                   </>
                 ) : (
                   <>
@@ -135,27 +143,5 @@ export function Repositories({
         </>
       )}
     </div>
-  );
-}
-
-function Count({
-  icon: Icon,
-  value,
-  label,
-  accent = false,
-}: {
-  icon: typeof Scissors;
-  value: number;
-  label: string;
-  accent?: boolean;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 ${accent ? "text-sage-300" : ""}`}
-      title={`${value} ${label}`}
-    >
-      <Icon size={12} aria-hidden="true" />
-      {value}
-    </span>
   );
 }

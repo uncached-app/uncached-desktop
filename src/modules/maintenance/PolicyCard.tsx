@@ -24,12 +24,16 @@ const SIZE_CHOICES: Array<{ bytes: number; label: string }> = [
 export function PolicyCard({
   policy,
   onChange,
+  matchCount,
+  matchBytes,
 }: {
   policy: MaintenancePolicy;
   onChange: (policy: MaintenancePolicy) => void;
+  matchCount?: number;
+  matchBytes?: number;
 }) {
   return (
-    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs">
+    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs transition-all">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-forest-800 pb-3">
         <div>
           <h2 className="text-sm font-semibold text-mist-100">Automated Selection Policy</h2>
@@ -39,9 +43,16 @@ export function PolicyCard({
             <span className="font-semibold text-mist-100">{formatBytes(policy.minBytes)}</span> of disposable cache.
           </p>
         </div>
-        <span className="font-mono text-xs font-semibold text-sage-300">
-          &gt; {policy.minIdleDays}d · &ge; {formatBytes(policy.minBytes)}
-        </span>
+        <div className="text-right">
+          <span className="font-mono text-xs font-semibold text-sage-300">
+            &gt; {policy.minIdleDays}d · &ge; {formatBytes(policy.minBytes)}
+          </span>
+          {matchCount !== undefined && matchBytes !== undefined && (
+            <span className="mt-0.5 block font-mono text-[10px] text-mist-500">
+              {matchCount} {matchCount === 1 ? "match" : "matches"} ({formatBytes(matchBytes)})
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Clean parameter controls without nested card boxes */}
@@ -61,9 +72,9 @@ export function PolicyCard({
                   type="button"
                   onClick={() => onChange({ ...policy, minIdleDays: days })}
                   aria-pressed={active}
-                  className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all ${
+                  className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 ${
                     active
-                      ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
+                      ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
                       : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
                   }`}
                 >
@@ -89,9 +100,9 @@ export function PolicyCard({
                   type="button"
                   onClick={() => onChange({ ...policy, minBytes: bytes })}
                   aria-pressed={active}
-                  className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all ${
+                  className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 ${
                     active
-                      ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
+                      ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
                       : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
                   }`}
                 >

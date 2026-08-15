@@ -99,14 +99,24 @@ export function InsightsModule({
     setShown(EVENT_PAGE);
   }
 
-  // Every branch has to land somewhere the sentence actually points at. A
-  // button reading "View in workspace" that opens an unfiltered workspace is
-  // worse than the same sentence with no button, which is why the two findings
-  // with no destination in the map no longer carry an action at all.
+  // Every branch has to land somewhere the sentence actually points at. A button
+  // reading "View in workspace" that opens an unfiltered workspace is worse than
+  // the same sentence with no button — which is what these last two were until
+  // the map learned to filter by artifact kind and by clone.
+  //
+  // Each one clears the others: arriving on a list narrowed by a filter the
+  // previous sentence set would show fewer projects than the sentence just
+  // claimed, or none at all.
   function follow(insight: Insight) {
     if (!insight.action) return;
+    flow.setActiveVerdict(null);
+    flow.setActiveCategory(null);
+    flow.setClonesOnly(false);
+
     if (insight.action.kind === "verdict") flow.setActiveVerdict(insight.action.verdict as Verdict);
     if (insight.action.kind === "project") flow.focusProject(insight.action.path);
+    if (insight.action.kind === "category") flow.setActiveCategory(insight.action.category);
+    if (insight.action.kind === "duplicates") flow.setClonesOnly(true);
     onOpenWorkspace();
   }
 
@@ -182,7 +192,7 @@ export function InsightsModule({
             something to produce — reading every node_modules, running git in
             every repository, walking the tree for what nothing owns. They are
             taken in that order, cheapest first, once the weights have settled. */}
-        <div className="mt-6 flex items-center justify-between gap-3 border-t border-forest-800 pt-5">
+        <div className="mt-8 mb-4 flex items-center justify-between gap-3 border-t border-forest-800 pt-6">
           <div>
             <h2 className="text-sm font-semibold text-mist-100">A closer look</h2>
             <p className="mt-0.5 text-xs text-mist-500">
@@ -193,9 +203,9 @@ export function InsightsModule({
             type="button"
             onClick={refresh}
             disabled={running || projects.length === 0}
-            className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-950 px-3.5 text-xs font-semibold text-mist-100 transition-colors hover:bg-forest-850 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-8.5 shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 text-xs font-semibold text-mist-100 shadow-xs transition-colors hover:bg-forest-850 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
-            {running && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
+            {running && <Loader2 size={13} className="animate-spin text-sage-300" aria-hidden="true" />}
             <span>{running ? "Reading" : "Read again"}</span>
           </button>
         </div>

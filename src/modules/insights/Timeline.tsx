@@ -80,31 +80,6 @@ export function Timeline({ report, onGrain }: { report: Report; onGrain: (grain:
                   height: bucket.bytes > 0 && peak > 0 ? `${Math.max(4, (bucket.bytes / peak) * 100)}%` : "2px",
                 }}
               />
-
-              {isHovered && (
-                <div
-                  role="tooltip"
-                  className={`pointer-events-none absolute top-2 z-30 flex flex-col gap-0.5 rounded-lg border border-forest-800 bg-forest-900/95 backdrop-blur-xs px-2.5 py-1 font-mono shadow-2xl transition-all whitespace-nowrap ${
-                    index < 3
-                      ? "left-0"
-                      : index > report.series.length - 4
-                      ? "right-0"
-                      : "left-1/2 -translate-x-1/2"
-                  }`}
-                >
-                  <div className="text-[10px] text-mist-500">
-                    {formatBucket(bucket.start, report.bucket)}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-mist-100">
-                    <span className={bucket.bytes > 0 ? "text-sage-300" : "text-mist-500"}>
-                      {formatBytes(bucket.bytes)}
-                    </span>
-                    <span className="text-[10px] font-normal text-mist-500">
-                      · {bucket.cleanups} {bucket.cleanups === 1 ? "cleanup" : "cleanups"}
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}

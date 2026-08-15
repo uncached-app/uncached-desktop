@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Command, RefreshCw, Search, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ArrowDownWideNarrow, ArrowRight, Command, RefreshCw, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import type { RefObject } from "react";
 import { commandKeyLabel } from "./naming";
 import { formatBytes } from "../../../utils/format";
@@ -18,6 +18,8 @@ export function WorkspaceHeader({
   query,
   onQueryChange,
   searchRef,
+  order,
+  onOrderChange,
   onOpenPalette,
 }: {
   projectCount: number;
@@ -33,6 +35,8 @@ export function WorkspaceHeader({
   query: string;
   onQueryChange: (query: string) => void;
   searchRef: RefObject<HTMLInputElement | null>;
+  order: "verdict" | "size";
+  onOrderChange: (order: "verdict" | "size") => void;
   onOpenPalette: () => void;
 }) {
   return (
@@ -82,10 +86,10 @@ export function WorkspaceHeader({
             <button
               type="button"
               onClick={onReclaim}
-              className="group inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-sage-300 hover:bg-sage-300/90 text-white dark:bg-sage-400 dark:text-forest-950 px-4 text-xs font-semibold shadow-sm transition-all active:scale-[0.99]"
+              className="group inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-sage-400 hover:bg-sage-300 text-forest-950 px-4 text-xs font-semibold shadow-sm transition-all active:scale-[0.99] cursor-pointer"
             >
               <span>Reclaim disk</span>
-              <span className="grid size-4.5 place-items-center rounded bg-white/20 dark:bg-forest-950/30 font-mono text-[11px] font-bold text-white dark:text-forest-950">
+              <span className="grid size-4.5 place-items-center rounded bg-forest-950/20 font-mono text-[11px] font-bold text-forest-950">
                 {targetCount}
               </span>
               <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
@@ -96,10 +100,10 @@ export function WorkspaceHeader({
 
       <HistoryLine change={change} reclaimed={reclaimed} />
 
-      {/* Filter and Action controls bar */}
-      <div className="mt-3.5 flex items-center gap-3">
-        <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 transition-all focus-within:ring-1 focus-within:ring-sage-400/30">
-          <Search size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
+      {/* Filter, Order and Action controls bar */}
+      <div className="mt-3.5 flex items-center gap-2.5">
+        <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 transition-all focus-within:ring-1 focus-within:ring-sage-400/30">
+          <Search size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
           <span className="sr-only">Filter projects by name, path, kind or branch</span>
           <input
             ref={searchRef}
@@ -112,14 +116,14 @@ export function WorkspaceHeader({
               }
             }}
             placeholder="Filter by name, path, ecosystem or branch"
-            className="min-w-0 flex-1 bg-transparent text-sm text-mist-100 outline-none"
+            className="min-w-0 flex-1 bg-transparent text-xs text-mist-100 outline-none placeholder:text-mist-500"
           />
           {query ? (
             <button
               type="button"
               onClick={() => onQueryChange("")}
               aria-label="Clear the text filter"
-              className="grid size-5 shrink-0 place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-800 hover:text-mist-100"
+              className="grid size-5 shrink-0 place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-800 hover:text-mist-100 cursor-pointer"
             >
               <X size={13} aria-hidden="true" />
             </button>
@@ -130,14 +134,44 @@ export function WorkspaceHeader({
           )}
         </label>
 
-        {/* The palette's only advertisement. A shortcut nobody is told about is
-            a shortcut nobody uses, and this is the screen where someone is
-            already looking at the projects it acts on. */}
+        {/* Order Segmented Control */}
+        <div className="flex shrink-0 items-center rounded-xl border border-forest-800 bg-forest-900 p-0.5 shadow-xs">
+          <button
+            type="button"
+            onClick={() => onOrderChange("verdict")}
+            aria-pressed={order === "verdict"}
+            title="Group projects by safety verdict"
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 ${
+              order === "verdict"
+                ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
+                : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+            }`}
+          >
+            <ShieldCheck size={12} className={order === "verdict" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
+            <span>Verdict</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onOrderChange("size")}
+            aria-pressed={order === "size"}
+            title="Sort projects by total size on disk"
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 ${
+              order === "size"
+                ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
+                : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+            }`}
+          >
+            <ArrowDownWideNarrow size={12} className={order === "size" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
+            <span>Size</span>
+          </button>
+        </div>
+
+        {/* Actions Button */}
         <button
           type="button"
           onClick={onOpenPalette}
           title="Open a project in your editor, terminal or file manager"
-          className="flex shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 text-xs font-medium text-mist-300 transition-all hover:border-sage-400 hover:bg-forest-850 hover:text-mist-100"
+          className="flex shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-forest-750 hover:bg-forest-850 hover:text-mist-100 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400"
         >
           <Command size={13} className="text-mist-500" aria-hidden="true" />
           <span>Actions</span>

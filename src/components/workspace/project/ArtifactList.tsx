@@ -1,5 +1,4 @@
 import { AlertTriangle, Check, FolderArchive, Loader2, ShieldCheck, Trash2 } from "lucide-react";
-import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Panel } from "./panels";
 import { isFreeTarget } from "../../../utils/entitlements.mjs";
@@ -138,10 +137,8 @@ export function ArtifactList({
             const proLocked = !isFreeTarget(target) && !proEnabled;
 
             return (
-              <motion.li
+              <li
                 key={target.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
                 className="flex items-center justify-between gap-3 py-3"
               >
                 <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -199,7 +196,7 @@ export function ArtifactList({
                     </button>
                   )}
                 </div>
-              </motion.li>
+              </li>
             );
           })}
         </ul>

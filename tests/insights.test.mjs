@@ -128,14 +128,15 @@ test("nothing invents urgency", () => {
 
 /**
  * The rule is that an action must be honourable, not that every sentence has
- * one. The workspace map filters by root, by text and by verdict — nothing
- * else — so a sentence about a category or a clone has nowhere to send anyone,
- * and a button that opens an unfiltered list is a worse answer than no button.
+ * one. The map filters by root, text, verdict, artifact kind and clone; a
+ * sentence pointing anywhere else has nowhere to send anyone, and a button that
+ * opens an unfiltered list is a worse answer than no button.
  *
  * Asserted as a closed set rather than as "has an action", because the way this
- * regressed the first time was an action nobody had written a handler for.
+ * regressed the first time was an action nobody had written a handler for. Add
+ * a sixth kind here only once `follow` in `InsightsModule` can honour it.
  */
-const REACHABLE = new Set(["verdict", "project"]);
+const REACHABLE = new Set(["verdict", "project", "category", "duplicates"]);
 
 test("every sentence that offers a destination has one the map can reach", () => {
   const projects = [
@@ -152,8 +153,9 @@ test("every sentence that offers a destination has one the map can reach", () =>
   assert.match(reclaimed.text, /238\.00 GB with Uncached across 12 cleanups/);
   assert.equal(reclaimed.action, undefined, "the past has no destination");
 
-  // The fixture has to actually produce the two that carry no action, or this
-  // passes by never reaching them — which is how the old assertion survived.
+  // The fixture has to actually produce the findings whose destinations were
+  // once missing, or this passes by never reaching them — which is how the
+  // original version of this assertion survived being wrong.
   const ids = insights.map((insight) => insight.id);
   assert.ok(ids.includes("duplicates"), "the fixture must exercise a clone finding");
 
@@ -166,7 +168,7 @@ test("every sentence that offers a destination has one the map can reach", () =>
   }
 });
 
-test("a finding the map cannot filter by is a sentence rather than a button", () => {
+test("the clone finding points at the filter that shows the clones", () => {
   const insights = build(
     [project("dup", { duplicateOf: ["/elsewhere/dup"] })],
     { "/w/dup": footprint(5 * GB) },
@@ -174,7 +176,23 @@ test("a finding the map cannot filter by is a sentence rather than a button", ()
   const duplicates = insights.find((insight) => insight.id === "duplicates");
 
   assert.ok(duplicates, "a clone is still reported");
-  assert.equal(duplicates.action, undefined, "and reported without a destination it does not have");
+  assert.deepEqual(duplicates.action, { kind: "duplicates" });
+});
+
+test("the concentration finding names the kind the map should narrow to", () => {
+  const concentration = build(
+    [project("api")],
+    { "/w/api": footprint(10 * GB, [
+      { category: "NodeModules", bytes: 9 * GB },
+      { category: "CargoTarget", bytes: 1 * GB },
+    ]) },
+  ).find((insight) => insight.id === "concentration");
+
+  assert.deepEqual(
+    concentration.action,
+    { kind: "category", category: "NodeModules" },
+    "the destination has to carry which kind, not just that there was one",
+  );
 });
 
 test("history alone still speaks, on a workspace with nothing to report", () => {

@@ -32,64 +32,70 @@ export function Duplicates({
   const hidden = report && !proEnabled ? Math.max(0, report.packages.length - FREE_ROWS) : 0;
 
   return (
-    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs">
+    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs transition-all">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-forest-800 pb-3">
-        <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-mist-100">
-            <Layers size={15} className="text-mist-500" aria-hidden="true" />
+        <div className="flex items-center gap-2">
+          <Layers size={14} className="text-mist-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-mist-100">
             Duplicate dependencies
           </h2>
-          <p className="mt-0.5 text-xs text-mist-500">
-            {report
-              ? `${report.distinctPackages} distinct packages across ${report.scannedProjects} ${report.scannedProjects === 1 ? "project" : "projects"}.`
-              : "Read from every node_modules in your workspace. Nothing is moved or removed."}
-          </p>
         </div>
 
-        {running && (
-          <span className="inline-flex shrink-0 items-center gap-2 text-xs text-mist-500">
-            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+        {running ? (
+          <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-xs text-mist-500">
+            <Loader2 size={12} className="animate-spin text-sage-300" aria-hidden="true" />
             Reading
           </span>
-        )}
+        ) : report ? (
+          <span className="font-mono text-xs text-mist-500">
+            {report.distinctPackages} distinct {report.distinctPackages === 1 ? "package" : "packages"}
+          </span>
+        ) : null}
       </div>
 
       {error && <p className="mt-3 font-mono text-[11px] leading-5 text-coral-300">{error}</p>}
 
       {report && (
         <>
-          <p className="mt-4 text-sm font-semibold text-mist-100">
-            {report.wastedBytes > 0 ? (
-              <>
-                <span className="font-mono text-sage-300">{formatBytes(report.wastedBytes)}</span>{" "}
-                held in identical copies
-              </>
-            ) : (
-              "Nothing is duplicated across your projects"
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-mist-300">
+              {report.wastedBytes > 0 ? (
+                <>
+                  <span className="font-mono font-semibold text-sage-300">{formatBytes(report.wastedBytes)}</span>{" "}
+                  held in identical copies across projects
+                </>
+              ) : (
+                "Nothing is duplicated across your projects."
+              )}
+            </p>
+            {report.wastedBytes > 0 && (
+              <span className="font-mono text-xs font-bold text-sage-300 shrink-0">
+                {formatBytes(report.wastedBytes)}
+              </span>
             )}
-          </p>
+          </div>
 
           {rows.length > 0 && (
             <ul className="mt-3 divide-y divide-forest-800">
               {rows.map((entry) => (
                 <li
                   key={`${entry.name}@${entry.version}`}
-                  className="flex items-center justify-between gap-4 py-2.5"
+                  className="flex items-center justify-between gap-4 py-2.5 px-1 rounded-lg transition-colors hover:bg-forest-850/30"
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <Copy size={13} className="shrink-0 text-mist-500" aria-hidden="true" />
+                    <Copy size={12} className="shrink-0 text-mist-500" aria-hidden="true" />
                     <div className="min-w-0">
                       <span className="block truncate font-mono text-xs text-mist-100">
                         {entry.name}
                         <span className="text-mist-500">@{entry.version}</span>
                       </span>
-                      <span className="mt-0.5 block text-[10px] text-mist-500">
-                        {entry.copies} projects
+                      <span className="mt-0.5 block font-mono text-[10px] text-mist-500">
+                        {entry.copies} {entry.copies === 1 ? "project" : "projects"}
                         {entry.bytesEach !== null && ` · ${formatBytes(entry.bytesEach)} each`}
                       </span>
                     </div>
                   </div>
-                  <span className="shrink-0 font-mono text-xs font-semibold text-mist-100">
+                  <span className="shrink-0 font-mono text-xs font-bold text-mist-100">
                     {formatBytes(entry.wastedBytes)}
                   </span>
                 </li>
@@ -99,30 +105,25 @@ export function Duplicates({
 
           {hidden > 0 && (
             <p className="mt-3 border-t border-forest-800 pt-3 text-xs text-mist-500">
-              {hidden} more {hidden === 1 ? "package is" : "packages are"} duplicated. Pro lists
-              them.
-            </p>
-          )}
-
-          {/* The one number here that is not measured, said out loud. Two
-              directories with the same name@version came from the same
-              published tarball — but a postinstall that compiled a native
-              binary can still make them differ. */}
-          {report.packages.length > 0 && (
-            <p className="mt-3 text-[11px] leading-5 text-mist-500">
-              One copy of each package is measured and the rest is arithmetic, so this is an
-              estimate. A package whose install step compiled something may not be identical across
-              projects.
+              {hidden} more {hidden === 1 ? "package is" : "packages are"} duplicated. Pro lists them.
             </p>
           )}
 
           {report.sharedProjects > 0 && (
-            <p className="mt-2 flex items-start gap-2 text-[11px] leading-5 text-sage-300">
+            <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-sage-300">
               <Link2 size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-              {report.sharedProjects}{" "}
-              {report.sharedProjects === 1 ? "project already links" : "projects already link"} their
-              packages into a shared store instead of copying them, and{" "}
-              {report.sharedProjects === 1 ? "is" : "are"} not counted above.
+              <span>
+                {report.sharedProjects}{" "}
+                {report.sharedProjects === 1 ? "project already links" : "projects already link"} their
+                packages into a shared store instead of copying them.
+              </span>
+            </p>
+          )}
+
+          {report.packages.length > 0 && (
+            <p className="mt-3 text-[11px] leading-relaxed text-mist-500">
+              One copy of each package is measured and the rest is arithmetic. Packages with native
+              compiled binaries may vary across projects.
             </p>
           )}
         </>

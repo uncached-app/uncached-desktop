@@ -23,11 +23,16 @@ const HELD_COPY: Record<Exclude<Held, "tooSoon">, string> = {
 
 function when(at: number | null): string | null {
   if (at === null) return null;
-  return new Date(at * 1000).toLocaleDateString(undefined, {
+  const date = new Date(at * 1000);
+  const dayMonth = date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
-    year: "numeric",
   });
+  const time = date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${dayMonth} · ${time}`;
 }
 
 /**
@@ -67,7 +72,7 @@ export function ScheduleCard({
       : null;
 
   return (
-    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs">
+    <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs transition-all">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-forest-800 pb-3">
         <div>
           <h2 className="text-sm font-semibold text-mist-100">Unattended Schedule</h2>
@@ -81,14 +86,14 @@ export function ScheduleCard({
           role="switch"
           aria-checked={schedule.enabled}
           onClick={() => onChange({ ...schedule, enabled: !schedule.enabled })}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-            schedule.enabled ? "bg-sage-500" : "bg-forest-800"
+          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-400 ${
+            schedule.enabled ? "bg-sage-400" : "bg-forest-800"
           }`}
         >
           <span className="sr-only">Run maintenance on a schedule</span>
           <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-mist-100 shadow-xs transition-all ${
-              schedule.enabled ? "left-[22px]" : "left-0.5"
+            className={`absolute top-0.5 h-5 w-5 rounded-full shadow-xs transition-all ${
+              schedule.enabled ? "left-[22px] bg-forest-950" : "left-0.5 bg-mist-300"
             }`}
             aria-hidden="true"
           />
@@ -115,9 +120,9 @@ export function ScheduleCard({
                 disabled={!schedule.enabled}
                 onClick={() => onChange({ ...schedule, everyHours: hours })}
                 aria-pressed={active}
-                className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 disabled:cursor-not-allowed disabled:opacity-40 ${
                   active
-                    ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
+                    ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
                     : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
                 }`}
               >

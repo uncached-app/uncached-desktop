@@ -137,6 +137,10 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
           reclaimed={history.totals}
           activeVerdict={flow.activeVerdict as never}
           setActiveVerdict={flow.setActiveVerdict as never}
+          activeCategory={flow.activeCategory}
+          setActiveCategory={flow.setActiveCategory}
+          clonesOnly={flow.clonesOnly}
+          setClonesOnly={flow.setClonesOnly}
           focusPath={flow.focusPath}
           onFocusHandled={flow.clearFocus}
           onOpenProject={flow.openProject}

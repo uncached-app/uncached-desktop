@@ -2,14 +2,17 @@
 /**
  * Only the destinations the workspace map can actually honour.
  *
- * `category` and `duplicates` were here and were never handled: the map filters
- * by root, by text and by verdict, and by nothing else. Both rendered a button
- * promising to show something and opened an unfiltered list. They are sentences
- * now, and the type is what stops a third one being added the same way.
+ * `category` and `duplicates` were briefly absent: the map filtered by root,
+ * text and verdict and nothing else, so both rendered a button promising to
+ * show something and opened an unfiltered list. The map filters by artifact
+ * kind and by clone now, so both are back — and the type is still what stops a
+ * fourth being added before the destination exists.
  */
 export type InsightAction =
   | { kind: "verdict"; verdict: string }
-  | { kind: "project"; path: string };
+  | { kind: "project"; path: string }
+  | { kind: "category"; category: string }
+  | { kind: "duplicates" };
 
 export type Insight = {
   id: string;

@@ -1,5 +1,4 @@
 import { ChevronRight, Copy, GitBranch } from "lucide-react";
-import { motion } from "motion/react";
 import { rootName } from "./naming";
 import { formatBytes } from "../../../utils/format";
 import { VERDICT_PRESENTATION, projectEvidence } from "../verdictPresentation";
@@ -68,14 +67,12 @@ export function ProjectRow({
     // A button rather than an article with a click handler: the row is the way
     // into everything you can do with a project, and a real button carries the
     // keyboard and the focus ring without either being reimplemented here.
-    <motion.button
+    <button
       type="button"
       data-path={project.path}
       onClick={() => onOpen(project.path)}
       aria-label={`${project.name} project details`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className={`group flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-all hover:bg-forest-850/80 ${
+      className={`group flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors cursor-pointer hover:bg-forest-850/80 ${
         first ? "" : "border-t border-forest-800"
       } ${focused ? "bg-forest-850 ring-1 ring-inset ring-sage-400" : ""}`}
     >
@@ -174,6 +171,6 @@ export function ProjectRow({
           <ChevronRight size={15} aria-hidden="true" />
         </div>
       </div>
-    </motion.button>
+    </button>
   );
 }

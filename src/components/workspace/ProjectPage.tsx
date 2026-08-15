@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import { ArtifactList } from "./project/ArtifactList";
 import { ActivityPanel, GitPanel } from "./project/ContextPanels";
@@ -54,6 +54,7 @@ export function ProjectPage({
   onOpenProject,
 }: ProjectPageProps) {
   const [flash, setFlash] = useState<string | null>(null);
+  const reducedMotion = useReducedMotion();
   // Four Git processes per project, so it is read here — where the user is
   // looking at one repository — rather than during an index of up to 250.
   const hygiene = useProjectHygiene(project.git.branch ? project.path : null);
@@ -77,9 +78,9 @@ export function ProjectPage({
           <AnimatePresence>
             {flash && (
               <motion.div
-                initial={{ opacity: 0, y: -4 }}
+                initial={reducedMotion ? false : { opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
+                exit={reducedMotion ? undefined : { opacity: 0, y: -4 }}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-sage-400/40 bg-sage-400/10 px-3 py-1.5 text-xs font-medium text-sage-300 shadow-xs"
               >
                 <CheckCircle2 size={13} className="text-sage-300" aria-hidden="true" />

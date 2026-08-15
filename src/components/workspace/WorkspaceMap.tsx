@@ -33,6 +33,10 @@ type WorkspaceMapProps = {
   /** Lifted so Insights can send the user to a narrowed list. */
   activeVerdict: Verdict | null;
   setActiveVerdict: (verdict: Verdict | null) => void;
+  activeCategory: string | null;
+  setActiveCategory: (category: string | null) => void;
+  clonesOnly: boolean;
+  setClonesOnly: (only: boolean) => void;
   /** A project someone asked to be shown. The list is what makes it visible. */
   focusPath: string | null;
   onFocusHandled: () => void;
@@ -65,6 +69,10 @@ export function WorkspaceMap({
   reclaimed,
   activeVerdict,
   setActiveVerdict,
+  activeCategory,
+  setActiveCategory,
+  clonesOnly,
+  setClonesOnly,
   focusPath,
   onFocusHandled,
   onOpenProject,
@@ -93,12 +101,43 @@ export function WorkspaceMap({
     [index.projects, normalizedQuery, activeRoot],
   );
 
-  const visible = useMemo(
-    () =>
-      activeVerdict
-        ? scoped.filter((project) => (verdicts[project.path] ?? "unknown") === activeVerdict)
-        : scoped,
-    [scoped, activeVerdict, verdicts],
+  // Every filter narrows the same set, so they compose rather than replace one
+  // another: "clones holding a Cargo target" is a question, and answering it
+  // with only the last filter clicked would be a list that does not match what
+  // the sidebar says is on.
+  const visible = useMemo(() => {
+    let narrowed = scoped;
+    if (activeVerdict) {
+      narrowed = narrowed.filter((project) => (verdicts[project.path] ?? "unknown") === activeVerdict);
+    }
+    if (activeCategory) {
+      narrowed = narrowed.filter((project) =>
+        (footprints[project.path]?.byCategory ?? []).some((entry) => entry.category === activeCategory),
+      );
+    }
+    if (clonesOnly) {
+      narrowed = narrowed.filter((project) => project.duplicateOf.length > 0);
+    }
+    return narrowed;
+  }, [scoped, activeVerdict, verdicts, activeCategory, footprints, clonesOnly]);
+
+  // Counted over the root+text scope rather than over what the other filters
+  // leave, so choosing one does not renumber the rest under the cursor.
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const project of scoped) {
+      for (const entry of footprints[project.path]?.byCategory ?? []) {
+        counts.set(entry.category, (counts.get(entry.category) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()].sort(
+      (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+    );
+  }, [scoped, footprints]);
+
+  const cloneCount = useMemo(
+    () => scoped.filter((project) => project.duplicateOf.length > 0).length,
+    [scoped],
   );
 
   const verdictCounts = useMemo(() => {
@@ -135,6 +174,8 @@ export function WorkspaceMap({
       onQueryChange("");
       setActiveRoot(null);
       setActiveVerdict(null);
+      setActiveCategory(null);
+      setClonesOnly(false);
     },
     onHandled: onFocusHandled,
   });
@@ -199,7 +240,12 @@ export function WorkspaceMap({
   const atRisk = index.projects.filter(
     (project) => (verdicts[project.path] ?? "unknown") === "protect",
   ).length;
-  const filtering = normalizedQuery.length > 0 || activeRoot !== null || activeVerdict !== null;
+  const filtering =
+    normalizedQuery.length > 0 ||
+    activeRoot !== null ||
+    activeVerdict !== null ||
+    activeCategory !== null ||
+    clonesOnly;
 
   return (
     <div className="flex min-h-0 w-full flex-1 gap-5 overflow-hidden">
@@ -213,6 +259,12 @@ export function WorkspaceMap({
         scopedCount={scoped.length}
         activeVerdict={activeVerdict}
         onActiveVerdict={setActiveVerdict}
+        categoryCounts={categoryCounts}
+        activeCategory={activeCategory}
+        onActiveCategory={setActiveCategory}
+        cloneCount={cloneCount}
+        clonesOnly={clonesOnly}
+        onClonesOnly={setClonesOnly}
         proEnabled={proEnabled}
         onAddRoot={onAddRoot}
         onRemoveRoot={onRemoveRoot}
@@ -233,6 +285,8 @@ export function WorkspaceMap({
           query={query}
           onQueryChange={onQueryChange}
           searchRef={searchRef}
+          order={order}
+          onOrderChange={setOrder}
           onOpenPalette={() => openPalette()}
         />
 
@@ -240,35 +294,7 @@ export function WorkspaceMap({
             list moves under it, and each verdict keeps its title in view. The
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
-        {visible.length > 1 && (
-          <div className="flex shrink-0 items-center justify-end gap-1 pb-2 pr-2">
-            <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-mist-500">
-              Order
-            </span>
-            {(
-              [
-                ["verdict", "By verdict"],
-                ["size", "By size"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setOrder(value)}
-                aria-pressed={order === value}
-                className={`rounded-lg px-2.5 py-1 font-mono text-[11px] font-medium transition-all ${
-                  order === value
-                    ? "bg-forest-850 text-mist-100 font-semibold"
-                    : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden pt-3.5">
           <div ref={listRef} className="h-full overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
             {order === "size" && visible.length > 0 && (
               <div className="overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-xs">
@@ -323,6 +349,8 @@ export function WorkspaceMap({
                       onQueryChange("");
                       setActiveRoot(null);
                       setActiveVerdict(null);
+                      setActiveCategory(null);
+                      setClonesOnly(false);
                     }}
                     className="mt-4 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-sage-300 transition-all hover:bg-forest-850 hover:border-sage-400/60"
                   >

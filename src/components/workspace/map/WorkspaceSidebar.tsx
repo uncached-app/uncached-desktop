@@ -2,6 +2,7 @@ import { Folder, Layers, Plus, X } from "lucide-react";
 import { rootName } from "./naming";
 import { ProLockButton } from "../../shared/ProLockButton";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
+import { categoryPresentation } from "../../findings/categoryPresentation";
 import type { Verdict, WorkspaceIndex } from "../../../types/workspace";
 
 /**
@@ -20,6 +21,12 @@ export function WorkspaceSidebar({
   scopedCount,
   activeVerdict,
   onActiveVerdict,
+  categoryCounts,
+  activeCategory,
+  onActiveCategory,
+  cloneCount,
+  clonesOnly,
+  onClonesOnly,
   proEnabled,
   onAddRoot,
   onRemoveRoot,
@@ -34,6 +41,13 @@ export function WorkspaceSidebar({
   scopedCount: number;
   activeVerdict: Verdict | null;
   onActiveVerdict: (verdict: Verdict | null) => void;
+  /** Artifact kinds present in scope, most common first. */
+  categoryCounts: ReadonlyArray<readonly [string, number]>;
+  activeCategory: string | null;
+  onActiveCategory: (category: string | null) => void;
+  cloneCount: number;
+  clonesOnly: boolean;
+  onClonesOnly: (only: boolean) => void;
   proEnabled: boolean;
   onAddRoot: () => void;
   onRemoveRoot: (root: string) => void;
@@ -137,14 +151,14 @@ export function WorkspaceSidebar({
             Verdict
           </p>
           <div className="grid gap-1">
-            <VerdictFilter
+            <FilterRow
               active={activeVerdict === null}
               label="Every verdict"
               count={scopedCount}
               onSelect={() => onActiveVerdict(null)}
             />
             {verdictCounts.map(([verdict, count]) => (
-              <VerdictFilter
+              <FilterRow
                 key={verdict}
                 active={activeVerdict === verdict}
                 label={VERDICT_PRESENTATION[verdict].label}
@@ -155,6 +169,48 @@ export function WorkspaceSidebar({
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* What the artifacts actually are, as a filter. Insights can say "62% of
+          what you can reclaim is node_modules" and now has somewhere to send
+          anyone who wants to see which projects that is. */}
+      {categoryCounts.length > 1 && (
+        <div className="shrink-0 pt-5">
+          <p className="px-2 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+            Artifact
+          </p>
+          <div className="grid gap-1">
+            <FilterRow
+              active={activeCategory === null}
+              label="Every kind"
+              count={scopedCount}
+              onSelect={() => onActiveCategory(null)}
+            />
+            {categoryCounts.map(([category, count]) => (
+              <FilterRow
+                key={category}
+                active={activeCategory === category}
+                label={categoryPresentation(category).label}
+                count={count}
+                onSelect={() => onActiveCategory(activeCategory === category ? null : category)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* One toggle rather than a list: a clone is a yes or a no, and the
+          sibling paths are on each project's own page. */}
+      {cloneCount > 0 && (
+        <div className="shrink-0 pt-5">
+          <FilterRow
+            active={clonesOnly}
+            label="Copies of a repository"
+            title="Projects holding a repository that is also checked out somewhere else"
+            count={cloneCount}
+            onSelect={() => onClonesOnly(!clonesOnly)}
+          />
         </div>
       )}
 
@@ -227,7 +283,7 @@ function RootItem({
   );
 }
 
-function VerdictFilter({
+function FilterRow({
   active,
   label,
   title,

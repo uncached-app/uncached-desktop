@@ -158,7 +158,12 @@ export function IntelligenceModule({
         <div className="grid gap-4">
           {!proEnabled && <ProPanel />}
 
-          <PolicyCard policy={policy} onChange={onPolicyChange} />
+          <PolicyCard
+            policy={policy}
+            onChange={onPolicyChange}
+            matchCount={preview.selected.length}
+            matchBytes={preview.bytes}
+          />
 
           {/* Pro only, and absent rather than disabled: a switch that cannot be
               flipped is a control with no operation behind it. */}

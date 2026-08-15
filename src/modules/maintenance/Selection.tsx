@@ -78,11 +78,14 @@ export function Selection({
       {selected.length > 0 ? (
         <ul className="divide-y divide-forest-800">
           {selected.map((entry) => (
-            <li key={entry.path} className="flex items-center justify-between gap-4 py-3">
+            <li
+              key={entry.path}
+              className="group flex items-center justify-between gap-4 py-2.5 px-1 rounded-lg transition-colors hover:bg-forest-850/30"
+            >
               <div className="flex min-w-0 items-center gap-2.5">
                 <FolderGit2 size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
                 <div className="min-w-0">
-                  <span className="block truncate font-mono text-xs font-semibold text-mist-100">
+                  <span className="block truncate font-mono text-xs font-semibold text-mist-100 group-hover:text-sage-300 transition-colors">
                     {entry.name}
                   </span>
                   <div className="mt-0.5 flex items-center gap-2 text-[10px] text-mist-500">
@@ -108,13 +111,16 @@ export function Selection({
         </div>
       )}
 
-      {/* Skip Reasons Breakdown (Flat text metadata) */}
+      {/* Skip Reasons Breakdown (Flat tag metadata) */}
       {skippedReasons.length > 0 && (
-        <div className="border-t border-forest-800 pt-3 text-xs text-mist-500 flex flex-wrap items-center gap-2">
-          <span>Filtered out:</span>
+        <div className="border-t border-forest-800 pt-3 text-xs text-mist-500 flex flex-wrap items-center gap-1.5">
+          <span className="text-mist-500">Filtered out:</span>
           {skippedReasons.map(([reason, count]) => (
-            <span key={reason} className="font-mono text-[11px] text-mist-300">
-              <strong>{count}</strong> {SKIP_REASONS[reason]}
+            <span
+              key={reason}
+              className="inline-flex items-center gap-1 rounded-md bg-forest-850 px-2 py-0.5 font-mono text-[11px] text-mist-300"
+            >
+              <strong className="text-mist-100">{count}</strong> {SKIP_REASONS[reason]}
             </span>
           ))}
         </div>
@@ -130,28 +136,42 @@ export function Selection({
         <div className="mt-4 border-t border-forest-800 pt-3.5">
           {selected.length > 0 &&
             (canRun ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onRun}
-                  disabled={running}
-                  className="inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-sage-300 hover:bg-sage-300/90 text-white dark:bg-sage-400 dark:text-forest-950 px-4 text-xs font-semibold shadow-sm transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {running ? (
-                    <Loader2 size={13} className="animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Play size={13} aria-hidden="true" />
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={onRun}
+                    disabled={running}
+                    className="inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-sage-400 hover:bg-sage-300 text-forest-950 px-4 text-xs font-semibold shadow-sm transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                  >
+                    {running ? (
+                      <Loader2 size={13} className="animate-spin text-forest-950" aria-hidden="true" />
+                    ) : (
+                      <Play size={13} aria-hidden="true" />
+                    )}
+                    <span>
+                      {run.kind === "running" && run.total > 0
+                        ? `Reclaiming ${run.done} of ${run.total}...`
+                        : `Run Maintenance (${selected.length})`}
+                    </span>
+                  </button>
+                  {run.kind === "idle" && (
+                    <span className="text-xs text-mist-500">
+                      Moves selected targets to the Recycle Bin.
+                    </span>
                   )}
-                  <span>
-                    {run.kind === "running" && run.total > 0
-                      ? `Reclaiming ${run.done} of ${run.total}...`
-                      : `Run Maintenance (${selected.length})`}
-                  </span>
-                </button>
-                {run.kind === "idle" && (
-                  <span className="text-xs text-mist-500">
-                    Moves selected targets to the Recycle Bin.
-                  </span>
+                </div>
+
+                {/* Real-time progress bar when running */}
+                {run.kind === "running" && run.total > 0 && (
+                  <div className="mt-3 w-full max-w-xs">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-forest-850">
+                      <div
+                        className="h-full rounded-full bg-sage-400 transition-all duration-300"
+                        style={{ width: `${Math.max(5, Math.round((run.done / run.total) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (
@@ -196,7 +216,7 @@ function ProtectedNote({ count, onShow }: { count: number; onShow: (() => void) 
         <button
           type="button"
           onClick={onShow}
-          className="shrink-0 font-semibold underline underline-offset-2 hover:opacity-80"
+          className="shrink-0 font-semibold underline underline-offset-2 hover:opacity-80 cursor-pointer"
         >
           View in workspace &rarr;
         </button>

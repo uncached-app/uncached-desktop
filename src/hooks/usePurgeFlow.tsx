@@ -29,6 +29,12 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   /** The verdict the workspace list is narrowed to, if any. */
   activeVerdict: string | null;
   setActiveVerdict: (verdict: string | null) => void;
+  /** The artifact kind the list is narrowed to, if any. */
+  activeCategory: string | null;
+  setActiveCategory: (category: string | null) => void;
+  /** Narrowed to projects that are a second copy of a repository. */
+  clonesOnly: boolean;
+  setClonesOnly: (only: boolean) => void;
   /** A project the user asked to be shown, until the list has shown it. */
   focusPath: string | null;
   focusProject: (path: string) => void;
@@ -77,6 +83,12 @@ export function PurgeFlowProvider({
   // workspace, and a sentence that cannot reach its own destination is the
   // decoration this module is supposed to avoid.
   const [activeVerdict, setActiveVerdict] = useState<string | null>(null);
+  // Held beside it for the same reason: Insights has sentences about a dominant
+  // artifact kind and about clones, and a sentence that cannot reach its own
+  // destination is the decoration this module exists to avoid. Both lost their
+  // buttons when the map could not filter for them; these are the filters.
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [clonesOnly, setClonesOnly] = useState(false);
   // A request, not a selection. Anywhere in the app can ask for a project to
   // be put in front of the user; only the list knows what is currently hiding
   // it, so the list is what answers and then clears the request.
@@ -153,6 +165,10 @@ export function PurgeFlowProvider({
         setView,
         activeVerdict,
         setActiveVerdict,
+        activeCategory,
+        setActiveCategory,
+        clonesOnly,
+        setClonesOnly,
         focusPath,
         focusProject: setFocusPath,
         clearFocus: () => setFocusPath(null),
