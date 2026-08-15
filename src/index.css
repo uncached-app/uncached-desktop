@@ -117,6 +117,10 @@
   --window-shadow: none;
 }
 
+/* Lets a class ask "is the window filled?" without every component having to
+   read the attribute itself. */
+@custom-variant root-filled (:where(:root[data-window-fill="true"]) &);
+
 html,
 body,
 #root {

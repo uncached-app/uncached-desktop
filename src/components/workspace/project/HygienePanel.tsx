@@ -109,14 +109,14 @@ export function HygienePanel({
           onClick={onFetch}
           disabled={working || loading}
           aria-label="Fetch repository from remote"
-          className="group inline-flex items-center gap-1.5 rounded-xl border border-forest-700/80 bg-forest-850 px-3 py-1.5 text-xs font-semibold text-mist-100 shadow-2xs transition-all hover:border-sage-400/50 hover:bg-forest-800 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+          className="group inline-flex items-center gap-1.5 rounded-xl bg-sage-400 px-3 py-1.5 text-xs font-semibold text-forest-950 shadow-xs transition-all hover:bg-sage-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
         >
           {working ? (
-            <Loader2 size={12} className="animate-spin text-sage-300" aria-hidden="true" />
+            <Loader2 size={12} className="animate-spin text-forest-950" aria-hidden="true" />
           ) : (
             <RefreshCw
               size={12}
-              className="text-sage-300 transition-transform duration-200 group-hover:rotate-45"
+              className="text-forest-950 transition-transform duration-200 group-hover:rotate-45"
               aria-hidden="true"
             />
           )}
@@ -202,7 +202,7 @@ export function HygienePanel({
             type="button"
             onClick={pruneAll}
             disabled={working}
-            className="inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-forest-800 px-3 text-[11px] font-semibold text-mist-100 transition-colors hover:bg-forest-850 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-coral-300/40 bg-coral-300/15 px-3 text-xs font-semibold text-coral-300 shadow-xs transition-all hover:bg-coral-300/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
             Delete {prunable.length} merged {prunable.length === 1 ? "branch" : "branches"}
           </button>

@@ -64,7 +64,15 @@ export function AppLayout({
     <main className="relative flex h-full flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
       <Titlebar step={step} view={view} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="mx-auto flex min-h-0 w-full max-w-[72rem] flex-1 flex-col overflow-hidden">
+        {/* A column, until the window is filled.
+            
+            Seventy-two rem is a reading width, and it is the right one for a
+            floating window: a list of projects set across a wide desktop is a
+            line your eye has to travel. Filling the screen is a request for
+            room, though — the map is the reason anyone does it — so the limit
+            lifts with the same attribute that closes the shadow gutter, rather
+            than with a second idea of what "full size" means. */}
+        <div className="mx-auto flex min-h-0 w-full max-w-[72rem] flex-1 flex-col overflow-hidden root-filled:max-w-none">
           <CommandPaletteContext.Provider value={openPalette}>
             <Screen align={align}>{children}</Screen>
           </CommandPaletteContext.Provider>

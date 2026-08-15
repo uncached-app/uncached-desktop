@@ -32,10 +32,10 @@ export function ChoiceRow<T extends string | number>({
           onClick={() => onChange(value)}
           aria-pressed={active === value}
           title={why}
-          className={`cursor-pointer rounded-lg px-2.5 py-1.5 font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 disabled:cursor-not-allowed disabled:opacity-40 ${
+          className={`cursor-pointer rounded-lg px-2.5 py-1.5 font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 disabled:cursor-not-allowed disabled:opacity-40 ${
             active === value
-              ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
-              : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+              ? "bg-sage-400 font-semibold text-forest-950 shadow-xs"
+              : "border border-forest-800 bg-forest-950/60 text-mist-400 hover:border-forest-750 hover:bg-forest-850 hover:text-mist-100"
           }`}
         >
           {label}
