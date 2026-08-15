@@ -1,5 +1,6 @@
 import { FolderOpen } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ProjectContextMenu, type MenuAnchor } from "./map/ProjectContextMenu";
 import { ProjectRow } from "./map/ProjectRow";
 import { VerdictGroup } from "./map/VerdictGroup";
 import { WorkspaceHeader } from "./map/WorkspaceHeader";
@@ -83,6 +84,23 @@ export function WorkspaceMap({
   // was unreachable: grouping runs before sorting, so the heaviest project on
   // the machine could sit below three groups of smaller ones.
   const [order, setOrder] = useState<"verdict" | "size">("verdict");
+  const [menu, setMenu] = useState<MenuAnchor | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+
+  // A right-click anywhere on a row, rather than a hidden button that has to be
+  // found: the verbs already exist and the project page is one click away, so
+  // the only thing missing was the gesture every list-shaped tool has.
+  function openMenu(project: WorkspaceProject, event: React.MouseEvent) {
+    event.preventDefault();
+    setMenu({ project, x: event.clientX, y: event.clientY });
+  }
+
+  function report(message: string | null) {
+    setFlash(message);
+    if (message) {
+      window.setTimeout(() => setFlash((current) => (current === message ? null : current)), 3500);
+    }
+  }
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
@@ -330,6 +348,7 @@ export function WorkspaceMap({
                       showVerdict
                       focused={project.path === focusPath}
                       onOpen={onOpenProject}
+                      onContextMenu={(event) => openMenu(project, event)}
                     />
                   ))}
                 </div>
@@ -346,6 +365,7 @@ export function WorkspaceMap({
                   showRoot={index.roots.length > 1 && activeRoot === null}
                   focusPath={focusPath}
                   onOpenProject={onOpenProject}
+                  onContextMenu={openMenu}
                 />
               ))}
 
@@ -381,6 +401,27 @@ export function WorkspaceMap({
           </div>
         </div>
       </div>
+
+      {menu && (
+        <ProjectContextMenu
+          anchor={menu}
+          onOpenProject={onOpenProject}
+          onResult={report}
+          onClose={() => setMenu(null)}
+        />
+      )}
+
+      {/* The verbs mostly leave the app, so the only sign one happened is here.
+          Anchored to the window rather than to the row, which has scrolled by
+          the time anything reports back. */}
+      {flash && (
+        <div
+          role="status"
+          className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-sage-400/40 bg-forest-900 px-3.5 py-2 text-xs font-medium text-sage-300 shadow-2xl"
+        >
+          {flash}
+        </div>
+      )}
     </div>
   );
 }

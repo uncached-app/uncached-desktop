@@ -40,9 +40,13 @@ function ActionButton({
         />
       </button>
 
+      {/* Anchored to the button's left edge rather than centred on it. The row
+          sits inside a scroller, and `overflow-y-auto` clips both axes — a
+          tooltip centred on the first button hangs half of itself outside the
+          container and gets cut in two. */}
       <span
         role="tooltip"
-        className="pointer-events-none absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2 scale-95 rounded-md border border-forest-800 bg-forest-950 px-2 py-1 text-center text-[11px] font-medium text-mist-100 opacity-0 shadow-xl transition-all duration-200 group-hover/action:scale-100 group-hover/action:opacity-100"
+        className="pointer-events-none absolute top-full left-0 z-20 mt-2 scale-95 origin-top-left rounded-md border border-forest-800 bg-forest-950 px-2 py-1 text-[11px] font-medium text-mist-100 opacity-0 shadow-xl transition-all duration-200 group-hover/action:scale-100 group-hover/action:opacity-100"
       >
         <span className="block whitespace-nowrap">{label}</span>
         {detail && (
@@ -74,9 +78,21 @@ export function ProjectActions({
 }) {
   const actions = useProjectActions(project);
 
+  // One button per verb, not one per installed editor. `useProjectActions`
+  // returns every editor because the palette lists them all and lets you pick;
+  // a row of identical pencil icons is a row nobody can read, so this takes the
+  // best one for this project and leaves the rest to the palette.
+  const shown = actions.filter(
+    (action, position) =>
+      !action.id.startsWith("open-") ||
+      action.id === "open-terminal" ||
+      actions.findIndex((first) => first.id.startsWith("open-") && first.id !== "open-terminal") ===
+        position,
+  );
+
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {actions.map((action) => (
+      {shown.map((action) => (
         <ActionButton
           key={action.id}
           icon={action.icon}

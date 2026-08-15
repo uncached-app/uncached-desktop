@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useMemo } from "react";
-import { useLaunchers } from "./useLaunchers";
+import { editorsFor, useLaunchers } from "./useLaunchers";
 import { remoteLabel, remoteToUrl } from "../utils/remoteUrl.mjs";
 import { copyText } from "../utils/clipboard";
 import { openExternalUrl } from "../utils/externalLink";
@@ -45,7 +45,9 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
     if (!project) return [];
     const actions: ProjectAction[] = [];
 
-    for (const launcher of launchers.filter((entry) => entry.kind === "editor")) {
+    // Every editor, best first. The action bar shows the first and the palette
+    // shows them all — a row of identical pencil icons is a row nobody can read.
+    for (const launcher of editorsFor(launchers, project.kind)) {
       actions.push({
         id: `open-${launcher.id}`,
         title: `Open in ${launcher.name}`,

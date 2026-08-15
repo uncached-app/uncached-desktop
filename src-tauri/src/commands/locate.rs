@@ -31,6 +31,14 @@ pub struct Launcher {
     pub name: String,
     pub kind: LauncherKind,
     pub program: String,
+    /// Project kinds this editor is built for, or empty for a general one.
+    ///
+    /// Xcode is the reason this exists. Every Mac with developer tools has it,
+    /// so on a machine with nothing else installed it was the only editor
+    /// offered — for a React project, which is a true answer to "what can open
+    /// this" and a useless one. A specialised editor leads only where it is the
+    /// specialist, and otherwise sorts below every general-purpose one.
+    pub specialises: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -46,44 +54,81 @@ pub enum LauncherKind {
 /// whole table: asking someone to type the name of their editor is asking them
 /// to do the one thing the machine can answer by looking.
 #[cfg(target_os = "macos")]
-fn candidates() -> Vec<(&'static str, &'static str, LauncherKind, &'static str)> {
+fn candidates() -> Vec<(
+    &'static str,
+    &'static str,
+    LauncherKind,
+    &'static str,
+    &'static [&'static str],
+)> {
     use LauncherKind::{Editor, Terminal};
+    const ANY: &[&str] = &[];
     vec![
-        ("vscode", "VS Code", Editor, "Visual Studio Code"),
-        ("cursor", "Cursor", Editor, "Cursor"),
-        ("windsurf", "Windsurf", Editor, "Windsurf"),
-        ("zed", "Zed", Editor, "Zed"),
-        ("sublime", "Sublime Text", Editor, "Sublime Text"),
-        ("webstorm", "WebStorm", Editor, "WebStorm"),
-        ("intellij", "IntelliJ IDEA", Editor, "IntelliJ IDEA"),
-        ("pycharm", "PyCharm", Editor, "PyCharm"),
-        ("rustrover", "RustRover", Editor, "RustRover"),
-        ("goland", "GoLand", Editor, "GoLand"),
-        ("androidstudio", "Android Studio", Editor, "Android Studio"),
-        ("xcode", "Xcode", Editor, "Xcode"),
-        ("ghostty", "Ghostty", Terminal, "Ghostty"),
-        ("iterm", "iTerm", Terminal, "iTerm"),
-        ("warp", "Warp", Terminal, "Warp"),
-        ("kitty", "kitty", Terminal, "kitty"),
-        ("alacritty", "Alacritty", Terminal, "Alacritty"),
-        ("terminal", "Terminal", Terminal, "Terminal"),
+        ("vscode", "VS Code", Editor, "Visual Studio Code", ANY),
+        ("vscodium", "VSCodium", Editor, "VSCodium", ANY),
+        ("cursor", "Cursor", Editor, "Cursor", ANY),
+        ("windsurf", "Windsurf", Editor, "Windsurf", ANY),
+        ("antigravity", "Antigravity", Editor, "Antigravity IDE", ANY),
+        ("trae", "Trae", Editor, "Trae", ANY),
+        ("kiro", "Kiro", Editor, "Kiro", ANY),
+        ("zed", "Zed", Editor, "Zed", ANY),
+        ("sublime", "Sublime Text", Editor, "Sublime Text", ANY),
+        ("nova", "Nova", Editor, "Nova", ANY),
+        ("fleet", "Fleet", Editor, "Fleet", ANY),
+        ("webstorm", "WebStorm", Editor, "WebStorm", &["Node"]),
+        (
+            "intellij",
+            "IntelliJ IDEA",
+            Editor,
+            "IntelliJ IDEA",
+            &["Java"],
+        ),
+        ("pycharm", "PyCharm", Editor, "PyCharm", &["Python"]),
+        ("rustrover", "RustRover", Editor, "RustRover", &["Rust"]),
+        ("goland", "GoLand", Editor, "GoLand", &["Go"]),
+        (
+            "androidstudio",
+            "Android Studio",
+            Editor,
+            "Android Studio",
+            &["Java"],
+        ),
+        ("xcode", "Xcode", Editor, "Xcode", &["Swift"]),
+        ("ghostty", "Ghostty", Terminal, "Ghostty", ANY),
+        ("iterm", "iTerm", Terminal, "iTerm", ANY),
+        ("warp", "Warp", Terminal, "Warp", ANY),
+        ("kitty", "kitty", Terminal, "kitty", ANY),
+        ("alacritty", "Alacritty", Terminal, "Alacritty", ANY),
+        ("terminal", "Terminal", Terminal, "Terminal", ANY),
     ]
 }
 
 #[cfg(not(target_os = "macos"))]
-fn candidates() -> Vec<(&'static str, &'static str, LauncherKind, &'static str)> {
+fn candidates() -> Vec<(
+    &'static str,
+    &'static str,
+    LauncherKind,
+    &'static str,
+    &'static [&'static str],
+)> {
     use LauncherKind::{Editor, Terminal};
+    const ANY: &[&str] = &[];
     vec![
-        ("vscode", "VS Code", Editor, "code"),
-        ("cursor", "Cursor", Editor, "cursor"),
-        ("windsurf", "Windsurf", Editor, "windsurf"),
-        ("zed", "Zed", Editor, "zed"),
-        ("sublime", "Sublime Text", Editor, "subl"),
-        ("webstorm", "WebStorm", Editor, "webstorm"),
-        ("intellij", "IntelliJ IDEA", Editor, "idea"),
-        ("wt", "Windows Terminal", Terminal, "wt.exe"),
-        ("gnome", "GNOME Terminal", Terminal, "gnome-terminal"),
-        ("konsole", "Konsole", Terminal, "konsole"),
+        ("vscode", "VS Code", Editor, "code", ANY),
+        ("vscodium", "VSCodium", Editor, "codium", ANY),
+        ("cursor", "Cursor", Editor, "cursor", ANY),
+        ("windsurf", "Windsurf", Editor, "windsurf", ANY),
+        ("zed", "Zed", Editor, "zed", ANY),
+        ("sublime", "Sublime Text", Editor, "subl", ANY),
+        ("neovim", "Neovim", Editor, "nvim", ANY),
+        ("webstorm", "WebStorm", Editor, "webstorm", &["Node"]),
+        ("intellij", "IntelliJ IDEA", Editor, "idea", &["Java"]),
+        ("pycharm", "PyCharm", Editor, "pycharm", &["Python"]),
+        ("rustrover", "RustRover", Editor, "rustrover", &["Rust"]),
+        ("goland", "GoLand", Editor, "goland", &["Go"]),
+        ("wt", "Windows Terminal", Terminal, "wt.exe", ANY),
+        ("gnome", "GNOME Terminal", Terminal, "gnome-terminal", ANY),
+        ("konsole", "Konsole", Terminal, "konsole", ANY),
     ]
 }
 
@@ -135,12 +180,13 @@ pub async fn available_launchers() -> Vec<Launcher> {
         .get_or_init(|| {
             candidates()
                 .into_iter()
-                .filter(|(_, _, _, program)| installed(program))
-                .map(|(id, name, kind, program)| Launcher {
+                .filter(|(_, _, _, program, _)| installed(program))
+                .map(|(id, name, kind, program, specialises)| Launcher {
                     id: id.to_owned(),
                     name: name.to_owned(),
                     kind,
                     program: program.to_owned(),
+                    specialises: specialises.iter().map(|kind| (*kind).to_owned()).collect(),
                 })
                 .collect()
         })
@@ -252,16 +298,35 @@ mod tests {
     #[test]
     fn every_candidate_is_uniquely_identified() {
         let candidates = super::candidates();
-        let mut ids: Vec<&str> = candidates.iter().map(|(id, _, _, _)| *id).collect();
+        let mut ids: Vec<&str> = candidates.iter().map(|(id, _, _, _, _)| *id).collect();
         ids.sort_unstable();
         let count = ids.len();
         ids.dedup();
         assert_eq!(ids.len(), count, "two candidates share an id");
         assert!(candidates
             .iter()
-            .any(|(_, _, kind, _)| *kind == LauncherKind::Terminal));
+            .any(|(_, _, kind, _, _)| *kind == LauncherKind::Terminal));
         assert!(candidates
             .iter()
-            .any(|(_, _, kind, _)| *kind == LauncherKind::Editor));
+            .any(|(_, _, kind, _, _)| *kind == LauncherKind::Editor));
+    }
+
+    /// A terminal is never specialised, and a general-purpose editor has to
+    /// exist on every platform: without one, a machine carrying only Xcode
+    /// offers Xcode for a React project — which is where this field came from.
+    #[test]
+    fn every_platform_offers_an_editor_that_is_not_a_specialist() {
+        let candidates = super::candidates();
+        assert!(candidates
+            .iter()
+            .any(|(_, _, kind, _, specialises)| *kind == LauncherKind::Editor
+                && specialises.is_empty()));
+        assert!(
+            candidates
+                .iter()
+                .filter(|(_, _, kind, _, _)| *kind == LauncherKind::Terminal)
+                .all(|(_, _, _, _, specialises)| specialises.is_empty()),
+            "a terminal opens a directory, so it has no language to specialise in"
+        );
     }
 }

@@ -7,7 +7,33 @@ export type Launcher = {
   kind: "editor" | "terminal";
   /** What the platform's launcher understands. Never built in the frontend. */
   program: string;
+  /** Project kinds this editor is built for; empty means general-purpose. */
+  specialises: string[];
 };
+
+/**
+ * The editors that make sense for this project, best first.
+ *
+ * The specialist for the language leads, then anything general-purpose, then
+ * the specialists for other languages. Xcode is why: every Mac with developer
+ * tools has it, so on a machine with no other editor installed it was the only
+ * thing offered for a React project — a true answer to "what can open this" and
+ * a useless one.
+ *
+ * Within each band the backend's own order holds, which puts the editors
+ * someone went and installed above the ones that came with the machine.
+ */
+export function editorsFor(launchers: Launcher[], projectKind: string): Launcher[] {
+  const band = (launcher: Launcher) => {
+    if (launcher.specialises.length === 0) return 1;
+    return launcher.specialises.includes(projectKind) ? 0 : 2;
+  };
+  return launchers
+    .filter((launcher) => launcher.kind === "editor")
+    .map((launcher, position) => ({ launcher, position }))
+    .sort((left, right) => band(left.launcher) - band(right.launcher) || left.position - right.position)
+    .map((entry) => entry.launcher);
+}
 
 /**
  * The editors and terminals this machine actually has.

@@ -109,8 +109,10 @@ separate Desktop event DTO and intentionally omit `targetPath`.
 No request. Returns the editors and terminals this machine was found to have.
 
 ```json
-[{ "id": "zed", "name": "Zed", "kind": "editor", "program": "Zed" }]
+[{ "id": "zed", "name": "Zed", "kind": "editor", "program": "Zed", "specialises": [] }]
 ```
+
+`specialises` lists the project kinds an editor is built for, and is empty for a general-purpose one. Xcode is why it exists: every Mac with developer tools has it, so on a machine with no other editor installed it was the only thing offered for a React project — a true answer to "what can open this" and a useless one. The interface ranks the specialist for the project's kind first, then the general-purpose editors, then the specialists for other languages.
 
 `program` is what the platform's launcher understands — an application name on macOS, an executable on PATH everywhere else. Detected by looking on disk rather than by asking Launch Services, because every way of asking goes through `open` and can put a window in front of the user as a side effect of drawing a menu.
 

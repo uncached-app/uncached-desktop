@@ -39,6 +39,7 @@ export function ProjectRow({
   showVerdict = false,
   focused,
   onOpen,
+  onContextMenu,
 }: {
   project: WorkspaceProject;
   verdict: Verdict;
@@ -57,6 +58,8 @@ export function ProjectRow({
   showVerdict?: boolean;
   focused: boolean;
   onOpen: (path: string) => void;
+  /** Right-click opens the same verbs the project's own page offers. */
+  onContextMenu: (event: React.MouseEvent) => void;
 }) {
   const evidence = projectEvidence(project, verdict, footprint);
   const share = footprint && footprint.totalBytes > 0 ? footprint.reclaimableBytes / footprint.totalBytes : 0;
@@ -71,6 +74,7 @@ export function ProjectRow({
       type="button"
       data-path={project.path}
       onClick={() => onOpen(project.path)}
+      onContextMenu={onContextMenu}
       aria-label={`${project.name} project details`}
       className={`group flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors cursor-pointer hover:bg-forest-850/80 ${
         first ? "" : "border-t border-forest-800"

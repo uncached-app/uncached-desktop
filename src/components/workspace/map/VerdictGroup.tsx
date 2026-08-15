@@ -11,6 +11,7 @@ export function VerdictGroup({
   showRoot,
   focusPath,
   onOpenProject,
+  onContextMenu,
 }: {
   verdict: Verdict;
   projects: WorkspaceProject[];
@@ -18,6 +19,7 @@ export function VerdictGroup({
   showRoot: boolean;
   focusPath: string | null;
   onOpenProject: (path: string) => void;
+  onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
 }) {
   const presentation = VERDICT_PRESENTATION[verdict];
   const reclaimable = projects.reduce(
@@ -58,6 +60,7 @@ export function VerdictGroup({
             showRoot={showRoot}
             focused={project.path === focusPath}
             onOpen={onOpenProject}
+            onContextMenu={(event) => onContextMenu(project, event)}
           />
         ))}
       </div>
