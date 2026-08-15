@@ -21,7 +21,20 @@ const WHEEL_ZOOM = 0.0022;
  * converted through the element's box, because the SVG scales to fit and the
  * two stop being the same number the moment the window is not the right shape.
  */
-export function useMapGestures(width: number, height: number, content: Rect) {
+export function useMapGestures(
+  width: number,
+  height: number,
+  content: Rect,
+  /**
+   * Held by the caller, not here.
+   *
+   * Switching to the list unmounts the whole drawing, and a view kept in this
+   * hook goes with it — so coming back put you at the top of the map again,
+   * however far you had panned. Where you were looking is not a property of
+   * the component that draws it.
+   */
+  [view, setView]: [View, (next: View | ((current: View) => View)) => void],
+) {
   // Built here rather than taken as an object: a fresh `{width, height}` each
   // render would tear down and re-attach the wheel listener on every one.
   const box = useMemo(() => ({ width, height }), [width, height]);
@@ -33,7 +46,6 @@ export function useMapGestures(width: number, height: number, content: Rect) {
     [content.x, content.y, content.width, content.height],
   );
   const ref = useRef<SVGSVGElement>(null);
-  const [view, setView] = useState<View>(RESET);
   const [dragging, setDragging] = useState(false);
   // Whether the press that is happening now has already moved far enough to be
   // a drag. Held in a ref because the click handler reads it during the same
@@ -83,6 +95,10 @@ export function useMapGestures(width: number, height: number, content: Rect) {
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => element.removeEventListener("wheel", onWheel);
   }, [box, drawn, toDrawing]);
+
+  useEffect(() => {
+    setView((current) => clampView(current, box, drawn));
+  }, [box, drawn, setView]);
 
   const wasDragged = useCallback(() => moved.current, []);
 

@@ -4,6 +4,7 @@ import { useMapGestures } from "./useMapGestures";
 import { nodeRadius, type GraphEdge, type GraphNode, type WorkspaceGraph } from "../../../utils/graph.mjs";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
+import type { View } from "../../../utils/viewport.mjs";
 import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
 
 /** Height of the drawing, in the coordinates the SVG uses. Width follows it. */
@@ -20,6 +21,14 @@ type WorkspaceCanvasProps = {
   measuring: boolean;
   /** How tall the drawing area is on screen, in pixels. */
   viewportHeight: number;
+  /**
+   * Where the reader is looking, held above this component.
+   *
+   * Switching to the list unmounts the drawing, and state kept inside it goes
+   * with it — coming back put you at the top of the map however far you had
+   * panned.
+   */
+  viewState: [View, (next: View | ((current: View) => View)) => void];
   onOpenProject: (path: string) => void;
   onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
 };
@@ -114,6 +123,7 @@ export function WorkspaceCanvas({
   analysing,
   measuring,
   viewportHeight,
+  viewState,
   onOpenProject,
   onContextMenu,
 }: WorkspaceCanvasProps) {
@@ -135,7 +145,7 @@ export function WorkspaceCanvas({
     [graph.nodes],
   );
 
-  const map = useMapGestures(graph.width * SIDE, SIDE, scaled(graph.extent));
+  const map = useMapGestures(graph.width * SIDE, SIDE, scaled(graph.extent), viewState);
   const active = hovered ? byId.get(hovered) : null;
   // A folder is not a node, so it is not in `byId`. Its badge is hoverable
   // because a directory holding four projects has a weight of its own, and

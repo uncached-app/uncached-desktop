@@ -168,6 +168,7 @@ export function PurgeModule({
           onOpenProject={flow.openProject}
           view={workspaceView}
           onViewChange={onWorkspaceViewChange}
+          mapView={[flow.mapView, flow.setMapView]}
           sidebarHidden={sidebarHidden}
           onSidebarHiddenChange={onSidebarHiddenChange}
           shortcuts={shortcuts}

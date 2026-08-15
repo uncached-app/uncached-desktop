@@ -15,6 +15,7 @@ import { WorkspaceCanvas } from "./map/WorkspaceCanvas";
 import { useDrawingAspect } from "./map/useDrawingAspect";
 import { useShortcuts } from "../../hooks/useShortcuts";
 import type { DuplicatePackage } from "../../types/duplicates";
+import type { View as MapViewState } from "../../utils/viewport.mjs";
 import type { WorkspaceView } from "../../types/settings";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
 import type { Footprint, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
@@ -51,6 +52,14 @@ type WorkspaceMapProps = {
   onFocusHandled: () => void;
   /** Which reading opens, from Settings. */
   view: WorkspaceView;
+  /**
+   * Where the reader is looking on the map, held above this screen.
+   *
+   * The drawing unmounts when the list is showing, so a view kept inside it is
+   * lost every time somebody looks at the list — and the map is the one thing
+   * here you navigate to a place in.
+   */
+  mapView: [MapViewState, (next: MapViewState | ((current: MapViewState) => MapViewState)) => void];
   /**
    * Whether the filter column is folded away.
    *
@@ -107,6 +116,7 @@ export function WorkspaceMap({
   packages,
   analysing,
   view,
+  mapView,
   onViewChange,
   sidebarHidden,
   onSidebarHiddenChange,
@@ -503,6 +513,7 @@ export function WorkspaceMap({
               analysing={analysing}
               measuring={measuring}
               viewportHeight={drawingHeight}
+              viewState={mapView}
               onOpenProject={onOpenProject}
               onContextMenu={openMenu}
             />

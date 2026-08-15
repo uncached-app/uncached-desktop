@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { useScanWorkspace } from "./useScanWorkspace";
 import { useWorkspaceIndex } from "./useWorkspaceIndex";
 import { useWorkspaceWatch } from "./useWorkspaceWatch";
+import { RESET, type View as MapViewState } from "../utils/viewport.mjs";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
 import { useWorkspaceVerdicts } from "./useWorkspaceVerdicts";
 import { useWorkspaceAnalysis } from "./useWorkspaceAnalysis";
@@ -37,6 +38,8 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   clonesOnly: boolean;
   setClonesOnly: (only: boolean) => void;
   /** A project the user asked to be shown, until the list has shown it. */
+  mapView: MapViewState;
+  setMapView: (next: MapViewState | ((current: MapViewState) => MapViewState)) => void;
   focusPath: string | null;
   focusProject: (path: string) => void;
   clearFocus: () => void;
@@ -94,6 +97,10 @@ export function PurgeFlowProvider({
   // be put in front of the user; only the list knows what is currently hiding
   // it, so the list is what answers and then clears the request.
   const [focusPath, setFocusPath] = useState<string | null>(null);
+  // Where the reader is looking on the map. Up here with the other view state,
+  // because the drawing unmounts whenever the list is showing and a place you
+  // navigated to is not a property of the component that drew it.
+  const [mapView, setMapView] = useState<MapViewState>(RESET);
   const [detailPath, setDetailPath] = useState<string | null>(null);
 
   // Reopening the app lands on the folders the user last chose, already being
@@ -183,6 +190,8 @@ export function PurgeFlowProvider({
         setActiveCategory,
         clonesOnly,
         setClonesOnly,
+        mapView,
+        setMapView,
         focusPath,
         focusProject: setFocusPath,
         clearFocus: () => setFocusPath(null),
