@@ -26,6 +26,7 @@ export function Select({
   disabled = false,
   label,
   className = "",
+  size = "md",
 }: {
   value: string;
   options: SelectOption[];
@@ -34,6 +35,7 @@ export function Select({
   /** What the control is choosing, for anyone not reading the row beside it. */
   label: string;
   className?: string;
+  size?: "sm" | "md";
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -152,8 +154,12 @@ export function Select({
         aria-activedescendant={open ? `${id}-${active}` : undefined}
         onClick={() => (open ? setOpen(false) : show())}
         onKeyDown={onKey}
-        className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm transition-colors disabled:opacity-60 ${
-          open ? "border-sage-400 bg-forest-850 text-mist-100" : "border-forest-800 bg-forest-950 text-mist-100 enabled:hover:bg-forest-900"
+        className={`flex items-center justify-between gap-2 rounded-xl border text-left transition-colors cursor-pointer disabled:opacity-60 ${
+          size === "sm" ? "h-9 px-3 text-xs" : "px-3 py-2 text-sm"
+        } ${
+          open
+            ? "border-sage-400 bg-forest-850 text-mist-100"
+            : "border-forest-800 bg-forest-900 text-mist-100 enabled:hover:border-forest-750 enabled:hover:bg-forest-850"
         } ${className}`}
       >
         <span className="min-w-0 truncate">{chosen?.label ?? ""}</span>

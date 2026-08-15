@@ -1,7 +1,6 @@
-import { AlertTriangle, ArrowRight, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, List, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Share2, Sparkles, X } from "lucide-react";
 import type { RefObject } from "react";
 import { formatBytes } from "../../../utils/format.mjs";
-import { ChoiceRow } from "../../shared/ChoiceRow";
 import { Select } from "../../shared/Select";
 import { StatCard } from "../../shared/StatCard";
 import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
@@ -135,9 +134,9 @@ export function WorkspaceHeader({
 
       <HistoryLine change={change} reclaimed={reclaimed} />
 
-      {/* Filter, Order and Action controls bar */}
+      {/* Filter, Order and View controls bar - Unified h-9 height & seamless alignment */}
       <div className="mt-3.5 flex items-center gap-2.5">
-        <label className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 transition-all focus-within:ring-1 focus-within:ring-sage-400/30">
+        <label className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 shadow-2xs transition-all focus-within:border-sage-400/50 focus-within:bg-forest-850">
           <Search size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
           <span className="sr-only">Filter projects by name, path, kind or branch</span>
           <input
@@ -169,14 +168,11 @@ export function WorkspaceHeader({
           )}
         </label>
 
-        {/* One control for the order and one for the reading, side by side.
-            Three order buttons in a row spent the width of the header on a
-            question with one answer at a time — a dropdown says the answer and
-            keeps the rest a click away. An order is a property of a list, so on
-            the map it is not offered rather than offered and inert. */}
+        {/* Order Dropdown */}
         {view === "list" && (
           <Select
             label="Order projects"
+            size="sm"
             value={order}
             onChange={(value) => onOrderChange(value as "verdict" | "size" | "folder")}
             options={[
@@ -184,19 +180,48 @@ export function WorkspaceHeader({
               { value: "size", label: "By size" },
               ...(hasFamilies ? [{ value: "folder", label: "By folder" }] : []),
             ]}
-            className="w-36 shrink-0"
+            className="w-34 shrink-0 shadow-2xs"
           />
         )}
 
+        {/* Segmented View Switcher (List / Map) */}
         {canMap && (
-          <ChoiceRow
-            active={view}
-            onChange={onViewChange}
-            options={[
-              ["list", "List", "Every project, readable by keyboard"],
-              ["map", "Map", "What the workspace shares, as one picture"],
-            ]}
-          />
+          <div className="flex h-9 shrink-0 items-center rounded-xl border border-forest-800 bg-forest-950 p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => onViewChange("list")}
+              title="List view — readable by keyboard"
+              className={`flex h-full items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all cursor-pointer ${
+                view === "list"
+                  ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
+                  : "text-mist-500 hover:text-mist-300"
+              }`}
+            >
+              <List
+                size={13}
+                className={view === "list" ? "text-sage-300" : "text-mist-500"}
+                aria-hidden="true"
+              />
+              <span>List</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onViewChange("map")}
+              title="Map view — interactive workspace graph"
+              className={`flex h-full items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all cursor-pointer ${
+                view === "map"
+                  ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
+                  : "text-mist-500 hover:text-mist-300"
+              }`}
+            >
+              <Share2
+                size={13}
+                className={view === "map" ? "text-sage-300" : "text-mist-500"}
+                aria-hidden="true"
+              />
+              <span>Map</span>
+            </button>
+          </div>
         )}
 
       </div>

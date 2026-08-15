@@ -1,5 +1,5 @@
 import { FolderOpen } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ProjectContextMenu, type MenuAnchor } from "./map/ProjectContextMenu";
 import { ProjectRow } from "./map/ProjectRow";
 import { FamilyGroup } from "./map/FamilyGroup";
@@ -12,6 +12,7 @@ import { formatBytes } from "../../utils/format.mjs";
 import { workspaceGraph } from "../../utils/graph.mjs";
 import { WorkspaceCanvas } from "./map/WorkspaceCanvas";
 import { useDrawingAspect } from "./map/useDrawingAspect";
+import { useShortcuts } from "../../hooks/useShortcuts";
 import type { DuplicatePackage } from "../../types/duplicates";
 import type { WorkspaceView } from "../../types/settings";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
@@ -58,6 +59,10 @@ type WorkspaceMapProps = {
   onViewChange: (view: WorkspaceView) => void;
   sidebarHidden: boolean;
   onSidebarHiddenChange: (hidden: boolean) => void;
+  /** Keys the user bound differently. The defaults live in `actions.ts`. */
+  shortcuts: Record<string, string> | undefined;
+  /** Reads the chosen folders again, which is a scan and not a filter. */
+  onRescan: () => void;
   /** Shared packages, for the map. The list has no place to say this. */
   packages: DuplicatePackage[];
   /** That reading has not finished, so the middle of the map is not final. */
@@ -104,6 +109,8 @@ export function WorkspaceMap({
   onViewChange,
   sidebarHidden,
   onSidebarHiddenChange,
+  shortcuts,
+  onRescan,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
   // Verdict first by default, because what a project holds decides whether its
@@ -117,6 +124,21 @@ export function WorkspaceMap({
   // reads as the list rather than as an empty screen.
   const onMap = view === "map" && proEnabled;
   const { ref: drawing, aspect, height: drawingHeight } = useDrawingAspect();
+
+  // The verbs that only mean something on this screen. These were two `keydown`
+  // handlers written beside what they operate, with the sidebar's `⌘B` closing
+  // over a stale `sidebarHidden` because the effect took no dependencies — a
+  // toggle that worked once and then flipped between the same two states.
+  useShortcuts(
+    {
+      focusFilter: () => searchRef.current?.focus(),
+      toggleSidebar: () => onSidebarHiddenChange(!sidebarHidden),
+      toggleMap: () => proEnabled && onViewChange(view === "map" ? "list" : "map"),
+      rescan: onRescan,
+      quickClean: onReclaim,
+    },
+    shortcuts,
+  );
   const [menu, setMenu] = useState<MenuAnchor | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -222,25 +244,6 @@ export function WorkspaceMap({
     );
   }, [forVerdict, verdicts]);
 
-  // Keyboard shortcuts: `/` focuses search, `⌘B` or `Ctrl+B` toggles sidebar
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
-        event.preventDefault();
-        onSidebarHiddenChange(!sidebarHidden);
-        return;
-      }
-      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        const target = event.target as HTMLElement | null;
-        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable))
-          return;
-        event.preventDefault();
-        searchRef.current?.focus();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   useFocusedProject({
     focusPath,

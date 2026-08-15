@@ -81,6 +81,14 @@ pub struct AppSettings {
     /// load a settings file over a word.
     #[serde(default = "default_grain")]
     pub insights_grain: String,
+    /// Keys the user bound differently, by action id.
+    ///
+    /// Overrides only. The shipped bindings live in `src/actions.ts`, so a key
+    /// somebody changed survives an update that changes the default, and an
+    /// entry for an action that no longer exists is dropped when it is read
+    /// rather than kept as a line nothing can obey.
+    #[serde(default)]
+    pub shortcuts: std::collections::HashMap<String, String>,
     /// Which detected editor and terminal a project opens in.
     ///
     /// A launcher id, or `None` for "whichever detection ranks first". Stored
@@ -164,6 +172,7 @@ impl Default for AppSettings {
             workspace_view: WorkspaceView::default(),
             workspace_sidebar_hidden: false,
             insights_grain: default_grain(),
+            shortcuts: std::collections::HashMap::new(),
             preferred_editor: None,
             preferred_terminal: None,
             last_cleanup: None,
@@ -400,6 +409,10 @@ mod tests {
         assert_eq!(
             settings.insights_grain, "month",
             "a defaulted string field takes its default rather than an empty one"
+        );
+        assert!(
+            settings.shortcuts.is_empty(),
+            "no overrides, so every key is the one the app shipped with"
         );
         assert_eq!(
             settings.maintenance,

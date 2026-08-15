@@ -9,6 +9,8 @@ import { Screen } from "../components/layout/Screen";
 import { Titlebar } from "../components/layout/Titlebar";
 import { SettingsPanel } from "../components/settings/SettingsPanel";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
+import { useNativeMenu } from "../hooks/useNativeMenu";
+import { useShortcuts } from "../hooks/useShortcuts";
 import { useWindowFill } from "../hooks/useWindowFill";
 import type { useSettings } from "../hooks/useSettings";
 import type { AppModule } from "../types/module";
@@ -56,7 +58,23 @@ export function AppLayout({
     setPaletteProject(null);
     setPaletteOpen((open) => !open);
   }, []);
-  useCommandPaletteShortcut(togglePalette);
+
+
+  // The global half of the registry. The workspace claims the rest, because a
+  // screen owns the verbs that only mean something on it — and a listener with
+  // no handler for the key it matched stands aside for the one that has it.
+  const bindings = useShortcuts(
+    {
+      palette: togglePalette,
+      settings: () => onSettingsOpenChange(true),
+      workspace: () => onModuleChange("reclaim"),
+      maintenance: () => onModuleChange("intelligence"),
+      insights: () => onModuleChange("insights"),
+    },
+    settings.settings?.shortcuts,
+  );
+
+  useNativeMenu(bindings);
 
   return (
     // `h-full`, not `h-screen`: the viewport is the whole window and the app
@@ -92,25 +110,6 @@ export function AppLayout({
   );
 }
 
-/**
- * The one shortcut the whole app answers to.
- *
- * Bound on the window rather than inside the palette, because the point is
- * reaching it from anywhere — including from a screen that has its own
- * keyboard handling. It toggles: the same keys that opened it close it, which
- * is what the hand expects when it is already on them.
- */
-function useCommandPaletteShortcut(toggle: () => void) {
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "k" || !(event.metaKey || event.ctrlKey)) return;
-      event.preventDefault();
-      toggle();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggle]);
-}
 
 /** Reveals the window and dismisses the splash once the app can be used. */
 function useSplashScreen(ready: boolean) {

@@ -2,9 +2,10 @@ pub mod commands;
 pub mod errors;
 pub mod filesystem;
 pub mod logging;
+pub mod menu;
 pub mod models;
 pub mod scanner;
-pub mod scheduler;
+mod scheduler;
 pub mod services;
 pub mod tray;
 pub mod workspace;
@@ -58,6 +59,7 @@ pub fn run() {
         })
         // Closing hides rather than quits when the user asked for that, so the
         // tray icon has something to reopen.
+        .on_menu_event(|app, event| menu::on_event(app, event.id().as_ref()))
         .on_window_event(|window, event| {
             let handle = window.app_handle().clone();
             if tray::intercept_close(&handle, event) {
@@ -67,6 +69,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            menu::install_menu,
             cancel_scan,
             cancel_cleanup,
             start_scan,

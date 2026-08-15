@@ -19,6 +19,8 @@ type PurgeModuleProps = {
   /** Whether the filter column is folded away, and how to say it changed. */
   sidebarHidden: boolean;
   onSidebarHiddenChange: (hidden: boolean) => void;
+  /** Keys the user bound differently, for the verbs this screen owns. */
+  shortcuts: Record<string, string> | undefined;
   lastCleanup: LastCleanup | null;
   activeIgnoreRules: number;
 };
@@ -36,6 +38,7 @@ export function PurgeModule({
   onWorkspaceViewChange,
   sidebarHidden,
   onSidebarHiddenChange,
+  shortcuts,
   lastCleanup,
   activeIgnoreRules,
 }: PurgeModuleProps) {
@@ -167,6 +170,8 @@ export function PurgeModule({
           onViewChange={onWorkspaceViewChange}
           sidebarHidden={sidebarHidden}
           onSidebarHiddenChange={onSidebarHiddenChange}
+          shortcuts={shortcuts}
+          onRescan={() => void flow.startScan()}
           packages={flow.analysis.duplicates.report?.packages ?? []}
           analysing={flow.analysis.stage === "duplicates" || !flow.analysis.taken}
         />

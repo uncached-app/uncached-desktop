@@ -26,6 +26,8 @@ export type AppSettings = {
   workspaceSidebarHidden: boolean;
   /** Which span the Insights report is read over, by grain id. */
   insightsGrain: string;
+  /** Keys the user bound differently, by action id. Overrides only. */
+  shortcuts: Record<string, string>;
   /**
    * Which detected editor and terminal a project opens in, by launcher id.
    *
