@@ -84,6 +84,8 @@ export function useMapGestures(width: number, height: number, content: Rect) {
     return () => element.removeEventListener("wheel", onWheel);
   }, [box, drawn, toDrawing]);
 
+  const wasDragged = useCallback(() => moved.current, []);
+
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.button !== 0) return;
     from.current = { x: event.clientX, y: event.clientY };
@@ -152,8 +154,9 @@ export function useMapGestures(width: number, height: number, content: Rect) {
     /** The whole drawing, which is not the same as an untouched view. */
     fit: () => setView(fitTo(drawn, box)),
     reset: () => setView(RESET),
-    /** True when the press that just ended was a drag, so it opened nothing. */
-    wasDragged: () => moved.current,
+    /** True when the press that just ended was a drag, so it opened nothing.
+        Stable, because the memoised drawing takes it as a prop. */
+    wasDragged,
     handlers: { onPointerDown },
   };
 }
