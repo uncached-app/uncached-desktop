@@ -865,11 +865,7 @@ impl ScanService {
         let mut ids: Vec<String> = registry
             .targets
             .iter()
-            .filter(|(_, registered)| {
-                registered.target.cleanable
-                    && !registered.target.size_pending
-                    && !registered.target.size_has_errors
-            })
+            .filter(|(_, registered)| registered.target.cleanup_ready())
             .filter(|(_, registered)| {
                 paths
                     .iter()

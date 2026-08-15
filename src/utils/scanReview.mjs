@@ -13,13 +13,28 @@ export function shouldOpenReview(step, scanFinished, targetCount, targets) {
   return step === 2 && canOpenReview(scanFinished, targetCount, targets);
 }
 
-// `cleanable === false` is a catalogued location the product reports and never
-// removes. It is excluded here rather than only in the card, so it stays out of
-// Select all, out of the delete count and out of the reclaimable total — every
-// number that would otherwise promise an operation the backend refuses.
+/**
+ * The targets a reclaim could actually take.
+ *
+ * `cleanable === false` is a catalogued location the product reports and never
+ * removes; a pending or failed size is refused by `claim_target_for_cleanup`.
+ * They are excluded here rather than only in the card, so they stay out of
+ * Select all, out of the delete count and out of the reclaimable total — every
+ * number that would otherwise promise an operation the backend refuses.
+ *
+ * **Mirrors `ScanTarget::cleanup_ready` in
+ * `src-tauri/src/models/target.rs`, condition for condition.** That is the
+ * definition; this exists because the interface has to answer the same question
+ * before a click and cannot call it. Two of its three inputs change after a
+ * target is registered, so the answer cannot be stamped on the wire and read —
+ * it has to be asked again here.
+ *
+ * A fourth condition added there has to be added here. Both sides are tested,
+ * and both test names point at the other file.
+ */
 export function getCleanupReadyTargets(targets) {
   return targets.filter(
-    (target) => target.cleanable !== false && !target.sizePending && !target.sizeHasErrors,
+    (target) => target.cleanable && !target.sizePending && !target.sizeHasErrors,
   );
 }
 
@@ -43,12 +58,6 @@ export function sortForListing(targets, proEnabled) {
 
 function planRank(target) {
   return isFreeTarget(target) ? 0 : 1;
-}
-
-export function sortByConfidence(targets) {
-  return [...targets].sort(
-    (left, right) => confidenceRank(left) - confidenceRank(right),
-  );
 }
 
 function confidenceRank(target) {

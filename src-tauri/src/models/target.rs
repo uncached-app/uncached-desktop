@@ -136,6 +136,28 @@ impl ScanTarget {
         target
     }
 
+    /// Whether a reclaim could actually take this one.
+    ///
+    /// Three conditions, and each is a refusal that already exists somewhere
+    /// else: `cleanable` is false for a catalogued location no provider vouches
+    /// for, so `validate_clean_target` rejects it; a pending or failed size is
+    /// rejected by `claim_target_for_cleanup`. Composing them here means the
+    /// question "may this be offered" has one answer instead of being
+    /// reassembled by every caller that asks.
+    ///
+    /// **Mirrored by `getCleanupReadyTargets` in `src/utils/scanReview.mjs`,
+    /// condition for condition.** The interface has to answer the same question
+    /// before a click, and it cannot call this. The mirror is deliberate and
+    /// both sides are tested; a fourth condition added here has to be added
+    /// there, and the test names on each side say so.
+    ///
+    /// It is not stamped onto the wire because two of its three inputs are
+    /// mutated after a target is registered — sizing settles later — so a
+    /// cached copy would be stale exactly when it mattered.
+    pub fn cleanup_ready(&self) -> bool {
+        self.cleanable && !self.size_pending && !self.size_has_errors
+    }
+
     pub fn set_size(&mut self, size_bytes: u64, size_has_errors: bool) {
         self.size_bytes = size_bytes;
         self.size_has_errors = size_has_errors;
@@ -177,6 +199,77 @@ pub fn format_size(bytes: u64) -> String {
         format!("{:.2} KB", bytes as f64 / KB as f64)
     } else {
         format!("{} B", bytes)
+    }
+}
+
+#[cfg(test)]
+mod cleanup_ready_tests {
+    use super::ScanTarget;
+    use crate::models::category::Category;
+    use std::path::PathBuf;
+
+    /// The three conditions, pinned so the mirror in
+    /// `src/utils/scanReview.mjs` has something to be checked against. That
+    /// file has a test of the same name; a fourth condition added here has to
+    /// be added there.
+    #[test]
+    fn cleanup_ready_mirrors_get_cleanup_ready_targets_condition_for_condition() {
+        let base = || {
+            ScanTarget::new(
+                PathBuf::from("/w/node_modules"),
+                Category::NodeModules,
+                10,
+                false,
+                None,
+            )
+        };
+
+        assert!(base().cleanup_ready(), "a measured, cleanable target");
+
+        let mut report_only = base();
+        report_only.cleanable = false;
+        assert!(
+            !report_only.cleanup_ready(),
+            "no provider vouches for it, so validation refuses it"
+        );
+
+        let mut measuring = base();
+        measuring.size_pending = true;
+        assert!(
+            !measuring.cleanup_ready(),
+            "claim_target_for_cleanup refuses a size that has not settled"
+        );
+
+        let mut unreadable = base();
+        unreadable.size_has_errors = true;
+        assert!(
+            !unreadable.cleanup_ready(),
+            "and refuses one whose measurement failed"
+        );
+    }
+
+    /// The reason this is a method rather than a stamped field: two of its
+    /// three inputs are written after the target is registered.
+    #[test]
+    fn the_answer_follows_the_size_settling_rather_than_being_fixed_at_creation() {
+        let mut target = ScanTarget::pending(
+            PathBuf::from("/w/node_modules"),
+            Category::NodeModules,
+            None,
+        );
+        assert!(
+            !target.cleanup_ready(),
+            "nothing is offered while measuring"
+        );
+
+        target.set_size(4_096, false);
+        assert!(target.cleanup_ready(), "and it is once the size lands");
+
+        target.set_size(4_096, true);
+        assert!(
+            !target.cleanup_ready(),
+            "and is not again if it landed broken"
+        );
     }
 }
 

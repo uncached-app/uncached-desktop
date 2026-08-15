@@ -1,8 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canOpenReview, getCleanupReadyTargets, shouldOpenReview, sortByConfidence, sortForListing } from "../src/utils/scanReview.mjs";
+import { canOpenReview, getCleanupReadyTargets, shouldOpenReview, sortForListing } from "../src/utils/scanReview.mjs";
 
+// `cleanable` is present on every target the contract lets through —
+// `validateScanTarget` defaults it — so a fixture without it was modelling a
+// shape that does not arrive, and quietly relied on the old filter tolerating
+// its absence.
 const target = (overrides = {}) => ({
+  cleanable: true,
   sizePending: false,
   sizeHasErrors: false,
   ...overrides,
@@ -48,7 +53,7 @@ test("orders targets by confidence, least certain first", () => {
   ];
 
   assert.deepEqual(
-    sortByConfidence(targets).map((target) => target.id),
+    sortForListing(targets, true).map((target) => target.id),
     ["b", "c", "a", "d"],
   );
 });
@@ -61,7 +66,7 @@ test("keeps arrival order within a level and does not mutate the input", () => {
   ];
 
   assert.deepEqual(
-    sortByConfidence(targets).map((target) => target.id),
+    sortForListing(targets, true).map((target) => target.id),
     ["first", "second", "third"],
   );
   assert.deepEqual(targets.map((target) => target.id), ["first", "second", "third"]);
@@ -75,7 +80,7 @@ test("a target with no usable level surfaces instead of hiding", () => {
   ];
 
   assert.deepEqual(
-    sortByConfidence(targets).map((target) => target.id),
+    sortForListing(targets, true).map((target) => target.id),
     ["unknown", "garbled", "known"],
   );
 });
@@ -107,15 +112,35 @@ test("on pro, confidence alone decides the order", () => {
   );
 });
 
-test("a target the catalogue reports but never removes is not cleanup-ready", () => {
+/**
+ * The three conditions, pinned here so the mirror is visible on this side too.
+ *
+ * The definition is `ScanTarget::cleanup_ready` in
+ * `src-tauri/src/models/target.rs`, and it has a test of the same name. A
+ * fourth condition added there has to be added here.
+ */
+test("cleanup-ready mirrors ScanTarget::cleanup_ready, condition for condition", () => {
   const ready = getCleanupReadyTargets([
-    { id: "a", cleanable: true, sizePending: false, sizeHasErrors: false },
-    { id: "b", cleanable: false, sizePending: false, sizeHasErrors: false },
-    { id: "c", sizePending: false, sizeHasErrors: false },
+    { id: "ready", cleanable: true, sizePending: false, sizeHasErrors: false },
+    { id: "report-only", cleanable: false, sizePending: false, sizeHasErrors: false },
+    { id: "measuring", cleanable: true, sizePending: true, sizeHasErrors: false },
+    { id: "unreadable", cleanable: true, sizePending: false, sizeHasErrors: true },
   ]);
+
   assert.deepEqual(
     ready.map((target) => target.id),
-    ["a", "c"],
-    "an absent flag still means cleanable",
+    ["ready"],
+    "a catalogue-only location, an unfinished measurement and a failed one are all refusals the backend already makes",
   );
+});
+
+/**
+ * The contract fills this in — `validateScanTarget` defaults it to true — so a
+ * target without the flag is not a case that occurs. If it ever did, hiding the
+ * control is the safe direction: the backend decides, and an affordance it
+ * would refuse is the one thing this function exists to prevent.
+ */
+test("a target with no cleanable flag at all is withheld rather than offered", () => {
+  const ready = getCleanupReadyTargets([{ id: "malformed", sizePending: false, sizeHasErrors: false }]);
+  assert.deepEqual(ready, []);
 });

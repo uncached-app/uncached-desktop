@@ -37,4 +37,3 @@ export function sortForListing<T extends ListedTarget>(targets: T[], proEnabled:
  * Returns a new array ordered review, medium, then high. The sort is stable,
  * so targets keep their arrival order within a level.
  */
-export function sortByConfidence<T extends ConfidenceRankedTarget>(targets: T[]): T[];
