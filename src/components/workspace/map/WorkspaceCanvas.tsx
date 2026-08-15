@@ -672,20 +672,35 @@ const MapBody = memo(function MapBody({
         // version of this halved by accident — a name at half the size it had
         // room for, needing twice the zoom to be worth drawing.
         const font = Math.min(hole * 0.62, (hole * 3.2) / Math.max(label.text.length, 5));
-        if (font * labelScale < 9) return null;
+        // The target exists whether or not the name is large enough to draw:
+        // what the pointer is asking about is the folder, and the folder is
+        // there at every zoom.
+        const named = font * labelScale >= 9;
 
         return (
-          <text
+          <g
             key={label.id}
-            x={label.x * SIDE}
-            y={label.y * SIDE}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={font}
-            className="pointer-events-none fill-mist-300 font-semibold select-none"
+            onMouseEnter={() => onEnter(label.id)}
+            onMouseLeave={() => onLeave(label.id)}
+            className="cursor-default"
           >
-            {label.text}
-          </text>
+            {/* The hole, as a target. A reader aims at the folder, and a line
+                of glyphs is a poor thing to hit — the gap the cluster leaves is
+                the shape they mean, and nothing else is inside it. */}
+            <circle cx={label.x * SIDE} cy={label.y * SIDE} r={hole} fill="transparent" />
+            {named && (
+              <text
+                x={label.x * SIDE}
+                y={label.y * SIDE}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={font}
+                className="pointer-events-none fill-mist-300 font-semibold select-none"
+              >
+                {label.text}
+              </text>
+            )}
+          </g>
         );
       })}
 
