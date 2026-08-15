@@ -24,8 +24,6 @@ pub struct WorkspaceProject {
     pub kind: String,
     pub git: GitContext,
     pub activity: Activity,
-    /// Decided once the footprint is known, so it starts unknown.
-    pub verdict: Verdict,
     /// Other indexed paths holding the same repository.
     pub duplicate_of: Vec<String>,
     pub install_missing: bool,
@@ -292,7 +290,6 @@ fn project_from_directory(path: &Path, root: &Path) -> WorkspaceProject {
         kind: project_kind(path),
         git,
         activity,
-        verdict: Verdict::Unknown,
         duplicate_of: Vec::new(),
         install_missing,
         install_stale,
@@ -426,25 +423,48 @@ pub async fn measure_project_footprint(
         .map_err(|error| error.to_string())?
 }
 
-/// The verdict for a project, once its footprint is known.
+/// One project's inputs to the verdict, on its way across the boundary.
+///
+/// Every field was produced here — the recoverability by `git::read`, the
+/// activity and the install flags by the index, the weight by
+/// `measure_project_footprint`. The interface carries them back rather than
+/// re-deriving any of them, the same arrangement `preview_maintenance` uses.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Assessment {
+    /// Echoed back untouched, so a batch of answers can be matched to the
+    /// projects that asked without depending on the order surviving the wire.
+    pub path: String,
+    pub recoverability: verdict::RecoverabilityLevel,
+    pub activity: ActivityState,
+    pub reclaimable_bytes: u64,
+    pub install_missing: bool,
+    pub install_stale: bool,
+}
+
+/// The verdicts for a batch of projects, once their footprints are known.
 ///
 /// Kept out of the index because the reclaimable figure is measured later:
 /// deciding before it arrives would call every project Archivable.
+///
+/// Taken as a batch because weights arrive in groups and the answer is a pure
+/// function of five scalars. One project at a time meant one round trip per
+/// project — up to `MAX_PROJECTS` of them to run a function with no IO in it.
 #[tauri::command]
-pub async fn assess_project(
-    recoverability: verdict::RecoverabilityLevel,
-    activity: ActivityState,
-    reclaimable_bytes: u64,
-    install_missing: bool,
-    install_stale: bool,
-) -> Verdict {
-    verdict::assess(verdict::VerdictInput {
-        recoverability: Some(recoverability),
-        activity,
-        reclaimable_bytes,
-        install_missing,
-        install_stale,
-    })
+pub async fn assess_projects(projects: Vec<Assessment>) -> Vec<(String, Verdict)> {
+    projects
+        .into_iter()
+        .map(|project| {
+            let verdict = verdict::assess(verdict::VerdictInput {
+                recoverability: Some(project.recoverability),
+                activity: project.activity,
+                reclaimable_bytes: project.reclaimable_bytes,
+                install_missing: project.install_missing,
+                install_stale: project.install_stale,
+            });
+            (project.path, verdict)
+        })
+        .collect()
 }
 
 /// What a maintenance policy would select right now.
@@ -883,7 +903,6 @@ mod tests {
                 idle_days: None,
                 state: crate::workspace::verdict::ActivityState::Unknown,
             },
-            verdict: crate::workspace::verdict::Verdict::Unknown,
             duplicate_of: Vec::new(),
             install_missing: false,
             install_stale: false,
@@ -919,6 +938,53 @@ mod tests {
         assert_eq!(super::restore_for(&root).unwrap().manager, "npm");
 
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    /// Each answer has to carry the path that asked for it. Zipping a reply
+    /// against the request by position is correct until something reorders it,
+    /// and a verdict attached to the wrong project is the one mistake the
+    /// workspace map must not make.
+    #[test]
+    fn a_batch_of_verdicts_comes_back_paired_with_the_projects_that_asked() {
+        use crate::workspace::verdict::{ActivityState, RecoverabilityLevel, Verdict};
+
+        let assessment = |path: &str, level, activity, bytes| super::Assessment {
+            path: path.to_owned(),
+            recoverability: level,
+            activity,
+            reclaimable_bytes: bytes,
+            install_missing: false,
+            install_stale: false,
+        };
+
+        let answers = tauri::async_runtime::block_on(super::assess_projects(vec![
+            assessment(
+                "/w/cold",
+                RecoverabilityLevel::FullyRemote,
+                ActivityState::Cold,
+                9_000,
+            ),
+            assessment(
+                "/w/risky",
+                RecoverabilityLevel::LocalOnlyWork,
+                ActivityState::Active,
+                9_000,
+            ),
+        ]));
+
+        let by_path: std::collections::HashMap<_, _> = answers.into_iter().collect();
+        assert_eq!(by_path["/w/cold"], Verdict::Safe);
+        assert_eq!(
+            by_path["/w/risky"],
+            Verdict::Protect,
+            "work that exists nowhere else is answered first, whatever its weight"
+        );
+    }
+
+    #[test]
+    fn an_empty_batch_is_an_empty_answer_rather_than_an_error() {
+        let answers = tauri::async_runtime::block_on(super::assess_projects(Vec::new()));
+        assert!(answers.is_empty());
     }
 
     #[test]

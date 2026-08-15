@@ -412,6 +412,8 @@ There is no background-fetch setting. Fetch is something the user asks for, one 
 
 Neither reaches `recoverability`. Being behind says something exists elsewhere, not that something here is at risk, and letting it decide would make a `git fetch` change what may be deleted unattended.
 
+An index entry carries no `verdict`. It cannot: the verdict depends on the reclaimable figure, which is measured after the walk, so the field was always `Unknown` and nothing read it. Verdicts come from `assess_projects`, which takes a batch of `{ path, recoverability, activity, reclaimableBytes, installMissing, installStale }` and returns `[path, verdict]` pairs. The path is echoed back rather than the caller zipping the reply against the request by position — a verdict attached to the wrong project is the one mistake the map must not make. Asked as a batch because the answer is a pure function of five scalars and one call per project meant a round trip each, up to 250 of them.
+
 Each entry also carries `restore`, or `null` when nothing there identifies a package manager:
 
 ```json

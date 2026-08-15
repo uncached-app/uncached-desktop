@@ -63,7 +63,6 @@ export type WorkspaceProject = {
   kind: string;
   git: GitContext;
   activity: Activity;
-  verdict: Verdict;
   /** Other indexed paths holding the same repository. */
   duplicateOf: string[];
   installMissing: boolean;

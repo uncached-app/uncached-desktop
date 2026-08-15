@@ -28,7 +28,7 @@ use commands::settings::{
     get_app_info, get_settings, review_ignore_rules, starts_hidden, update_settings,
 };
 use commands::workspace::{
-    assess_project, maintenance_schedule_status, maintenance_targets, measure_project_footprint,
+    assess_projects, maintenance_schedule_status, maintenance_targets, measure_project_footprint,
     normalize_workspace_roots, preview_maintenance, scan_workspace_index,
 };
 
@@ -91,7 +91,7 @@ pub fn run() {
             scan_workspace_index,
             measure_project_footprint,
             normalize_workspace_roots,
-            assess_project,
+            assess_projects,
             preview_maintenance,
             maintenance_targets,
             maintenance_schedule_status,
