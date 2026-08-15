@@ -196,10 +196,11 @@ export function WorkspaceCanvas({
   );
 
   return (
-    <div
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-forest-800 bg-forest-950 select-none"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-forest-800 bg-forest-950 select-none"
     >
       <svg
         ref={map.ref}
@@ -401,7 +402,7 @@ export function WorkspaceCanvas({
               )}
             </div>
           ) : (
-            <span className="truncate text-mist-500">{legend(graph)}</span>
+            <span className="truncate text-mist-500">Drag to move, scroll to zoom</span>
           )}
         </div>
 
@@ -411,7 +412,62 @@ export function WorkspaceCanvas({
           {graph.packagesOmitted > 0 && <span>{graph.packagesOmitted} lighter packages omitted</span>}
         </div>
       </div>
+      </div>
+
+      <Legend graph={graph} />
     </div>
+  );
+}
+
+/**
+ * What the marks mean, under the picture rather than inside it.
+ *
+ * It was one sentence along the bottom of the frame, and the frame is never
+ * wide enough for it: a key that ends in an ellipsis has taught nobody
+ * anything. Broken into its terms it fits, wraps where it has to, and each one
+ * carries the mark it is naming instead of describing it in words.
+ *
+ * Only what is drawn is named. A workspace where nothing is shared has no key,
+ * because there is nothing in the picture a key would help with.
+ */
+function Legend({ graph }: { graph: WorkspaceGraph }) {
+  const marks = [
+    !graph.sharesNothing && {
+      key: "package",
+      swatch: (
+        <circle cx="8" cy="8" r="5.5" fill="var(--color-pro-surface)" stroke="var(--color-pro-200)" strokeWidth="1.5" />
+      ),
+      text: "a package more than one project keeps its own copy of",
+    },
+    graph.labels.length > 0 && {
+      key: "folder",
+      swatch: (
+        <rect x="1.5" y="2.5" width="13" height="11" rx="4" className="fill-sage-400/15 stroke-sage-400/70" strokeWidth="1.5" />
+      ),
+      text: "one directory holding several projects",
+    },
+    graph.edges.some((edge) => edge.kind === "clone") && {
+      key: "clone",
+      swatch: (
+        <line x1="1" y1="8" x2="15" y2="8" stroke="var(--color-coral-300)" strokeWidth="1.5" strokeDasharray="4 3" />
+      ),
+      text: "one repository checked out twice",
+    },
+  ].filter(Boolean) as Array<{ key: string; swatch: React.ReactNode; text: string }>;
+
+  if (marks.length === 0) return null;
+
+  return (
+    <p className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1.5 px-1 pt-2.5 text-[11px] leading-5 text-mist-500">
+      {marks.map((mark) => (
+        <span key={mark.key} className="inline-flex items-center gap-1.5">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className="shrink-0">
+            {mark.swatch}
+          </svg>
+          {mark.text}
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -504,18 +560,6 @@ function scaled(extent: WorkspaceGraph["extent"]) {
   };
 }
 
-function legend(graph: WorkspaceGraph): string {
-  const parts = [];
-  if (!graph.sharesNothing) parts.push("a ring is a package more than one project keeps its own copy of");
-  if (graph.labels.length > 0) parts.push("a green chain is one directory holding several");
-  if (graph.edges.some((edge) => edge.kind === "clone")) parts.push("a dashed line is one repository checked out twice");
-
-  if (parts.length === 0) {
-    return "Nothing here is shared. Drag to move, scroll to zoom.";
-  }
-  return `${parts.join(" · ")}. Drag to move, scroll to zoom.`;
-}
-
 /** Long enough to recognise, short enough not to collide with the next one. */
 function clip(label: string): string {
   return label.length > 22 ? `${label.slice(0, 21)}…` : label;
@@ -524,7 +568,6 @@ function clip(label: string): string {
 function max(nodes: GraphNode[], kind: GraphNode["kind"]): number {
   return nodes.reduce((top, node) => (node.kind === kind ? Math.max(top, node.weight ?? 0) : top), 0);
 }
-
 
 type BodyProps = {
   graph: WorkspaceGraph;

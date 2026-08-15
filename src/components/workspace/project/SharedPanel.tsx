@@ -1,4 +1,4 @@
-import { Boxes, Package } from "lucide-react";
+import { Boxes, Info, Package } from "lucide-react";
 import { Panel } from "./panels";
 import { formatBytes } from "../../../utils/format.mjs";
 import type { DuplicatePackage } from "../../../types/duplicates";
@@ -6,16 +6,7 @@ import type { DuplicatePackage } from "../../../types/duplicates";
 /**
  * Packages this project keeps its own copy of, that other projects also keep.
  *
- * The map made this visible and the project page did not, which had it exactly
- * backwards: the map answers "where is the duplication in this workspace" and
- * the page answers "what is in front of me". Someone looking at one project and
- * deciding what to do with 900 MB of `node_modules` is the reader who most
- * needs to know that 600 MB of it exists eleven times over.
- *
- * Read-only, like every duplicate reading in the product. Removing one copy of
- * a package from one project is not a cleanup, it is a broken install; what
- * this leads to is the whole directory, which the artifact list below already
- * offers.
+ * Clean, unified list layout matching the rest of the app with zero nested card clutter.
  */
 export function SharedPanel({
   packages,
@@ -29,7 +20,7 @@ export function SharedPanel({
   if (packages.length === 0) {
     return running ? (
       <Panel title="Shared With Other Projects">
-        <p className="text-xs text-mist-500">Reading what the other projects have installed...</p>
+        <p className="text-xs text-mist-500">Reading what other projects have installed...</p>
       </Panel>
     ) : null;
   }
@@ -41,8 +32,8 @@ export function SharedPanel({
       title="Shared With Other Projects"
       action={
         <span className="inline-flex items-center gap-1 rounded-md bg-forest-850 px-2 py-0.5 font-mono text-[10px] font-medium text-mist-300">
-          <Boxes size={10} aria-hidden="true" />
-          {packages.length}
+          <Boxes size={11} className="text-sage-300" aria-hidden="true" />
+          {packages.length} {packages.length === 1 ? "package" : "packages"}
         </span>
       }
     >
@@ -52,41 +43,58 @@ export function SharedPanel({
           {wasted > 0 && (
             <>
               Across the workspace that is{" "}
-              <strong className="font-semibold text-mist-300">{formatBytes(wasted)}</strong> held more
-              than once.
+              <strong className="font-mono font-semibold text-sage-300">{formatBytes(wasted)}</strong> held
+              more than once.
             </>
           )}
         </p>
 
-        <ul className="grid gap-1.5">
-          {packages.map((entry) => (
-            <li
-              key={`${entry.name}@${entry.version}`}
-              className="flex items-center justify-between gap-3 rounded-xl border border-forest-800 bg-forest-950 px-3.5 py-2"
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <Package size={13} className="shrink-0 text-mist-500" aria-hidden="true" />
-                <span className="truncate font-mono text-xs text-mist-300">{entry.name}</span>
-                <span className="shrink-0 font-mono text-[10px] text-mist-500">{entry.version}</span>
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="font-mono text-[11px] text-mist-500">
-                  in {entry.copies} {entry.copies === 1 ? "project" : "projects"}
-                </span>
-                {entry.bytesEach !== null && (
-                  <span className="font-mono text-[11px] font-medium text-mist-100">
-                    {formatBytes(entry.bytesEach)}
-                  </span>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+        {/* Clean, unified list container (no nested individual card boxes) */}
+        <div className="overflow-hidden rounded-xl border border-forest-800 bg-forest-950/60">
+          <ul className="divide-y divide-forest-800/60">
+            {packages.map((entry) => (
+              <li
+                key={`${entry.name}@${entry.version}`}
+                className="group flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-forest-900/60"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <Package
+                    size={14}
+                    className="shrink-0 text-mist-500 transition-colors group-hover:text-sage-300"
+                    aria-hidden="true"
+                  />
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="truncate font-mono text-xs font-semibold text-mist-100">
+                      {entry.name}
+                    </span>
+                    <span className="shrink-0 rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-400">
+                      v{entry.version}
+                    </span>
+                  </div>
+                </div>
 
-        <p className="text-[11px] leading-5 text-mist-500">
-          Nothing here is removed on its own — a package taken out of one project is a broken
-          install, not a reclaim. The directory holding them is in the list below.
-        </p>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="font-mono text-[11px] text-mist-400">
+                    in {entry.copies} {entry.copies === 1 ? "project" : "projects"}
+                  </span>
+                  {entry.bytesEach !== null && (
+                    <span className="min-w-14 text-right font-mono text-xs font-semibold text-mist-100">
+                      {formatBytes(entry.bytesEach)}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex items-center gap-2 text-[11px] leading-5 text-mist-500">
+          <Info size={12} className="shrink-0 text-mist-500" aria-hidden="true" />
+          <p>
+            Packages cannot be removed individually without breaking installs. Clean the parent directory in
+            the Artifacts list below to reclaim space.
+          </p>
+        </div>
       </div>
     </Panel>
   );
