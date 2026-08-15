@@ -19,6 +19,15 @@ export type AppSettings = {
   /** Folders the user last chose to scan. */
   workspaceRoots: string[];
   appearance: Appearance;
+  /**
+   * Which detected editor and terminal a project opens in, by launcher id.
+   *
+   * `null` means whichever detection ranks first. Stored rather than inferred:
+   * macOS has no default-terminal setting to read, and no platform has a
+   * default *editor* in any sense a directory-opening app could consult.
+   */
+  preferredEditor: string | null;
+  preferredTerminal: string | null;
   lastCleanup: LastCleanup | null;
   /** What a maintenance run may select. Decided in Rust; stored here. */
   maintenance: MaintenancePolicy;

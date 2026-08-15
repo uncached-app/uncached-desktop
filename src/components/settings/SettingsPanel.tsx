@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
+import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
 import type { AppSettings, Appearance, IgnoreRuleReview } from "../../types/settings";
 import { openExternalUrl } from "../../utils/externalLink";
 
@@ -17,7 +18,7 @@ type SettingsPanelProps = {
   onLicenseChange?: () => void;
 };
 
-const sections = ["General", "Scanning", "Ignore rules", "Deletion", "Appearance", "Licence", "About"] as const;
+const sections = ["General", "Opening", "Scanning", "Ignore rules", "Deletion", "Appearance", "Licence", "About"] as const;
 type Section = (typeof sections)[number];
 
 export function SettingsPanel({ open, onClose, settings, loading, saving, error, updateSettings, onLicenseChange = () => { } }: SettingsPanelProps) {
@@ -72,6 +73,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
 
 function SettingsContent({ section, settings, updateSettings, onRequestPermanentDelete }: { section: Section; settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"]; onRequestPermanentDelete: () => void }) {
   if (section === "General") return <SettingsGroup><SettingToggle label="Open at startup" checked={settings.openAtStartup} onChange={(value) => updateSettings({ openAtStartup: value })} /><SettingToggle label="Keep running in the background" hint="Closing the window hides Uncached in the menu bar instead of quitting it. Scheduled maintenance runs from there; Quit ends it until you open the app again." checked={settings.keepRunningInBackground} onChange={(value) => updateSettings({ keepRunningInBackground: value })} /><SettingToggle label="Remember last workspace" checked={settings.rememberLastWorkspace} onChange={(value) => updateSettings({ rememberLastWorkspace: value })} /><SettingToggle label="Check for updates" checked={settings.checkForUpdates} onChange={(value) => updateSettings({ checkForUpdates: value })} /></SettingsGroup>;
+  if (section === "Opening") return <OpeningContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Scanning") return <ScanningContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Ignore rules") return <IgnoreRulesContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Deletion") return <SettingsGroup><SettingRadio label="Move to Recycle Bin" selected={settings.defaultCleanMode === "Trash"} onClick={() => updateSettings({ defaultCleanMode: "Trash" })} /><SettingRadio label="Permanently delete" selected={settings.defaultCleanMode === "Permanent"} onClick={onRequestPermanentDelete} /></SettingsGroup>;
@@ -222,6 +224,72 @@ function ScanningContent({ settings, updateSettings }: { settings: AppSettings; 
         every kind of artifact and applies to scheduled runs too.
       </p>
     </>
+  );
+}
+
+/**
+ * Which application a project opens in.
+ *
+ * Chosen from what was found rather than typed, which is the difference that
+ * matters: the original note against a setting here was about asking someone to
+ * spell the name of their editor, and this asks nothing of the kind.
+ *
+ * It exists because there is nothing to infer from. macOS has no
+ * default-terminal setting at all, and no platform has a default *editor* in
+ * any sense an app that opens a directory could read — so without this the
+ * order in a table decides, which is a guess.
+ */
+function OpeningContent({ settings, updateSettings }: { settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"] }) {
+  const launchers = useLaunchers();
+  const editors = launchers.filter((launcher) => launcher.kind === "editor");
+  const terminals = launchers.filter((launcher) => launcher.kind === "terminal");
+
+  return (
+    <div className="grid gap-7">
+      <LauncherChoice
+        title="Editor"
+        empty="No editor was found in your Applications folder."
+        launchers={editors}
+        chosen={settings.preferredEditor}
+        onChoose={(preferredEditor) => updateSettings({ preferredEditor })}
+        /* Automatic is not "the first one alphabetically": a specialist opens
+           the language it is built for and otherwise sorts below every
+           general-purpose editor, which is what keeps Xcode from leading a
+           React project on a Mac that has little else. */
+        automatic="Best for each project's language"
+      />
+      <LauncherChoice
+        title="Terminal"
+        empty="No terminal was found."
+        launchers={terminals}
+        chosen={settings.preferredTerminal}
+        onChoose={(preferredTerminal) => updateSettings({ preferredTerminal })}
+        automatic="Whichever was found first"
+      />
+    </div>
+  );
+}
+
+function LauncherChoice({ title, empty, launchers, chosen, onChoose, automatic }: { title: string; empty: string; launchers: Launcher[]; chosen: string | null; onChoose: (id: string | null) => void; automatic: string }) {
+  return (
+    <div>
+      <p className="pb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">{title}</p>
+      {launchers.length === 0 ? (
+        <p className="py-4 text-sm text-mist-500">{empty}</p>
+      ) : (
+        <SettingsGroup>
+          <SettingRadio label={`Automatic — ${automatic}`} selected={chosen === null} onClick={() => onChoose(null)} />
+          {launchers.map((launcher) => (
+            <SettingRadio
+              key={launcher.id}
+              label={launcher.name}
+              selected={chosen === launcher.id}
+              onClick={() => onChoose(launcher.id)}
+            />
+          ))}
+        </SettingsGroup>
+      )}
+    </div>
   );
 }
 

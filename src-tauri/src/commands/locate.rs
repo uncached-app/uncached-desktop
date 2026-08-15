@@ -116,12 +116,19 @@ fn candidates() -> Vec<(
             &[".NET"],
         ),
         ("xcode", "Xcode", Editor, "Xcode", &["Swift"]),
+        // Terminals, the deliberate installs before the one that shipped with
+        // the machine. macOS has no default-terminal setting to read, so this
+        // order is a guess until the user picks one in Settings.
         ("ghostty", "Ghostty", Terminal, "Ghostty", ANY),
         ("iterm", "iTerm", Terminal, "iTerm", ANY),
+        ("iterm2", "iTerm2", Terminal, "iTerm2", ANY),
         ("warp", "Warp", Terminal, "Warp", ANY),
         ("wezterm", "WezTerm", Terminal, "WezTerm", ANY),
         ("kitty", "kitty", Terminal, "kitty", ANY),
         ("alacritty", "Alacritty", Terminal, "Alacritty", ANY),
+        ("rio", "Rio", Terminal, "Rio", ANY),
+        ("hyper", "Hyper", Terminal, "Hyper", ANY),
+        ("tabby", "Tabby", Terminal, "Tabby", ANY),
         ("terminal", "Terminal", Terminal, "Terminal", ANY),
     ]
 }
@@ -158,11 +165,31 @@ fn candidates() -> Vec<(
         ("rubymine", "RubyMine", Editor, "rubymine", &["Ruby"]),
         ("rider", "Rider", Editor, "rider", &[".NET"]),
         ("wt", "Windows Terminal", Terminal, "wt.exe", ANY),
+        ("ghostty", "Ghostty", Terminal, "ghostty", ANY),
         ("wezterm", "WezTerm", Terminal, "wezterm", ANY),
         ("alacritty", "Alacritty", Terminal, "alacritty", ANY),
         ("kitty", "kitty", Terminal, "kitty", ANY),
+        ("foot", "foot", Terminal, "foot", ANY),
+        ("tilix", "Tilix", Terminal, "tilix", ANY),
+        ("terminator", "Terminator", Terminal, "terminator", ANY),
+        ("xfce4", "Xfce Terminal", Terminal, "xfce4-terminal", ANY),
+        ("ptyxis", "Ptyxis", Terminal, "ptyxis", ANY),
         ("gnome", "GNOME Terminal", Terminal, "gnome-terminal", ANY),
         ("konsole", "Konsole", Terminal, "konsole", ANY),
+        // Debian's alternatives symlink and the last resort on X11. Neither is
+        // anyone's favourite, and without them a machine running neither GNOME
+        // nor KDE has no terminal at all.
+        (
+            "x-terminal",
+            "Terminal",
+            Terminal,
+            "x-terminal-emulator",
+            ANY,
+        ),
+        ("xterm", "xterm", Terminal, "xterm", ANY),
+        // Windows without Windows Terminal installed, which is every Windows 10
+        // that never opted in. Offering nothing there was the real gap.
+        ("powershell", "PowerShell", Terminal, "powershell.exe", ANY),
     ]
 }
 

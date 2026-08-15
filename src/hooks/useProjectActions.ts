@@ -9,7 +9,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useMemo } from "react";
-import { editorsFor, useLaunchers } from "./useLaunchers";
+import { editorsFor, useLaunchers, type Launcher } from "./useLaunchers";
+import { useSettings } from "./useSettings";
 import { remoteLabel, remoteToUrl } from "../utils/remoteUrl.mjs";
 import { copyText } from "../utils/clipboard";
 import { openExternalUrl } from "../utils/externalLink";
@@ -26,6 +27,13 @@ export type ProjectAction = {
   leaves: boolean;
   perform: () => Promise<void>;
 };
+
+/** Moves the chosen launcher to the front, if it is still installed. */
+function preferred(launchers: Launcher[], chosen: string | null): Launcher[] {
+  if (!chosen) return launchers;
+  const match = launchers.find((launcher) => launcher.id === chosen);
+  return match ? [match, ...launchers.filter((launcher) => launcher !== match)] : launchers;
+}
 
 /**
  * The same list with one editor instead of every installed one.
@@ -57,6 +65,9 @@ export function withOneEditor(actions: ProjectAction[]): ProjectAction[] {
  */
 export function useProjectActions(project: WorkspaceProject | null): ProjectAction[] {
   const launchers = useLaunchers();
+  const { settings } = useSettings();
+  const preferredEditor = settings?.preferredEditor ?? null;
+  const preferredTerminal = settings?.preferredTerminal ?? null;
 
   return useMemo(() => {
     if (!project) return [];
@@ -64,7 +75,11 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
 
     // Every editor, best first. The action bar shows the first and the palette
     // shows them all — a row of identical pencil icons is a row nobody can read.
-    for (const launcher of editorsFor(launchers, project.kind)) {
+    // The chosen one first, then the rest in the order detection ranked them.
+    // A preference that names an editor no longer installed is ignored rather
+    // than obeyed into an empty list.
+    const editors = preferred(editorsFor(launchers, project.kind), preferredEditor);
+    for (const launcher of editors) {
       actions.push({
         id: `open-${launcher.id}`,
         title: `Open in ${launcher.name}`,
@@ -75,10 +90,13 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
       });
     }
 
-    // One terminal, not all of them. The candidate order puts the deliberate
-    // installs first, so whoever went and installed Ghostty gets Ghostty, and
-    // everyone else gets the one that shipped with the machine.
-    const terminal = launchers.find((entry) => entry.kind === "terminal");
+    // One terminal, not all of them. No platform this runs on exposes a
+    // "default terminal" an app could read — macOS has no such setting at all —
+    // so detection order is a guess, and Settings is where it stops being one.
+    const [terminal] = preferred(
+      launchers.filter((entry) => entry.kind === "terminal"),
+      preferredTerminal,
+    );
     if (terminal) {
       actions.push({
         id: "open-terminal",
@@ -145,5 +163,5 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
     }
 
     return actions;
-  }, [project, launchers]);
+  }, [project, launchers, preferredEditor, preferredTerminal]);
 }

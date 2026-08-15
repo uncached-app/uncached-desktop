@@ -406,6 +406,8 @@ authorization; the backend still performs the final target and policy checks.
 
 `maintenance` is a stored block, `{ minIdleDays, minBytes }`, defaulting to 90 days and 500 MiB. A settings file written before it existed loads and takes the default, like every other field.
 
+`preferredEditor` and `preferredTerminal` hold a launcher id, or `null` for automatic. Stored rather than inferred, because there is nothing to infer from: macOS exposes no default-terminal setting at all, and no platform has a default *editor* in any sense an app that opens a directory could read. Automatic means the ranking in `available_launchers` — for an editor, the specialist for the project's own language, then anything general-purpose, then the specialists for other languages; for a terminal, whichever was detected first. A preference naming something no longer installed is ignored rather than obeyed into an empty list.
+
 `maintenanceSchedule` is `{ enabled, everyHours }`, and it is **off by default** — the first unattended deletion on a machine is one the user turned on, never one an install inherited. `maintenanceLastRunAt` is Unix seconds, written by the backend only: it records the last *attempt*, stamped before the work rather than after, so a run interrupted by a crash or a power loss does not come back and immediately try again. A run that correctly selected nothing writes no cleanup log line, which is why the attempt is stored rather than derived from the history.
 
 There is no background-fetch setting. Fetch is something the user asks for, one repository at a time. It could now run on the maintenance thread, but reaching the network unattended is a separate decision from removing a regenerable directory, and it is not dressed as existing.

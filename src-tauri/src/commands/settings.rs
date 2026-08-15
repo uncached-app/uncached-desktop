@@ -57,6 +57,18 @@ pub struct AppSettings {
     #[serde(default)]
     pub workspace_roots: Vec<String>,
     pub appearance: Appearance,
+    /// Which detected editor and terminal a project opens in.
+    ///
+    /// A launcher id, or `None` for "whichever detection ranks first". Stored
+    /// rather than inferred because there is nothing to infer from: macOS has
+    /// no default-terminal setting at all, and no platform has a default
+    /// *editor* in any sense a directory-opening app could read. Picking from
+    /// what was found is not the thing the original note warned against —
+    /// that was asking someone to type the name of their editor.
+    #[serde(default)]
+    pub preferred_editor: Option<String>,
+    #[serde(default)]
+    pub preferred_terminal: Option<String>,
     #[serde(default)]
     pub last_cleanup: Option<LastCleanup>,
     /// The maintenance policy, which is the only thing on that screen the user
@@ -115,6 +127,8 @@ impl Default for AppSettings {
             ignore_rules: String::new(),
             workspace_roots: Vec::new(),
             appearance: Appearance::Light,
+            preferred_editor: None,
+            preferred_terminal: None,
             last_cleanup: None,
             maintenance: crate::workspace::maintenance::MaintenancePolicy::default(),
             maintenance_schedule: crate::workspace::schedule::Schedule::default(),
@@ -342,6 +356,11 @@ mod tests {
             "an upgrade never switches on unattended deletion"
         );
         assert_eq!(settings.maintenance_last_run_at, None);
+        assert_eq!(
+            (settings.preferred_editor, settings.preferred_terminal),
+            (None, None),
+            "an upgrade inherits automatic, not a choice it never made"
+        );
         let _ = std::fs::remove_file(path);
     }
 
