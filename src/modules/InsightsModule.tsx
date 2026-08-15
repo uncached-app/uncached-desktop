@@ -7,6 +7,7 @@ import { Repositories } from "./insights/Repositories";
 import { EventLog } from "./insights/EventLog";
 import { FilterChips } from "./insights/FilterChips";
 import { Highlights } from "./insights/Highlights";
+import { Portrait } from "./insights/Portrait";
 import { Summary } from "./insights/Summary";
 import { Timeline } from "./insights/Timeline";
 import { EVENT_PAGE } from "./insights/labels";
@@ -17,6 +18,8 @@ import { useDuplicatePackages } from "../hooks/useDuplicatePackages";
 import { useOrphanArtifacts } from "../hooks/useOrphanArtifacts";
 import { useWorkspaceHygiene } from "../hooks/useWorkspaceHygiene";
 import { buildInsights } from "../utils/insights.mjs";
+import { workspacePortrait } from "../utils/portrait.mjs";
+import type { Portrait as PortraitData } from "../utils/portrait.d.mts";
 import type { Insight } from "../utils/insights.d.mts";
 import { DIMENSIONS, buildReport } from "../utils/report.mjs";
 import type { Dimension, Filters, Report } from "../utils/report.d.mts";
@@ -75,6 +78,18 @@ export function InsightsModule({
         formatBytes,
       }) as Insight[],
     [projects, flow.footprints, flow.verdicts, totals],
+  );
+
+  // The same sums `buildInsights` already makes to produce one sentence about
+  // concentration, kept instead of discarded.
+  const portrait = useMemo(
+    () =>
+      workspacePortrait({
+        projects,
+        footprints: flow.footprints,
+        verdicts: flow.verdicts,
+      }) as PortraitData,
+    [projects, flow.footprints, flow.verdicts],
   );
 
   function narrow(dimension: Dimension, key: string | null) {
@@ -152,6 +167,13 @@ export function InsightsModule({
             />
           </div>
         )}
+
+        {/* Above the sentences: the picture is what they are sentences about,
+            and it is the answer to "what is on this machine" that the module
+            never gave. */}
+        <div className="mb-4">
+          <Portrait portrait={portrait} onOpenWorkspace={onOpenWorkspace} />
+        </div>
 
         <Highlights insights={insights} projectCount={projects.length} onFollow={follow} />
 
