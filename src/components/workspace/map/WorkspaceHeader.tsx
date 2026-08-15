@@ -2,6 +2,7 @@ import { AlertTriangle, ArrowRight, PanelLeftClose, PanelLeftOpen, RefreshCw, Se
 import type { RefObject } from "react";
 import { formatBytes } from "../../../utils/format.mjs";
 import { ChoiceRow } from "../../shared/ChoiceRow";
+import { Select } from "../../shared/Select";
 import { StatCard } from "../../shared/StatCard";
 import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
 
@@ -23,6 +24,8 @@ export function WorkspaceHeader({
   onOrderChange,
   hasFamilies,
   view,
+  onViewChange,
+  canMap,
   sidebarCollapsed = false,
   onToggleSidebar,
 }: {
@@ -43,8 +46,11 @@ export function WorkspaceHeader({
   onOrderChange: (order: "verdict" | "size" | "folder") => void;
   /** Only offered when something here actually shares a directory. */
   hasFamilies: boolean;
-  /** Which reading is open. Chosen in Settings, not here. */
+  /** Which reading is open, and how to change it. Persisted either way. */
   view: "list" | "map";
+  onViewChange: (view: "list" | "map") => void;
+  /** The map is Pro. Free reads the same workspace as a list. */
+  canMap: boolean;
   sidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
 }) {
@@ -163,18 +169,32 @@ export function WorkspaceHeader({
           )}
         </label>
 
-        {/* An order is a property of a list. On the map the same control would
-            be pressable and change nothing. */}
+        {/* One control for the order and one for the reading, side by side.
+            Three order buttons in a row spent the width of the header on a
+            question with one answer at a time — a dropdown says the answer and
+            keeps the rest a click away. An order is a property of a list, so on
+            the map it is not offered rather than offered and inert. */}
         {view === "list" && (
-          <ChoiceRow
-            active={order}
-            onChange={onOrderChange}
+          <Select
+            label="Order projects"
+            value={order}
+            onChange={(value) => onOrderChange(value as "verdict" | "size" | "folder")}
             options={[
-              ["verdict", "By verdict", "What a project holds decides whether its size is worth acting on"],
-              ["size", "By size", "Heaviest on disk first"],
-              ...(hasFamilies
-                ? ([["folder", "By folder", "Projects that sit in one directory, together"]] as const)
-                : []),
+              { value: "verdict", label: "By verdict" },
+              { value: "size", label: "By size" },
+              ...(hasFamilies ? [{ value: "folder", label: "By folder" }] : []),
+            ]}
+            className="w-36 shrink-0"
+          />
+        )}
+
+        {canMap && (
+          <ChoiceRow
+            active={view}
+            onChange={onViewChange}
+            options={[
+              ["list", "List", "Every project, readable by keyboard"],
+              ["map", "Map", "What the workspace shares, as one picture"],
             ]}
           />
         )}

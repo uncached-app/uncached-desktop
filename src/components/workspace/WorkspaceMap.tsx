@@ -55,6 +55,7 @@ type WorkspaceMapProps = {
    * Kept in settings rather than here: it is a decision made once, and a window
    * that forgets it asks again on every visit.
    */
+  onViewChange: (view: WorkspaceView) => void;
   sidebarHidden: boolean;
   onSidebarHiddenChange: (hidden: boolean) => void;
   /** Shared packages, for the map. The list has no place to say this. */
@@ -100,6 +101,7 @@ export function WorkspaceMap({
   packages,
   analysing,
   view,
+  onViewChange,
   sidebarHidden,
   onSidebarHiddenChange,
 }: WorkspaceMapProps) {
@@ -425,6 +427,8 @@ export function WorkspaceMap({
           onOrderChange={setOrder}
           hasFamilies={families.length > 0}
           view={onMap ? "map" : "list"}
+          onViewChange={onViewChange}
+          canMap={proEnabled}
           sidebarCollapsed={sidebarHidden}
           onToggleSidebar={() => onSidebarHiddenChange(!sidebarHidden)}
         />

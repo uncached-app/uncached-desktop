@@ -15,6 +15,7 @@ type PurgeModuleProps = {
   cleanMode: CleanMode;
   /** Which reading of the workspace opens. A preference, not a control. */
   workspaceView: WorkspaceView;
+  onWorkspaceViewChange: (view: WorkspaceView) => void;
   /** Whether the filter column is folded away, and how to say it changed. */
   sidebarHidden: boolean;
   onSidebarHiddenChange: (hidden: boolean) => void;
@@ -32,6 +33,7 @@ export function PurgeModule({
   proEnabled,
   cleanMode,
   workspaceView,
+  onWorkspaceViewChange,
   sidebarHidden,
   onSidebarHiddenChange,
   lastCleanup,
@@ -162,6 +164,7 @@ export function PurgeModule({
           onFocusHandled={flow.clearFocus}
           onOpenProject={flow.openProject}
           view={workspaceView}
+          onViewChange={onWorkspaceViewChange}
           sidebarHidden={sidebarHidden}
           onSidebarHiddenChange={onSidebarHiddenChange}
           packages={flow.analysis.duplicates.report?.packages ?? []}

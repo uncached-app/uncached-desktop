@@ -80,7 +80,7 @@ export function AppLayout({
         </div>
         <ModuleBar activeModule={activeModule} onChange={onModuleChange} proEnabled={proEnabled} />
       </div>
-      <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} proEnabled={proEnabled} {...settings} />
+      <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} {...settings} />
       <CommandPalette
         open={paletteOpen}
         project={paletteProject}

@@ -60,6 +60,7 @@ function App() {
           proEnabled={entitlement.proEnabled}
           cleanMode={cleanMode}
           workspaceView={settings.settings?.workspaceView ?? "list"}
+          onWorkspaceViewChange={(workspaceView) => void settings.updateSettings({ workspaceView })}
           sidebarHidden={settings.settings?.workspaceSidebarHidden ?? false}
           onSidebarHiddenChange={(workspaceSidebarHidden) =>
             void settings.updateSettings({ workspaceSidebarHidden })
