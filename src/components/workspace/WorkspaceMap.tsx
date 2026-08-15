@@ -8,6 +8,8 @@ import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
 import { useFocusedProject } from "./map/useFocusedProject";
 import { VERDICT_ORDER } from "./verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
+import { WorkspaceCanvas } from "./map/WorkspaceCanvas";
+import type { DuplicatePackage } from "../../types/duplicates";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
 import type { Footprint, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
 
@@ -41,6 +43,10 @@ type WorkspaceMapProps = {
   /** A project someone asked to be shown. The list is what makes it visible. */
   focusPath: string | null;
   onFocusHandled: () => void;
+  /** Shared packages, for the map. The list has no place to say this. */
+  packages: DuplicatePackage[];
+  /** That reading has not finished, so the middle of the map is not final. */
+  analysing: boolean;
   /** A row is the way into a project's own page. */
   onOpenProject: (path: string) => void;
 };
@@ -77,6 +83,8 @@ export function WorkspaceMap({
   focusPath,
   onFocusHandled,
   onOpenProject,
+  packages,
+  analysing,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
   // Verdict first by default, because what a project holds decides whether its
@@ -84,6 +92,12 @@ export function WorkspaceMap({
   // was unreachable: grouping runs before sorting, so the heaviest project on
   // the machine could sit below three groups of smaller ones.
   const [order, setOrder] = useState<"verdict" | "size">("verdict");
+  // The list is the default and stays it: it is the reading that works by
+  // keyboard, at any size of workspace, on any plan.
+  const [view, setView] = useState<"list" | "map">("list");
+  // Pro decides whether the map exists at all, so it also decides what a view
+  // held from before a licence changed is allowed to still be showing.
+  const onMap = view === "map" && proEnabled;
   const [menu, setMenu] = useState<MenuAnchor | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -304,13 +318,34 @@ export function WorkspaceMap({
           searchRef={searchRef}
           order={order}
           onOrderChange={setOrder}
+          view={view}
+          onViewChange={setView}
+          canMap={proEnabled}
         />
+
+        {/* The map reads the same narrowed set as the list. A filter is a
+            question about the workspace, and switching view is not answering a
+            different one. */}
+        {onMap && (
+          <div className="min-h-0 flex-1 overflow-hidden pt-3.5 pr-2 pb-2">
+            <WorkspaceCanvas
+              projects={visible}
+              footprints={footprints}
+              verdicts={verdicts}
+              packages={packages}
+              analysing={analysing}
+              measuring={measuring}
+              onOpenProject={onOpenProject}
+              onContextMenu={openMenu}
+            />
+          </div>
+        )}
 
         {/* The only scroller on the screen: the header holds still while the
             list moves under it, and each verdict keeps its title in view. The
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
-        <div className="min-h-0 flex-1 overflow-hidden pt-3.5">
+        <div className={`min-h-0 flex-1 overflow-hidden pt-3.5 ${onMap ? "hidden" : ""}`}>
           <div ref={listRef} className="h-full overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
             {order === "size" && visible.length > 0 && (
               <section aria-label="Projects ranked by size" className="pb-5">

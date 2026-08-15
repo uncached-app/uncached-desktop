@@ -142,6 +142,8 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
           focusPath={flow.focusPath}
           onFocusHandled={flow.clearFocus}
           onOpenProject={flow.openProject}
+          packages={flow.analysis.duplicates.report?.packages ?? []}
+          analysing={flow.analysis.stage === "duplicates" || !flow.analysis.taken}
         />
       )}
 

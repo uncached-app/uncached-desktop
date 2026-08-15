@@ -7,6 +7,8 @@ type VerdictPresentation = {
   summary: string;
   className: string;
   dotClassName: string;
+  /** The same colour as ink rather than as a background, for the map. */
+  fillClassName: string;
 };
 
 /** Order of triage: what could lose work comes before what could save space. */
@@ -26,42 +28,49 @@ export const VERDICT_PRESENTATION: Record<Verdict, VerdictPresentation> = {
     summary: "Holds work that exists only on this disk.",
     className: "border-coral-300/30 bg-coral-300/10 text-coral-300",
     dotClassName: "bg-coral-300",
+    fillClassName: "fill-coral-300",
   },
   broken: {
     label: "Needs install",
     summary: "A lockfile with nothing installed behind it.",
     className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
     dotClassName: "bg-confidence-medium",
+    fillClassName: "fill-confidence-medium",
   },
   staleDeps: {
     label: "Stale install",
     summary: "The lockfile changed after the last install.",
     className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
     dotClassName: "bg-confidence-medium",
+    fillClassName: "fill-confidence-medium",
   },
   tradeOff: {
     label: "In use",
     summary: "Reclaimable, but you will pay to reinstall.",
     className: "border-confidence-review/30 bg-confidence-review-surface text-confidence-review",
     dotClassName: "bg-confidence-review",
+    fillClassName: "fill-confidence-review",
   },
   safe: {
     label: "Safe to reclaim",
     summary: "Everything is on a remote and nobody has touched it in months.",
     className: "border-confidence-high/30 bg-confidence-high-surface text-confidence-high",
     dotClassName: "bg-confidence-high",
+    fillClassName: "fill-confidence-high",
   },
   archivable: {
     label: "Fully on remote",
     summary: "Nothing left to reclaim. The local copy is yours to keep or drop.",
     className: "border-forest-800 bg-forest-850 text-mist-300",
     dotClassName: "bg-mist-500",
+    fillClassName: "fill-mist-500",
   },
   unknown: {
     label: "Not established",
     summary: "Not enough was readable to judge. Never touched automatically.",
     className: "border-forest-800 bg-forest-850 text-mist-500",
     dotClassName: "bg-mist-500",
+    fillClassName: "fill-mist-500",
   },
 };
 

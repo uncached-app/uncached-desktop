@@ -21,6 +21,9 @@ export function WorkspaceHeader({
   searchRef,
   order,
   onOrderChange,
+  view,
+  onViewChange,
+  canMap,
 }: {
   projectCount: number;
   totalBytes: number;
@@ -37,6 +40,10 @@ export function WorkspaceHeader({
   searchRef: RefObject<HTMLInputElement | null>;
   order: "verdict" | "size";
   onOrderChange: (order: "verdict" | "size") => void;
+  view: "list" | "map";
+  onViewChange: (view: "list" | "map") => void;
+  /** The map is Pro. Free reads the same workspace as a list. */
+  canMap: boolean;
 }) {
   return (
     // `pr-2` matches the scrollbar gutter the list below reserves, so the
@@ -133,15 +140,29 @@ export function WorkspaceHeader({
           )}
         </label>
 
-        {/* Order buttons */}
-        <ChoiceRow
-          active={order}
-          onChange={onOrderChange}
-          options={[
-            ["verdict", "By verdict", "What a project holds decides whether its size is worth acting on"],
-            ["size", "By size", "Heaviest on disk first"],
-          ]}
-        />
+        {/* An order is a property of a list. On the map the same control would
+            be pressable and change nothing. */}
+        {view === "list" && (
+          <ChoiceRow
+            active={order}
+            onChange={onOrderChange}
+            options={[
+              ["verdict", "By verdict", "What a project holds decides whether its size is worth acting on"],
+              ["size", "By size", "Heaviest on disk first"],
+            ]}
+          />
+        )}
+
+        {canMap && (
+          <ChoiceRow
+            active={view}
+            onChange={onViewChange}
+            options={[
+              ["list", "List", "Every project, readable by keyboard"],
+              ["map", "Map", "What the workspace shares, as one picture"],
+            ]}
+          />
+        )}
       </div>
     </header>
   );
