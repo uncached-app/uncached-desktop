@@ -236,55 +236,6 @@ export function FindingsSection({
             </p>
           )}
         </div>
-
-        {/* The controls bar, in the workspace's shape. */}
-        <div className="mt-3.5 flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={toggleAll}
-            disabled={scanning || freeTargets.length === 0}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <div
-              className={`grid size-4 place-items-center rounded border transition-colors ${
-                allSelected
-                  ? "border-sage-400 bg-sage-400 text-forest-950"
-                  : "border-forest-800 bg-forest-950 text-transparent"
-              }`}
-            >
-              <Check size={11} strokeWidth={3} aria-hidden="true" />
-            </div>
-            <span>{allSelected ? "Deselect all" : "Select all"}</span>
-          </button>
-
-          <div className="flex-1" aria-hidden="true" />
-
-          {/* The order was the product's opinion and nothing said so, which left
-              the least certain target at the top for no visible reason and the
-              heaviest one unreachable. */}
-          {targets.length > 1 && (
-            <OrderToggle
-              active={order}
-              onChange={setOrder}
-              options={[
-                [
-                  "confidence",
-                  "Least certain",
-                  proEnabled
-                    ? "Targets the scanner is least sure about come first"
-                    : "Targets the scanner is least sure about come first. On Free, what your plan can clean leads either way.",
-                ],
-                [
-                  "size",
-                  "Largest",
-                  proEnabled
-                    ? "Heaviest on disk first"
-                    : "Heaviest on disk first. On Free, what your plan can clean leads either way.",
-                ],
-              ]}
-            />
-          )}
-        </div>
       </header>
 
       {targets.length === 0 ? (
@@ -344,6 +295,68 @@ export function FindingsSection({
                 stack of separately bordered cards puts a border around every
                 row inside a scroller that already has one. */}
             <div className="overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-xs">
+              {/* Select-all belongs to the list, in the list, with its box in
+                  the same column as the boxes it toggles. Standing in a bar of
+                  its own it was a control pointing at nothing near it. The
+                  order toggle rides the same row rather than earning a second
+                  strip for two buttons. */}
+              <div className="flex items-center border-b border-forest-800 bg-forest-950/40">
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  disabled={scanning || freeTargets.length === 0}
+                  className="group/all flex min-w-0 items-center gap-3.5 px-4 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span
+                    className={`grid size-5 shrink-0 place-items-center rounded-md border transition-all ${
+                      allSelected
+                        ? "border-sage-400 bg-sage-400 text-forest-950"
+                        : "border-forest-800 bg-forest-950 text-transparent group-hover/all:border-sage-400"
+                    }`}
+                  >
+                    <Check size={11} strokeWidth={3} aria-hidden="true" />
+                  </span>
+                  <span className="truncate text-xs font-medium text-mist-300">
+                    {allSelected ? "Deselect all" : "Select all"}
+                    {selectedTargets.length > 0 && (
+                      <span className="ml-1.5 font-mono text-[11px] text-mist-500">
+                        {selectedTargets.length} of {freeTargets.length}
+                      </span>
+                    )}
+                  </span>
+                </button>
+
+                <div className="flex-1" aria-hidden="true" />
+
+                {/* The order was the product's opinion and nothing said so,
+                    which left the least certain target at the top for no
+                    visible reason and the heaviest one unreachable. */}
+                {targets.length > 1 && (
+                  <div className="pr-3">
+                    <OrderToggle
+                      active={order}
+                      onChange={setOrder}
+                      options={[
+                        [
+                          "confidence",
+                          "Least certain",
+                          proEnabled
+                            ? "Targets the scanner is least sure about come first"
+                            : "Targets the scanner is least sure about come first. On Free, what your plan can clean leads either way.",
+                        ],
+                        [
+                          "size",
+                          "Largest",
+                          proEnabled
+                            ? "Heaviest on disk first"
+                            : "Heaviest on disk first. On Free, what your plan can clean leads either way.",
+                        ],
+                      ]}
+                    />
+                  </div>
+                )}
+              </div>
+
               {listedTargets.map((target, position) => (
                 <TargetCard
                   key={target.id}
