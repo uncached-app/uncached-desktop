@@ -124,6 +124,10 @@ Detected by reading the application directories rather than by asking Launch Ser
 
 Both refuse a path that is not inside one of `workspaceRoots`, compared component-wise on canonical paths — `/work-archive` is not inside `/work` however the two are spelled. `open_project_with` also refuses a `program` that is not in `available_launchers`: a caller that could name any program could start any process, and these commands exist to open an editor.
 
+An editor goes through the opener. A **terminal does not**, outside macOS. The opener runs `<app> <path>`, and no terminal emulator reads a bare positional path as a working directory: `gnome-terminal /w/api` opens in the home directory, and `cmd.exe C:\w\api` tries to execute the path. On Windows it also passes `CREATE_NO_WINDOW`, which is right for an editor and fatal for a console — the process would start with no window at all. So each terminal is spawned directly with its own documented option (`-d`, `/K cd /d`, `--workdir`, `--directory`, `--working-directory`, `start --cwd`, `-NoExit -Command Set-Location`), and one with no known option is spawned with its working directory set instead. macOS keeps the opener, where `open -a Terminal -- <path>` already means what it looks like.
+
+**Verified on macOS only.** The flags are each terminal's documented option; the other two platforms have not been run.
+
 ### `project_hygiene`
 
 Request: `{ "path": "/work/api" }`. Read-only, offline, Free on every plan.
