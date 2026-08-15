@@ -161,6 +161,10 @@ fn simple_hash(input: &str) -> String {
 
 /// Shared with the tray, so a notification reports the same size the
 /// interface would have shown for it.
+///
+/// Mirrored by `formatBytes` in `src/utils/format.mjs`, which renders the byte
+/// counts the frontend adds up itself. Both appear on one screen, so the two
+/// have a shared table of agreed values in each other's tests.
 pub fn format_size(bytes: u64) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;
@@ -174,6 +178,46 @@ pub fn format_size(bytes: u64) -> String {
         format!("{:.2} KB", bytes as f64 / KB as f64)
     } else {
         format!("{} B", bytes)
+    }
+}
+
+#[cfg(test)]
+mod format_size_tests {
+    use super::format_size;
+
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+
+    /// The table `formatBytes` in `src/utils/format.mjs` is checked against,
+    /// entry for entry. That file has a test of the same name; a row added
+    /// here has to be added there.
+    ///
+    /// The last four are ties. Rust rounds a half to even and JavaScript's
+    /// `toFixed` rounds it away from zero, so the same directory read
+    /// "1.12 GB" here and "1.13 GB" there until the mirror was written to
+    /// match this side.
+    #[test]
+    fn format_size_agrees_with_format_bytes_row_for_row() {
+        let agreed: [(u64, &str); 13] = [
+            (0, "0 B"),
+            (1, "1 B"),
+            (1023, "1023 B"),
+            (KB, "1.00 KB"),
+            (MB - 1, "1024.00 KB"),
+            (MB, "1.00 MB"),
+            (GB, "1.00 GB"),
+            (1536, "1.50 KB"),
+            (GB + GB / 8, "1.12 GB"),
+            (GB * 2 + GB * 3 / 8, "2.38 GB"),
+            (MB * 2 + MB * 5 / 8, "2.62 MB"),
+            (KB + KB * 7 / 8, "1.88 KB"),
+            (100 * 1024 * GB, "102400.00 GB"),
+        ];
+
+        for (bytes, expected) in agreed {
+            assert_eq!(format_size(bytes), expected, "{bytes} bytes");
+        }
     }
 }
 

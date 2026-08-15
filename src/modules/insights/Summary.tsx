@@ -1,5 +1,5 @@
 import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, HardDrive, Sparkles } from "lucide-react";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 import type { Report } from "../../utils/report.d.mts";
 
 /** The four numbers, and whether the window beat the one before it. */

@@ -1,5 +1,5 @@
 import { ProjectRow } from "./ProjectRow";
-import { formatBytes } from "../../../utils/format";
+import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
 import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
 

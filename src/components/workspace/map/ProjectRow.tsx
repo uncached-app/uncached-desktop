@@ -1,6 +1,6 @@
 import { ChevronRight, Copy, GitBranch } from "lucide-react";
 import { rootName } from "./naming";
-import { formatBytes } from "../../../utils/format";
+import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION, projectEvidence } from "../verdictPresentation";
 import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
 

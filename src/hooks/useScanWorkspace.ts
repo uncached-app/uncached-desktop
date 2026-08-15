@@ -8,6 +8,7 @@ import type {
   PendingScanEvent,
   ScanCancelled,
   ScanFinished,
+  ScanNotice,
   ScanProgress,
   ScanStarted,
   ScanStartResult,
@@ -41,7 +42,7 @@ import {
   validateScanStarted,
   shouldIgnoreScanFailure,
 } from "../utils/apiContract";
-import { getCleanupReadyTargets, shouldOpenReview } from "../utils/scanReview.mjs";
+import { shouldOpenReview } from "../utils/scanReview.mjs";
 
 export function useScanWorkspace(
   cleanMode: CleanMode = "Trash",
@@ -52,13 +53,12 @@ export function useScanWorkspace(
   const [extraRoots, setExtraRoots] = useState<string[]>([]);
   const [targets, setTargets] = useState<ScanTarget[]>([]);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
-  const [status, setStatus] = useState("Ready to scan");
+  const [notice, setNotice] = useState<ScanNotice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [listenersReady, setListenersReady] = useState(false);
   const [cleaningTargetIds, setCleaningTargetIds] = useState<Set<string>>(new Set());
-  const [deletingAll, setDeletingAll] = useState(false);
   const [step, setStep] = useState<Step>(1);
   const [cleanupSummary, setCleanupSummary] = useState({ removed: 0, freedBytes: 0 });
   const [cleanupMode, setCleanupMode] = useState<CleanMode>("Trash");
@@ -94,7 +94,7 @@ export function useScanWorkspace(
     setScanTargetCount(null);
     setUnreadable(0);
     setStep(1);
-    setStatus("Scan failed");
+    setNotice(null);
     setError(message);
   }
 
@@ -143,7 +143,6 @@ export function useScanWorkspace(
     } else if (event.kind === "finished") {
       pendingScan.current = false;
       setScanning(false);
-      setStatus(`Scan complete · ${event.payload.totalTargets} targets · ${event.payload.durationMs} ms`);
       setScanFinished(true);
       setScanTargetCount(event.payload.totalTargets);
       setUnreadable(event.payload.unreadable);
@@ -158,11 +157,7 @@ export function useScanWorkspace(
       // What it had already found when it stopped. The backend sends real
       // counts now, and a scan cancelled after finding four gigabytes tells the
       // user that rather than reporting the stop as if nothing happened.
-      setStatus(
-        event.payload.totalTargets > 0
-          ? `Scan cancelled · ${event.payload.totalTargets} ${event.payload.totalTargets === 1 ? "target" : "targets"} found before stopping`
-          : "Scan cancelled",
-      );
+      setNotice({ kind: "cancelled", targetsFound: event.payload.totalTargets });
       setStep(1);
     } else {
       failScan(event.payload.error.message);
@@ -197,7 +192,7 @@ export function useScanWorkspace(
       listen<ApiEnvelope<ScanStarted>>("scan:started", ({ payload }) => {
         try {
           const started = unwrapV1(payload, validateScanStarted);
-          if (acceptsScanEvent(started.scanId)) setStatus("Scanning workspace...");
+          if (acceptsScanEvent(started.scanId)) setNotice(null);
         } catch (contractError) {
           const message = contractError instanceof ApiContractError
             ? toUiError(contractError.info).message
@@ -267,6 +262,8 @@ export function useScanWorkspace(
 
   useEffect(() => {
     if (shouldOpenReview(step, scanFinished, scanTargetCount, targets)) {
+      // A refused Cancel belongs to the step that offered it.
+      setNotice(null);
       setStep(3);
     }
   }, [scanFinished, scanTargetCount, step, targets]);
@@ -323,7 +320,7 @@ export function useScanWorkspace(
     setProgress(null);
     setScanning(true);
     setStep(2);
-    setStatus("Scanning workspace...");
+    setNotice(null);
     const generation = ++scanGeneration.current;
     activeScanId.current = null;
     pendingScan.current = true;
@@ -378,7 +375,7 @@ export function useScanWorkspace(
 
     setCancelling(true);
     setError(null);
-    setStatus("Cancelling scan...");
+
     try {
       const rawResult = await invoke<RawCommandResult<{ cancelled: boolean }>>("cancel_scan", { scanId });
       if (generation !== scanGeneration.current || activeScanId.current !== scanId) return;
@@ -393,14 +390,17 @@ export function useScanWorkspace(
         setProgress(null);
         setScanning(false);
         setCancelling(false);
-        setStatus("Scan cancelled");
+        // The backend also emits `scan:cancelled`, with the count. Whichever
+        // arrives first wins, and this one has no count to report — so it fills
+        // in only when the event did not.
+        setNotice((current) => (current?.kind === "cancelled" ? current : { kind: "cancelled", targetsFound: null }));
       setStep(1);
       setScanFinished(false);
       setScanTargetCount(null);
     setUnreadable(0);
       } else {
         setCancelling(false);
-        setStatus("Scan already complete");
+        setNotice({ kind: "cancelRefused" });
       }
     } catch (cancelError) {
       if (isCurrentScanRequest(generation, scanGeneration.current, scanId, activeScanId.current)) {
@@ -481,18 +481,6 @@ export function useScanWorkspace(
     }
   }
 
-  async function deleteAll() {
-    if (scanning || deletingAll || targets.some((target) => target.sizePending || target.sizeHasErrors)) return;
-    setDeletingAll(true);
-    try {
-      const results = [];
-      for (const target of targets) results.push(await cleanTarget(target.id));
-      if (results.every(Boolean)) setStep(4);
-    } finally {
-      setDeletingAll(false);
-    }
-  }
-
   function resetScan() {
     scanGeneration.current += 1;
     activeScanId.current = null;
@@ -503,13 +491,10 @@ export function useScanWorkspace(
     setScanFinished(false);
     setScanTargetCount(null);
     setUnreadable(0);
-    setStatus("Ready to scan");
+    setNotice(null);
     setCleanupMode("Trash");
   }
 
-  const sizesReady = targets.length > 0 && getCleanupReadyTargets(targets).length === targets.length;
-  const deleteAllDisabled = scanning || deletingAll || !sizesReady;
-  const deleteAllLoading = scanning || deletingAll || targets.some((target) => target.sizePending);
   const cleanupModeSupported = canUseCleanupMode(capabilities, cleanMode);
 
   return {
@@ -520,26 +505,22 @@ export function useScanWorkspace(
     pickRoot,
     targets,
     progress,
-    status,
+    notice,
     error,
     scanning,
     cancelling,
     listenersReady,
     cleaningTargetIds,
-    deletingAll,
     step,
     setStep,
     cleanupSummary,
     cleanupMode,
-    deleteAllDisabled,
-    deleteAllLoading,
     capabilities,
     cleanupModeSupported,
     startScan,
     cancelScan,
     cleanTarget,
     refreshTargetSize,
-    deleteAll,
     resetScan,
     unreadable,
   };

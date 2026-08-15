@@ -2,7 +2,7 @@ import { BarChart2 } from "lucide-react";
 import { useState } from "react";
 import { GrainPicker } from "./GrainPicker";
 import { formatBucket } from "./labels";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 import type { Report } from "../../utils/report.d.mts";
 
 /**

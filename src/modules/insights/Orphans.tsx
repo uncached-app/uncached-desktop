@@ -1,6 +1,6 @@
 import { FolderSearch, Ghost, Loader2 } from "lucide-react";
 import type { OrphanReport } from "../../types/orphans";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 
 /**
  * Regenerable directories that no project claims any more.

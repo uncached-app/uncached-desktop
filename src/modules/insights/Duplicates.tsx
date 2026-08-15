@@ -1,6 +1,6 @@
 import { Copy, Layers, Link2, Loader2 } from "lucide-react";
 import type { DuplicateReport } from "../../types/duplicates";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 
 /** How many rows a Free reader gets. The total is never one of the hidden ones. */
 const FREE_ROWS = 3;

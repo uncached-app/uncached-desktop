@@ -1,5 +1,5 @@
 import { categoryPresentation } from "./findings/categoryPresentation";
-import { formatBytes } from "../utils/format";
+import { formatBytes } from "../utils/format.mjs";
 import type { CategoryBytes } from "../types/workspace";
 
 /**

@@ -1,7 +1,7 @@
 import { Check, Clock, Copy, History, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EVENT_PAGE, formatMoment, labelFor } from "./labels";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 import type { Report } from "../../utils/report.d.mts";
 
 /** The events themselves, displayed as a clean flat list with tabular columns. */

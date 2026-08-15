@@ -1,6 +1,6 @@
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import { useState } from "react";
-import { formatBytes } from "../../../utils/format";
+import { formatBytes } from "../../../utils/format.mjs";
 import { copyText } from "../../../utils/clipboard";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
 import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";

@@ -7,7 +7,7 @@ import { WorkspaceHeader } from "./map/WorkspaceHeader";
 import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
 import { useFocusedProject } from "./map/useFocusedProject";
 import { VERDICT_ORDER } from "./verdictPresentation";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
 import type { Footprint, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
 

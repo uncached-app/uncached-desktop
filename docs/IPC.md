@@ -451,17 +451,14 @@ All events are emitted by Tauri with a v1 envelope. Event names are exact and ca
 | `scan:finished` | `scanId`, `totalTargets`, `totalBytesFound`, `durationMs`, `unreadable` |
 | `scan:cancelled` | `scanId`, `totalTargets`, `totalBytesFound` |
 | `scan:failed` | `scanId`, nested sanitized `error` |
-| `clean:started` | `targetId`, `mode` |
-| `clean:finished` | `targetId`, `freedBytes`, `sizeHasErrors` |
-| `clean:failed` | failure envelope; no data |
 
 `scan:target_found` target fields are `id`, `path`, `name`, `label`, `category`, `plan`, `confidence`, `cleanable`, `sizeBytes`, `sizePending`, `sizeHasErrors` and `formattedSize`. The target has no `identity` field, and no `lastModified`: it was a `metadata` call per target filling a field no screen read.
 
 `scan:finished` carries `unreadable`: folders the walk was not allowed to open, summed across every root. Above zero, both `totalTargets` and `totalBytesFound` are short by whatever is inside them, and the review screen says so rather than presenting either as the whole workspace. On macOS without Full Disk Access that is the ordinary case. The field is defaulted on both sides, so a desktop running against a core that predates it reads zero rather than throwing the event away.
 
-`scan:cancelled` carries what the scan had already found when it stopped, not zeroes. A scan cancelled after finding four gigabytes found four gigabytes, and the step-1 status line says so. `scan:cancelled` replaces `scan:finished`. `scan:finished` is emitted only after traversal and all sizing jobs settle. A sizing error remains visible in the target via `sizeHasErrors`; it does not turn the scan into `scan:failed`. A scan failure carries its `scanId` inside `data`, alongside sanitized Core error information, so late failures cannot clear a newer scan.
+`scan:cancelled` carries what the scan had already found when it stopped, not zeroes. A scan cancelled after finding four gigabytes found four gigabytes, and the folder screen says so — ahead of the remembered last run, which used to hide it. `scan:cancelled` replaces `scan:finished`. `scan:finished` is emitted only after traversal and all sizing jobs settle. A sizing error remains visible in the target via `sizeHasErrors`; it does not turn the scan into `scan:failed`. A scan failure carries its `scanId` inside `data`, alongside sanitized Core error information, so late failures cannot clear a newer scan.
 
-Cleanup success is named `clean:finished`, not `clean:success`. Cleanup failure uses the public Core error shape and never exposes native error text. A cancelled cleanup is reported as `clean:failed` with the mapped public error.
+Cleanup emits nothing. It used to emit `clean:started`, `clean:finished` and `clean:failed`, with a DTO and four tests; nothing on either side ever listened. Every caller — the frontend command and the scheduler alike — holds the returned envelope, which carries strictly more than the events did, and an open window re-reads the workspace when it regains focus. An event carrying only what its own caller already knows is a channel that cannot be wrong, because nothing reads it.
 
 ## Error handling and migration
 

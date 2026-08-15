@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowRight, RefreshCw, Search, Sparkles, X } from "lucide-react";
 import type { RefObject } from "react";
-import { formatBytes } from "../../../utils/format";
+import { formatBytes } from "../../../utils/format.mjs";
 import { ChoiceRow } from "../../shared/ChoiceRow";
 import { StatCard } from "../../shared/StatCard";
 import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";

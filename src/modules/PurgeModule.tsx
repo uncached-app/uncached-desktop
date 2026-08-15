@@ -72,11 +72,8 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
         pickRoot={flow.pickRoot}
         proEnabled={proEnabled}
         startScan={flow.startScan}
-        cancelScan={flow.cancelScan}
         listenersReady={flow.listenersReady}
-        scanning={flow.scanning}
-        cancelling={flow.cancelling}
-        status={flow.status}
+        notice={flow.notice}
         cleanupSummary={flow.cleanupSummary}
         lastCleanup={lastCleanup}
         error={flow.error}
@@ -90,6 +87,7 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
         targets={flow.targets}
         progress={flow.progress}
         cancelScan={flow.cancelScan}
+        notice={flow.notice}
       />
 
       {view === "projects" && flow.step === 3 && openProject && (

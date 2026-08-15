@@ -49,7 +49,7 @@ Cancellation invalidates the session and removes its targets after publication b
 2. Backend claims the registered target; the frontend never supplies an authoritative path.
 3. Backend canonicalizes again, rejects links, roots, critical directories, outside-root targets, invalid provider context, missing identity, and identity changes.
 4. `TrashCleaner` or `PermanentCleaner` runs in a blocking worker after policy checks.
-5. Backend emits `clean:started`, then `clean:finished` or `clean:failed`.
+5. Backend records the removal in history and answers the invoke. Cleanup emits no events: the only party that needs the outcome is the caller, and it is holding the result.
 
 `Permanent` requires exact `Nuke` confirmation. Cleanup capabilities gate UI actions but do not replace backend authorization. Targets and cleanup claims live in memory; restarting the application invalidates prior targets.
 

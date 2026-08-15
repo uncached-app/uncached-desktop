@@ -2,7 +2,7 @@ import { CalendarClock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { StatCard } from "../components/shared/StatCard";
-import { formatBytes } from "../utils/format";
+import { formatBytes } from "../utils/format.mjs";
 import { PolicyCard } from "./maintenance/PolicyCard";
 import { Selection, type RunState } from "./maintenance/Selection";
 import {

@@ -1,5 +1,5 @@
 import type { Activity, Footprint, Recoverability, Verdict, WorkspaceProject } from "../../types/workspace";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 
 type VerdictPresentation = {
   label: string;

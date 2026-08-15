@@ -1,6 +1,6 @@
 import { PieChart } from "lucide-react";
 import { CategoryBar, CategoryLegend } from "../../CategoryBar";
-import { formatBytes } from "../../../utils/format";
+import { formatBytes } from "../../../utils/format.mjs";
 import type { Footprint } from "../../../types/workspace";
 
 /**

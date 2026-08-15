@@ -103,6 +103,20 @@ export type ScanFailed = {
   };
 };
 
+/**
+ * Something that happened to a scan and has nowhere else to appear.
+ *
+ * Not a status line. The screens already name the phase the backend is in —
+ * step 2 says whether it is walking or measuring, and counts both — so a
+ * string repeating that had one renderer and seven values it never reached.
+ * What was missing is narrower: the two outcomes that leave nothing on screen
+ * to see, one of them a Cancel the backend refused because the scan had
+ * already ended.
+ */
+export type ScanNotice =
+  | { kind: "cancelled"; targetsFound: number | null }
+  | { kind: "cancelRefused" };
+
 export type PendingScanEvent =
   | { kind: "target"; payload: TargetFound }
   | { kind: "sized"; payload: TargetSized }

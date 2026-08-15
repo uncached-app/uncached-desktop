@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 
 interface CompletionViewProps {
   step: Step;

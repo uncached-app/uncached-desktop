@@ -2,7 +2,7 @@ import { Compass, FolderOpen, FolderPlus, PanelsTopLeft, RefreshCw, Settings, ty
 import { useMemo } from "react";
 import { usePurgeFlow } from "../../../hooks/usePurgeFlow";
 import { useProjectActions } from "../../../hooks/useProjectActions";
-import { formatBytes } from "../../../utils/format";
+import { formatBytes } from "../../../utils/format.mjs";
 import type { PaletteItem } from "../../../utils/palette.d.mts";
 import type { AppModule } from "../../../types/module";
 import type { WorkspaceProject } from "../../../types/workspace";

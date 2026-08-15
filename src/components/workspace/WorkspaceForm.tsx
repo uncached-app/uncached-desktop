@@ -1,11 +1,11 @@
 import type { FormEvent } from "react";
-import { AlertTriangle, Ban, LoaderCircle, ScanSearch } from "lucide-react";
+import { AlertTriangle, Ban, ScanSearch } from "lucide-react";
 import { RootPicker } from "../shared/RootPicker";
 import { SearchPanel } from "../shared/SearchPanel";
 import { motion, useReducedMotion } from "motion/react";
-import type { Step } from "../../types/scan";
+import type { ScanNotice, Step } from "../../types/scan";
 import type { LastCleanup } from "../../types/settings";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 
 interface WorkspaceFormProps {
   step: Step;
@@ -14,11 +14,8 @@ interface WorkspaceFormProps {
   pickRoot: () => void;
   proEnabled: boolean;
   startScan: (event: FormEvent) => void;
-  cancelScan: () => void;
   listenersReady: boolean;
-  scanning: boolean;
-  cancelling: boolean;
-  status: string;
+  notice: ScanNotice | null;
   cleanupSummary: { removed: number; freedBytes: number };
   lastCleanup: LastCleanup | null;
   error: string | null;
@@ -31,11 +28,8 @@ export function WorkspaceForm({
   pickRoot,
   proEnabled,
   startScan,
-  cancelScan,
   listenersReady,
-  scanning,
-  cancelling,
-  status,
+  notice,
   cleanupSummary,
   lastCleanup,
   error,
@@ -43,13 +37,17 @@ export function WorkspaceForm({
   const reducedMotion = useReducedMotion();
 
   const lastRun = cleanupSummary.removed > 0 ? cleanupSummary : lastCleanup;
-  const statusLine = scanning
-    ? status
+  // A cancellation outranks the last run: it is what just happened, and it used
+  // to be hidden by it — the previous cleanup is remembered across restarts, so
+  // "Last run" was almost always there to mask it.
+  const cancelled = notice?.kind === "cancelled" ? notice : null;
+  const statusLine = cancelled
+    ? cancelled.targetsFound
+      ? `Scan cancelled · ${cancelled.targetsFound} ${cancelled.targetsFound === 1 ? "target" : "targets"} found before stopping`
+      : "Scan cancelled"
     : lastRun
       ? `Last run: ${lastRun.removed} ${lastRun.removed === 1 ? "target" : "targets"} removed, ${formatBytes(lastRun.freedBytes)} reclaimed`
-      : status === "Scan cancelled"
-        ? status
-        : null;
+      : null;
 
   if (step !== 1) return null;
 
@@ -75,33 +73,16 @@ export function WorkspaceForm({
           <div className="mt-4 flex items-center gap-3">
             <button
               type="submit"
-              disabled={!listenersReady || scanning || extraRoots.length === 0}
+              disabled={!listenersReady || extraRoots.length === 0}
               className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 transition-colors hover:bg-sage-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {scanning ? (
-                <LoaderCircle size={17} className="animate-spin" aria-hidden="true" />
-              ) : (
-                <ScanSearch size={17} aria-hidden="true" />
-              )}
-              <span>{scanning ? "Scanning workspace..." : "Scan workspace"}</span>
+              <ScanSearch size={17} aria-hidden="true" />
+              <span>Scan workspace</span>
             </button>
-
-            {scanning && (
-              <button
-                type="button"
-                disabled={cancelling}
-                onClick={cancelScan}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 transition-colors hover:opacity-90 disabled:cursor-not-allowed"
-              >
-                <Ban size={16} aria-hidden="true" />
-                <span>{cancelling ? "Cancelling..." : "Cancel"}</span>
-              </button>
-            )}
           </div>
 
           <div className="mt-4 flex min-h-6 items-center justify-center gap-2 text-xs text-mist-500" aria-live="polite">
-            {scanning && <LoaderCircle size={14} className="animate-spin text-sage-400" aria-hidden="true" />}
-            {statusLine === "Scan cancelled" && <Ban size={14} className="text-coral-300" aria-hidden="true" />}
+            {cancelled && <Ban size={14} className="text-coral-300" aria-hidden="true" />}
             {statusLine && <span>{statusLine}</span>}
           </div>
         </form>

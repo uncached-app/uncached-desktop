@@ -1,6 +1,6 @@
 import { Check, FolderGit2, Loader2, Play, ShieldAlert, Sparkles } from "lucide-react";
 import type { MaintenancePreview, SkipReason } from "../../types/maintenance";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 
 const SKIP_REASONS: Record<SkipReason, string> = {
   verdict: "not safe to automate",

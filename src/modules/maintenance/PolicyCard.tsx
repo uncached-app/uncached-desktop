@@ -1,6 +1,6 @@
 import { Clock, HardDrive, ShieldCheck, Trash2 } from "lucide-react";
 import { ChoiceRow } from "../../components/shared/ChoiceRow";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 import type { MaintenancePolicy } from "../../types/maintenance";
 
 const MB = 1024 * 1024;

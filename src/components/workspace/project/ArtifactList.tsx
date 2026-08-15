@@ -2,7 +2,7 @@ import { AlertTriangle, Check, FolderArchive, Loader2, ShieldCheck, Trash2 } fro
 import { useMemo, useState } from "react";
 import { Panel } from "./panels";
 import { isFreeTarget } from "../../../utils/entitlements.mjs";
-import { formatBytes } from "../../../utils/format";
+import { formatBytes } from "../../../utils/format.mjs";
 import { isInside, relativeTo } from "../../../utils/paths.mjs";
 import type { ScanTarget } from "../../../types/scan";
 import type { CleanMode } from "../../../types/settings";

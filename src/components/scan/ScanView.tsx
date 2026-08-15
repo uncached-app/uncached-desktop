@@ -1,6 +1,6 @@
-import { Ban, LoaderCircle, RotateCcw } from "lucide-react";
+import { Ban, Info, LoaderCircle, RotateCcw } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import type { ScanProgress, ScanTarget, Step } from "../../types/scan";
+import type { ScanNotice, ScanProgress, ScanTarget, Step } from "../../types/scan";
 
 interface ScanViewProps {
   step: Step;
@@ -9,6 +9,8 @@ interface ScanViewProps {
   targets: ScanTarget[];
   progress: ScanProgress | null;
   cancelScan: () => void;
+  /** What became of a Cancel the backend would not honour. */
+  notice: ScanNotice | null;
   /** Returns to step 1 and abandons whatever this scan was still waiting on. */
   resetScan: () => void;
 }
@@ -20,6 +22,7 @@ export function ScanView({
   targets,
   progress,
   cancelScan,
+  notice,
   resetScan,
 }: ScanViewProps) {
   const reducedMotion = useReducedMotion();
@@ -63,13 +66,26 @@ export function ScanView({
           </div>
         </div>
 
+        {/* A Cancel reaches the backend after the walk has already ended more
+            often than it looks: the button is live for the whole walk, and the
+            walk ends on its own. The refusal used to produce nothing at all on
+            screen, which reads as a broken button rather than a race lost. */}
+        <div className="mt-6 flex min-h-5 items-center justify-center gap-2 text-xs text-mist-500" aria-live="polite">
+          {notice?.kind === "cancelRefused" && (
+            <>
+              <Info size={13} className="shrink-0 text-mist-500" aria-hidden="true" />
+              <span>The scan finished before it could be cancelled.</span>
+            </>
+          )}
+        </div>
+
         {/* Cancel is offered only while there is a scan to cancel. Once the
             walk has ended this step is waiting for sizing to settle, and every
             way out of it depends on that happening — so if it does not, the
             screen had no control at all and no way back. Starting over is the
             honest offer there: it is not a cancellation, because there is
             nothing left running to cancel. */}
-        <div className="mt-8 flex min-h-9 items-center">
+        <div className="mt-4 flex min-h-9 items-center">
           {!scanning && (
             <button
               type="button"

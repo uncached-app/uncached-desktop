@@ -22,7 +22,7 @@ import type { Portrait as PortraitData } from "../utils/portrait.d.mts";
 import type { Insight } from "../utils/insights.d.mts";
 import { DIMENSIONS, buildReport } from "../utils/report.mjs";
 import type { Dimension, Filters, Report } from "../utils/report.d.mts";
-import { formatBytes } from "../utils/format";
+import { formatBytes } from "../utils/format.mjs";
 import type { Verdict } from "../types/workspace";
 
 /** What each reading is doing, while it is the one running. */

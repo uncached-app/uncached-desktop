@@ -1,7 +1,7 @@
 import { HardDrive } from "lucide-react";
 import { CategoryBar, CategoryLegend } from "../../components/CategoryBar";
 import { VERDICT_PRESENTATION } from "../../components/workspace/verdictPresentation";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 import type { Portrait as PortraitData } from "../../utils/portrait.d.mts";
 
 /**

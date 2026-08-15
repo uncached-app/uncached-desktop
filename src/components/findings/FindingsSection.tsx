@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowLeft, Check, FolderSearch, LoaderCircle, Trash2, X 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { CleanResult, ScanTarget, Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 import { getCleanupReadyTargets, sortForListing } from "../../utils/scanReview.mjs";
 import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";

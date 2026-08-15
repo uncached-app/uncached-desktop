@@ -1,6 +1,6 @@
 import { Check, Clock, Folder, Package, Trash2 } from "lucide-react";
 import { DIMENSION_LABELS, UNRECORDED, labelFor } from "./labels";
-import { formatBytes } from "../../utils/format";
+import { formatBytes } from "../../utils/format.mjs";
 import type { BreakdownRow, Dimension } from "../../utils/report.d.mts";
 
 const DIMENSION_ICONS: Record<Dimension, React.ElementType> = {
