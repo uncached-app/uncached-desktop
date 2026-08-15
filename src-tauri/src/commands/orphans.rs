@@ -65,31 +65,12 @@ fn walk(
                 found.push(orphan);
                 // Reported. Its contents are its own.
             }
-            None if is_claimed_artifact(&path) => {
+            None if orphans::is_artifact(&path, &has_marker) => {
                 // Recognised and owned. Nothing inside is a finding either.
             }
             None => walk(root, &path, depth + 1, found, examined),
         }
     }
-}
-
-/// Whether this is one of the names the rule knows, in the case where a project
-/// does claim it.
-///
-/// `classify` returns `None` both for "owned" and for "not a name we know", and
-/// only the first is a reason to stop descending. Without the difference, the
-/// walk would either recurse into every `node_modules` on the machine or stop
-/// at every ordinary folder.
-fn is_claimed_artifact(path: &Path) -> bool {
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .map(|name| {
-            matches!(
-                name,
-                "node_modules" | ".next" | ".turbo" | ".angular" | ".nuxt" | ".svelte-kit"
-            )
-        })
-        .unwrap_or(false)
 }
 
 /// Regenerable directories under the chosen folders that no project claims.

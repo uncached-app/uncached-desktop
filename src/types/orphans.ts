@@ -6,6 +6,14 @@ export type Orphan = {
   label: string;
   /** `null` when the size could not be read. Never treated as zero. */
   bytes: number | null;
+  /**
+   * Whether a command could rebuild this if its project came back.
+   *
+   * False for a virtual environment. It is still dead weight, for the opposite
+   * reason to everything else here: not because rebuilding is cheap, but
+   * because nothing is left that could use it.
+   */
+  regenerable: boolean;
 };
 
 export type OrphanReport = {

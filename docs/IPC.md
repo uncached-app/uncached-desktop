@@ -353,7 +353,7 @@ Raw response:
 ```json
 {
   "orphans": [
-    { "path": "/Users/me/code/old-api/node_modules", "parent": "/Users/me/code/old-api", "label": "Node modules", "bytes": 412000000 }
+    { "path": "/Users/me/code/old-api/node_modules", "parent": "/Users/me/code/old-api", "label": "Node modules", "bytes": 412000000, "regenerable": true }
   ],
   "bytes": 412000000,
   "examined": 318
@@ -362,7 +362,11 @@ Raw response:
 
 Regenerable directories under those roots that no project claims. `bytes` is `null` on an entry whose size could not be read, and such an entry stays in the list at nothing rather than being dropped — the total is what the user is asked to believe, and quietly shrinking it is worse than admitting a gap. `examined` lets an empty report say it looked.
 
-The rule is narrower than it could be: a directory is an orphan only when neither its own parent nor any ancestor **up to the scanned root** holds an owning manifest. A workspace member whose `package.json` is momentarily missing still sits under the repository's, and that is a project mid-edit. The chain stops at the root, because a manifest outside the folder the user chose is not evidence about anything inside it. Only unambiguous directory names qualify — `node_modules`, `.next`, `.turbo`, `.angular`, `.nuxt`, `.svelte-kit`. `target`, `dist`, `build` and `vendor` are excluded on purpose: every one of them is a name other tools use, and being wrong here means telling someone a directory they care about belongs to nobody.
+The rule is narrower than it could be: a directory is an orphan only when neither its own parent nor any ancestor **up to the scanned root** holds an owning manifest. A workspace member whose `package.json` is momentarily missing still sits under the repository's, and that is a project mid-edit. The chain stops at the root, because a manifest outside the folder the user chose is not evidence about anything inside it.
+
+A directory qualifies in one of two ways. Either its name means only one thing — `node_modules`, `.next`, `.turbo`, `.angular`, `.nuxt`, `.svelte-kit` — or its name is ambiguous and a file **inside** it settles the question. `target` is on the list only when it holds a `CACHEDIR.TAG`, whose own specification means the directory contains regenerable data; `venv`, `.venv` and `env` only when they hold a `pyvenv.cfg`, which Python's standard library writes into every environment it creates and nothing else writes. `dist`, `build` and `vendor` have neither and stay out — being wrong here means telling someone a directory they care about belongs to nobody.
+
+`regenerable` is false for a virtual environment and true for everything else. That is the honest exception on this screen: without the project's dependency file no command can rebuild an environment, so it is dead weight because nothing is left that could use it, not because replacing it is cheap.
 
 **Read-only, on every plan, and there is no companion command that removes one.** Cleanup validates each target against the providers, and the providers confirm an artifact by the manifest beside it — which is exactly what an orphan lacks. A button here would be one the backend declines, and relaxing that confirmation to make it work would trade the product's central safety property for a convenience. The finding names the path; `reveal_project` opens it.
 

@@ -89,7 +89,16 @@ export function Orphans({
                       <span className="block truncate font-mono text-xs text-mist-100 group-hover:text-sage-300">
                         {orphan.parent}
                       </span>
-                      <span className="mt-0.5 block text-[10px] text-mist-500">{orphan.label}</span>
+                      <span className="mt-0.5 block text-[10px] text-mist-500">
+                        {orphan.label}
+                        {/* The one kind here that is not disposable because
+                            rebuilding is cheap. Said on the row, because "left
+                            behind" would otherwise read as "regenerable" and
+                            this is the opposite: nothing can reproduce it. */}
+                        {!orphan.regenerable && (
+                          <span className="text-confidence-medium"> · cannot be rebuilt</span>
+                        )}
+                      </span>
                     </div>
                   </button>
                   <span className="shrink-0 font-mono text-xs font-semibold text-mist-100">
@@ -104,12 +113,22 @@ export function Orphans({
               one finding the product can see and will not act on, and the
               reason is the property everything else here rests on. */}
           {report.orphans.length > 0 && (
-            <p className="mt-3 border-t border-forest-800 pt-3 text-[11px] leading-5 text-mist-500">
-              Uncached will not remove these. A build folder is only ever a target when the project
-              file that owns it sits beside it, and that is exactly what these are missing — the
-              check that keeps a cleanup honest is the same one that stops it here. Open one to
-              decide for yourself.
-            </p>
+            <div className="mt-3 grid gap-2 border-t border-forest-800 pt-3 text-[11px] leading-5 text-mist-500">
+              <p>
+                Uncached will not remove these. A build folder is only ever a target when the
+                project file that owns it sits beside it, and that is exactly what these are
+                missing — the check that keeps a cleanup honest is the same one that stops it here.
+                Open one to decide for yourself.
+              </p>
+              {report.orphans.some((orphan) => !orphan.regenerable) && (
+                <p>
+                  The environments above are the exception to everything else on this screen:
+                  without the project's dependency file, no command can rebuild one. They are dead
+                  weight because nothing is left that could use them, not because they are cheap to
+                  replace.
+                </p>
+              )}
+            </div>
           )}
         </>
       )}

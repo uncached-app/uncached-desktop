@@ -29,53 +29,124 @@
 use serde::Serialize;
 use std::path::Path;
 
-/// A directory name that only ever means one thing, and the manifest that owns
-/// it.
+/// A directory that only ever means one thing, and the manifest that owns it.
 ///
-/// Names on this list have to be unambiguous on their own, because being wrong
-/// here means telling someone that a directory they care about belongs to
-/// nobody. `target` is absent for exactly that reason: Cargo writes one, and so
-/// does every Makefile ever written. `dist`, `build` and `vendor` are absent for
-/// the same reason.
+/// Being wrong here means telling someone that a directory they care about
+/// belongs to nobody, so an entry qualifies in one of two ways: a name nothing
+/// else uses, or an ambiguous name plus a file inside it that only one tool
+/// writes. `dist`, `build` and `vendor` have neither and are absent.
 struct Owned {
     directory: &'static str,
+    /// A file that must sit **inside** the directory for it to count.
+    ///
+    /// This is what lets a name every project uses onto the list. `target`
+    /// belongs to Cargo and to every Makefile ever written; `target` holding a
+    /// `CACHEDIR.TAG` is a build cache by the tag's own specification, whoever
+    /// wrote it.
+    confirmed_by: Option<&'static str>,
     /// Any one of these beside it means a project claims it.
     markers: &'static [&'static str],
     /// What the finding calls it.
     label: &'static str,
+    /// Whether the tool could rebuild this if its project came back.
+    ///
+    /// False for a virtual environment, and the distinction is the honest part:
+    /// everything else here is disposable because a command reproduces it, while
+    /// a `.venv` whose project is gone cannot be reproduced by anything. It is
+    /// dead weight for the opposite reason — not because rebuilding is cheap,
+    /// but because nothing is left that could use it.
+    regenerable: bool,
 }
+
+const NODE: &[&str] = &["package.json"];
 
 const OWNED: &[Owned] = &[
     Owned {
         directory: "node_modules",
-        markers: &["package.json"],
+        confirmed_by: None,
+        markers: NODE,
         label: "Node modules",
+        regenerable: true,
     },
     Owned {
         directory: ".next",
-        markers: &["package.json"],
+        confirmed_by: None,
+        markers: NODE,
         label: "Next.js build cache",
+        regenerable: true,
     },
     Owned {
         directory: ".turbo",
-        markers: &["package.json"],
+        confirmed_by: None,
+        markers: NODE,
         label: "Turborepo cache",
+        regenerable: true,
     },
     Owned {
         directory: ".angular",
-        markers: &["package.json"],
+        confirmed_by: None,
+        markers: NODE,
         label: "Angular cache",
+        regenerable: true,
     },
     Owned {
         directory: ".nuxt",
-        markers: &["package.json"],
+        confirmed_by: None,
+        markers: NODE,
         label: "Nuxt build cache",
+        regenerable: true,
     },
     Owned {
         directory: ".svelte-kit",
-        markers: &["package.json"],
+        confirmed_by: None,
+        markers: NODE,
         label: "SvelteKit build cache",
+        regenerable: true,
     },
+    // Ambiguous names, admitted by what is inside them.
+    Owned {
+        directory: "target",
+        confirmed_by: Some("CACHEDIR.TAG"),
+        markers: &["Cargo.toml"],
+        label: "Build cache",
+        regenerable: true,
+    },
+    // Python's stdlib `venv` writes `pyvenv.cfg` at the root of every
+    // environment it creates, and nothing else does.
+    Owned {
+        directory: ".venv",
+        confirmed_by: Some("pyvenv.cfg"),
+        markers: PYTHON,
+        label: "Python virtual environment",
+        regenerable: false,
+    },
+    Owned {
+        directory: "venv",
+        confirmed_by: Some("pyvenv.cfg"),
+        markers: PYTHON,
+        label: "Python virtual environment",
+        regenerable: false,
+    },
+    Owned {
+        directory: "env",
+        confirmed_by: Some("pyvenv.cfg"),
+        markers: PYTHON,
+        label: "Python virtual environment",
+        regenerable: false,
+    },
+];
+
+/// Anything that would make a directory of Python dependencies somebody's.
+///
+/// Longer than the Node list because Python never settled on one file, and
+/// missing any of them would report a live project's environment as abandoned.
+const PYTHON: &[&str] = &[
+    "pyproject.toml",
+    "requirements.txt",
+    "Pipfile",
+    "setup.py",
+    "setup.cfg",
+    "environment.yml",
 ];
 
 /// One directory nothing owns.
@@ -88,6 +159,12 @@ pub struct Orphan {
     pub label: String,
     /// `None` until the caller has weighed it.
     pub bytes: Option<u64>,
+    /// Whether a command could rebuild this if its project came back.
+    ///
+    /// False for a virtual environment. It is still dead weight, for the
+    /// opposite reason to everything else here: not because rebuilding is
+    /// cheap, but because nothing is left that could use it.
+    pub regenerable: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -115,7 +192,7 @@ pub fn classify(
     has_marker: &dyn Fn(&Path, &str) -> bool,
 ) -> Option<Orphan> {
     let name = path.file_name()?.to_str()?;
-    let owned = OWNED.iter().find(|entry| entry.directory == name)?;
+    let owned = recognise(path, name, has_marker)?;
 
     if nested_in_itself(path, name) {
         return None;
@@ -144,7 +221,44 @@ pub fn classify(
         parent: parent.to_string_lossy().into_owned(),
         label: owned.label.to_owned(),
         bytes: None,
+        regenerable: owned.regenerable,
     })
+}
+
+/// Which entry this directory is, if any.
+///
+/// Every entry sharing the name is considered, because one ambiguous name can
+/// belong to more than one tool and only the file inside settles which.
+fn recognise(
+    path: &Path,
+    name: &str,
+    has_marker: &dyn Fn(&Path, &str) -> bool,
+) -> Option<&'static Owned> {
+    OWNED
+        .iter()
+        .filter(|entry| entry.directory == name)
+        .find(|entry| match entry.confirmed_by {
+            Some(inside) => has_marker(path, inside),
+            None => true,
+        })
+}
+
+/// Whether this is a known tool's artifact, whether or not a project claims it.
+///
+/// The walk needs this and `classify` cannot answer it: `classify` returns
+/// `None` both for "a project owns this" and for "not a directory this rule
+/// knows", and only the first is a reason to stop descending. Told apart, a
+/// healthy `node_modules` is stepped over; conflated, the walk either reads
+/// every dependency tree on the machine or halts at every ordinary folder.
+///
+/// It lives here rather than as a list of names beside the walk, because a list
+/// of names beside the walk is a second copy of this table that drifts the first
+/// time an entry is added — which it did.
+pub fn is_artifact(path: &Path, has_marker: &dyn Fn(&Path, &str) -> bool) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .and_then(|name| recognise(path, name, has_marker))
+        .is_some()
 }
 
 /// Whether this sits inside another directory of the same name.
@@ -253,14 +367,110 @@ mod tests {
         );
     }
 
+    /// The names with no way to tell them apart from an ordinary folder stay
+    /// out. Being wrong here means telling someone a directory they need
+    /// belongs to nobody.
     #[test]
     fn a_directory_no_scanner_claims_is_not_a_finding() {
         let has = markers(&[]);
-        for path in ["/w/api/target", "/w/api/dist", "/w/api/build", "/w/api/src"] {
+        for path in ["/w/api/dist", "/w/api/build", "/w/api/vendor", "/w/api/src"] {
             assert_eq!(
                 classify(Path::new(path), Path::new("/w"), &has),
                 None,
                 "{path} is a name other tools use too"
+            );
+        }
+    }
+
+    /// `target` is what every Makefile ever written also produces, so the name
+    /// alone was never enough. `CACHEDIR.TAG` settles it: the tag's own
+    /// specification means the directory holds regenerable data, whoever wrote
+    /// it, which is exactly the question being asked.
+    #[test]
+    fn an_ambiguous_name_needs_the_file_that_identifies_it() {
+        let bare = |_: &Path, _: &str| false;
+        assert_eq!(
+            classify(Path::new("/w/api/target"), Path::new("/w"), &bare),
+            None,
+            "a folder called target with nothing in it is just a folder"
+        );
+
+        let tagged = |directory: &Path, file: &str| {
+            directory == Path::new("/w/api/target") && file == "CACHEDIR.TAG"
+        };
+        let found = classify(Path::new("/w/api/target"), Path::new("/w"), &tagged)
+            .expect("a tagged cache directory nothing owns");
+        assert_eq!(found.label, "Build cache");
+        assert!(found.regenerable);
+    }
+
+    #[test]
+    fn a_cargo_target_beside_its_manifest_belongs_to_someone() {
+        let has = |directory: &Path, file: &str| match file {
+            "CACHEDIR.TAG" => directory == Path::new("/w/api/target"),
+            "Cargo.toml" => directory == Path::new("/w/api"),
+            _ => false,
+        };
+        assert_eq!(
+            classify(Path::new("/w/api/target"), Path::new("/w"), &has),
+            None
+        );
+    }
+
+    /// The one finding here that is not disposable because rebuilding is cheap.
+    /// Without the project's dependency file nothing can reproduce a virtual
+    /// environment — it is dead weight for the opposite reason, because nothing
+    /// is left that could use it, and the screen has to say so differently.
+    #[test]
+    fn an_abandoned_virtual_environment_is_reported_as_not_rebuildable() {
+        let venv = |directory: &Path, file: &str| {
+            file == "pyvenv.cfg" && directory == Path::new("/w/api/.venv")
+        };
+        let found = classify(Path::new("/w/api/.venv"), Path::new("/w"), &venv)
+            .expect("no Python project claims it");
+
+        assert_eq!(found.label, "Python virtual environment");
+        assert!(
+            !found.regenerable,
+            "nothing can rebuild this once its project is gone"
+        );
+    }
+
+    /// Python never settled on one file, and missing any of them would report a
+    /// live project's environment as abandoned.
+    #[test]
+    fn any_of_the_python_manifests_claims_an_environment() {
+        for manifest in [
+            "pyproject.toml",
+            "requirements.txt",
+            "Pipfile",
+            "setup.py",
+            "setup.cfg",
+            "environment.yml",
+        ] {
+            let has = |directory: &Path, file: &str| match file {
+                "pyvenv.cfg" => directory == Path::new("/w/api/.venv"),
+                other => other == manifest && directory == Path::new("/w/api"),
+            };
+            assert_eq!(
+                classify(Path::new("/w/api/.venv"), Path::new("/w"), &has),
+                None,
+                "{manifest} beside it means a project uses it"
+            );
+        }
+    }
+
+    /// A folder called `env` is usually not a virtual environment at all, and
+    /// reporting one as abandoned would be the worst mistake this rule can make.
+    #[test]
+    fn a_folder_named_env_that_is_not_an_environment_is_left_alone() {
+        let bare = |_: &Path, _: &str| false;
+        for name in ["env", "venv", ".venv"] {
+            let path = format!("/w/api/{name}");
+            assert_eq!(
+                classify(Path::new(&path), Path::new("/w"), &bare),
+                None,
+                "{name} without pyvenv.cfg is an ordinary folder"
             );
         }
     }
@@ -291,12 +501,14 @@ mod tests {
                     path: "/w/small/node_modules".into(),
                     parent: "/w/small".into(),
                     label: "Node modules".into(),
+                    regenerable: true,
                     bytes: None,
                 },
                 Orphan {
                     path: "/w/large/node_modules".into(),
                     parent: "/w/large".into(),
                     label: "Node modules".into(),
+                    regenerable: true,
                     bytes: None,
                 },
             ],
@@ -321,6 +533,7 @@ mod tests {
                 path: "/w/unreadable/node_modules".into(),
                 parent: "/w/unreadable".into(),
                 label: "Node modules".into(),
+                regenerable: true,
                 bytes: None,
             }],
             ..OrphanReport::default()
@@ -339,6 +552,7 @@ mod tests {
                 path: "/w/a/node_modules".into(),
                 parent: "/w/a".into(),
                 label: "Node modules".into(),
+                regenerable: true,
                 bytes: Some(4),
             }],
             bytes: 4,
