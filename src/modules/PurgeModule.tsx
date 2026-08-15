@@ -93,6 +93,7 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
 
       {view === "projects" && flow.step === 3 && openProject && (
         <ProjectPage
+          proEnabled={proEnabled}
           project={openProject}
           verdict={flow.verdicts[openProject.path] ?? "unknown"}
           footprint={flow.footprints[openProject.path] ?? null}

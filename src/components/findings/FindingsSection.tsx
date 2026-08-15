@@ -147,6 +147,17 @@ export function FindingsSection({
                     <span className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">total found</span>
                   </div>
 
+                  {/* The heading counts every target; this figure covers only
+                      the ones a reclaim could take — measured, and not
+                      report-only. Printed side by side with nothing between
+                      them, the two numbers describe different sets and read as
+                      one claim. */}
+                  {readyTargets.length < targets.length && (
+                    <span className="text-[11px] text-mist-500">
+                      across {readyTargets.length} of them
+                    </span>
+                  )}
+
                   {selectedTargets.length > 0 && (
                     <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-sage-400/40 bg-sage-400/10 px-3 py-1.5 text-sage-300">
                       <span className="font-mono text-sm font-bold">

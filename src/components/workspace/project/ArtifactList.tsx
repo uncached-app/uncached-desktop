@@ -2,6 +2,7 @@ import { AlertTriangle, Check, FolderArchive, Loader2, ShieldCheck, Trash2 } fro
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Panel } from "./panels";
+import { isFreeTarget } from "../../../utils/entitlements.mjs";
 import { formatBytes } from "../../../utils/format";
 import { isInside, relativeTo } from "../../../utils/paths.mjs";
 import type { ScanTarget } from "../../../types/scan";
@@ -21,12 +22,14 @@ export function ArtifactList({
   targets,
   cleanMode,
   cleaningTargetIds,
+  proEnabled,
   onClean,
 }: {
   projectPath: string;
   /** Every artifact the same scan found, unfiltered. */
   targets: ScanTarget[];
   cleanMode: CleanMode;
+  proEnabled: boolean;
   cleaningTargetIds: Set<string>;
   /** Resolves false when the backend refused, so this can say so. */
   onClean: (targetId: string, confirmation: string | null) => Promise<boolean>;
@@ -45,10 +48,19 @@ export function ArtifactList({
     [targets, projectPath],
   );
 
-  const totalArtifactBytes = useMemo(
-    () => owned.reduce((sum, t) => sum + t.sizeBytes, 0),
+  // Summed over what a reclaim would actually take. A target still being
+  // measured contributes an unknown size, not zero, and one whose size failed
+  // contributes a floor — folding either into a figure printed as "total" makes
+  // the panel state a number it cannot stand behind.
+  const measured = useMemo(
+    () => owned.filter((target) => !target.sizePending && !target.sizeHasErrors),
     [owned],
   );
+  const totalArtifactBytes = useMemo(
+    () => measured.reduce((sum, t) => sum + t.sizeBytes, 0),
+    [measured],
+  );
+  const unmeasured = owned.length - measured.length;
 
   async function reclaim(targetId: string) {
     setError(null);
@@ -63,6 +75,14 @@ export function ArtifactList({
         owned.length > 0 && totalArtifactBytes > 0 ? (
           <span className="font-mono text-xs font-semibold text-sage-300">
             {formatBytes(totalArtifactBytes)} total
+            {/* Named rather than folded in. The rows below already say
+                "measuring..." and "partly unreadable"; a total that silently
+                counted them would disagree with the list above it. */}
+            {unmeasured > 0 && (
+              <span className="ml-1 font-normal text-mist-500">
+                · {unmeasured} not counted
+              </span>
+            )}
           </span>
         ) : null
       }
@@ -111,6 +131,11 @@ export function ArtifactList({
           {owned.map((target) => {
             const name = relativeTo(target.path, projectPath);
             const cleaning = cleaningTargetIds.has(target.id);
+            // The same gate the findings card applies, which this screen was
+            // missing: `plan` is stamped in Rust and a Pro target on a Free
+            // install is refused by `perform_clean`. Offering the button and
+            // reporting the refusal afterwards is the shape of a broken app.
+            const proLocked = !isFreeTarget(target) && !proEnabled;
 
             return (
               <motion.li
@@ -145,7 +170,13 @@ export function ArtifactList({
                     )}
                   </span>
 
-                  {target.cleanable && (
+                  {target.cleanable && proLocked && (
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-pro-100">
+                      Pro
+                    </span>
+                  )}
+
+                  {target.cleanable && !proLocked && (
                     <button
                       type="button"
                       onClick={() => void reclaim(target.id)}

@@ -23,6 +23,8 @@ type ProjectPageProps = {
   cleaningTargetIds: Set<string>;
   /** The mode the user chose in settings, which decides what a click costs. */
   cleanMode: CleanMode;
+  /** Which plan is active, so a target the backend would refuse is not offered. */
+  proEnabled: boolean;
   /** Resolves false when the backend refused, so the page can say so. */
   onClean: (targetId: string, confirmation: string | null) => Promise<boolean>;
   onBack: () => void;
@@ -45,6 +47,7 @@ export function ProjectPage({
   targets,
   cleaningTargetIds,
   cleanMode,
+  proEnabled,
   onClean,
   onBack,
   onShowInList,
@@ -120,6 +123,7 @@ export function ProjectPage({
             projectPath={project.path}
             targets={targets}
             cleanMode={cleanMode}
+            proEnabled={proEnabled}
             cleaningTargetIds={cleaningTargetIds}
             onClean={onClean}
           />
