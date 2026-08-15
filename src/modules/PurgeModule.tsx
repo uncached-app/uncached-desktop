@@ -109,6 +109,12 @@ export function PurgeModule({ proEnabled, cleanMode, workspaceView, lastCleanup,
             if (result) await flow.remeasureProject(openProject.path);
             return result !== null;
           }}
+          // The same reading the map draws its middle from, narrowed to this
+          // one project and ordered by what each copy costs.
+          packages={[...(flow.analysis.duplicates.report?.packages ?? [])]
+            .filter((entry) => entry.projects.includes(openProject.path))
+            .sort((left, right) => (right.bytesEach ?? 0) - (left.bytesEach ?? 0))}
+          analysing={flow.analysis.stage === "duplicates" || !flow.analysis.taken}
           onBack={flow.closeProject}
           onShowInList={() => {
             flow.closeProject();

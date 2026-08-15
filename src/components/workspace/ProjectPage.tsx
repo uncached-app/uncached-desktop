@@ -4,6 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { ArtifactList } from "./project/ArtifactList";
 import { ActivityPanel, GitPanel } from "./project/ContextPanels";
 import { DuplicatePanel } from "./project/DuplicatePanel";
+import { SharedPanel } from "./project/SharedPanel";
 import { FootprintPanel } from "./project/FootprintPanel";
 import { HygienePanel } from "./project/HygienePanel";
 import { ProjectActions } from "./project/ProjectActions";
@@ -12,6 +13,7 @@ import { VerdictPanel } from "./project/VerdictPanel";
 import { useProjectHygiene } from "../../hooks/useProjectHygiene";
 import type { ScanTarget } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
+import type { DuplicatePackage } from "../../types/duplicates";
 import type { Footprint, Verdict, WorkspaceProject } from "../../types/workspace";
 
 type ProjectPageProps = {
@@ -31,6 +33,10 @@ type ProjectPageProps = {
   onShowInList: () => void;
   /** Other indexed paths holding the same repository. */
   onOpenProject: (path: string) => void;
+  /** The workspace's duplicate reading, narrowed here to this project. */
+  packages: DuplicatePackage[];
+  /** That reading has not finished, so an empty list means nothing yet. */
+  analysing: boolean;
 };
 
 /**
@@ -52,6 +58,8 @@ export function ProjectPage({
   onBack,
   onShowInList,
   onOpenProject,
+  packages,
+  analysing,
 }: ProjectPageProps) {
   const [flash, setFlash] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
@@ -119,6 +127,8 @@ export function ProjectPage({
           {project.duplicateOf.length > 0 && (
             <DuplicatePanel paths={project.duplicateOf} onOpen={onOpenProject} />
           )}
+
+          <SharedPanel packages={packages} running={analysing} />
 
           <ArtifactList
             projectPath={project.path}
