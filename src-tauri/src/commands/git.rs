@@ -19,7 +19,7 @@
 use crate::commands::locate::authorize;
 use crate::workspace::hygiene::{self, Hygiene};
 use serde::Serialize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::AppHandle;
 
@@ -80,6 +80,108 @@ pub async fn project_hygiene(app: AppHandle, path: String) -> Result<Hygiene, St
     tauri::async_runtime::spawn_blocking(move || read_hygiene(&target))
         .await
         .map_err(|error| error.to_string())
+}
+
+/// One repository that is carrying something, and what.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepositoryHygiene {
+    pub path: String,
+    pub name: String,
+    pub hygiene: Hygiene,
+    /// How many of the dead branches `git branch -d` would accept.
+    pub prunable: usize,
+}
+
+/// Every repository under the chosen folders that is carrying something.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceHygiene {
+    /// Only the ones with something to report, most to say first.
+    pub repositories: Vec<RepositoryHygiene>,
+    /// Repositories read, including the ones that turned out to be clean.
+    pub examined: usize,
+    pub dead_branches: usize,
+    pub prunable: usize,
+    pub stashes: usize,
+    pub worktrees: usize,
+}
+
+/// The same reading, across the workspace instead of one project.
+///
+/// Until now this was reachable from exactly one place: a single project's own
+/// page, after opening the map and clicking the row. A workspace of forty
+/// repositories would have taken forty clicks to learn that three of them are
+/// carrying branches nobody can reach — so the finding existed and effectively
+/// nobody could find it.
+///
+/// On demand, like every other section that costs something. This runs four
+/// `git` invocations per repository, and a number nobody asked for is not worth
+/// spawning a hundred processes.
+///
+/// Read-only and offline, so Free on every plan: it fetches nothing and changes
+/// nothing. Pruning is still one repository at a time, through `prune_branches`,
+/// which re-reads hygiene before it deletes anything.
+#[tauri::command]
+pub async fn workspace_hygiene(
+    app: AppHandle,
+    paths: Vec<String>,
+) -> Result<WorkspaceHygiene, String> {
+    let mut projects: Vec<PathBuf> = Vec::new();
+    for path in &paths {
+        projects.push(authorize(&app, path)?);
+    }
+
+    tauri::async_runtime::spawn_blocking(move || aggregate(&projects))
+        .await
+        .map_err(|error| error.to_string())
+}
+
+/// The aggregation, separated from the command so it can be exercised against
+/// real repositories without an `AppHandle`.
+fn aggregate(projects: &[PathBuf]) -> WorkspaceHygiene {
+    let mut report = WorkspaceHygiene::default();
+
+    for project in projects {
+        // Asked before anything is spawned. Most directories in a workspace
+        // are not repositories, and `git` in one of them costs a process to
+        // be told so.
+        if !project.join(".git").exists() {
+            continue;
+        }
+        report.examined += 1;
+
+        let hygiene = read_hygiene(project);
+        if hygiene.is_empty() {
+            continue;
+        }
+        let prunable = hygiene.prunable().len();
+        report.dead_branches += hygiene.dead_branches.len();
+        report.prunable += prunable;
+        report.stashes += hygiene.stashes.len();
+        report.worktrees += hygiene.worktrees.len();
+        report.repositories.push(RepositoryHygiene {
+            name: project
+                .file_name()
+                .map(|value| value.to_string_lossy().into_owned())
+                .unwrap_or_else(|| project.to_string_lossy().into_owned()),
+            path: project.to_string_lossy().into_owned(),
+            hygiene,
+            prunable,
+        });
+    }
+
+    // What can be acted on leads. A repository holding four stashes is worth
+    // knowing about, but one holding four prunable branches is the one with
+    // a button beside it.
+    report.repositories.sort_by_key(|repository| {
+        std::cmp::Reverse((
+            repository.prunable,
+            repository.hygiene.dead_branches.len(),
+            repository.hygiene.stashes.len() + repository.hygiene.worktrees.len(),
+        ))
+    });
+    report
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -233,10 +335,75 @@ fn now() -> i64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{read_hygiene, PruneResult, RefusedBranch};
+    use super::{aggregate, read_hygiene, PruneResult, RefusedBranch};
     use crate::workspace::hygiene::{BranchState, Hygiene};
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::process::Command;
+
+    /// Aggregation against real repositories: one carrying a stash, one clean,
+    /// and one directory that is not a repository at all.
+    ///
+    /// The last is the one worth the test. Most directories in a workspace are
+    /// not repositories, and without the `.git` check each would cost four
+    /// processes to be told so — and would count toward a total described to the
+    /// user as repositories read.
+    #[test]
+    fn only_repositories_are_read_and_only_the_carrying_ones_are_reported() {
+        let root = std::env::temp_dir().join(format!("uncached-agg-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+
+        let git = |directory: &Path, args: &[&str]| {
+            Command::new("git")
+                .arg("-C")
+                .arg(directory)
+                .args(args)
+                .env("GIT_AUTHOR_NAME", "t")
+                .env("GIT_AUTHOR_EMAIL", "t@t")
+                .env("GIT_COMMITTER_NAME", "t")
+                .env("GIT_COMMITTER_EMAIL", "t@t")
+                .output()
+                .expect("git")
+        };
+
+        let mut repositories = Vec::new();
+        for name in ["carrying", "clean"] {
+            let directory = root.join(name);
+            std::fs::create_dir_all(&directory).unwrap();
+            git(&directory, &["init", "--initial-branch=main"]);
+            std::fs::write(directory.join("a.txt"), "a").unwrap();
+            git(&directory, &["add", "."]);
+            git(&directory, &["commit", "-m", "first"]);
+            repositories.push(directory);
+        }
+        // One of them keeps an unapplied stash.
+        std::fs::write(root.join("carrying/a.txt"), "changed").unwrap();
+        git(&root.join("carrying"), &["stash", "push", "-m", "wip"]);
+
+        let plain = root.join("not-a-repository");
+        std::fs::create_dir_all(&plain).unwrap();
+
+        let paths: Vec<PathBuf> = repositories
+            .iter()
+            .cloned()
+            .chain(std::iter::once(plain))
+            .collect();
+        let report = aggregate(&paths);
+
+        assert_eq!(
+            report.examined, 2,
+            "the plain directory is not a repository"
+        );
+        assert_eq!(
+            report.repositories.len(),
+            1,
+            "the clean one has nothing to say"
+        );
+        assert_eq!(report.repositories[0].name, "carrying");
+        assert_eq!(report.stashes, 1);
+        assert_eq!(report.prunable, 0, "no branch here is dead");
+
+        let _ = std::fs::remove_dir_all(root);
+    }
 
     /// A directory that is not a repository must not look like a clean one.
     #[test]

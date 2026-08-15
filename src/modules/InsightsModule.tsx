@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Breakdown } from "./insights/Breakdown";
 import { Duplicates } from "./insights/Duplicates";
 import { Orphans } from "./insights/Orphans";
+import { Repositories } from "./insights/Repositories";
 import { EventLog } from "./insights/EventLog";
 import { FilterChips } from "./insights/FilterChips";
 import { Highlights } from "./insights/Highlights";
@@ -14,6 +15,7 @@ import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useCleanupHistory } from "../hooks/useWorkspaceHistory";
 import { useDuplicatePackages } from "../hooks/useDuplicatePackages";
 import { useOrphanArtifacts } from "../hooks/useOrphanArtifacts";
+import { useWorkspaceHygiene } from "../hooks/useWorkspaceHygiene";
 import { buildInsights } from "../utils/insights.mjs";
 import type { Insight } from "../utils/insights.d.mts";
 import { DIMENSIONS, buildReport } from "../utils/report.mjs";
@@ -52,6 +54,7 @@ export function InsightsModule({
   // being no project over it, so a list of projects is the one input that
   // cannot contain one.
   const orphans = useOrphanArtifacts(flow.extraRoots);
+  const repositories = useWorkspaceHygiene(projectPaths);
 
   const [grain, setGrain] = useState("month");
   const [filters, setFilters] = useState<Filters>({});
@@ -152,10 +155,10 @@ export function InsightsModule({
 
         <Highlights insights={insights} projectCount={projects.length} onFollow={follow} />
 
-        {/* Below the highlights because these are the two sections that cost
-            something to produce — one reads every node_modules in the
-            workspace, the other walks it looking for what nothing owns — and
-            both only do so when asked. */}
+        {/* Below the highlights because these are the sections that cost
+            something to produce — reading every node_modules, running git in
+            every repository, walking the tree for what nothing owns — and every
+            one of them only does so when asked. */}
         <div className="mt-4 grid gap-4">
           <Duplicates
             report={duplicates.report}
@@ -164,6 +167,20 @@ export function InsightsModule({
             projectCount={projects.length}
             proEnabled={proEnabled}
             onScan={duplicates.scan}
+          />
+
+          <Repositories
+            report={repositories.report}
+            running={repositories.running}
+            error={repositories.error}
+            projectCount={projects.length}
+            onScan={repositories.scan}
+            // The acting stays on the project page, so this hands the user
+            // over rather than growing a second place that deletes branches.
+            onOpen={(path) => {
+              flow.focusProject(path);
+              onOpenWorkspace();
+            }}
           />
 
           <Orphans

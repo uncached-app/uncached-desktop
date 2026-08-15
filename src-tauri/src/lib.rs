@@ -18,7 +18,7 @@ use commands::clean::clean_target;
 use commands::cleanup_capabilities;
 use commands::duplicates::duplicate_packages;
 use commands::entitlements::get_entitlement_status;
-use commands::git::{fetch_project, project_hygiene, prune_branches};
+use commands::git::{fetch_project, project_hygiene, prune_branches, workspace_hygiene};
 use commands::history::{cleanup_history, clear_history, record_workspace_visit};
 use commands::license::{activate_license, deactivate_license, get_license};
 use commands::locate::{available_launchers, open_project_with, reveal_project};
@@ -96,6 +96,7 @@ pub fn run() {
             maintenance_targets,
             maintenance_schedule_status,
             project_hygiene,
+            workspace_hygiene,
             fetch_project,
             prune_branches,
             duplicate_packages,

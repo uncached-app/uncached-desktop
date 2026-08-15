@@ -321,6 +321,29 @@ switch rather than letting it be discovered by nothing happening.
 Reading the status is free. The runs themselves are Pro, and the thread that performs them checks
 the entitlement again before removing anything.
 
+### `workspace_hygiene`
+
+Request: `{ "paths": ["/Users/me/code/api", "/Users/me/code/web"] }` — the indexed project paths. Every one is authorised like any other path-taking command.
+
+Raw response:
+
+```json
+{
+  "repositories": [
+    { "path": "/Users/me/code/api", "name": "api", "prunable": 2, "hygiene": { "deadBranches": [], "stashes": [], "worktrees": [] } }
+  ],
+  "examined": 38,
+  "deadBranches": 5,
+  "prunable": 2,
+  "stashes": 3,
+  "worktrees": 1
+}
+```
+
+The same reading `project_hygiene` gives, across the workspace. `repositories` holds only the ones with something to report, ordered by what can be acted on: prunable branches first, then dead branches, then stashes and worktrees. `examined` counts repositories actually read, including the clean ones — a directory with no `.git` is skipped before any process is spawned, because most directories in a workspace are not repositories and `git` in one costs a process to be told so.
+
+Read-only and offline on every plan. It fetches nothing and deletes nothing: pruning stays in `prune_branches`, one repository at a time, and that command re-reads hygiene before it touches a branch. An aggregate prune would put one click between a user and dozens of repositories they had not looked at.
+
 ### `orphan_artifacts`
 
 Request: `{ "paths": ["/Users/me/code"] }` — the chosen roots, not the indexed projects. An orphan is defined by there being no project over it, so a list of projects is the one input that cannot contain one. Every path is authorised the same way every other path-taking command authorises one.

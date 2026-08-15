@@ -64,3 +64,32 @@ export function isEmpty(hygiene: Hygiene): boolean {
     hygiene.worktrees.length === 0
   );
 }
+
+/** Mirrors `commands/git.rs`. One repository carrying something. */
+export type RepositoryHygiene = {
+  path: string;
+  name: string;
+  hygiene: Hygiene;
+  /** How many of its dead branches `git branch -d` would accept. */
+  prunable: number;
+};
+
+export type WorkspaceHygiene = {
+  /** Only the ones with something to report, most to say first. */
+  repositories: RepositoryHygiene[];
+  /** Repositories read, including the ones that turned out to be clean. */
+  examined: number;
+  deadBranches: number;
+  prunable: number;
+  stashes: number;
+  worktrees: number;
+};
+
+export const EMPTY_WORKSPACE_HYGIENE: WorkspaceHygiene = {
+  repositories: [],
+  examined: 0,
+  deadBranches: 0,
+  prunable: 0,
+  stashes: 0,
+  worktrees: 0,
+};
