@@ -86,7 +86,6 @@ export type RawTargetFound = {
     sizePending: boolean;
     sizeHasErrors: boolean;
     formattedSize: string;
-    lastModified?: string | null;
   };
 };
 
@@ -359,9 +358,6 @@ export function normalizeTargetFound(payload: RawTargetFound) {
   ) {
     throw new Error("Invalid target payload shape");
   }
-  if (hasOwn(target, "lastModified") && target.lastModified !== null && typeof target.lastModified !== "string") {
-    throw new Error("Invalid target payload shape");
-  }
   return {
     scanId: payload.scanId,
     target: {
@@ -370,7 +366,6 @@ export function normalizeTargetFound(payload: RawTargetFound) {
       label: target.label ?? null,
       cleanable: target.cleanable ?? true,
       formattedSize: target.sizePending ? "" : target.formattedSize,
-      lastModified: target.lastModified ?? null,
     },
   };
 }

@@ -445,9 +445,9 @@ All events are emitted by Tauri with a v1 envelope. Event names are exact and ca
 | `clean:finished` | `targetId`, `freedBytes`, `sizeHasErrors` |
 | `clean:failed` | failure envelope; no data |
 
-`scan:target_found` target fields are `id`, `path`, `name`, `category`, `sizeBytes`, `sizePending`, `sizeHasErrors`, `formattedSize`, and nullable `lastModified`. The target has no `identity` field.
+`scan:target_found` target fields are `id`, `path`, `name`, `label`, `category`, `plan`, `confidence`, `cleanable`, `sizeBytes`, `sizePending`, `sizeHasErrors` and `formattedSize`. The target has no `identity` field, and no `lastModified`: it was a `metadata` call per target filling a field no screen read.
 
-`scan:cancelled` replaces `scan:finished`. `scan:finished` is emitted only after traversal and all sizing jobs settle. A sizing error remains visible in the target via `sizeHasErrors`; it does not turn the scan into `scan:failed`. A scan failure carries its `scanId` inside `data`, alongside sanitized Core error information, so late failures cannot clear a newer scan.
+`scan:cancelled` carries what the scan had already found when it stopped, not zeroes. A scan cancelled after finding four gigabytes found four gigabytes, and the step-1 status line says so. `scan:cancelled` replaces `scan:finished`. `scan:finished` is emitted only after traversal and all sizing jobs settle. A sizing error remains visible in the target via `sizeHasErrors`; it does not turn the scan into `scan:failed`. A scan failure carries its `scanId` inside `data`, alongside sanitized Core error information, so late failures cannot clear a newer scan.
 
 Cleanup success is named `clean:finished`, not `clean:success`. Cleanup failure uses the public Core error shape and never exposes native error text. A cancelled cleanup is reported as `clean:failed` with the mapped public error.
 

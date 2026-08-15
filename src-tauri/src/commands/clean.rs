@@ -266,7 +266,6 @@ mod tests {
                     Category::NodeModules,
                     1,
                     false,
-                    None,
                 ),
                 root_path: PathBuf::from(r"C:\workspace"),
                 providers: Arc::new(crate::scanner::get_default_providers(&settings)),

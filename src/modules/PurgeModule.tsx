@@ -83,6 +83,7 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
       />
 
       <ScanView
+        resetScan={flow.resetScan}
         step={flow.step}
         scanning={flow.scanning}
         cancelling={flow.cancelling}

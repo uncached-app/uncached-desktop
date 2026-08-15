@@ -149,7 +149,14 @@ export function useScanWorkspace(
       setCancelling(false);
       setTargets([]);
       setProgress(null);
-      setStatus("Scan cancelled");
+      // What it had already found when it stopped. The backend sends real
+      // counts now, and a scan cancelled after finding four gigabytes tells the
+      // user that rather than reporting the stop as if nothing happened.
+      setStatus(
+        event.payload.totalTargets > 0
+          ? `Scan cancelled · ${event.payload.totalTargets} ${event.payload.totalTargets === 1 ? "target" : "targets"} found before stopping`
+          : "Scan cancelled",
+      );
       setStep(1);
     } else {
       failScan(event.payload.error.message);

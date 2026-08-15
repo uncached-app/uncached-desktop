@@ -1,6 +1,5 @@
 use crate::commands::entitlements::{plan_for_category, Plan};
 use crate::models::category::Category;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -41,18 +40,13 @@ pub struct ScanTarget {
     pub size_has_errors: bool,
     pub size_pending: bool,
     pub formatted_size: String,
-    pub last_modified: Option<DateTime<Utc>>,
     #[serde(skip)]
     pub identity: Option<uncached_core::FileIdentity>,
 }
 
 impl ScanTarget {
     pub fn from_core(scan_id: &str, target: uncached_core::ScanTarget) -> Self {
-        let last_modified = std::fs::metadata(&target.path)
-            .ok()
-            .and_then(|metadata| metadata.modified().ok())
-            .map(DateTime::<Utc>::from);
-        let mut ui_target = Self::pending(target.path, target.category, last_modified);
+        let mut ui_target = Self::pending(target.path, target.category);
         ui_target.id = format!("{scan_id}-{}", ui_target.id);
         ui_target.size_bytes = target.size_bytes;
         ui_target.formatted_size = format_size(target.size_bytes);
@@ -68,15 +62,7 @@ impl ScanTarget {
     /// useless. What the entry is, and what removing it costs, were both
     /// decided in the core when the location was catalogued.
     pub fn from_discovery(scan_id: &str, discovery: &uncached_core::Discovery) -> Self {
-        let last_modified = std::fs::metadata(&discovery.path)
-            .ok()
-            .and_then(|metadata| metadata.modified().ok())
-            .map(DateTime::<Utc>::from);
-        let mut target = Self::pending(
-            discovery.path.clone(),
-            discovery.category.clone(),
-            last_modified,
-        );
+        let mut target = Self::pending(discovery.path.clone(), discovery.category.clone());
         target.id = format!("{scan_id}-{}", target.id);
         target.label = Some(discovery.label.to_owned());
         target.confidence = uncached_core::assess(uncached_core::discovery::signals_for(discovery));
@@ -85,13 +71,7 @@ impl ScanTarget {
         target
     }
 
-    pub fn new(
-        path: PathBuf,
-        category: Category,
-        size_bytes: u64,
-        size_has_errors: bool,
-        last_modified: Option<DateTime<Utc>>,
-    ) -> Self {
+    pub fn new(path: PathBuf, category: Category, size_bytes: u64, size_has_errors: bool) -> Self {
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -121,17 +101,12 @@ impl ScanTarget {
             size_has_errors,
             size_pending: false,
             formatted_size,
-            last_modified,
             identity: None,
         }
     }
 
-    pub fn pending(
-        path: PathBuf,
-        category: Category,
-        last_modified: Option<DateTime<Utc>>,
-    ) -> Self {
-        let mut target = Self::new(path, category, 0, false, last_modified);
+    pub fn pending(path: PathBuf, category: Category) -> Self {
+        let mut target = Self::new(path, category, 0, false);
         target.size_pending = true;
         target
     }
@@ -220,7 +195,6 @@ mod cleanup_ready_tests {
                 Category::NodeModules,
                 10,
                 false,
-                None,
             )
         };
 
@@ -252,11 +226,8 @@ mod cleanup_ready_tests {
     /// three inputs are written after the target is registered.
     #[test]
     fn the_answer_follows_the_size_settling_rather_than_being_fixed_at_creation() {
-        let mut target = ScanTarget::pending(
-            PathBuf::from("/w/node_modules"),
-            Category::NodeModules,
-            None,
-        );
+        let mut target =
+            ScanTarget::pending(PathBuf::from("/w/node_modules"), Category::NodeModules);
         assert!(
             !target.cleanup_ready(),
             "nothing is offered while measuring"
@@ -286,7 +257,6 @@ mod tests {
             category,
             1,
             false,
-            None,
         ))
         .unwrap()
     }
@@ -310,8 +280,7 @@ mod tests {
 
         let path = PathBuf::from(OsStr::from_bytes(b"/workspace/pro\xffject/node_modules"));
         let value =
-            serde_json::to_value(ScanTarget::new(path, Category::NodeModules, 1, false, None))
-                .unwrap();
+            serde_json::to_value(ScanTarget::new(path, Category::NodeModules, 1, false)).unwrap();
 
         assert!(value["path"].as_str().unwrap().ends_with("/node_modules"));
     }
@@ -344,7 +313,7 @@ mod tests {
             std::fs::create_dir_all(&path).unwrap();
             std::fs::write(project.join(manifest), b"").unwrap();
 
-            let target = ScanTarget::new(path, category, 1, false, None);
+            let target = ScanTarget::new(path, category, 1, false);
 
             assert_eq!(
                 target.confidence.level,
@@ -388,7 +357,6 @@ mod tests {
             Category::NodeModules,
             0,
             false,
-            None,
         );
         target.set_size(4096, false);
 

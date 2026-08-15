@@ -85,7 +85,6 @@ test("normalizes v1 target DTOs without losing backend identity", () => {
       sizePending: true,
       sizeHasErrors: false,
       formattedSize: "0 B",
-      lastModified: null,
     },
   });
 
@@ -94,7 +93,6 @@ test("normalizes v1 target DTOs without losing backend identity", () => {
   assert.equal(target.target.name, "node_modules");
   assert.equal(target.target.formattedSize, "");
   assert.equal(target.target.sizePending, true);
-  assert.equal(target.target.lastModified, null);
   assert.equal(target.target.label, null);
 });
 
@@ -230,10 +228,6 @@ test("rejects malformed target display fields", () => {
   );
   assert.throws(
     () => normalizeTargetFound({ scanId: "scan-1", target: { ...baseTarget, name: 42 } }),
-    /target payload shape/,
-  );
-  assert.throws(
-    () => normalizeTargetFound({ scanId: "scan-1", target: { ...baseTarget, lastModified: 42 } }),
     /target payload shape/,
   );
 });

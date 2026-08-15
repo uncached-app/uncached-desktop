@@ -752,14 +752,8 @@ impl ScanService {
                     );
                     let _ = ScanService::end_session(&worker_scan_id);
                     sizing.finish();
-                    let _ = app_handle.emit(
-                        "scan:cancelled",
-                        value_event(serde_json::json!({
-                            "scanId": worker_scan_id,
-                            "totalTargets": 0,
-                            "totalBytesFound": 0
-                        })),
-                    );
+                    let _ =
+                        app_handle.emit("scan:cancelled", cancelled_event(&worker_scan_id, &stats));
                     return;
                 }
                 Err(error) => {
@@ -770,14 +764,8 @@ impl ScanService {
                     if !ScanService::end_session(&worker_scan_id) {
                         sizing.finish();
                         if cancel_token.load(Ordering::Acquire) {
-                            let _ = app_handle.emit(
-                                "scan:cancelled",
-                                value_event(serde_json::json!({
-                                    "scanId": worker_scan_id,
-                                    "totalTargets": 0,
-                                    "totalBytesFound": 0
-                                })),
-                            );
+                            let _ = app_handle
+                                .emit("scan:cancelled", cancelled_event(&worker_scan_id, &stats));
                         }
                         return;
                     }
@@ -807,14 +795,8 @@ impl ScanService {
             if !ScanService::mark_walk_finished(&worker_scan_id, &app_handle, &stats, started_at) {
                 sizing.finish();
                 if cancel_token.load(Ordering::Acquire) {
-                    let _ = app_handle.emit(
-                        "scan:cancelled",
-                        value_event(serde_json::json!({
-                            "scanId": worker_scan_id,
-                            "totalTargets": 0,
-                            "totalBytesFound": 0
-                        })),
-                    );
+                    let _ =
+                        app_handle.emit("scan:cancelled", cancelled_event(&worker_scan_id, &stats));
                 }
                 return;
             }
@@ -1238,6 +1220,25 @@ fn emit_progress(event_sink: &EventSink, scan_id: &str, stats: &Arc<Mutex<ScanSt
     );
 }
 
+/// What a cancelled scan had already found when it stopped.
+///
+/// The three cancel paths used to send zeroes here, which `docs/IPC.md`
+/// documented as counts and the interface validated on arrival before throwing
+/// them away — a contract field that could only ever be false. A scan stopped
+/// after finding four gigabytes found four gigabytes, and that is worth saying
+/// rather than reporting as nothing.
+fn cancelled_event(
+    scan_id: &str,
+    stats: &Arc<Mutex<ScanStats>>,
+) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
+    let stats = stats.lock().unwrap();
+    value_event(serde_json::json!({
+        "scanId": scan_id,
+        "totalTargets": stats.targets_found,
+        "totalBytesFound": stats.total_bytes_found,
+    }))
+}
+
 fn emit_finished(
     event_sink: &EventSink,
     scan_id: &str,
@@ -1383,7 +1384,6 @@ mod tests {
             Category::NodeModules,
             12,
             false,
-            None,
         );
         let value = serde_json::to_value(target_found_event("scan-1", &target)).unwrap();
 
@@ -1405,13 +1405,8 @@ mod tests {
             (Category::NodeModules, "free"),
             (Category::PackageManagerCache, "pro"),
         ] {
-            let target = ScanTarget::new(
-                PathBuf::from(r"C:\workspace\artifact"),
-                category,
-                12,
-                false,
-                None,
-            );
+            let target =
+                ScanTarget::new(PathBuf::from(r"C:\workspace\artifact"), category, 12, false);
             let value = serde_json::to_value(target_found_event("scan-1", &target)).unwrap();
             let emitted = value["data"]["target"].as_object().unwrap();
             let mut keys = emitted.keys().cloned().collect::<Vec<_>>();
@@ -1426,7 +1421,6 @@ mod tests {
                     "formattedSize",
                     "id",
                     "label",
-                    "lastModified",
                     "name",
                     "path",
                     "plan",
@@ -1969,8 +1963,7 @@ mod tests {
             ..AppSettings::default()
         };
         let providers = std::sync::Arc::new(providers_for_scan(&settings));
-        let mut target =
-            ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false, None);
+        let mut target = ScanTarget::new(target_path.clone(), Category::NodeModules, 0, false);
         target.identity = uncached_core::filesystem::file_identity(&target_path);
         let registered = RegisteredTarget {
             target,
@@ -2026,7 +2019,6 @@ mod tests {
             Category::NodeModules,
             1,
             false,
-            None,
         );
         registry().lock().unwrap().targets.insert(
             target_id.clone(),
@@ -2064,13 +2056,7 @@ mod tests {
                 registry().lock().unwrap().targets.insert(
                     id.clone(),
                     RegisteredTarget {
-                        target: ScanTarget::new(
-                            path.clone(),
-                            Category::NodeModules,
-                            1,
-                            false,
-                            None,
-                        ),
+                        target: ScanTarget::new(path.clone(), Category::NodeModules, 1, false),
                         root_path: PathBuf::from("/w"),
                         providers: Arc::new(providers_for_scan(&AppSettings::default())),
                     },
@@ -2099,7 +2085,6 @@ mod tests {
             Category::NodeModules,
             0,
             false,
-            None,
         );
         pending.size_pending = true;
         let mut unreadable = ScanTarget::new(
@@ -2107,7 +2092,6 @@ mod tests {
             Category::CargoTarget,
             1,
             true,
-            None,
         );
         unreadable.size_has_errors = true;
         let mut reportable = ScanTarget::new(
@@ -2115,7 +2099,6 @@ mod tests {
             Category::NodeModules,
             1,
             false,
-            None,
         );
         reportable.cleanable = false;
 
@@ -2191,7 +2174,6 @@ mod tests {
             Category::NodeModules,
             1,
             false,
-            None,
         );
         registry().lock().unwrap().targets.insert(
             target_id.clone(),
@@ -2291,7 +2273,6 @@ mod tests {
             Category::NodeModules,
             0,
             false,
-            None,
         );
         target.size_pending = true;
         registry().lock().unwrap().targets.insert(
@@ -2315,7 +2296,6 @@ mod tests {
             Category::NodeModules,
             0,
             true,
-            None,
         );
         registry().lock().unwrap().targets.insert(
             target_id.clone(),
@@ -2421,7 +2401,6 @@ mod tests {
             Category::NodeModules,
             1,
             false,
-            None,
         );
         registry().lock().unwrap().targets.insert(
             target_id.to_string(),
@@ -2450,7 +2429,6 @@ mod tests {
             Category::NodeModules,
             1,
             false,
-            None,
         );
         registry().lock().unwrap().targets.insert(
             target_id.clone(),
@@ -2484,7 +2462,6 @@ mod tests {
             Category::NodeModules,
             1,
             false,
-            None,
         );
         let mut registry = registry().lock().unwrap();
         registry

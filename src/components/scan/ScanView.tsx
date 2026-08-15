@@ -1,4 +1,4 @@
-import { Ban, LoaderCircle } from "lucide-react";
+import { Ban, LoaderCircle, RotateCcw } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import type { ScanProgress, ScanTarget, Step } from "../../types/scan";
 
@@ -9,6 +9,8 @@ interface ScanViewProps {
   targets: ScanTarget[];
   progress: ScanProgress | null;
   cancelScan: () => void;
+  /** Returns to step 1 and abandons whatever this scan was still waiting on. */
+  resetScan: () => void;
 }
 
 export function ScanView({
@@ -18,6 +20,7 @@ export function ScanView({
   targets,
   progress,
   cancelScan,
+  resetScan,
 }: ScanViewProps) {
   const reducedMotion = useReducedMotion();
 
@@ -60,8 +63,24 @@ export function ScanView({
           </div>
         </div>
 
-        {/* Cancel is offered only while there is a scan to cancel. */}
+        {/* Cancel is offered only while there is a scan to cancel. Once the
+            walk has ended this step is waiting for sizing to settle, and every
+            way out of it depends on that happening — so if it does not, the
+            screen had no control at all and no way back. Starting over is the
+            honest offer there: it is not a cancellation, because there is
+            nothing left running to cancel. */}
         <div className="mt-8 flex min-h-9 items-center">
+          {!scanning && (
+            <button
+              type="button"
+              onClick={resetScan}
+              className="inline-flex items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-4 py-2 text-xs font-semibold text-mist-300 transition-colors hover:bg-forest-850 hover:text-mist-100"
+            >
+              <RotateCcw size={14} aria-hidden="true" />
+              Start over
+            </button>
+          )}
+
           {scanning && (
             <button
               type="button"

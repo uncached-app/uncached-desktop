@@ -27,7 +27,6 @@ export type ScanTarget = {
   sizeHasErrors: boolean;
   sizePending: boolean;
   formattedSize: string;
-  lastModified: string | null;
 };
 
 export type Step = 1 | 2 | 3 | 4;
