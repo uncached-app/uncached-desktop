@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { placeMenu } from "../src/utils/menuPlacement.mjs";
+import { placeMenu, placeUnder } from "../src/utils/menuPlacement.mjs";
 
 const WINDOW = { viewportWidth: 1000, viewportHeight: 800 };
 
@@ -47,6 +47,39 @@ test("a menu taller than the window is capped, not cut", () => {
   const box = place(400, 400, 240, 900);
 
   assert.equal(box.maxHeight, 800 - 16);
+});
+
+function under(control, height, window = WINDOW) {
+  return placeUnder({ anchor: control, width: 176, height, ...window });
+}
+
+test("a dropdown with room below opens under its control", () => {
+  const box = under({ left: 200, top: 100, bottom: 136 }, 200);
+
+  assert.equal(box.top, 140);
+  assert.equal(box.left, 200);
+});
+
+test("a dropdown near the bottom opens above its control, not over it", () => {
+  const control = { left: 200, top: 700, bottom: 736 };
+  const box = under(control, 200);
+
+  assert.equal(box.top + 200, control.top - 4);
+  assert.ok(box.top + 200 <= control.top);
+});
+
+test("with room on neither side, the roomier one takes it and the list scrolls", () => {
+  // 400px of control, 300 above and 100 below: the list belongs above.
+  const box = under({ left: 200, top: 308, bottom: 700 }, 400);
+
+  assert.equal(box.maxHeight, 296);
+  assert.equal(box.top, 8);
+});
+
+test("a dropdown against the right edge stays on screen", () => {
+  const box = under({ left: 900, top: 100, bottom: 136 }, 200);
+
+  assert.ok(box.left + 176 <= 1000);
 });
 
 test("the margin holds on every edge", () => {

@@ -18,3 +18,14 @@ export declare function placeMenu(input: {
   viewportHeight: number;
   margin?: number;
 }): MenuBox;
+
+export declare function placeUnder(input: {
+  /** The control's rectangle, in viewport coordinates. */
+  anchor: { left: number; top: number; bottom: number };
+  width: number;
+  height: number;
+  viewportWidth: number;
+  viewportHeight: number;
+  margin?: number;
+  gap?: number;
+}): MenuBox;

@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
+import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
 import type { AppSettings, Appearance, IgnoreRuleReview } from "../../types/settings";
 import { openExternalUrl } from "../../utils/externalLink";
@@ -55,7 +56,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
           <header className="flex shrink-0 items-center justify-between border-b border-forest-800 px-5 py-4 sm:px-7">
             <div className="flex items-center gap-3 sm:hidden"><Settings size={16} className="text-sage-300" /><span className="text-sm font-medium text-mist-100">Settings</span></div>
             <h2 className="hidden text-lg font-semibold text-mist-100 sm:block">{section}</h2>
-            <select value={section} onChange={(event) => setSection(event.target.value as Section)} className="rounded-lg bg-forest-800 px-2 py-1.5 text-sm text-mist-100 sm:hidden">{sections.map((item) => <option key={item}>{item}</option>)}</select>
+            <Select label="Settings section" value={section} options={sections.map((item) => ({ value: item, label: item }))} onChange={(value) => setSection(value as Section)} className="sm:hidden" />
             <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-lg bg-forest-800 text-mist-500 hover:text-mist-100" aria-label="Close settings"><X size={17} /></button>
           </header>
 
@@ -284,27 +285,29 @@ function LauncherChoice({ label, hint, empty, launchers, chosen, onChoose }: { l
   // setting that is being ignored and one that appears never to have been made.
   const uninstalled = launchers !== null && !none && chosen !== null && !launchers.some((launcher) => launcher.id === chosen);
 
+  const options = [
+    { value: "", label: "Automatic" },
+    ...(launchers ?? []).map((launcher) => ({ value: launcher.id, label: launcher.name })),
+    ...(uninstalled ? [{ value: chosen as string, label: "Not installed" }] : []),
+  ];
+
   return (
-    <label className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
+    <div className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
       <span className="flex min-w-0 flex-col gap-0.5">
         <span>{label}</span>
         <span className="text-xs leading-5 text-mist-500">
           {detecting ? "Reading what this machine has installed..." : none ? empty : uninstalled ? "The one you chose is no longer installed, so opening falls back to detection." : hint}
         </span>
       </span>
-      <select
+      <Select
+        label={label}
         value={chosen ?? ""}
+        options={options}
         disabled={detecting || none}
-        onChange={(event) => onChoose(event.target.value === "" ? null : event.target.value)}
-        className="w-44 shrink-0 rounded-lg border border-forest-800 bg-forest-950 px-2.5 py-2 text-sm text-mist-100 disabled:opacity-60"
-      >
-        <option value="">Automatic</option>
-        {(launchers ?? []).map((launcher) => (
-          <option key={launcher.id} value={launcher.id}>{launcher.name}</option>
-        ))}
-        {uninstalled && <option value={chosen ?? ""}>Not installed</option>}
-      </select>
-    </label>
+        onChange={(value) => onChoose(value === "" ? null : value)}
+        className="w-44 shrink-0"
+      />
+    </div>
   );
 }
 
