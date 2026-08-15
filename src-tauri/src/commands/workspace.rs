@@ -1,5 +1,6 @@
 use crate::workspace::git::{self, GitContext};
 use crate::workspace::maintenance;
+use crate::workspace::restore;
 use crate::workspace::schedule;
 use crate::workspace::verdict::{self, ActivityState, Verdict};
 use serde::Serialize;
@@ -29,6 +30,9 @@ pub struct WorkspaceProject {
     pub duplicate_of: Vec<String>,
     pub install_missing: bool,
     pub install_stale: bool,
+    /// How what a reclaim removes would come back, and whether it would come
+    /// back the same. `None` when nothing here identifies a package manager.
+    pub restore: Option<crate::workspace::restore::Restore>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -294,7 +298,27 @@ fn project_from_directory(path: &Path, root: &Path) -> WorkspaceProject {
         duplicate_of: Vec::new(),
         install_missing,
         install_stale,
+        restore: restore_for(path),
     }
+}
+
+/// How this project's dependencies come back.
+///
+/// The `packageManager` field is read only when a `package.json` is there to
+/// hold it, so the common case costs one `is_file` per candidate and no reads
+/// at all.
+fn restore_for(path: &Path) -> Option<restore::Restore> {
+    let declared = std::fs::read_to_string(path.join("package.json"))
+        .ok()
+        .and_then(|contents| {
+            serde_json::from_str::<serde_json::Value>(&contents)
+                .ok()?
+                .get("packageManager")?
+                .as_str()
+                .map(str::to_owned)
+        });
+
+    restore::detect(&|name| path.join(name).is_file(), declared.as_deref())
 }
 
 /// Last activity, from the last commit or the newest source file.
@@ -873,7 +897,38 @@ mod tests {
             duplicate_of: Vec::new(),
             install_missing: false,
             install_stale: false,
+            restore: None,
         }
+    }
+
+    /// The half of `restore_for` the pure module cannot reach: reading
+    /// `packageManager` out of a real manifest, and surviving one that is not
+    /// JSON at all.
+    #[test]
+    fn the_declared_manager_is_read_from_the_manifest_on_disk() {
+        let root = std::env::temp_dir().join(format!("uncached-restore-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+
+        std::fs::write(
+            root.join("package.json"),
+            r#"{"packageManager":"pnpm@9.1.0"}"#,
+        )
+        .unwrap();
+        std::fs::write(root.join("package-lock.json"), "{}").unwrap();
+        let found = super::restore_for(&root).expect("a Node project");
+        assert_eq!(found.manager, "pnpm", "the manifest names the tool");
+        assert_eq!(found.pinned_by.as_deref(), Some("package-lock.json"));
+
+        // A manifest with no declaration falls back to the lockfile's own tool.
+        std::fs::write(root.join("package.json"), r#"{"name":"x"}"#).unwrap();
+        assert_eq!(super::restore_for(&root).unwrap().manager, "npm");
+
+        // A manifest that will not parse is still a Node project.
+        std::fs::write(root.join("package.json"), "not json").unwrap();
+        assert_eq!(super::restore_for(&root).unwrap().manager, "npm");
+
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

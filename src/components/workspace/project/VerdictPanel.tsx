@@ -1,4 +1,4 @@
-import { HardDrive, Info } from "lucide-react";
+import { HardDrive, Info, RotateCcw } from "lucide-react";
 import { Panel } from "./panels";
 import { VERDICT_PRESENTATION, projectEvidence } from "../verdictPresentation";
 import type { Footprint, Recoverability, Verdict, WorkspaceProject } from "../../../types/workspace";
@@ -76,8 +76,53 @@ export function VerdictPanel({
             </p>
           </div>
         )}
+
+        {project.restore && <RestoreLine restore={project.restore} />}
       </div>
     </Panel>
+  );
+}
+
+/**
+ * What putting it back would cost, beside the reason for taking it away.
+ *
+ * The product's entire justification is that these directories are
+ * regenerable, and it has never said how. Stated here rather than on its own
+ * card because a benefit and its price belong in one place: this panel is where
+ * the reclaim is argued for.
+ *
+ * The unpinned case is the one worth the colour. `installMissing` and
+ * `installStale` both begin by finding a lockfile, so a project holding an
+ * install that nothing pins passes every existing check and reads as healthy.
+ * Its bytes come back; that exact resolved tree does not.
+ */
+function RestoreLine({ restore }: { restore: NonNullable<WorkspaceProject["restore"]> }) {
+  const pinned = restore.pinnedBy !== null;
+
+  return (
+    <div
+      className={`flex items-start gap-2 border-t border-forest-800 pt-2.5 text-xs ${
+        pinned ? "text-mist-500" : "text-confidence-medium"
+      }`}
+    >
+      <RotateCcw size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <p className="leading-relaxed">
+        <strong className="text-mist-300">Restoring:</strong>{" "}
+        <code className="rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[11px] text-mist-100">
+          {restore.command}
+        </code>{" "}
+        {pinned ? (
+          <>
+            — <span className="font-mono">{restore.pinnedBy}</span> fixes which versions come back.
+          </>
+        ) : (
+          <>
+            — nothing here pins the versions, so a reinstall resolves current ones. The space
+            returns; this exact set of dependencies does not.
+          </>
+        )}
+      </p>
+    </div>
   );
 }
 

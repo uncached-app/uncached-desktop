@@ -385,6 +385,20 @@ There is no background-fetch setting. Fetch is something the user asks for, one 
 
 Neither reaches `recoverability`. Being behind says something exists elsewhere, not that something here is at risk, and letting it decide would make a `git fetch` change what may be deleted unattended.
 
+Each entry also carries `restore`, or `null` when nothing there identifies a package manager:
+
+```json
+{ "manager": "pnpm", "command": "pnpm install --frozen-lockfile", "pinnedBy": "pnpm-lock.yaml" }
+```
+
+`pinnedBy` is the field worth reading. `null` means a reinstall resolves whatever versions are current rather than the ones on disk — the space comes back, that exact tree does not. Nothing else in the index reports this: `installMissing` and `installStale` both begin by finding a lockfile, so a project holding an install that nothing pins passes every other check and reads as healthy.
+
+Detection asks every lockfile before any manifest, and the less common Node managers first, because a stale `package-lock.json` outlives a move to pnpm while nothing but pnpm writes a `pnpm-lock.yaml`. A `packageManager` field in `package.json` outranks all of it — the project stating its own answer — but a manager named there while a different tool's lockfile sits beside it gets the loose command rather than the frozen one, which would fail on a lockfile it cannot read.
+
+`requirements.txt` is reported as pinning nothing. Whether it pins is a parse of a format that is a convention rather than a spec, and being wrong the other way would promise reproducibility this cannot check.
+
+The command is never run. Installing writes to the project, reaches the network, and fails in ways only the project's owner can read.
+
 ## Events
 
 All events are emitted by Tauri with a v1 envelope. Event names are exact and case-sensitive:

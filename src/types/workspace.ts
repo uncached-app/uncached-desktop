@@ -42,6 +42,19 @@ export type Activity = {
   state: ActivityState;
 };
 
+/**
+ * Mirrors `src-tauri/src/workspace/restore.rs`.
+ *
+ * `pinnedBy` is the whole point. A reinstall is only a restore when something
+ * fixes which versions come back; `null` means the space returns and that exact
+ * set of dependencies does not.
+ */
+export type Restore = {
+  manager: string;
+  command: string;
+  pinnedBy: string | null;
+};
+
 export type WorkspaceProject = {
   name: string;
   path: string;
@@ -55,6 +68,11 @@ export type WorkspaceProject = {
   duplicateOf: string[];
   installMissing: boolean;
   installStale: boolean;
+  /**
+   * How what a reclaim removes would come back, and whether it would come back
+   * the same. `null` when nothing here identifies a package manager.
+   */
+  restore: Restore | null;
 };
 
 export type CategoryBytes = {
