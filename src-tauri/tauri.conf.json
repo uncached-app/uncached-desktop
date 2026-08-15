@@ -44,6 +44,21 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Uncached",
+    "homepage": "https://uncached.app",
+    "copyright": "Copyright \u00a9 2026 Uncached",
+    "license": "Proprietary",
+    "category": "DeveloperTool",
+    "shortDescription": "Reclaim disk from build artifacts.",
+    "longDescription": "Uncached finds the dependency, build and cache directories your toolchains can regenerate, measures what they weigh, and moves the ones you choose to the Recycle Bin. It reads a project before offering it: work that exists only on this disk is never something the app automates.",
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "linux": {
+      "deb": {
+        "section": "devel"
+      }
+    }
   }
 }

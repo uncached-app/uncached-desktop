@@ -61,3 +61,43 @@ Cancellation invalidates the session and removes its targets after publication b
 - Windows uses the extended path prefix after canonicalization where required.
 - Read-only attributes are removed with propagated errors.
 - Public errors map to stable Core codes and omit native source details.
+
+## How the app presents itself to the operating system
+
+Three systems each have a screen where the user manages what runs in the
+background, and each reads different metadata off the build. Everything they
+read is in `bundle` in `tauri.conf.json`: `publisher`, `copyright`, `category`,
+`shortDescription`, `longDescription`, `homepage`, and the per-platform blocks
+under it. Left empty — which is the default and was the state of this app until
+now — the entries read as a nameless executable by nobody.
+
+**macOS** shows login items under System Settings › General › Login Items &
+Extensions. Two things decide how the entry reads there, and neither is a
+string in the config.
+
+The first is *which mechanism registers it*. `tauri-plugin-autostart` offers
+`LaunchAgent`, which writes a plist in `~/Library/LaunchAgents` pointing at the
+executable inside the bundle, and `AppleScript`, which asks System Events to add
+a real login item pointing at the `.app`. The plugin's own source says the
+first "results in seeing a Unix Executable in macOS login items", which it does.
+The second reads correctly and costs an Automation permission prompt that can be
+refused — and a refused prompt is autostart silently not working. This app uses
+`LaunchAgent`; the trade is open rather than settled.
+
+The second is *signing*. "Item de desenvolvedor não identificado" is macOS
+saying the binary carries no Developer ID it can attribute. No configuration
+removes that line: it needs a Developer ID Application certificate, a signature,
+and notarisation. In development it is doubly true, because a dev run registers
+`target/debug/uncached` — an unsigned bare binary with no bundle at all, which is
+why the name shows lowercase there and will not in a build.
+
+**Windows** lists startup entries in Task Manager and in Settings › Apps ›
+Startup, with a Publisher column. That column is the Authenticode signature's
+subject, not `bundle.publisher` — unsigned reads "Unknown publisher", and an
+OV or EV code-signing certificate is what fills it. `bundle.publisher` still
+reaches the installer and Add/Remove Programs.
+
+**Linux** has no single such screen; the desktop environment reads
+`~/.config/autostart/*.desktop`, whose `Name`, `Comment`, `Icon` and
+`Categories` come from the bundle metadata. `bundle.linux.deb.section` places
+the package for apt.

@@ -44,7 +44,7 @@ export function SettingsPanel({
   saving,
   error,
   updateSettings,
-  onLicenseChange = () => {},
+  onLicenseChange = () => { },
   proEnabled = false,
 }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
@@ -99,11 +99,10 @@ export function SettingsPanel({
                 key={item}
                 type="button"
                 onClick={() => setSection(item)}
-                className={`flex w-full items-center rounded-xl px-3 py-2.5 text-left text-xs font-medium transition-colors cursor-pointer ${
-                  section === item
+                className={`flex w-full items-center rounded-xl px-3 py-2.5 text-left text-xs font-medium transition-colors cursor-pointer ${section === item
                     ? "bg-forest-850 font-semibold text-mist-100 shadow-2xs"
                     : "text-mist-500 hover:bg-forest-900 hover:text-mist-300"
-                }`}
+                  }`}
               >
                 {item}
               </button>
@@ -171,9 +170,8 @@ export function SettingsPanel({
           <footer className="flex h-11 shrink-0 items-center justify-end border-t border-forest-800 px-6 sm:px-8 text-xs text-mist-500">
             <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-mist-500">
               <span
-                className={`size-1.5 rounded-full ${
-                  saving ? "bg-sage-400 animate-pulse" : "bg-forest-700"
-                }`}
+                className={`size-1.5 rounded-full ${saving ? "bg-sage-400 animate-pulse" : "bg-forest-700"
+                  }`}
               />
               {saving ? "Saving..." : "Saved automatically"}
             </span>
@@ -392,7 +390,7 @@ function AppearanceContent({
               { value: "", label: "Uncached" },
               ...themes.map((entry) => ({
                 value: entry.id,
-                label: entry.builtIn ? entry.name : `${entry.name} (yours)`,
+                label: entry.builtIn ? entry.name : `${entry.name} (custom)`,
               })),
             ]}
             onChange={(value) => void updateSettings({ theme: value === "" ? null : value })}
@@ -411,7 +409,7 @@ function AppearanceContent({
           </span>
           <button
             type="button"
-            onClick={() => void invoke("reveal_config").catch(() => {})}
+            onClick={() => void invoke("reveal_config").catch(() => { })}
             className="shrink-0 cursor-pointer rounded-xl border border-forest-800 bg-forest-950 px-3 py-2 text-xs font-medium text-mist-300 transition-colors hover:border-sage-400/60 hover:text-mist-100"
           >
             Open folder
@@ -699,15 +697,13 @@ function SettingToggle({
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-400 ${
-          checked ? "bg-sage-400" : "bg-forest-800"
-        }`}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-400 ${checked ? "bg-sage-400" : "bg-forest-800"
+          }`}
       >
         <span
           aria-hidden="true"
-          className={`pointer-events-none inline-block size-4 transform rounded-full bg-forest-950 shadow-xs transition duration-200 ease-in-out ${
-            checked ? "translate-x-4 bg-forest-950" : "translate-x-0 bg-mist-300"
-          }`}
+          className={`pointer-events-none inline-block size-4 transform rounded-full bg-forest-950 shadow-xs transition duration-200 ease-in-out ${checked ? "translate-x-4 bg-forest-950" : "translate-x-0 bg-mist-300"
+            }`}
         />
       </button>
     </div>
@@ -734,9 +730,8 @@ function SettingRadio({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`group flex w-full items-center justify-between gap-4 py-4 text-left text-xs transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
-        selected ? "text-mist-100" : "text-mist-500 hover:text-mist-300"
-      }`}
+      className={`group flex w-full items-center justify-between gap-4 py-4 text-left text-xs transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "text-mist-100" : "text-mist-500 hover:text-mist-300"
+        }`}
     >
       <span className="flex min-w-0 flex-1 items-start gap-3">
         {icon && (
@@ -750,11 +745,10 @@ function SettingRadio({
         </span>
       </span>
       <span
-        className={`grid size-4.5 shrink-0 place-items-center rounded-full border transition-colors ${
-          selected
+        className={`grid size-4.5 shrink-0 place-items-center rounded-full border transition-colors ${selected
             ? "border-sage-400 bg-sage-400 text-forest-950"
             : "border-forest-750 bg-forest-950/60 group-hover:border-forest-700"
-        }`}
+          }`}
       >
         {selected && <span className="size-1.5 rounded-full bg-forest-950" />}
       </span>

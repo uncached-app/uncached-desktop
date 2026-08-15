@@ -69,6 +69,7 @@ Step 2 covers two overlapping backend phases, and the interface names both. Whil
 - Tagline: "Reclaim disk from build artifacts." Used in metadata, the About panel, and any header subtitle.
 - Voice: spec-terse and developer-facing during operations. No metaphor, lifestyle framing, emotional reassurance, or exclamation marks near destructive actions. Confirmed success may use positive language and celebration.
 - Product term for a detected disposable directory is **target**, not "finding" or "item". The scanned root is the **workspace** — it names the first step, the primary action (`Scan workspace`), and the back affordance. Keep one term per concept across UI, docs, and metadata.
+- The app describes itself to the operating system it installs into: a publisher, a copyright, a category, and a sentence about what it does, which is what a system's own list of background items reads to name it. What no metadata can supply is attribution — an unsigned build is an unidentified developer on macOS and an unknown publisher on Windows, and only a certificate changes that.
 - Preserve existing Uncached logo and icon assets in `public/brand`.
 - Preserve desktop-first Tauri architecture.
 
