@@ -11,6 +11,8 @@
     "dmg:clean": "./scripts/clean-dmg.sh",
     "dmg": "pnpm dmg:clean && pnpm tauri build --bundles dmg",
     "test": "node --test tests/*.test.mjs",
+    "bench": "node scripts/bench-workspace.mjs",
+    "bench:clean": "node scripts/bench-workspace.mjs --clean",
     "preview": "vite preview",
     "tauri": "tauri"
   },

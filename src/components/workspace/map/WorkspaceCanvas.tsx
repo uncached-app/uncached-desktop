@@ -4,7 +4,7 @@ import { useMapGestures } from "./useMapGestures";
 import { nodeRadius, type GraphEdge, type GraphNode, type WorkspaceGraph } from "../../../utils/graph.mjs";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
-import type { WorkspaceProject } from "../../../types/workspace";
+import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
 
 /** Height of the drawing, in the coordinates the SVG uses. Width follows it. */
 const SIDE = 1000;
@@ -13,6 +13,8 @@ type WorkspaceCanvasProps = {
   /** Built by the caller, which is also what decides this can be drawn at all. */
   graph: WorkspaceGraph;
   projects: WorkspaceProject[];
+  footprints?: Record<string, Footprint>;
+  verdicts?: Record<string, Verdict>;
   /** The duplicate reading has not finished, so the middle is not final. */
   analysing: boolean;
   measuring: boolean;
@@ -20,34 +22,98 @@ type WorkspaceCanvasProps = {
   onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
 };
 
-const EDGE_CLASS: Record<GraphEdge["kind"], string> = {
-  copy: "stroke-forest-800",
-  clone: "stroke-coral-300/45",
-  family: "stroke-sage-400/50",
+type NodeStyle = {
+  fill: string;
+  stroke: string;
+  dotColor: string;
+  label: string;
 };
 
 /**
- * The workspace as one picture.
- *
- * The list answers "what do I have and what is it worth". This answers what a
- * list cannot hold: what is shared. A package sitting in eleven projects is a
- * node of its own with a line to each of them; four folders under one directory
- * are a chain with that directory's name on it; one repository checked out
- * twice is a dashed chord. Without those, a graph of a workspace is folders
- * joined by folders, which is what the sidebar already draws.
- *
- * The list stays the default and stays the way through by keyboard. This is the
- * other reading, not the replacement.
+ * Resolves theme-adaptive solid surface & stroke tokens from the app's design system.
+ * Perfectly adapts across Light and Dark modes without hardcoded saturated hexes.
+ */
+function getNodeStyle(node: GraphNode, verdicts: Record<string, Verdict>): NodeStyle {
+  if (node.kind === "package") {
+    return {
+      fill: "var(--color-pro-surface)",
+      stroke: "var(--color-pro-200)",
+      dotColor: "var(--color-pro-200)",
+      label: "Shared package",
+    };
+  }
+
+  const verdict = node.path ? (verdicts[node.path] ?? node.verdict ?? "unknown") : (node.verdict ?? "unknown");
+  switch (verdict) {
+    case "protect":
+      return {
+        fill: "var(--color-forest-900)",
+        stroke: "var(--color-coral-300)",
+        dotColor: "var(--color-coral-300)",
+        label: "Protect",
+      };
+    case "safe":
+      return {
+        fill: "var(--color-confidence-high-surface)",
+        stroke: "var(--color-confidence-high)",
+        dotColor: "var(--color-confidence-high)",
+        label: "Safe to reclaim",
+      };
+    case "tradeOff":
+      return {
+        fill: "var(--color-confidence-review-surface)",
+        stroke: "var(--color-confidence-review)",
+        dotColor: "var(--color-confidence-review)",
+        label: "In use",
+      };
+    case "broken":
+      return {
+        fill: "var(--color-confidence-medium-surface)",
+        stroke: "var(--color-confidence-medium)",
+        dotColor: "var(--color-confidence-medium)",
+        label: "Needs install",
+      };
+    case "staleDeps":
+      return {
+        fill: "var(--color-confidence-medium-surface)",
+        stroke: "var(--color-confidence-medium)",
+        dotColor: "var(--color-confidence-medium)",
+        label: "Stale install",
+      };
+    case "archivable":
+      return {
+        fill: "var(--color-forest-850)",
+        stroke: "var(--color-mist-500)",
+        dotColor: "var(--color-mist-500)",
+        label: "Fully on remote",
+      };
+    default:
+      return {
+        fill: "var(--color-forest-900)",
+        stroke: "var(--color-forest-800)",
+        dotColor: "var(--color-mist-500)",
+        label: "Not established",
+      };
+  }
+}
+
+/**
+ * The workspace as an interactive visual map.
+ * Clean, modern, minimalist and 100% theme-adaptive (Light and Dark mode).
  */
 export function WorkspaceCanvas({
   graph,
   projects,
+  footprints = {},
+  verdicts = {},
   analysing,
   measuring,
   onOpenProject,
   onContextMenu,
 }: WorkspaceCanvasProps) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const byId = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph.nodes]);
   const heaviest = useMemo(
@@ -60,18 +126,39 @@ export function WorkspaceCanvas({
 
   const map = useMapGestures(graph.width * SIDE, SIDE);
   const active = hovered ? byId.get(hovered) : null;
-  // A line lights with either end. Hovering a package is the gesture that asks
-  // "who else has this", so the answer has to light up with it.
+  const activeProject = active?.path ? projects.find((entry) => entry.path === active.path) : null;
+  const activeFootprint = activeProject ? footprints[activeProject.path] : null;
+
+  // Connected nodes and edges highlighting
+  const connectedNodeIds = useMemo(() => {
+    if (!hovered) return null;
+    const ids = new Set<string>([hovered]);
+    for (const edge of graph.edges) {
+      if (edge.from === hovered) ids.add(edge.to);
+      if (edge.to === hovered) ids.add(edge.from);
+    }
+    return ids;
+  }, [hovered, graph.edges]);
+
   const isLit = (edge: GraphEdge) => edge.from === hovered || edge.to === hovered;
-  // Enough room to name everything, or only what is pointed at: a map printing
-  // sixty overlapping names is a map nobody reads one of.
-  // Enough room to name everything, or only what is pointed at — and zooming in
-  // is the request for more of them, which is what makes closing in on a corner
-  // worth doing rather than just larger.
-  const nameEverything = graph.nodes.length <= 34 || map.view.scale > 1.5;
+  const nameEverything = graph.nodes.length <= 34 || map.view.scale > 1.4;
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setMousePos({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      });
+    }
+  };
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-forest-800 bg-forest-950 select-none"
+    >
       <svg
         ref={map.ref}
         viewBox={`0 0 ${graph.width * SIDE} ${SIDE}`}
@@ -82,129 +169,294 @@ export function WorkspaceCanvas({
         {...map.handlers}
       >
         <g transform={`translate(${map.view.x} ${map.view.y}) scale(${map.view.scale})`}>
-        {graph.edges.map((edge) => {
-          const from = byId.get(edge.from);
-          const to = byId.get(edge.to);
-          if (!from || !to) return null;
-          const on = isLit(edge);
-          return (
-            <line
-              key={edge.id}
-              x1={from.x * SIDE}
-              y1={from.y * SIDE}
-              x2={to.x * SIDE}
-              y2={to.y * SIDE}
-              className={on ? "stroke-sage-400" : EDGE_CLASS[edge.kind]}
-              strokeWidth={edge.kind === "family" ? 3 : on ? 2 : 1.25}
-              strokeLinecap="round"
-              // A line drawn four times its width because the picture is four
-              // times closer is a smear, not more information.
-              vectorEffect="non-scaling-stroke"
-              strokeDasharray={edge.kind === "clone" ? "7 6" : undefined}
-            />
-          );
-        })}
+          {/* Relationship Lines / Edges */}
+          {graph.edges.map((edge) => {
+            const from = byId.get(edge.from);
+            const to = byId.get(edge.to);
+            if (!from || !to) return null;
 
-        {/* The directory's name, once, in the middle of what it holds. Four
-            folders under one `uncached-app` are one piece of work, and drawing
-            them as four unrelated dots is what needed fixing here. */}
-        {graph.labels.map((label) => (
-          <text
-            key={label.id}
-            x={label.x * SIDE}
-            y={label.y * SIDE}
-            textAnchor="middle"
-            className="pointer-events-none fill-mist-300 text-[15px] font-semibold"
-          >
-            {label.text}
-            <tspan x={label.x * SIDE} dy="15" className="fill-mist-500 text-[11px] font-normal">
-              {label.detail}
-            </tspan>
-          </text>
-        ))}
+            const on = isLit(edge);
+            const dimmed = connectedNodeIds !== null && !on;
 
-        {graph.nodes.map((node) => {
-          const radius =
-            nodeRadius(
-              node.weight,
-              node.kind === "project" ? heaviest.project : heaviest.package,
-              graph.maxRadius,
-            ) * SIDE;
-          const on = node.id === hovered;
-          return (
-            <g
-              key={node.id}
-              onMouseEnter={() => setHovered(node.id)}
-              onMouseLeave={() => setHovered((current) => (current === node.id ? null : current))}
-              // A drag that ended on a node is a drag. Opening the project
-              // there would make the map impossible to move from anywhere
-              // except the gaps between things.
-              onClick={() => {
-                if (!map.wasDragged() && node.path) onOpenProject(node.path);
-              }}
-              onContextMenu={(event) => {
-                const project = node.path && projects.find((entry) => entry.path === node.path);
-                if (project) onContextMenu(project, event);
-              }}
-              className={node.kind === "project" ? "cursor-pointer" : "cursor-default"}
-            >
-              <circle
-                cx={node.x * SIDE}
-                cy={node.y * SIDE}
-                r={radius}
-                className={
-                  node.kind === "package"
-                    ? "fill-forest-900 stroke-sage-400"
-                    : `${VERDICT_PRESENTATION[node.verdict ?? "unknown"].mapClassName} ${
-                        node.weight === null ? "opacity-45" : ""
-                      }`
-                }
-                strokeWidth={on ? 3 : 1.75}
+            let stroke = "var(--color-forest-800)";
+            let strokeWidth = 1.25;
+
+            if (edge.kind === "family") {
+              stroke = on ? "var(--color-sage-400)" : "var(--color-sage-400)";
+              strokeWidth = on ? 2.5 : 1.75;
+            } else if (edge.kind === "clone") {
+              stroke = "var(--color-coral-300)";
+              strokeWidth = on ? 2.25 : 1.5;
+            } else if (edge.kind === "copy") {
+              stroke = on ? "var(--color-pro-200)" : "var(--color-forest-800)";
+              strokeWidth = on ? 2 : 1.25;
+            }
+
+            return (
+              <line
+                key={edge.id}
+                x1={from.x * SIDE}
+                y1={from.y * SIDE}
+                x2={to.x * SIDE}
+                y2={to.y * SIDE}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
+                strokeDasharray={edge.kind === "clone" ? "6 5" : undefined}
+                className="transition-opacity duration-150"
+                style={{ opacity: dimmed ? 0.2 : edge.kind === "family" && !on ? 0.6 : 1 }}
               />
-              {(nameEverything || on) && (
-                <text
-                  x={node.x * SIDE}
-                  y={node.y * SIDE + radius + 17}
-                  textAnchor="middle"
-                  className={`pointer-events-none text-[13px] ${on ? "fill-mist-100 font-medium" : "fill-mist-500"}`}
-                >
-                  {clip(node.label)}
-                </text>
-              )}
+            );
+          })}
+
+          {/* Directory & Monorepo Hub Badges */}
+          {graph.labels.map((label) => (
+            <g
+              key={label.id}
+              transform={`translate(${label.x * SIDE}, ${label.y * SIDE})`}
+              className="pointer-events-none select-none"
+            >
+              <rect
+                x="-75"
+                y="-18"
+                width="150"
+                height="36"
+                rx="10"
+                className="fill-forest-900 stroke-forest-800"
+                strokeWidth="1"
+              />
+              <text
+                x="0"
+                y="-1"
+                textAnchor="middle"
+                className="fill-mist-100 text-[12px] font-semibold"
+              >
+                {label.text}
+              </text>
+              <text
+                x="0"
+                y="11"
+                textAnchor="middle"
+                className="fill-mist-500 font-mono text-[9px]"
+              >
+                {label.detail}
+              </text>
             </g>
-          );
-        })}
+          ))}
+
+          {/* Nodes (Projects & Shared Packages) */}
+          {graph.nodes.map((node) => {
+            const baseRadius =
+              nodeRadius(
+                node.weight,
+                node.kind === "project" ? heaviest.project : heaviest.package,
+                graph.maxRadius,
+              ) * SIDE;
+
+            const on = node.id === hovered;
+            const isConnected = connectedNodeIds ? connectedNodeIds.has(node.id) : true;
+            const dimmed = connectedNodeIds !== null && !isConnected;
+            const radius = on ? baseRadius * 1.08 + 2 : baseRadius;
+            const style = getNodeStyle(node, verdicts);
+
+            return (
+              <g
+                key={node.id}
+                onMouseEnter={() => setHovered(node.id)}
+                onMouseLeave={() => setHovered((current) => (current === node.id ? null : current))}
+                onClick={() => {
+                  if (!map.wasDragged() && node.path) onOpenProject(node.path);
+                }}
+                onContextMenu={(event) => {
+                  const project = node.path && projects.find((entry) => entry.path === node.path);
+                  if (project) onContextMenu(project, event);
+                }}
+                className={`transition-opacity duration-150 ${
+                  node.kind === "project" ? "cursor-pointer" : "cursor-default"
+                }`}
+                style={{ opacity: dimmed ? 0.25 : 1 }}
+              >
+                {/* Subtle outer focus ring on hover */}
+                {on && (
+                  <circle
+                    cx={node.x * SIDE}
+                    cy={node.y * SIDE}
+                    r={radius + 4.5}
+                    fill="none"
+                    stroke="var(--color-mist-300)"
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )}
+
+                {/* Minimalist Solid Node Circle */}
+                <circle
+                  cx={node.x * SIDE}
+                  cy={node.y * SIDE}
+                  r={radius}
+                  fill={style.fill}
+                  stroke={on ? "var(--color-mist-100)" : style.stroke}
+                  strokeWidth={on ? 2.5 : 1.5}
+                  vectorEffect="non-scaling-stroke"
+                  className="transition-all duration-150"
+                />
+
+                {/* Clean label below node */}
+                {(nameEverything || on || isConnected) && (
+                  <g
+                    transform={`translate(${node.x * SIDE}, ${node.y * SIDE + radius + 14})`}
+                    className="pointer-events-none select-none"
+                  >
+                    <text
+                      textAnchor="middle"
+                      className={`text-[12px] ${
+                        on ? "fill-mist-100 font-semibold" : "fill-mist-300 font-normal"
+                      }`}
+                    >
+                      {clip(node.label)}
+                    </text>
+                    {(on || map.view.scale > 1.6) && node.weight !== null && (
+                      <text
+                        y="12"
+                        textAnchor="middle"
+                        className="fill-mist-500 font-mono text-[9px]"
+                      >
+                        {formatBytes(node.bytes)}
+                      </text>
+                    )}
+                  </g>
+                )}
+              </g>
+            );
+          })}
         </g>
       </svg>
 
+      {/* Modern, Minimalist Floating Tooltip on Hover */}
+      {active && mousePos && !map.dragging && (
+        <div
+          className="pointer-events-none absolute z-30 flex flex-col gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 shadow-lg text-xs transition-all duration-75 ease-out"
+          style={{
+            left: Math.min(
+              Math.max(12, mousePos.x + 14),
+              (containerRef.current?.clientWidth ?? 800) - 230,
+            ),
+            top: Math.min(
+              Math.max(12, mousePos.y - 60),
+              (containerRef.current?.clientHeight ?? 600) - 120,
+            ),
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: getNodeStyle(active, verdicts).dotColor }}
+              />
+              <span className="truncate font-semibold text-mist-100">{active.label}</span>
+            </div>
+            <span className="shrink-0 rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-300">
+              {active.kind === "package" ? "package" : (activeProject?.kind ?? "project")}
+            </span>
+          </div>
+
+          {/* Details */}
+          <div className="flex flex-col gap-1 border-t border-forest-800 pt-1.5 text-[11px]">
+            {active.kind === "package" ? (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-mist-500">Shared across:</span>
+                <span className="font-mono font-medium text-mist-100">{active.detail}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-mist-500">Status:</span>
+                <span className="font-medium text-mist-100">
+                  {VERDICT_PRESENTATION[verdicts[active.path ?? ""] ?? active.verdict ?? "unknown"].label}
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-mist-500">Disk footprint:</span>
+              <span className="font-mono font-semibold text-mist-100">
+                {active.weight === null ? "measuring..." : formatBytes(active.bytes)}
+              </span>
+            </div>
+
+            {activeFootprint && activeFootprint.reclaimableBytes > 0 && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-mist-500">Reclaimable:</span>
+                <span className="font-mono font-semibold text-sage-300">
+                  {formatBytes(activeFootprint.reclaimableBytes)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {active.kind === "project" && (
+            <div className="border-t border-forest-800 pt-1 text-[10px] text-mist-500 flex justify-between gap-2">
+              <span>Click to open</span>
+              <span>Right-click for options</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Floating Canvas Controls Dock */}
       <MapControls map={map} />
 
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-forest-800 pt-3 text-xs">
-        <div className="flex min-h-5 min-w-0 items-center gap-2">
+      {/* Bottom Status & Summary Bar */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-forest-800 bg-forest-950 px-3.5 py-2 text-xs">
+        <div className="flex min-h-6 min-w-0 items-center gap-2">
           {active ? (
-            <>
-              <span className="truncate font-medium text-mist-100">{active.label}</span>
-              <span className="shrink-0 font-mono text-[11px] text-mist-500">
-                {active.kind === "package"
-                  ? `${active.detail} · ${formatBytes(active.bytes)} duplicated`
-                  : active.weight === null
-                    ? "not measured yet"
-                    : formatBytes(active.bytes)}
-              </span>
-            </>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-mist-100">{active.label}</span>
+
+              {active.kind === "package" ? (
+                <span className="rounded-md bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-pro-100">
+                  {active.detail} · {formatBytes(active.bytes)} shared
+                </span>
+              ) : (
+                <>
+                  {activeProject && (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.2 font-mono text-[10px] font-medium ${
+                        VERDICT_PRESENTATION[verdicts[activeProject.path] ?? active.verdict ?? "unknown"].className
+                      }`}
+                    >
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          VERDICT_PRESENTATION[verdicts[activeProject.path] ?? active.verdict ?? "unknown"].dotClassName
+                        }`}
+                      />
+                      {VERDICT_PRESENTATION[verdicts[activeProject.path] ?? active.verdict ?? "unknown"].label}
+                    </span>
+                  )}
+
+                  <span className="font-mono text-[11px] text-mist-300">
+                    {active.weight === null ? "measuring..." : formatBytes(active.bytes)}
+                  </span>
+
+                  {activeFootprint && activeFootprint.reclaimableBytes > 0 && (
+                    <span className="rounded-md bg-forest-900 border border-forest-800 px-1.5 py-0.2 font-mono text-[10px] font-medium text-sage-300">
+                      {formatBytes(activeFootprint.reclaimableBytes)} reclaimable
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
           ) : (
-            // Names what is on screen, not what the picture can hold: a legend
-            // describing rings and dashes that are not there reads as a view
-            // that failed to load.
             <span className="truncate text-mist-500">{legend(graph)}</span>
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-4 text-mist-500">
-          {measuring && <span>Weighing projects...</span>}
-          {analysing && <span>Reading shared packages...</span>}
-          {graph.packagesOmitted > 0 && <span>{graph.packagesOmitted} lighter packages not drawn</span>}
+        <div className="flex shrink-0 items-center gap-3 text-mist-500 text-[11px]">
+          {measuring && <span className="text-sage-300 font-mono">Weighing...</span>}
+          {analysing && <span className="text-mist-400 font-mono">Reading packages...</span>}
+          {graph.packagesOmitted > 0 && <span>{graph.packagesOmitted} lighter packages omitted</span>}
         </div>
       </div>
     </div>
@@ -213,47 +465,62 @@ export function WorkspaceCanvas({
 
 /**
  * Zoom in, out, and back to the whole thing.
- *
- * The gestures are the ones the platform already teaches — drag to move, pinch
- * or wheel to zoom — and buttons exist because a gesture nobody is told about
- * is a feature nobody finds. Reset appears only once there is something to
- * reset, so the corner is empty on a map nobody has touched.
  */
 function MapControls({ map }: { map: ReturnType<typeof useMapGestures> }) {
   const step = (factor: number) => () => {
     const element = map.ref.current;
     if (!element) return;
     const bounds = element.getBoundingClientRect();
-    // From the middle, because a button press has no pointer over the picture
-    // to hold still.
-    map.zoomBy(factor, { clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 });
+    map.zoomBy(factor, {
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2,
+    });
   };
 
+  const zoomPercent = Math.round(map.view.scale * 100);
+
   return (
-    <div className="absolute right-3 top-3 flex flex-col gap-1 rounded-xl border border-forest-800 bg-forest-900/90 p-1 shadow-xs backdrop-blur-sm">
+    <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-forest-800 bg-forest-900/90 p-1 shadow-xs backdrop-blur-sm">
       <Control label="Zoom in" onClick={step(1.35)}>
         <Plus size={14} aria-hidden="true" />
       </Control>
+
+      <span className="px-1.5 font-mono text-[10px] font-medium text-mist-400 select-none">
+        {zoomPercent}%
+      </span>
+
       <Control label="Zoom out" onClick={step(1 / 1.35)}>
         <Minus size={14} aria-hidden="true" />
       </Control>
+
       {map.moved && (
-        <Control label="Fit the whole workspace" onClick={map.reset}>
-          <Maximize2 size={13} aria-hidden="true" />
-        </Control>
+        <>
+          <div className="h-3.5 w-px bg-forest-800 mx-0.5" />
+          <Control label="Fit whole workspace" onClick={map.reset}>
+            <Maximize2 size={13} aria-hidden="true" />
+          </Control>
+        </>
       )}
     </div>
   );
 }
 
-function Control({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+function Control({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       title={label}
       aria-label={label}
       onClick={onClick}
-      className="grid size-7 place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
+      className="grid size-6.5 place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100 cursor-pointer"
     >
       {children}
     </button>
@@ -262,9 +529,6 @@ function Control({ label, onClick, children }: { label: string; onClick: () => v
 
 /**
  * The shape of the drawing area, so the picture fills it.
- *
- * A layout computed square and centred in a wide window is a square of content
- * with an empty column either side of it, which is what this looked like first.
  */
 export function useDrawingAspect() {
   const ref = useRef<HTMLDivElement>(null);
@@ -293,7 +557,7 @@ function legend(graph: WorkspaceGraph): string {
   if (graph.edges.some((edge) => edge.kind === "clone")) parts.push("a dashed line is one repository checked out twice");
 
   if (parts.length === 0) {
-    return "Nothing here is shared: no package sits in more than one of these projects, and no two are the same repository. Drag to move, scroll to zoom.";
+    return "Nothing here is shared. Drag to move, scroll to zoom.";
   }
   return `${parts.join(" · ")}. Drag to move, scroll to zoom.`;
 }

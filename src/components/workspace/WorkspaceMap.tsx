@@ -388,6 +388,8 @@ export function WorkspaceMap({
             <WorkspaceCanvas
               graph={graph}
               projects={visible}
+              footprints={footprints}
+              verdicts={verdicts}
               analysing={analysing}
               measuring={measuring}
               onOpenProject={onOpenProject}
