@@ -1,5 +1,5 @@
 import { FolderOpen } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ProjectContextMenu, type MenuAnchor } from "./map/ProjectContextMenu";
 import { ProjectRow } from "./map/ProjectRow";
 import { FamilyGroup } from "./map/FamilyGroup";
@@ -144,27 +144,48 @@ export function WorkspaceMap({
   // another: "clones holding a Cargo target" is a question, and answering it
   // with only the last filter clicked would be a list that does not match what
   // the sidebar says is on.
-  const visible = useMemo(() => {
-    let narrowed = scoped;
-    if (activeVerdict) {
-      narrowed = narrowed.filter((project) => (verdicts[project.path] ?? "unknown") === activeVerdict);
-    }
-    if (activeCategory) {
-      narrowed = narrowed.filter((project) =>
-        (footprints[project.path]?.byCategory ?? []).some((entry) => entry.category === activeCategory),
-      );
-    }
-    if (clonesOnly) {
-      narrowed = narrowed.filter((project) => project.duplicateOf.length > 0);
-    }
-    return narrowed;
-  }, [scoped, activeVerdict, verdicts, activeCategory, footprints, clonesOnly]);
+  const narrow = useCallback(
+    (projects: WorkspaceProject[], except: "verdict" | "category" | "clones" | null) => {
+      let narrowed = projects;
+      if (activeVerdict && except !== "verdict") {
+        narrowed = narrowed.filter(
+          (project) => (verdicts[project.path] ?? "unknown") === activeVerdict,
+        );
+      }
+      if (activeCategory && except !== "category") {
+        narrowed = narrowed.filter((project) =>
+          (footprints[project.path]?.byCategory ?? []).some((entry) => entry.category === activeCategory),
+        );
+      }
+      if (clonesOnly && except !== "clones") {
+        narrowed = narrowed.filter((project) => project.duplicateOf.length > 0);
+      }
+      return narrowed;
+    },
+    [activeVerdict, verdicts, activeCategory, footprints, clonesOnly],
+  );
 
-  // Counted over the root+text scope rather than over what the other filters
-  // leave, so choosing one does not renumber the rest under the cursor.
+  const visible = useMemo(() => narrow(scoped, null), [narrow, scoped]);
+
+  /**
+   * What each filter would leave, counted against every filter but its own.
+   *
+   * Counted against the root and the text alone, the sidebar went on offering
+   * rows that led nowhere: narrow to `Protect` and "Copies of a repo" still
+   * read two, and clicking it produced an empty list — a control whose own
+   * number said it would do something.
+   *
+   * A dimension is excluded from its own count so that choosing within it does
+   * not renumber the options under the cursor. Choosing in another dimension
+   * does, which is the whole point.
+   */
+  const forVerdict = useMemo(() => narrow(scoped, "verdict"), [narrow, scoped]);
+  const forCategory = useMemo(() => narrow(scoped, "category"), [narrow, scoped]);
+  const forClones = useMemo(() => narrow(scoped, "clones"), [narrow, scoped]);
+
   const categoryCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const project of scoped) {
+    for (const project of forCategory) {
       for (const entry of footprints[project.path]?.byCategory ?? []) {
         counts.set(entry.category, (counts.get(entry.category) ?? 0) + 1);
       }
@@ -172,23 +193,23 @@ export function WorkspaceMap({
     return [...counts.entries()].sort(
       (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
     );
-  }, [scoped, footprints]);
+  }, [forCategory, footprints]);
 
   const cloneCount = useMemo(
-    () => scoped.filter((project) => project.duplicateOf.length > 0).length,
-    [scoped],
+    () => forClones.filter((project) => project.duplicateOf.length > 0).length,
+    [forClones],
   );
 
   const verdictCounts = useMemo(() => {
     const counts = new Map<Verdict, number>();
-    for (const project of scoped) {
+    for (const project of forVerdict) {
       const verdict = verdicts[project.path] ?? "unknown";
       counts.set(verdict, (counts.get(verdict) ?? 0) + 1);
     }
     return VERDICT_ORDER.filter((verdict) => counts.has(verdict)).map(
       (verdict) => [verdict, counts.get(verdict) ?? 0] as const,
     );
-  }, [scoped, verdicts]);
+  }, [forVerdict, verdicts]);
 
   // Keyboard shortcuts: `/` focuses search, `⌘B` or `Ctrl+B` toggles sidebar
   useEffect(() => {
@@ -360,7 +381,8 @@ export function WorkspaceMap({
           activeRoot={activeRoot}
           onActiveRoot={setActiveRoot}
           verdictCounts={verdictCounts}
-          scopedCount={scoped.length}
+          verdictTotal={forVerdict.length}
+          categoryTotal={forCategory.length}
           activeVerdict={activeVerdict}
           onActiveVerdict={setActiveVerdict}
           categoryCounts={categoryCounts}

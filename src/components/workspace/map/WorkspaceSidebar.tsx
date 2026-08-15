@@ -18,7 +18,11 @@ type WorkspaceSidebarProps = {
   activeRoot: string | null;
   onActiveRoot: (root: string | null) => void;
   verdictCounts: ReadonlyArray<readonly [Verdict, number]>;
-  scopedCount: number;
+  /** What clearing the verdict would leave, so "Every verdict" adds up to its rows. */
+  verdictTotal: number;
+  /** Likewise for the artifact kinds. A project holding two kinds is in two rows,
+      so this is not their sum and never was. */
+  categoryTotal: number;
   activeVerdict: Verdict | null;
   onActiveVerdict: (verdict: Verdict | null) => void;
   /** Artifact kinds present in scope, most common first. */
@@ -44,7 +48,8 @@ export function WorkspaceSidebar({
   activeRoot,
   onActiveRoot,
   verdictCounts,
-  scopedCount,
+  verdictTotal,
+  categoryTotal,
   activeVerdict,
   onActiveVerdict,
   categoryCounts,
@@ -142,7 +147,9 @@ export function WorkspaceSidebar({
       </div>
 
       {/* 2. Verdict Filter Section */}
-      {verdictCounts.length > 1 && (
+      {/* Or while one is on: a section that vanishes because the filter inside
+          it left nothing is a filter with no way back off. */}
+      {(verdictCounts.length > 1 || activeVerdict !== null) && (
         <div className="shrink-0 pt-4">
           <p className="px-2 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
             Verdict
@@ -151,7 +158,7 @@ export function WorkspaceSidebar({
             <FilterRow
               active={activeVerdict === null}
               label="Every verdict"
-              count={scopedCount}
+              count={verdictTotal}
               onSelect={() => onActiveVerdict(null)}
             />
             {verdictCounts.map(([verdict, count]) => (
@@ -170,7 +177,7 @@ export function WorkspaceSidebar({
       )}
 
       {/* 3. Artifact / Ecosystem Filter Section */}
-      {categoryCounts.length > 1 && (
+      {(categoryCounts.length > 1 || activeCategory !== null) && (
         <div className="shrink-0 pt-4">
           <p className="px-2 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
             Artifact
@@ -179,7 +186,7 @@ export function WorkspaceSidebar({
             <FilterRow
               active={activeCategory === null}
               label="Every kind"
-              count={scopedCount}
+              count={categoryTotal}
               onSelect={() => onActiveCategory(null)}
             />
             {categoryCounts.map(([category, count]) => {
@@ -200,7 +207,7 @@ export function WorkspaceSidebar({
       )}
 
       {/* 4. Repository Clones Section */}
-      {cloneCount > 0 && (
+      {(cloneCount > 0 || clonesOnly) && (
         <div className="shrink-0 pt-4">
           <FilterRow
             active={clonesOnly}
