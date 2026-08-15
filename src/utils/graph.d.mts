@@ -27,11 +27,8 @@ export type GraphNode = {
 
 export type GraphEdge = {
   id: string;
-  /**
-   * `copy`: a project holds this package. `clone`: one repository, two
-   * checkouts. `family`: one directory, several projects.
-   */
-  kind: "copy" | "clone" | "family";
+  /** `copy`: a project holds this package. `clone`: one repository, two checkouts. */
+  kind: "copy" | "clone";
   from: string;
   to: string;
 };
@@ -46,6 +43,10 @@ export type GraphLabel = {
   y: number;
   /** How far the cluster reaches from its middle. */
   reach: number;
+  /** Its members, so a reader asking about the folder gets its weight. */
+  paths: string[];
+  /** Points an outline passes through, already outside every member. */
+  outline: Array<{ x: number; y: number }>;
 };
 
 export type WorkspaceGraph = {

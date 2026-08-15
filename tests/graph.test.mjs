@@ -212,16 +212,30 @@ test("a family stays together instead of being sorted apart by name", () => {
   assert.equal(new Set(placed.map((node) => node.unit)).size, 1, "one unit, placed once");
 });
 
-test("a family is drawn round its cluster, not as a line between every pair", () => {
+test("a family is an outline round its cluster, not a wiring diagram", () => {
   const members = ["a", "b", "c", "d"];
   const projects = members.map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
   const result = graph({ projects, families: [family("mono", members)] });
 
-  // Four members sitting on a small ring: four hops closing it, not six
-  // crossing lines saying the same thing once each.
-  assert.equal(result.edges.filter((edge) => edge.kind === "family").length, 4);
+  // Four projects wired into a quadrilateral read as four things wired
+  // together; the same four inside one shape read as one thing.
+  assert.equal(result.edges.length, 0);
   assert.equal(result.labels.length, 1);
   assert.equal(result.labels[0].text, "mono");
+  assert.equal(result.labels[0].outline.length, 4);
+  assert.deepEqual(result.labels[0].paths.sort(), members.map((name) => `/w/mono/${name}`));
+});
+
+test("the outline passes outside every member, never through one", () => {
+  const members = ["a", "b", "c", "d", "e"];
+  const projects = members.map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
+  const result = graph({ projects, families: [family("mono", members)] });
+  const label = result.labels[0];
+
+  for (const point of label.outline) {
+    const out = Math.hypot(point.x - label.x, point.y - label.y);
+    assert.ok(out > label.reach, "the outline cuts through the ring its members sit on");
+  }
 });
 
 test("a family's name sits in the middle of its own cluster", () => {

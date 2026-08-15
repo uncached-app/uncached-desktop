@@ -66,12 +66,8 @@ export function workspaceGraph({
 
   return {
     nodes,
-    edges: [
-      ...copyEdges(shared, projects),
-      ...cloneEdges(projects),
-      ...familyEdges(families, nodes),
-    ],
-    /** One label per family, under the cluster it names. */
+    edges: [...copyEdges(shared, projects), ...cloneEdges(projects)],
+    /** One per family: the outline round its cluster, and what it holds. */
     labels: familyLabels(families, nodes),
     /** Packages left out of the picture because it only holds so many. */
     packagesOmitted: Math.max(0, countable(packages, projects).length - shared.length),
@@ -423,28 +419,18 @@ function cloneEdges(projects) {
 }
 
 /**
- * A family drawn round its own cluster rather than as a line between every
- * pair. The members sit on a small ring, so joining each to the next closes it
- * into a shape; a clique of the same four projects is six crossing lines saying
- * the same thing once each.
+ * A family: an outline round its members, its name in the middle, and what it
+ * weighs waiting to be asked for.
+ *
+ * The outline replaces the chain that used to join member to member. Four
+ * projects wired into a quadrilateral read as a diagram of four things wired
+ * together; the same four inside one soft shape read as one thing, which is
+ * what a directory is.
+ *
+ * It is drawn *outside* them — a rounded polygon through the points each member
+ * would reach — rather than through their centres, so the members sit within it
+ * instead of being pierced by it.
  */
-function familyEdges(families, placed) {
-  const at = new Map(placed.filter((node) => node.path).map((node) => [node.path, node]));
-
-  return families.flatMap((family) => {
-    const members = family.members.map((path) => at.get(path)).filter(Boolean);
-    if (members.length < 2) return [];
-
-    return members.map((node, index) => ({
-      id: `family:${family.path}:${index}`,
-      kind: "family",
-      from: `project:${node.path}`,
-      to: `project:${members[(index + 1) % members.length].path}`,
-    }));
-  });
-}
-
-/** The family's name, once, under the cluster it belongs to. */
 function familyLabels(families, placed) {
   const at = new Map(placed.filter((node) => node.path).map((node) => [node.path, node]));
 
@@ -460,6 +446,12 @@ function familyLabels(families, placed) {
         (far, node) => Math.max(far, Math.hypot(node.x - middle.x, node.y - middle.y)),
         0,
       );
+      const outline = members.map((node) => {
+        const angle = Math.atan2(node.y - middle.y, node.x - middle.x);
+        const out = reach + NODE * 2.1;
+        return { x: middle.x + Math.cos(angle) * out, y: middle.y + Math.sin(angle) * out };
+      });
+
       return {
         id: `family:${family.path}`,
         text: family.name,
@@ -474,6 +466,14 @@ function familyLabels(families, placed) {
         y: middle.y,
         /** How far members reach from that centre, so the name can check it fits. */
         reach,
+        /** The members, so a reader asking about the folder gets its weight. */
+        paths: members.map((node) => node.path),
+        /**
+         * The points an outline passes through, already outside every member.
+         * Two members make a line and not a shape, so those get a circle
+         * instead: the caller is told which by the length.
+         */
+        outline,
       };
     })
     .filter(Boolean);

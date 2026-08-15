@@ -134,6 +134,26 @@ export function WorkspaceCanvas({
 
   const map = useMapGestures(graph.width * SIDE, SIDE, scaled(graph.extent));
   const active = hovered ? byId.get(hovered) : null;
+  // A folder is not a node, so it is not in `byId`. Its badge is hoverable
+  // because a directory holding four projects has a weight of its own, and
+  // nowhere on this map was saying what it was.
+  const activeFamily = hovered ? (graph.labels.find((label) => label.id === hovered) ?? null) : null;
+  const familyWeight = useMemo(() => {
+    if (!activeFamily) return null;
+    return activeFamily.paths.reduce(
+      (sum, path) => {
+        const footprint = footprints[path];
+        return {
+          total: sum.total + (footprint?.totalBytes ?? 0),
+          reclaimable: sum.reclaimable + (footprint?.reclaimableBytes ?? 0),
+          // A folder whose projects are still being weighed is not a folder of
+          // that much: the figure is a floor until every one of them is in.
+          pending: sum.pending + (footprint ? 0 : 1),
+        };
+      },
+      { total: 0, reclaimable: 0, pending: 0 },
+    );
+  }, [activeFamily, footprints]);
   const activeProject = active?.path ? projects.find((entry) => entry.path === active.path) : null;
   const activeFootprint = activeProject ? footprints[activeProject.path] : null;
 
@@ -233,6 +253,48 @@ export function WorkspaceCanvas({
       </svg>
 
       {/* Modern, Minimalist Floating Tooltip on Hover */}
+      {activeFamily && familyWeight && !map.dragging && (
+        <div
+          ref={tooltipRef}
+          className="pointer-events-none absolute z-30 flex flex-col gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 text-xs shadow-lg"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="size-2 shrink-0 rounded-full bg-sage-400" />
+              <span className="truncate font-semibold text-mist-100">{activeFamily.text}</span>
+            </div>
+            <span className="shrink-0 rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-300">
+              {activeFamily.declared ? "workspace" : "folder"}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1 border-t border-forest-800 pt-1.5 text-[11px]">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-mist-500">Projects:</span>
+              <span className="font-mono font-medium text-mist-100">{activeFamily.members}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-mist-500">On disk:</span>
+              <span className="font-mono font-semibold text-mist-100">
+                {familyWeight.pending > 0 ? `at least ${formatBytes(familyWeight.total)}` : formatBytes(familyWeight.total)}
+              </span>
+            </div>
+            {familyWeight.reclaimable > 0 && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-mist-500">Reclaimable:</span>
+                <span className="font-mono font-semibold text-sage-300">
+                  {formatBytes(familyWeight.reclaimable)}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-mist-500">Held together by:</span>
+              <span className="font-medium text-mist-100">{activeFamily.detail}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {active && !map.dragging && (
         <div
           ref={tooltipRef}
@@ -541,7 +603,7 @@ const MapBody = memo(function MapBody({
             d={edgePath(from, to, centre, edge.kind)}
             fill="none"
             stroke={EDGE_STROKE[edge.kind]}
-            strokeWidth={edge.kind === "family" ? 1.75 : edge.kind === "clone" ? 1.4 : 1}
+            strokeWidth={edge.kind === "clone" ? 1.4 : 1}
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
             strokeDasharray={edge.kind === "clone" ? "6 5" : undefined}
@@ -550,13 +612,25 @@ const MapBody = memo(function MapBody({
         );
       })}
 
+      {graph.labels.map((label) => (
+        <path
+          key={`outline:${label.id}`}
+          d={outlinePath(label)}
+          className="fill-sage-400/8 stroke-sage-400/45"
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+
       {graph.labels.map(
         (label) =>
           nameFits(label, labelScale, graph.maxRadius * SIDE) && (
             <g
               key={label.id}
               transform={`translate(${label.x * SIDE}, ${label.y * SIDE}) scale(${1 / labelScale})`}
-              className="pointer-events-none select-none"
+              className="cursor-default select-none"
+              onMouseEnter={() => onEnter(label.id)}
+              onMouseLeave={() => onLeave(label.id)}
             >
               <rect
                 x="-75"
@@ -655,14 +729,8 @@ function MapHighlight({
             key={edge.id}
             d={edgePath(from, to, centre, edge.kind)}
             fill="none"
-            stroke={
-              edge.kind === "clone"
-                ? "var(--color-coral-300)"
-                : edge.kind === "family"
-                  ? "var(--color-sage-400)"
-                  : "var(--color-pro-200)"
-            }
-            strokeWidth={edge.kind === "family" ? 2.5 : 2}
+            stroke={edge.kind === "clone" ? "var(--color-coral-300)" : "var(--color-pro-200)"}
+            strokeWidth={2}
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
             strokeDasharray={edge.kind === "clone" ? "6 5" : undefined}
@@ -750,7 +818,6 @@ function NodeName({
 const EDGE_STROKE: Record<GraphEdge["kind"], string> = {
   copy: "var(--color-forest-800)",
   clone: "var(--color-coral-300)",
-  family: "var(--color-sage-400)",
 };
 
 /**
@@ -764,8 +831,40 @@ const EDGE_STROKE: Record<GraphEdge["kind"], string> = {
 const RESTING_EDGE: Record<GraphEdge["kind"], number> = {
   copy: 0.28,
   clone: 0.55,
-  family: 0.65,
 };
+
+/**
+ * A closed curve through the outline points, rounded at every one of them.
+ *
+ * Each segment is a quadratic from the midpoint of one edge to the midpoint of
+ * the next, with the shared corner as its control — the standard way to round a
+ * polygon, and the reason a four-member folder reads as a soft shape rather
+ * than as a diamond. Two members are a line and not a shape, so they get a
+ * circle around their middle instead.
+ */
+function outlinePath(label: WorkspaceGraph["labels"][number]): string {
+  const points = label.outline.map((point) => ({ x: point.x * SIDE, y: point.y * SIDE }));
+  if (points.length < 3) {
+    const radius = (label.reach + label.outline.length * 0) * SIDE + 26;
+    const cx = label.x * SIDE;
+    const cy = label.y * SIDE;
+    return `M ${cx - radius} ${cy} a ${radius} ${radius} 0 1 0 ${radius * 2} 0 a ${radius} ${radius} 0 1 0 ${-radius * 2} 0`;
+  }
+
+  const mid = (one: { x: number; y: number }, two: { x: number; y: number }) => ({
+    x: (one.x + two.x) / 2,
+    y: (one.y + two.y) / 2,
+  });
+
+  const start = mid(points[points.length - 1], points[0]);
+  let path = `M ${start.x} ${start.y}`;
+  for (let at = 0; at < points.length; at += 1) {
+    const corner = points[at];
+    const next = mid(corner, points[(at + 1) % points.length]);
+    path += ` Q ${corner.x} ${corner.y} ${next.x} ${next.y}`;
+  }
+  return `${path} Z`;
+}
 
 /**
  * A line, bent toward the middle.
@@ -789,8 +888,6 @@ function edgePath(
   const y1 = from.y * SIDE;
   const x2 = to.x * SIDE;
   const y2 = to.y * SIDE;
-  if (kind === "family") return `M ${x1} ${y1} L ${x2} ${y2}`;
-
   const bend = kind === "copy" ? 0.26 : 0.14;
   const mid = { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
   const cx = mid.x + (centre.x - mid.x) * bend;
