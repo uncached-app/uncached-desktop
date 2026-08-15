@@ -244,6 +244,7 @@ export function WorkspaceCanvas({
               graph={graph}
               byId={byId}
               hovered={hovered}
+              family={activeFamily}
               heaviest={heaviest}
               verdicts={verdicts}
               labelScale={labelScale}
@@ -673,6 +674,7 @@ function MapHighlight({
   graph,
   byId,
   hovered,
+  family,
   heaviest,
   verdicts,
   labelScale,
@@ -680,13 +682,22 @@ function MapHighlight({
   graph: WorkspaceGraph;
   byId: Map<string, GraphNode>;
   hovered: string;
+  /** Set when what is under the pointer is a folder rather than a node. */
+  family: WorkspaceGraph["labels"][number] | null;
   heaviest: { project: number; package: number };
   verdicts: Record<string, Verdict>;
   labelScale: number;
 }) {
   const centre = { x: (graph.width * SIDE) / 2, y: SIDE / 2 };
-  const edges = graph.edges.filter((edge) => edge.from === hovered || edge.to === hovered);
-  const reached = new Set<string>([hovered]);
+  // A folder is not a node and has no edges, so asking the edge list about it
+  // returns nothing — which faded the whole picture and lit none of it, the
+  // folder's own projects included. What a folder reaches is its members.
+  const edges = family
+    ? []
+    : graph.edges.filter((edge) => edge.from === hovered || edge.to === hovered);
+  const reached = new Set<string>(
+    family ? family.paths.map((path) => `project:${path}`) : [hovered],
+  );
   for (const edge of edges) {
     reached.add(edge.from);
     reached.add(edge.to);
@@ -694,6 +705,15 @@ function MapHighlight({
 
   return (
     <g className="pointer-events-none">
+      {family && (
+        <path
+          d={outlinePath(family)}
+          className="fill-sage-400/15 stroke-sage-400"
+          strokeWidth={2}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+
       {edges.map((edge) => {
         const from = byId.get(edge.from);
         const to = byId.get(edge.to);
@@ -715,7 +735,9 @@ function MapHighlight({
       {[...reached].map((id) => {
         const node = byId.get(id);
         if (!node) return null;
-        const on = id === hovered;
+        // Under a folder every member is the subject, so none of them is the
+        // one being pointed at.
+        const on = !family && id === hovered;
         const base = radiusOf(node, heaviest, graph.maxRadius);
         const radius = on ? base * 1.08 + 2 : base;
         const style = getNodeStyle(node, verdicts);
@@ -740,7 +762,7 @@ function MapHighlight({
               strokeWidth={on ? 2.5 : 1.5}
               vectorEffect="non-scaling-stroke"
             />
-            <NodeName node={node} radius={radius} scale={labelScale} showWeight bold={on} />
+            <NodeName node={node} radius={radius} scale={labelScale} showWeight bold={on || Boolean(family)} />
           </g>
         );
       })}
