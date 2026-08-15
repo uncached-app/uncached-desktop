@@ -262,6 +262,11 @@ pub fn reveal_config(app: AppHandle) -> Result<(), String> {
 /// somebody will actually read, because it is the file they are already
 /// looking at — and it is only ever written when it is absent, so an edited
 /// copy is never overwritten.
+///
+/// It carries both modes and neither is the built-in palette. It was both, and
+/// both were copies, which meant selecting it changed nothing on screen in
+/// either — an example that demonstrates the format and none of the effect,
+/// leaving somebody to wonder whether the theme took at all.
 fn ensure_example(directory: &Path) {
     if std::fs::create_dir_all(directory).is_err() {
         return;
@@ -275,64 +280,64 @@ fn ensure_example(directory: &Path) {
 
 const EXAMPLE: &str = r##"{
   "name": "Example",
-  "note": "Carry \"light\", \"dark\", or both. With one, the appearance choice follows it; with both it stays yours. Name only the colours you are changing.",
+  "note": "Carry \"light\", \"dark\", or both. With one, the appearance choice follows it; with both it stays yours. Name only the colours you are changing. This one is a slate cast of the built-in palette, visibly different in either mode so that choosing it proves it took.",
 
   "dark": {
-    "forest-950": "#0e120f",
-    "forest-900": "#141a15",
-    "forest-850": "#1b231d",
-    "forest-800": "#253127",
+    "forest-950": "#101418",
+    "forest-900": "#161b21",
+    "forest-850": "#1d232a",
+    "forest-800": "#2a323b",
 
-    "mist-100": "#f2f5f1",
-    "mist-300": "#cfd8cc",
-    "mist-500": "#93a092",
+    "mist-100": "#e8edf2",
+    "mist-300": "#c2cbd4",
+    "mist-500": "#96a2ad",
 
-    "sage-300": "#b4e590",
-    "sage-400": "#9dd47a",
-    "sage-500": "#86bd63",
+    "sage-300": "#9fd6b4",
+    "sage-400": "#7cc79a",
+    "sage-500": "#5aa87c",
 
-    "coral-300": "#ff9b94",
-    "coral-surface": "#281a19",
+    "coral-300": "#ff9d9d",
+    "coral-surface": "#2c1c1e",
 
-    "pro-100": "#eee0ff",
-    "pro-200": "#d9b8ff",
-    "pro-surface": "#211b2b",
+    "pro-100": "#ded0ff",
+    "pro-200": "#b9a0ff",
+    "pro-surface": "#221d33",
 
-    "confidence-high": "#b4e590",
-    "confidence-high-surface": "#1b241a",
-    "confidence-medium": "#f2cd94",
-    "confidence-medium-surface": "#262017",
-    "confidence-review": "#a6cde6",
-    "confidence-review-surface": "#16212a"
+    "confidence-high": "#7cc79a",
+    "confidence-high-surface": "#16261d",
+    "confidence-medium": "#f0c987",
+    "confidence-medium-surface": "#2a2418",
+    "confidence-review": "#94c4e8",
+    "confidence-review-surface": "#14222e"
   },
 
   "light": {
-    "forest-950": "#f4f6f1",
+    "forest-950": "#f5f7f9",
     "forest-900": "#ffffff",
-    "forest-850": "#e2e8df",
-    "forest-800": "#ccdac9",
+    "forest-850": "#e9edf1",
+    "forest-800": "#d5dce3",
 
-    "mist-100": "#111711",
-    "mist-300": "#2b362c",
-    "mist-500": "#4c5a4d",
+    "mist-100": "#14191f",
+    "mist-300": "#384350",
+    "mist-500": "#5f6b78",
 
-    "sage-300": "#386641",
-    "sage-400": "#57843d",
-    "sage-500": "#7fa84e",
+    "sage-300": "#1d5c41",
+    "sage-400": "#22694b",
+    "sage-500": "#1d5c41",
 
-    "coral-300": "#bc4749",
-    "coral-surface": "#f7dedd",
+    "coral-300": "#a83636",
+    "coral-surface": "#fae5e5",
 
-    "pro-100": "#4a2d6f",
-    "pro-200": "#5e3d85",
-    "pro-surface": "#efe7fa",
+    "pro-100": "#4a2f78",
+    "pro-200": "#6a4aa8",
+    "pro-surface": "#efe9f9",
 
-    "confidence-high": "#2e5535",
-    "confidence-high-surface": "#e1ecd1",
-    "confidence-medium": "#7a4f10",
-    "confidence-medium-surface": "#f7ebcf",
-    "confidence-review": "#2b5470",
-    "confidence-review-surface": "#dde9f2"
+    "confidence-high": "#1f6b4a",
+    "confidence-high-surface": "#dcefe4",
+    "confidence-medium": "#7d5514",
+    "confidence-medium-surface": "#f8eed6",
+    "confidence-review": "#21597d",
+    "confidence-review-surface": "#dfeaf3"
   }
 }
 "##;
