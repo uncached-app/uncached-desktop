@@ -395,8 +395,16 @@ fn written_at(path: &Path) -> Option<i64> {
     Some(modified.duration_since(UNIX_EPOCH).ok()?.as_secs() as i64)
 }
 
+/// What the project is written in, as the interface names it.
+///
+/// Also what decides which editor leads: a specialist opens the language it is
+/// built for and sorts below every general-purpose editor otherwise. Swift is
+/// here for exactly that — without it, Xcode's specialisation matches nothing
+/// and it never leads even an iOS project.
 fn project_kind(path: &Path) -> String {
-    if path.join("package.json").is_file() {
+    if path.join("Package.swift").is_file() || has_extension(path, "xcodeproj") {
+        "Swift".to_string()
+    } else if path.join("package.json").is_file() {
         "Node".to_string()
     } else if path.join("Cargo.toml").is_file() {
         "Rust".to_string()
@@ -617,6 +625,20 @@ pub(crate) fn candidates_for(
             }
         })
         .collect())
+}
+
+/// Whether the directory holds anything with this extension.
+///
+/// A bundle rather than a file: `.xcodeproj` and `.xcworkspace` are directories.
+fn has_extension(directory: &Path, extension: &str) -> bool {
+    std::fs::read_dir(directory).is_ok_and(|entries| {
+        entries.flatten().any(|entry| {
+            entry
+                .path()
+                .extension()
+                .is_some_and(|found| found.eq_ignore_ascii_case(extension))
+        })
+    })
 }
 
 fn measure_footprint(

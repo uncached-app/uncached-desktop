@@ -1,5 +1,6 @@
-import { ChevronRight } from "lucide-react";
+import { PanelRight } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { MenuRow, MenuSection } from "../../shared/MenuRow";
 import { useProjectActions } from "../../../hooks/useProjectActions";
 import type { WorkspaceProject } from "../../../types/workspace";
 
@@ -77,28 +78,31 @@ export function ProjectContextMenu({
       role="menu"
       aria-label={`${anchor.project.name} actions`}
       style={{ left: position.left, top: position.top }}
-      className="fixed z-50 min-w-56 overflow-hidden rounded-xl border border-forest-800 bg-forest-900 py-1 shadow-2xl"
+      /* The palette's surface, because it is the same kind of thing: a floating
+         list of the app's verbs. It was drawn separately with a tighter radius,
+         smaller rows and a smaller icon, which made two surfaces that do the
+         same job look like they came from different products. */
+      className="fixed z-50 max-h-[70vh] min-w-64 overflow-y-auto overflow-x-hidden rounded-2xl border border-forest-800 bg-forest-900 py-2 shadow-2xl"
     >
-      <p className="truncate px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-mist-500">
-        {anchor.project.name}
-      </p>
+      <MenuSection label={anchor.project.name} />
 
-      <MenuItem
-        label="Open project page"
+      <MenuRow
+        icon={PanelRight}
+        title="Open project page"
+        subtitle="Verdict, git, artifacts — and where reclaiming happens"
         onSelect={() => {
           onOpenProject(anchor.project.path);
           onClose();
         }}
-      >
-        <ChevronRight size={13} className="text-mist-500" aria-hidden="true" />
-      </MenuItem>
+      />
 
-      <div className="my-1 h-px bg-forest-800" aria-hidden="true" />
+      {actions.length > 0 && <MenuSection label="Elsewhere" />}
 
       {actions.map((action) => (
-        <MenuItem
+        <MenuRow
           key={action.id}
-          label={action.title}
+          icon={action.icon}
+          title={action.title}
           detail={action.detail}
           onSelect={() => {
             onClose();
@@ -107,39 +111,8 @@ export function ProjectContextMenu({
               (error) => onResult(typeof error === "string" ? error : "That did not work"),
             );
           }}
-        >
-          <action.icon size={13} className="text-mist-500" aria-hidden="true" />
-        </MenuItem>
+        />
       ))}
     </div>
-  );
-}
-
-function MenuItem({
-  label,
-  detail,
-  children,
-  onSelect,
-}: {
-  label: string;
-  detail?: string;
-  children: React.ReactNode;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onSelect}
-      className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-xs text-mist-300 transition-colors hover:bg-forest-850 hover:text-mist-100"
-    >
-      <span className="grid size-4 shrink-0 place-items-center">{children}</span>
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      {detail && (
-        <span className="max-w-28 shrink-0 truncate font-mono text-[10px] text-mist-500">
-          {detail}
-        </span>
-      )}
-    </button>
   );
 }

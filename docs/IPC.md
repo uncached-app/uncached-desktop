@@ -114,7 +114,9 @@ No request. Returns the editors and terminals this machine was found to have.
 
 `specialises` lists the project kinds an editor is built for, and is empty for a general-purpose one. Xcode is why it exists: every Mac with developer tools has it, so on a machine with no other editor installed it was the only thing offered for a React project — a true answer to "what can open this" and a useless one. The interface ranks the specialist for the project's kind first, then the general-purpose editors, then the specialists for other languages.
 
-`program` is what the platform's launcher understands — an application name on macOS, an executable on PATH everywhere else. Detected by looking on disk rather than by asking Launch Services, because every way of asking goes through `open` and can put a window in front of the user as a side effect of drawing a menu.
+`program` is what the platform's launcher understands — an application name on macOS, an executable on PATH everywhere else — and it is the name **found on disk**, not the one the table asked for. Matching is by prefix, because editors ship under names a fixed table cannot enumerate (`IntelliJ IDEA Ultimate`, `Visual Studio Code - Insiders`, `Cursor Nightly`, `PyCharm CE`) and an exact match misses every one of them; the shortest match wins, so a nightly beside a stable build does not take its place. The prefix requires a separating space, so `Code` does not claim `CodeRunner`.
+
+Detected by reading the application directories rather than by asking Launch Services, because every way of asking goes through `open` and can put a window in front of the user as a side effect of drawing a menu.
 
 ### `reveal_project` / `open_project_with`
 
