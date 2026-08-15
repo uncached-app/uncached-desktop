@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, List, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Share2, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, ArrowUpDown, List, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sparkles, Waypoints, X } from "lucide-react";
 import type { RefObject } from "react";
 import { formatBytes } from "../../../utils/format.mjs";
 import { Select } from "../../shared/Select";
@@ -25,6 +25,8 @@ export function WorkspaceHeader({
   view,
   onViewChange,
   canMap,
+  active,
+  onClearAll,
   sidebarCollapsed = false,
   onToggleSidebar,
 }: {
@@ -50,6 +52,17 @@ export function WorkspaceHeader({
   onViewChange: (view: "list" | "map") => void;
   /** The map is Pro. Free reads the same workspace as a list. */
   canMap: boolean;
+  /**
+   * What is narrowing the list right now, and how to stop it.
+   *
+   * The bar had no idea. Four of a hundred and forty projects on screen, the
+   * sidebar holding three filters, and the field still reading "Filter by name,
+   * path, ecosystem or branch" — state that is on and not shown, which is the
+   * failure this app corrects everywhere else. Clearing lived in the empty
+   * state, reachable only once nothing was left.
+   */
+  active: Array<{ id: string; label: string; onClear: () => void }>;
+  onClearAll: () => void;
   sidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
 }) {
@@ -134,9 +147,9 @@ export function WorkspaceHeader({
 
       <HistoryLine change={change} reclaimed={reclaimed} />
 
-      {/* Filter, Order and View controls bar - Unified h-9 height & seamless alignment */}
+      {/* Filter, Order and View controls bar - Native Uncached Design Language */}
       <div className="mt-3.5 flex items-center gap-2.5">
-        <label className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 shadow-2xs transition-all focus-within:border-sage-400/50 focus-within:bg-forest-850">
+        <label className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 shadow-2xs transition-all focus-within:border-sage-400/60 focus-within:ring-1 focus-within:ring-sage-400/30">
           <Search size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
           <span className="sr-only">Filter projects by name, path, kind or branch</span>
           <input
@@ -162,7 +175,7 @@ export function WorkspaceHeader({
               <X size={13} aria-hidden="true" />
             </button>
           ) : (
-            <kbd className="shrink-0 rounded-md border border-forest-800 bg-forest-950 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
+            <kbd className="shrink-0 rounded-md border border-forest-800 bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
               /
             </kbd>
           )}
@@ -173,6 +186,7 @@ export function WorkspaceHeader({
           <Select
             label="Order projects"
             size="sm"
+            icon={<ArrowUpDown size={13} />}
             value={order}
             onChange={(value) => onOrderChange(value as "verdict" | "size" | "folder")}
             options={[
@@ -180,20 +194,20 @@ export function WorkspaceHeader({
               { value: "size", label: "By size" },
               ...(hasFamilies ? [{ value: "folder", label: "By folder" }] : []),
             ]}
-            className="w-34 shrink-0 shadow-2xs"
+            className="w-36 shrink-0 shadow-2xs"
           />
         )}
 
         {/* Segmented View Switcher (List / Map) */}
         {canMap && (
-          <div className="flex h-9 shrink-0 items-center rounded-xl border border-forest-800 bg-forest-950 p-0.5 shadow-2xs">
+          <div className="flex h-9 shrink-0 items-center gap-0.5 rounded-xl border border-forest-800 bg-forest-900 p-1">
             <button
               type="button"
               onClick={() => onViewChange("list")}
               title="List view — readable by keyboard"
-              className={`flex h-full items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all cursor-pointer ${
+              className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all cursor-pointer ${
                 view === "list"
-                  ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
+                  ? "bg-forest-850 text-mist-100"
                   : "text-mist-500 hover:text-mist-300"
               }`}
             >
@@ -208,13 +222,13 @@ export function WorkspaceHeader({
               type="button"
               onClick={() => onViewChange("map")}
               title="Map view — interactive workspace graph"
-              className={`flex h-full items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all cursor-pointer ${
+              className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all cursor-pointer ${
                 view === "map"
-                  ? "bg-forest-800 font-semibold text-mist-100 shadow-xs"
+                  ? "bg-forest-850 text-mist-100"
                   : "text-mist-500 hover:text-mist-300"
               }`}
             >
-              <Share2
+              <Waypoints
                 size={13}
                 className={view === "map" ? "text-sage-300" : "text-mist-500"}
                 aria-hidden="true"
@@ -225,6 +239,37 @@ export function WorkspaceHeader({
         )}
 
       </div>
+
+      {/* Only when something is on, so an untouched screen carries no row for a
+          state it is not in. */}
+      {active.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pr-2">
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
+            Showing
+          </span>
+          {active.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={filter.onClear}
+              title={`Stop filtering by ${filter.label}`}
+              className="group inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-forest-800 bg-forest-900 py-1 pl-2.5 pr-1.5 text-[11px] text-mist-300 transition-colors hover:border-sage-400/50 hover:text-mist-100"
+            >
+              {filter.label}
+              <X size={11} className="text-mist-500 group-hover:text-mist-100" aria-hidden="true" />
+            </button>
+          ))}
+          {active.length > 1 && (
+            <button
+              type="button"
+              onClick={onClearAll}
+              className="cursor-pointer rounded-lg px-2 py-1 text-[11px] font-medium text-mist-500 transition-colors hover:text-mist-100"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
     </header>
   );
 }

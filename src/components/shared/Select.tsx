@@ -27,6 +27,7 @@ export function Select({
   label,
   className = "",
   size = "md",
+  icon,
 }: {
   value: string;
   options: SelectOption[];
@@ -36,6 +37,7 @@ export function Select({
   label: string;
   className?: string;
   size?: "sm" | "md";
+  icon?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -162,7 +164,10 @@ export function Select({
             : "border-forest-800 bg-forest-900 text-mist-100 enabled:hover:border-forest-750 enabled:hover:bg-forest-850"
         } ${className}`}
       >
-        <span className="min-w-0 truncate">{chosen?.label ?? ""}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          {icon && <span className="shrink-0 text-mist-500">{icon}</span>}
+          <span className="truncate">{chosen?.label ?? ""}</span>
+        </span>
         <ChevronDown size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
       </button>
 

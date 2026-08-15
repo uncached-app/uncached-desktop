@@ -7,7 +7,8 @@ import { VerdictGroup } from "./map/VerdictGroup";
 import { WorkspaceHeader } from "./map/WorkspaceHeader";
 import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
 import { useFocusedProject } from "./map/useFocusedProject";
-import { VERDICT_ORDER } from "./verdictPresentation";
+import { rootName } from "./map/naming";
+import { VERDICT_ORDER, VERDICT_PRESENTATION } from "./verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
 import { workspaceGraph } from "../../utils/graph.mjs";
 import { WorkspaceCanvas } from "./map/WorkspaceCanvas";
@@ -113,6 +114,21 @@ export function WorkspaceMap({
   onRescan,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
+
+  /**
+   * Every filter off, from wherever it is asked for.
+   *
+   * Written three times before this: once for the focus handler, once for the
+   * empty state's button, once for the header's. Three copies of the same five
+   * calls is three places to forget the sixth filter on the day there is one.
+   */
+  const clearEveryFilter = useCallback(() => {
+    onQueryChange("");
+    setActiveRoot(null);
+    setActiveVerdict(null);
+    setActiveCategory(null);
+    setClonesOnly(false);
+  }, [onQueryChange, setActiveVerdict, setActiveCategory, setClonesOnly]);
   // Verdict first by default, because what a project holds decides whether its
   // size is worth acting on at all. Size is the other reading, and until now it
   // was unreachable: grouping runs before sorting, so the heaviest project on
@@ -249,13 +265,7 @@ export function WorkspaceMap({
     focusPath,
     listRef,
     visibleCount: visible.length,
-    onClearFilters: () => {
-      onQueryChange("");
-      setActiveRoot(null);
-      setActiveVerdict(null);
-      setActiveCategory(null);
-      setClonesOnly(false);
-    },
+    onClearFilters: clearEveryFilter,
     onHandled: onFocusHandled,
   });
 
@@ -374,6 +384,48 @@ export function WorkspaceMap({
   // set has nothing to draw.
   const drawable = graph !== null && visible.length > 0;
 
+  /**
+   * Every filter that is on, as a label and the way to lift it.
+   *
+   * Built here because this is where they all live — the folder and the text
+   * belong to this component, the other three are lifted through it — and the
+   * header only has to draw what it is handed.
+   */
+  const active = useMemo(() => {
+    const chips: Array<{ id: string; label: string; onClear: () => void }> = [];
+    if (activeRoot) {
+      chips.push({ id: "root", label: rootName(activeRoot), onClear: () => setActiveRoot(null) });
+    }
+    if (normalizedQuery) {
+      chips.push({ id: "query", label: `"${query.trim()}"`, onClear: () => onQueryChange("") });
+    }
+    if (activeVerdict) {
+      chips.push({
+        id: "verdict",
+        label: VERDICT_PRESENTATION[activeVerdict].label,
+        onClear: () => setActiveVerdict(null),
+      });
+    }
+    if (activeCategory) {
+      chips.push({ id: "category", label: activeCategory, onClear: () => setActiveCategory(null) });
+    }
+    if (clonesOnly) {
+      chips.push({ id: "clones", label: "Copies of a repo", onClear: () => setClonesOnly(false) });
+    }
+    return chips;
+  }, [
+    activeRoot,
+    normalizedQuery,
+    query,
+    onQueryChange,
+    activeVerdict,
+    setActiveVerdict,
+    activeCategory,
+    setActiveCategory,
+    clonesOnly,
+    setClonesOnly,
+  ]);
+
   const filtering =
     normalizedQuery.length > 0 ||
     activeRoot !== null ||
@@ -432,6 +484,8 @@ export function WorkspaceMap({
           view={onMap ? "map" : "list"}
           onViewChange={onViewChange}
           canMap={proEnabled}
+          active={active}
+          onClearAll={clearEveryFilter}
           sidebarCollapsed={sidebarHidden}
           onToggleSidebar={() => onSidebarHiddenChange(!sidebarHidden)}
         />
@@ -559,13 +613,7 @@ export function WorkspaceMap({
                 {filtering && (
                   <button
                     type="button"
-                    onClick={() => {
-                      onQueryChange("");
-                      setActiveRoot(null);
-                      setActiveVerdict(null);
-                      setActiveCategory(null);
-                      setClonesOnly(false);
-                    }}
+                    onClick={clearEveryFilter}
                     className="mt-4 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-sage-300 transition-all hover:bg-forest-850 hover:border-sage-400/60"
                   >
                     Clear all filters
