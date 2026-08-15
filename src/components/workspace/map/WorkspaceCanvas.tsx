@@ -569,20 +569,6 @@ function Control({
   );
 }
 
-/**
- * Whether a family's name fits inside the ring of its own members.
- *
- * The name sits at the cluster's centre and is counter-scaled, so zooming out
- * grows it relative to the cluster until it covers the projects it is naming.
- * Below the fit it is not drawn: the shape is still there, and closing in is
- * what asks for the name — the same bargain every other label on this map
- * makes.
- */
-function nameFits(label: WorkspaceGraph["labels"][number], scale: number, node: number): boolean {
-  // `reach` is to the members' centres, so their own radius comes off it: the
-  // hole is what is left between them, not the circle they sit on.
-  return (label.reach * SIDE - node) * scale > 82;
-}
 
 /** The drawing's own rectangle, in the coordinates the SVG uses. */
 function scaled(extent: WorkspaceGraph["extent"]) {
@@ -674,34 +660,34 @@ const MapBody = memo(function MapBody({
         />
       ))}
 
-      {graph.labels.map(
-        (label) =>
-          nameFits(label, labelScale, graph.maxRadius * SIDE) && (
-            <g
-              key={label.id}
-              transform={`translate(${label.x * SIDE}, ${label.y * SIDE}) scale(${1 / labelScale})`}
-              className="cursor-default select-none"
-              onMouseEnter={() => onEnter(label.id)}
-              onMouseLeave={() => onLeave(label.id)}
-            >
-              <rect
-                x="-75"
-                y="-18"
-                width="150"
-                height="36"
-                rx="10"
-                className="fill-forest-900 stroke-forest-800"
-                strokeWidth="1"
-              />
-              <text x="0" y="-1" textAnchor="middle" className="fill-mist-100 text-[12px] font-semibold">
-                {label.text}
-              </text>
-              <text x="0" y="11" textAnchor="middle" className="fill-mist-500 font-mono text-[9px]">
-                {label.detail}
-              </text>
-            </g>
-          ),
-      )}
+      {graph.labels.map((label) => {
+        // Sized by the hole it sits in rather than by the screen. The badge
+        // before this was a fixed 150 by 36 pixels, counter-scaled — a screen
+        // object in a world-sized gap, and the two only met at two and a half
+        // times zoom. A name measured against the cluster fits by construction,
+        // at every zoom, and stops being drawn only when the cluster itself is
+        // too small on screen to read anything in.
+        const hole = Math.max(0, label.reach * SIDE - graph.maxRadius * SIDE);
+        // The hole is a radius and the name spans its diameter, which the first
+        // version of this halved by accident — a name at half the size it had
+        // room for, needing twice the zoom to be worth drawing.
+        const font = Math.min(hole * 0.62, (hole * 3.2) / Math.max(label.text.length, 5));
+        if (font * labelScale < 9) return null;
+
+        return (
+          <text
+            key={label.id}
+            x={label.x * SIDE}
+            y={label.y * SIDE}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={font}
+            className="pointer-events-none fill-mist-300 font-semibold select-none"
+          >
+            {label.text}
+          </text>
+        );
+      })}
 
       {graph.nodes.map((node) => {
         const radius = radiusOf(node, heaviest, graph.maxRadius);

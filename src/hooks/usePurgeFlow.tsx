@@ -132,7 +132,11 @@ export function PurgeFlowProvider({
     roots,
     // A scan and a cleanup are the app writing the tree it would re-read.
     busy: flow.scanning || flow.cleaningTargetIds.size > 0,
-    onChanged: () => void index.refreshIfStale(roots),
+    // Read, not `refreshIfStale`. Focus is a guess that something might have
+    // changed and is rightly gated by a timer; a watcher event is evidence
+    // that something did. Gating evidence behind the timer built for guesses
+    // meant adding a project and watching nothing happen for five minutes.
+    onChanged: () => void index.scanRoots(roots),
   });
 
   // Changing the folders while results are on screen re-reads both of them. The

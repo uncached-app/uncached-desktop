@@ -37,9 +37,12 @@ export function useWorkspaceWatch({
   // of kernel handles, and the window is the part of this that can go away.
   useEffect(() => {
     if (!isTauri()) return;
-    void invoke("watch_workspace", { roots }).catch(() => {
+    void invoke("watch_workspace", { roots }).catch((error) => {
       // No watcher leaves the behaviour that existed before this: the window
-      // reads again when it comes back. Worth surviving rather than reporting.
+      // reads again when it comes back. Survivable, so not an error on screen —
+      // but said out loud, because a silently swallowed one is a feature that
+      // looks implemented and is not.
+      console.warn("uncached: not watching the workspace —", error);
     });
   }, [roots]);
 
