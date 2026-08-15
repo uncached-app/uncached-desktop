@@ -189,7 +189,15 @@ fn candidates() -> Vec<(
         ("xterm", "xterm", Terminal, "xterm", ANY),
         // Windows without Windows Terminal installed, which is every Windows 10
         // that never opted in. Offering nothing there was the real gap.
-        ("powershell", "PowerShell", Terminal, "powershell.exe", ANY),
+        ("pwsh", "PowerShell", Terminal, "pwsh.exe", ANY),
+        (
+            "powershell",
+            "Windows PowerShell",
+            Terminal,
+            "powershell.exe",
+            ANY,
+        ),
+        ("cmd", "Command Prompt", Terminal, "cmd.exe", ANY),
     ]
 }
 
@@ -351,15 +359,87 @@ pub async fn open_project_with(
     program: String,
 ) -> Result<(), String> {
     let target = authorize(&app, &path)?;
-    let known = available_launchers()
+    let launcher = available_launchers()
         .await
         .into_iter()
-        .any(|launcher| launcher.program == program);
-    if !known {
-        return Err("That application is not installed".to_string());
+        .find(|launcher| launcher.program == program)
+        .ok_or_else(|| "That application is not installed".to_string())?;
+
+    if launcher.kind == LauncherKind::Terminal {
+        return open_terminal_at(&launcher, &target);
     }
     tauri_plugin_opener::open_path(target.to_string_lossy().to_string(), Some(program))
         .map_err(|error| error.to_string())
+}
+
+/// Starts a terminal already sitting in the project.
+///
+/// The opener cannot do this anywhere but macOS, where `open -a Terminal --
+/// <path>` means what it looks like. Everywhere else it runs `<app> <path>`,
+/// and no terminal emulator reads a bare positional path as a working
+/// directory — `gnome-terminal /w/api` opens in your home directory, and
+/// `cmd.exe C:\w\api` tries to *execute* the path. On Windows the opener also
+/// passes `CREATE_NO_WINDOW`, which is right for an editor and fatal for a
+/// console: the process would start with no window at all.
+///
+/// So each terminal is spawned with its own way of saying "start here", from
+/// the table beside its entry.
+///
+/// **Verified on macOS only.** The flags below are each one's documented
+/// option, but this machine cannot run the other two platforms to check them.
+fn open_terminal_at(launcher: &Launcher, target: &Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        // `open -a` already starts a terminal in the directory it is handed.
+        tauri_plugin_opener::open_path(
+            target.to_string_lossy().to_string(),
+            Some(launcher.program.clone()),
+        )
+        .map_err(|error| error.to_string())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let directory = target.to_string_lossy();
+        let arguments: Vec<String> = terminal_arguments(&launcher.id)
+            .iter()
+            .map(|argument| argument.replace("{dir}", &directory))
+            .collect();
+
+        let mut command = std::process::Command::new(&launcher.program);
+        command.args(&arguments);
+        // A terminal with nowhere to start is worse than one starting in the
+        // home directory, so a launcher with no known flag is still spawned —
+        // it simply opens wherever it defaults to.
+        if arguments.is_empty() {
+            command.current_dir(target);
+        }
+        command
+            .spawn()
+            .map(|_| ())
+            .map_err(|error| error.to_string())
+    }
+}
+
+/// How each terminal is told where to start. `{dir}` is the project path.
+///
+/// Empty means the terminal has no such option this code knows, and it is
+/// started with its working directory set instead — which most of them inherit.
+#[cfg(not(target_os = "macos"))]
+fn terminal_arguments(id: &str) -> &'static [&'static str] {
+    match id {
+        "wt" => &["-d", "{dir}"],
+        "cmd" => &["/K", "cd /d {dir}"],
+        "powershell" | "pwsh" => &["-NoExit", "-Command", "Set-Location -LiteralPath '{dir}'"],
+        "konsole" => &["--workdir", "{dir}"],
+        "kitty" => &["--directory", "{dir}"],
+        "alacritty" => &["--working-directory", "{dir}"],
+        "wezterm" => &["start", "--cwd", "{dir}"],
+        "gnome" | "tilix" | "terminator" | "xfce4" | "foot" | "ghostty" | "ptyxis" => {
+            &["--working-directory={dir}"]
+        }
+        _ => &[],
+    }
 }
 
 #[cfg(test)]
@@ -457,6 +537,28 @@ mod tests {
 
         assert_eq!(super::resolve("Code", &apps), None);
         assert_eq!(super::resolve("Nova", &apps), None);
+    }
+
+    /// Every terminal the table offers on a platform that needs a flag has to
+    /// have one, or it opens in the home directory and the verb is a lie.
+    /// macOS is exempt: `open -a` already starts one where it is pointed.
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn every_terminal_knows_how_to_be_told_where_to_start() {
+        for (id, name, kind, _, _) in super::candidates() {
+            if kind != LauncherKind::Terminal {
+                continue;
+            }
+            // `x-terminal-emulator` and `xterm` are the last resorts, and
+            // neither has one option that works across what they point at.
+            if id == "x-terminal" || id == "xterm" {
+                continue;
+            }
+            assert!(
+                !super::terminal_arguments(id).is_empty(),
+                "{name} would open wherever it likes"
+            );
+        }
     }
 
     /// A terminal is never specialised, and a general-purpose editor has to
