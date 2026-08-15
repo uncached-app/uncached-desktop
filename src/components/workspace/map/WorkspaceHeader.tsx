@@ -52,58 +52,59 @@ export function WorkspaceHeader({
     // `pr-2` matches the scrollbar gutter the list below reserves, so the
     // search field and the cards end on the same edge.
     <header className="shrink-0 border-b border-forest-800 pb-4 pr-2">
-      {/* Top summary row: Project count, metrics cluster and Primary Reclaim CTA */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
-          {onToggleSidebar && (
-            <button
-              type="button"
-              onClick={onToggleSidebar}
-              title={sidebarCollapsed ? "Show sidebar (filters)" : "Collapse sidebar"}
-              aria-label={sidebarCollapsed ? "Show sidebar" : "Collapse sidebar"}
-              className="grid size-8 shrink-0 place-items-center rounded-xl border border-forest-800 bg-forest-900 text-mist-500 hover:bg-forest-850 hover:text-mist-100 transition-colors cursor-pointer mr-0.5"
-            >
-              {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-            </button>
+      {/* Row 1: Sidebar Toggle and Workspace Title */}
+      <div className="flex items-center gap-2 mb-3">
+        {onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            title={sidebarCollapsed ? "Show sidebar (filters)" : "Collapse sidebar"}
+            aria-label={sidebarCollapsed ? "Show sidebar" : "Collapse sidebar"}
+            className="grid size-8 shrink-0 place-items-center rounded-xl border border-forest-800 bg-forest-900 text-mist-500 hover:bg-forest-850 hover:text-mist-100 transition-colors cursor-pointer mr-0.5"
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          </button>
+        )}
+
+        <h1 id="workspace-title" className="text-xl font-bold tracking-tight text-mist-100 sm:text-2xl">
+          {projectCount} {projectCount === 1 ? "project" : "projects"}
+        </h1>
+      </div>
+
+      {/* Row 2: Metrics cards on left, Primary Reclaim CTA on right */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <StatCard value={formatBytes(totalBytes)} label="on disk" />
+
+          {reclaimableBytes > 0 && (
+            <StatCard
+              value={formatBytes(reclaimableBytes)}
+              label="reclaimable"
+              accent
+            />
           )}
 
-          <h1 id="workspace-title" className="shrink-0 text-xl font-bold tracking-tight text-mist-100 sm:text-2xl mr-1">
-            {projectCount} {projectCount === 1 ? "project" : "projects"}
-          </h1>
+          {atRisk > 0 && (
+            <div
+              title={`${atRisk} ${atRisk === 1 ? "project holds" : "projects hold"} unpushed or uncommitted work`}
+              className="inline-flex items-baseline gap-1.5 rounded-xl border border-coral-300/30 bg-coral-300/10 px-3 py-1.5 text-coral-300"
+            >
+              <AlertTriangle size={13} className="self-center shrink-0" aria-hidden="true" />
+              <span className="font-mono text-sm font-semibold tracking-tight">{atRisk}</span>
+              <span className="text-[11px] font-medium uppercase tracking-wider text-coral-300/80">at risk</span>
+            </div>
+          )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <StatCard value={formatBytes(totalBytes)} label="on disk" />
-
-            {reclaimableBytes > 0 && (
-              <StatCard
-                value={formatBytes(reclaimableBytes)}
-                label="reclaimable"
-                accent
-              />
-            )}
-
-            {atRisk > 0 && (
-              <div
-                title={`${atRisk} ${atRisk === 1 ? "project holds" : "projects hold"} unpushed or uncommitted work`}
-                className="inline-flex items-baseline gap-1.5 rounded-xl border border-coral-300/30 bg-coral-300/10 px-3 py-1.5 text-coral-300"
-              >
-                <AlertTriangle size={13} className="self-center shrink-0" aria-hidden="true" />
-                <span className="font-mono text-sm font-semibold tracking-tight">{atRisk}</span>
-                <span className="text-[11px] font-medium uppercase tracking-wider text-coral-300/80">at risk</span>
-              </div>
-            )}
-
-            {measuring && (
-              <span className="inline-flex items-center gap-1.5 rounded-xl border border-forest-800 bg-forest-900 px-2.5 py-1.5 font-mono text-[11px] text-mist-500">
-                <RefreshCw size={11} className="animate-spin text-sage-300" /> measuring...
-              </span>
-            )}
-          </div>
+          {measuring && (
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-forest-800 bg-forest-900 px-2.5 py-1.5 font-mono text-[11px] text-mist-500">
+              <RefreshCw size={11} className="animate-spin text-sage-300" /> measuring...
+            </span>
+          )}
         </div>
 
-        {/* Primary Reclaim CTA - Firmly pinned to top-right with high contrast */}
-        <div className="shrink-0 flex items-center justify-end">
-          {targetCount > 0 && (
+        {/* Primary Reclaim CTA aligned to the right edge */}
+        {targetCount > 0 && (
+          <div className="shrink-0 flex items-center justify-end">
             <button
               type="button"
               onClick={onReclaim}
@@ -115,8 +116,8 @@ export function WorkspaceHeader({
               </span>
               <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <HistoryLine change={change} reclaimed={reclaimed} />

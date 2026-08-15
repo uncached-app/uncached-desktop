@@ -58,6 +58,42 @@ test("a package in three projects is a node with an edge to each", () => {
   assert.equal(result.edges.filter((edge) => edge.kind === "copy").length, 3);
 });
 
+test("a package whose projects are not in the picture is not in it either", () => {
+  // The duplicate report is taken for a whole workspace and outlives it: change
+  // the chosen folders and it answers about the previous ones until the next
+  // reading settles. Drawn from the report alone, the middle filled with rings
+  // and not one line leaving them.
+  const result = graph({
+    projects: [project("api")],
+    packages: [shared("react", ["gone-1", "gone-2", "gone-3"])],
+  });
+
+  assert.deepEqual(result.nodes.filter((node) => node.kind === "package"), []);
+  assert.equal(result.sharesNothing, true);
+});
+
+test("a package only one visible project holds is not shared here", () => {
+  // Narrowed to two projects, a package installed in nine of them is one copy
+  // and one copy. The ring would be a claim the drawing cannot support.
+  const result = graph({
+    projects: [project("api"), project("web")],
+    packages: [shared("react", ["api", "gone-1", "gone-2"])],
+  });
+
+  assert.deepEqual(result.nodes.filter((node) => node.kind === "package"), []);
+});
+
+test("a package says how many of its copies are actually drawn", () => {
+  const result = graph({
+    projects: [project("api"), project("web")],
+    packages: [shared("react", ["api", "web", "elsewhere"])],
+  });
+
+  const react = result.nodes.find((node) => node.kind === "package");
+  assert.equal(react.detail, "2 of 3 copies here");
+  assert.equal(result.edges.filter((edge) => edge.kind === "copy").length, 2);
+});
+
 test("an edge is never drawn to a project that is not in the picture", () => {
   // The duplicate report reads projects the index may since have dropped.
   const result = graph({

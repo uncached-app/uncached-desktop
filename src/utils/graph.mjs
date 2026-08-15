@@ -53,7 +53,7 @@ export function workspaceGraph({
   limit = MAX_PACKAGES,
   aspect = 1,
 }) {
-  const shared = sharedPackages(packages, limit);
+  const shared = sharedPackages(packages, projects, limit);
   const box = { width: Math.max(0.4, aspect), height: 1 };
 
   const middle = placePackages(shared);
@@ -74,7 +74,7 @@ export function workspaceGraph({
     /** One label per family, under the cluster it names. */
     labels: familyLabels(families, nodes),
     /** Packages left out of the picture because it only holds so many. */
-    packagesOmitted: Math.max(0, countable(packages).length - shared.length),
+    packagesOmitted: Math.max(0, countable(packages, projects).length - shared.length),
     /** Nothing is installed in more than one project, so there is no middle. */
     sharesNothing: shared.length === 0,
     /**
@@ -99,13 +99,32 @@ export function workspaceGraph({
   };
 }
 
-/** Only a package that is actually in more than one project is shared. */
-function countable(packages) {
-  return (packages ?? []).filter((entry) => entry.projects.length > 1);
+/**
+ * Packages more than one *drawn* project keeps its own copy of.
+ *
+ * Counted against what is on screen, not against what the report holds. The
+ * report is taken for the whole workspace and outlives it: change the chosen
+ * folders and it is answers about the previous ones until the next reading
+ * settles. Drawn from the report alone, the middle of the map fills with rings
+ * whose projects are somewhere else entirely — a dozen packages and not one
+ * line leaving them, which is what a picture of nothing looks like.
+ *
+ * The same holds for a filter. Narrow to two projects and a package installed
+ * in nine of them is not a shared package here; it is one copy and one copy,
+ * and the ring would be a claim the drawing cannot support.
+ */
+function countable(packages, projects) {
+  const drawn = new Set((projects ?? []).map((project) => project.path));
+  return (packages ?? [])
+    .map((entry) => {
+      const here = entry.projects.filter((path) => drawn.has(path));
+      return { ...entry, projects: here, copies: here.length, of: entry.projects.length };
+    })
+    .filter((entry) => entry.projects.length > 1);
 }
 
-function sharedPackages(packages, limit) {
-  return [...countable(packages)]
+function sharedPackages(packages, projects, limit) {
+  return countable(packages, projects)
     .sort((left, right) => right.wastedBytes - left.wastedBytes || left.name.localeCompare(right.name))
     .slice(0, limit);
 }
@@ -129,7 +148,13 @@ function placePackages(shared) {
       id: `package:${key(entry)}`,
       kind: "package",
       label: entry.name,
-      detail: `${entry.copies} copies`,
+      // What is drawn, and what the report knows, when those differ: a ring
+      // with two lines under it saying "nine copies" is the picture arguing
+      // with itself.
+      detail:
+        entry.of > entry.copies
+          ? `${entry.copies} of ${entry.of} copies here`
+          : `${entry.copies} copies`,
       bytes: entry.wastedBytes,
       weight: entry.wastedBytes,
       angle,
