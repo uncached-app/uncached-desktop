@@ -9,6 +9,7 @@ import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { TargetCard } from "./TargetCard";
 import { openExternalUrl } from "../../utils/externalLink";
+import { OrderToggle, StatCard } from "../shared/StatCard";
 
 interface FindingsSectionProps {
   step: Step;
@@ -121,7 +122,7 @@ export function FindingsSection({
       aria-label="Scan targets"
       className="flex h-full w-full flex-col overflow-hidden"
     >
-      <header className="shrink-0 border-b border-forest-800 pb-5">
+      <header className="shrink-0 border-b border-forest-800 pb-4">
         {/* Breadcrumb Navigation matching ProjectHeader */}
         <div className="mb-3 flex items-center gap-2 text-xs text-mist-500">
           <button
@@ -137,145 +138,53 @@ export function FindingsSection({
           <span className="truncate font-mono text-[11px] text-mist-300">Reclaim Targets</span>
         </div>
 
-        {/* Top Summary & Actions Row */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">
-                {targets.length} {targets.length === 1 ? "target" : "targets"}
-              </h1>
+        {/* Laid out like the workspace header, because they are the same kind
+            of screen: what it adds up to on the left, the one destructive
+            action pinned top-right, and the controls in a bar of their own
+            underneath. The two used to diverge in type scale, in how a figure
+            was drawn, and in whether the order control sat inside a bordered
+            box of its own — a card inside a card. */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
+            <h1 className="mr-1 shrink-0 text-xl font-bold tracking-tight text-mist-100 sm:text-2xl">
+              {targets.length} {targets.length === 1 ? "target" : "targets"}
+            </h1>
 
-              {readyTargets.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-forest-800 bg-forest-900 px-3 py-1.5">
-                    <span className="font-mono text-sm font-semibold text-mist-100">
-                      {formatBytes(totalBytesFound)}
-                    </span>
-                    <span className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">total found</span>
-                  </div>
+            {readyTargets.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <StatCard
+                  value={formatBytes(totalBytesFound)}
+                  label="reclaimable"
+                  /* The heading counts every target; this covers only the ones
+                     a reclaim could take. Side by side with nothing between
+                     them the two numbers describe different sets and read as
+                     one claim. */
+                  title={
+                    readyTargets.length < targets.length
+                      ? `Across ${readyTargets.length} of the ${targets.length} targets — the rest are still being measured, failed to measure, or are reported and never removed.`
+                      : undefined
+                  }
+                />
 
-                  {/* The heading counts every target; this figure covers only
-                      the ones a reclaim could take — measured, and not
-                      report-only. Printed side by side with nothing between
-                      them, the two numbers describe different sets and read as
-                      one claim. */}
-                  {readyTargets.length < targets.length && (
-                    <span className="text-[11px] text-mist-500">
-                      across {readyTargets.length} of them
-                    </span>
-                  )}
+                {selectedTargets.length > 0 && (
+                  <StatCard
+                    value={formatBytes(selectedBytes)}
+                    label={`selected (${selectedTargets.length})`}
+                    accent
+                  />
+                )}
 
-                  {/* Both figures above are short by whatever is inside these.
-                      The count and the total are the scan's whole claim, and a
-                      claim the walk could not complete has to say so — on macOS
-                      without Full Disk Access this is the ordinary case, not
-                      the unlucky one. */}
-                  {unreadable > 0 && (
-                    <span
-                      className="text-[11px] text-confidence-medium"
-                      title="Grant Uncached Full Disk Access to read them."
-                    >
-                      {unreadable} {unreadable === 1 ? "folder was" : "folders were"} withheld by the
-                      system — both figures are a floor
-                    </span>
-                  )}
-
-                  {selectedTargets.length > 0 && (
-                    <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-sage-400/40 bg-sage-400/10 px-3 py-1.5 text-sage-300">
-                      <span className="font-mono text-sm font-bold">
-                        {formatBytes(selectedBytes)}
-                      </span>
-                      <span className="text-[11px] font-mono text-sage-300/80 font-medium">
-                        ({selectedTargets.length} selected)
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Split for Free vs Pro when locked targets exist */}
-            {!proEnabled && readyTargets.length > 0 && (
-              <div className="mt-2.5 flex flex-wrap gap-2 text-xs font-medium">
-                <span className="rounded-lg bg-sage-400/10 px-2.5 py-1 text-sage-300 font-mono text-[11px]">
-                  Free · {formatBytes(freeBytes)}
-                </span>
-                {proBytes > 0 && (
-                  <span className="rounded-lg bg-pro-surface px-2.5 py-1 text-pro-100 font-mono text-[11px]">
-                    Pro · {formatBytes(proBytes)}
+                {!proEnabled && (
+                  <span className="rounded-xl border border-forest-800 bg-forest-900 px-3 py-1.5 font-mono text-[11px] text-mist-500">
+                    Free {formatBytes(freeBytes)}
+                    {proBytes > 0 && <span className="text-pro-100"> · Pro {formatBytes(proBytes)}</span>}
                   </span>
                 )}
               </div>
             )}
-
-            <p className="mt-2 text-xs text-mist-500">
-              {permanent ? (
-                <span className="font-medium text-coral-300">
-                  Selected targets are deleted permanently. Not recoverable.
-                </span>
-              ) : (
-                <span>Selected targets move to the Recycle Bin. Restorable from there if needed.</span>
-              )}
-            </p>
-
-            {activeIgnoreRules > 0 && (
-              <p className="mt-1 text-xs text-mist-500">
-                {activeIgnoreRules === 1 ? "1 ignore rule is" : `${activeIgnoreRules} ignore rules are`} in force.
-                Covered paths were excluded from this scan.
-              </p>
-            )}
           </div>
 
-          {/* Action buttons */}
-          <div className="flex shrink-0 items-center gap-2.5">
-            {/* The order was the product's opinion and nothing said so, which
-                left the least certain target sitting at the top for no visible
-                reason — and the heaviest one unreachable. */}
-            {targets.length > 1 && (
-              <div className="flex items-center gap-1 rounded-xl border border-forest-800 bg-forest-900 p-1">
-                {(
-                  [
-                    ["confidence", "Least certain", "Targets the core is least sure about come first"],
-                    ["size", "Largest", "Heaviest on disk first"],
-                  ] as const
-                ).map(([value, label, why]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setOrder(value)}
-                    aria-pressed={order === value}
-                    title={
-                      proEnabled ? why : `${why}. On Free, what your plan can clean comes first either way.`
-                    }
-                    className={`rounded-lg px-2.5 py-1 font-mono text-[11px] font-medium transition-all ${
-                      order === value
-                        ? "bg-forest-850 text-mist-100 font-semibold"
-                        : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={toggleAll}
-              disabled={scanning || freeTargets.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:opacity-40"
-            >
-              <div
-                className={`grid size-4 place-items-center rounded border transition-colors ${allSelected
-                  ? "border-sage-400 bg-sage-400 text-forest-950"
-                  : "border-forest-800 bg-forest-950 text-transparent"
-                  }`}
-              >
-                <Check size={11} strokeWidth={3} aria-hidden="true" />
-              </div>
-              <span>{allSelected ? "Deselect all" : "Select all"}</span>
-            </button>
-
+          <div className="flex shrink-0 items-center justify-end">
             <button
               type="button"
               onClick={() => setConfirming(true)}
@@ -285,21 +194,101 @@ export function FindingsSection({
                   ? undefined
                   : "Uncached could not read what this system allows it to remove, so nothing is offered."
               }
-              className="inline-flex min-h-10 min-w-32 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+              className="group inline-flex min-h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-xs font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {confirming ? (
-                <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+                <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
               ) : (
-                <Trash2 size={16} aria-hidden="true" />
+                <Trash2 size={14} aria-hidden="true" />
               )}
-              <span>Delete ({selectedTargets.length})</span>
+              <span>Delete</span>
+              <span className="grid size-4.5 place-items-center rounded bg-forest-950/20 font-mono text-[11px] font-bold text-forest-950">
+                {selectedTargets.length}
+              </span>
             </button>
           </div>
+        </div>
+
+        {/* Everything the numbers above cannot say on their own, in one muted
+            block rather than scattered between them. */}
+        <div className="mt-2 grid gap-1 text-xs text-mist-500">
+          <p>
+            {permanent ? (
+              <span className="font-medium text-coral-300">
+                Selected targets are deleted permanently. Not recoverable.
+              </span>
+            ) : (
+              <span>Selected targets move to the Recycle Bin. Restorable from there if needed.</span>
+            )}
+          </p>
+
+          {unreadable > 0 && (
+            <p className="text-confidence-medium" title="Grant Uncached Full Disk Access to read them.">
+              {unreadable} {unreadable === 1 ? "folder was" : "folders were"} withheld by the system,
+              so the count and the total above are both a floor.
+            </p>
+          )}
+
+          {activeIgnoreRules > 0 && (
+            <p>
+              {activeIgnoreRules === 1 ? "1 ignore rule is" : `${activeIgnoreRules} ignore rules are`} in
+              force. Covered paths were excluded from this scan.
+            </p>
+          )}
+        </div>
+
+        {/* The controls bar, in the workspace's shape. */}
+        <div className="mt-3.5 flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={toggleAll}
+            disabled={scanning || freeTargets.length === 0}
+            className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <div
+              className={`grid size-4 place-items-center rounded border transition-colors ${
+                allSelected
+                  ? "border-sage-400 bg-sage-400 text-forest-950"
+                  : "border-forest-800 bg-forest-950 text-transparent"
+              }`}
+            >
+              <Check size={11} strokeWidth={3} aria-hidden="true" />
+            </div>
+            <span>{allSelected ? "Deselect all" : "Select all"}</span>
+          </button>
+
+          <div className="flex-1" aria-hidden="true" />
+
+          {/* The order was the product's opinion and nothing said so, which left
+              the least certain target at the top for no visible reason and the
+              heaviest one unreachable. */}
+          {targets.length > 1 && (
+            <OrderToggle
+              active={order}
+              onChange={setOrder}
+              options={[
+                [
+                  "confidence",
+                  "Least certain",
+                  proEnabled
+                    ? "Targets the scanner is least sure about come first"
+                    : "Targets the scanner is least sure about come first. On Free, what your plan can clean leads either way.",
+                ],
+                [
+                  "size",
+                  "Largest",
+                  proEnabled
+                    ? "Heaviest on disk first"
+                    : "Heaviest on disk first. On Free, what your plan can clean leads either way.",
+                ],
+              ]}
+            />
+          )}
         </div>
       </header>
 
       {targets.length === 0 ? (
-        <div className="my-5 grid min-h-52 flex-1 place-items-center rounded-3xl border border-forest-800 bg-forest-900 px-6 py-10 text-center">
+        <div className="my-5 grid min-h-52 flex-1 place-items-center rounded-2xl border border-forest-800 bg-forest-900 px-6 py-10 text-center">
           <div>
             <FolderSearch size={32} className="mx-auto text-mist-500" strokeWidth={1.5} aria-hidden="true" />
             <p className="mt-4 text-sm font-medium text-mist-300">
@@ -351,21 +340,21 @@ export function FindingsSection({
                 </button>
               </div>
             )}
-            <div className="grid gap-3">
-              {listedTargets.map((target) => (
-                <motion.div
+            {/* One card holding rows, the way the project list is drawn. A
+                stack of separately bordered cards puts a border around every
+                row inside a scroller that already has one. */}
+            <div className="overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-xs">
+              {listedTargets.map((target, position) => (
+                <TargetCard
                   key={target.id}
-                  initial={false}
-                >
-                  <TargetCard
-                    target={target}
-                    isCleaning={cleaningTargetIds.has(target.id)}
-                    selected={selectedIds.has(target.id)}
-                    onToggle={toggleTarget}
-                    onRefreshSize={refreshTargetSize}
-                    proEnabled={proEnabled}
-                  />
-                </motion.div>
+                  target={target}
+                  first={position === 0}
+                  isCleaning={cleaningTargetIds.has(target.id)}
+                  selected={selectedIds.has(target.id)}
+                  onToggle={toggleTarget}
+                  onRefreshSize={refreshTargetSize}
+                  proEnabled={proEnabled}
+                />
               ))}
             </div>
           </div>

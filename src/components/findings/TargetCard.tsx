@@ -49,6 +49,8 @@ const CONFIDENCE_PRESENTATION: Record<
 
 interface TargetCardProps {
   target: ScanTarget;
+  /** The list container draws the top edge; every other row draws its own. */
+  first: boolean;
   isCleaning: boolean;
   selected: boolean;
   onToggle: (targetId: string) => void;
@@ -115,7 +117,7 @@ function ConfidenceReasons({ target }: { target: ScanTarget }) {
   );
 }
 
-export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSize, proEnabled }: TargetCardProps) {
+export function TargetCard({ target, first, isCleaning, selected, onToggle, onRefreshSize, proEnabled }: TargetCardProps) {
   const [copiedPath, setCopiedPath] = useState(false);
   const [confidenceOpen, setConfidenceOpen] = useState(false);
   const proLocked = target.plan === "pro" && !proEnabled;
@@ -142,18 +144,22 @@ export function TargetCard({ target, isCleaning, selected, onToggle, onRefreshSi
       onClick={() => {
         if (!disabled) onToggle(target.id);
       }}
-      /* A locked card sits on the canvas colour instead of the raised one, so
-         it reads as recessed rather than merely greyed: the actionable cards
-         lift off the page and the locked ones stay in it. The border carries
-         the Pro tint so the reason is legible before reading any label. */
-      className={`group grid select-none gap-3 rounded-2xl border p-4 transition-all duration-200 sm:grid-cols-[1fr_auto] sm:items-center ${proLocked
-        ? "cursor-not-allowed border-pro-200/25 bg-forest-950 text-mist-500"
-        : disabled
-          ? "cursor-not-allowed border-forest-800 bg-forest-900 text-mist-500"
-          : selected
-            ? "cursor-pointer border-sage-400 bg-forest-900"
-            : "cursor-pointer border-forest-800 bg-forest-900 hover:border-sage-400"
-        }`}
+      /* A row in a list, not a card of its own — the container draws the one
+         border. State is carried by the surface and by a left edge, because a
+         row cannot change its border without moving its neighbours: a locked
+         row recedes to the canvas colour and takes the Pro tint, a selected one
+         is marked on the inside edge. */
+      className={`group grid select-none gap-3 px-4 py-3.5 transition-colors duration-200 sm:grid-cols-[1fr_auto] sm:items-center ${
+        first ? "" : "border-t border-forest-800"
+      } ${
+        proLocked
+          ? "cursor-not-allowed bg-forest-950 text-mist-500 shadow-[inset_3px_0_0_0_var(--color-pro-200)]"
+          : disabled
+            ? "cursor-not-allowed text-mist-500"
+            : selected
+              ? "cursor-pointer bg-forest-850 shadow-[inset_3px_0_0_0_var(--color-sage-400)]"
+              : "cursor-pointer hover:bg-forest-850/60"
+      }`}
     >
       <div className="flex min-w-0 items-start gap-3.5">
         {reportOnly ? (

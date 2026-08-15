@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowRight, RefreshCw, Search, Sparkles, X } from "lucide-react";
 import type { RefObject } from "react";
 import { formatBytes } from "../../../utils/format";
+import { OrderToggle, StatCard } from "../../shared/StatCard";
 import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
 
 /** What the workspace adds up to, and the two ways to narrow or act on it. */
@@ -132,28 +133,14 @@ export function WorkspaceHeader({
         </label>
 
         {/* Order buttons */}
-        <div className="flex shrink-0 items-center gap-1 font-mono text-[11px]">
-          {(
-            [
-              ["verdict", "By verdict"],
-              ["size", "By size"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onOrderChange(value)}
-              aria-pressed={order === value}
-              className={`rounded-lg px-2.5 py-1.5 font-medium transition-all cursor-pointer ${
-                order === value
-                  ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
-                  : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <OrderToggle
+          active={order}
+          onChange={onOrderChange}
+          options={[
+            ["verdict", "By verdict", "What a project holds decides whether its size is worth acting on"],
+            ["size", "By size", "Heaviest on disk first"],
+          ]}
+        />
       </div>
     </header>
   );
@@ -210,16 +197,3 @@ function HistoryLine({
   );
 }
 
-function StatCard({ value, label, accent = false }: { value: string; label: string; accent?: boolean }) {
-  return (
-    <div
-      className={`inline-flex items-baseline gap-1.5 rounded-xl border px-3 py-1.5 ${accent
-        ? "border-sage-400/40 bg-sage-400/10 text-sage-300"
-        : "border-forest-800 bg-forest-900 text-mist-100"
-        }`}
-    >
-      <span className="font-mono text-sm font-semibold tracking-tight">{value}</span>
-      <span className={`text-[11px] ${accent ? "text-sage-300/80 font-medium" : "text-mist-500"}`}>{label}</span>
-    </div>
-  );
-}
