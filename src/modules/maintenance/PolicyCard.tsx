@@ -1,4 +1,5 @@
 import { Clock, HardDrive, ShieldCheck, Trash2 } from "lucide-react";
+import { ChoiceRow } from "../../components/shared/ChoiceRow";
 import { formatBytes } from "../../utils/format";
 import type { MaintenancePolicy } from "../../types/maintenance";
 
@@ -55,62 +56,36 @@ export function PolicyCard({
         </div>
       </div>
 
-      {/* Clean parameter controls without nested card boxes */}
+      {/* Two thresholds, drawn by the control the rest of the app uses. Each
+          was written out here with its own padding and its own active state,
+          which is most of why this screen did not look like the others. */}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {/* Inactivity Threshold */}
         <div>
           <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-mist-300">
             <Clock size={13} className="text-mist-500" aria-hidden="true" />
             <span>Untouched for at least</span>
           </div>
-          <div className="flex flex-wrap items-center gap-1">
-            {IDLE_CHOICES.map(({ days }) => {
-              const active = policy.minIdleDays === days;
-              return (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() => onChange({ ...policy, minIdleDays: days })}
-                  aria-pressed={active}
-                  className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 ${
-                    active
-                      ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
-                      : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-                  }`}
-                >
-                  {days}d
-                </button>
-              );
-            })}
-          </div>
+          <ChoiceRow
+            active={policy.minIdleDays}
+            onChange={(days) => onChange({ ...policy, minIdleDays: days })}
+            options={IDLE_CHOICES.map(
+              ({ days }) => [days, `${days}d`, `Untouched for at least ${days} days`] as const,
+            )}
+          />
         </div>
 
-        {/* Cache Floor Threshold */}
         <div>
           <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-mist-300">
             <HardDrive size={13} className="text-mist-500" aria-hidden="true" />
             <span>Cache size at least</span>
           </div>
-          <div className="flex flex-wrap items-center gap-1">
-            {SIZE_CHOICES.map(({ bytes, label }) => {
-              const active = policy.minBytes === bytes;
-              return (
-                <button
-                  key={bytes}
-                  type="button"
-                  onClick={() => onChange({ ...policy, minBytes: bytes })}
-                  aria-pressed={active}
-                  className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 ${
-                    active
-                      ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
-                      : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          <ChoiceRow
+            active={policy.minBytes}
+            onChange={(bytes) => onChange({ ...policy, minBytes: bytes })}
+            options={SIZE_CHOICES.map(
+              ({ bytes, label }) => [bytes, label, `At least ${label} of disposable cache`] as const,
+            )}
+          />
         </div>
       </div>
 

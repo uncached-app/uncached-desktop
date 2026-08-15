@@ -1,6 +1,7 @@
 import { CalendarClock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { StatCard } from "../components/shared/StatCard";
 import { formatBytes } from "../utils/format";
 import { PolicyCard } from "./maintenance/PolicyCard";
 import { Selection, type RunState } from "./maintenance/Selection";
@@ -137,19 +138,19 @@ export function IntelligenceModule({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-right shadow-xs">
-              <span className="block font-mono text-xs font-bold text-mist-100">
-                {preview.selected.length} {preview.selected.length === 1 ? "project" : "projects"}
-              </span>
-              <span className="block font-mono text-[10px] text-mist-500 uppercase tracking-wider">Eligible</span>
-            </div>
-            <div className="rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-right shadow-xs">
-              <span className={`block font-mono text-xs font-bold ${preview.bytes > 0 ? "text-sage-300" : "text-mist-100"}`}>
-                {formatBytes(preview.bytes)}
-              </span>
-              <span className="block font-mono text-[10px] text-mist-500 uppercase tracking-wider">Reclaimable</span>
-            </div>
+          {/* The same figures the workspace header states, drawn the same
+              way. These were a third shape — value stacked over an uppercase
+              label, right-aligned — that appears on no other screen. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <StatCard
+              value={`${preview.selected.length}`}
+              label={preview.selected.length === 1 ? "project eligible" : "projects eligible"}
+            />
+            <StatCard
+              value={formatBytes(preview.bytes)}
+              label="reclaimable"
+              accent={preview.bytes > 0}
+            />
           </div>
         </div>
       </header>

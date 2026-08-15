@@ -1,7 +1,8 @@
 import { AlertTriangle, ArrowRight, RefreshCw, Search, Sparkles, X } from "lucide-react";
 import type { RefObject } from "react";
 import { formatBytes } from "../../../utils/format";
-import { OrderToggle, StatCard } from "../../shared/StatCard";
+import { ChoiceRow } from "../../shared/ChoiceRow";
+import { StatCard } from "../../shared/StatCard";
 import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
 
 /** What the workspace adds up to, and the two ways to narrow or act on it. */
@@ -133,7 +134,7 @@ export function WorkspaceHeader({
         </label>
 
         {/* Order buttons */}
-        <OrderToggle
+        <ChoiceRow
           active={order}
           onChange={onOrderChange}
           options={[

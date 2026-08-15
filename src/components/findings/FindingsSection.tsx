@@ -9,7 +9,8 @@ import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { TargetCard } from "./TargetCard";
 import { openExternalUrl } from "../../utils/externalLink";
-import { OrderToggle, StatCard } from "../shared/StatCard";
+import { ChoiceRow } from "../shared/ChoiceRow";
+import { StatCard } from "../shared/StatCard";
 
 interface FindingsSectionProps {
   step: Step;
@@ -333,7 +334,7 @@ export function FindingsSection({
                     visible reason and the heaviest one unreachable. */}
                 {targets.length > 1 && (
                   <div className="pr-3">
-                    <OrderToggle
+                    <ChoiceRow
                       active={order}
                       onChange={setOrder}
                       options={[

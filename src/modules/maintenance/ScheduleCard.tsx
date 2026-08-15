@@ -1,4 +1,5 @@
 import { CalendarClock, Repeat, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ChoiceRow } from "../../components/shared/ChoiceRow";
 import type { Held, Schedule, ScheduleStatus } from "../../types/maintenance";
 
 const INTERVAL_CHOICES = [
@@ -105,32 +106,17 @@ export function ScheduleCard({
           <Repeat size={13} className="text-mist-500" aria-hidden="true" />
           <span>Run every</span>
         </div>
-        <div className="flex flex-wrap items-center gap-1">
-          {INTERVAL_CHOICES.map(({ hours, label }) => {
-            // Compared against what is stored, so the chip moves on the click
-            // rather than on the next backend read. Every chip here is inside
-            // the bounds the backend clamps to, so choosing one makes stored
-            // and in-force the same number; a stored value outside them
-            // highlights nothing, which is the honest answer.
-            const active = schedule.everyHours === hours;
-            return (
-              <button
-                key={hours}
-                type="button"
-                disabled={!schedule.enabled}
-                onClick={() => onChange({ ...schedule, everyHours: hours })}
-                aria-pressed={active}
-                className={`rounded-lg px-3 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 disabled:cursor-not-allowed disabled:opacity-40 ${
-                  active
-                    ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
-                    : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        <ChoiceRow
+          active={schedule.everyHours}
+          disabled={!schedule.enabled}
+          onChange={(hours) => onChange({ ...schedule, everyHours: hours })}
+          /* Compared against what is stored, so the chip moves on the click
+             rather than on the next backend read. Every choice here is inside
+             the bounds the backend clamps to, so picking one makes stored and
+             in-force the same number; a stored value outside them highlights
+             nothing, which is the honest answer. */
+          options={INTERVAL_CHOICES.map(({ hours, label }) => [hours, label] as const)}
+        />
       </div>
 
       <div className="mt-4 grid gap-2 border-t border-forest-800 pt-3 text-xs text-mist-500">
