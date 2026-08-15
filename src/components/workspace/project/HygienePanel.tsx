@@ -108,14 +108,19 @@ export function HygienePanel({
           type="button"
           onClick={onFetch}
           disabled={working || loading}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-forest-800 bg-forest-950 px-2.5 py-1 font-mono text-[11px] text-mist-300 transition-colors hover:bg-forest-850 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Fetch repository from remote"
+          className="group inline-flex items-center gap-1.5 rounded-xl border border-forest-700/80 bg-forest-850 px-3 py-1.5 text-xs font-semibold text-mist-100 shadow-2xs transition-all hover:border-sage-400/50 hover:bg-forest-800 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
         >
           {working ? (
-            <Loader2 size={11} className="animate-spin" aria-hidden="true" />
+            <Loader2 size={12} className="animate-spin text-sage-300" aria-hidden="true" />
           ) : (
-            <RefreshCw size={11} aria-hidden="true" />
+            <RefreshCw
+              size={12}
+              className="text-sage-300 transition-transform duration-200 group-hover:rotate-45"
+              aria-hidden="true"
+            />
           )}
-          <span>Fetch</span>
+          <span>Fetch remote</span>
         </button>
       }
     >

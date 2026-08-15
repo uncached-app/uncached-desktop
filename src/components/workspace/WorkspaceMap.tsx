@@ -105,7 +105,7 @@ export function WorkspaceMap({
   // whether the map exists at all, so a preference set before a licence lapsed
   // reads as the list rather than as an empty screen.
   const onMap = view === "map" && proEnabled;
-  const { ref: drawing, aspect } = useDrawingAspect();
+  const { ref: drawing, aspect, height: drawingHeight } = useDrawingAspect();
   const [menu, setMenu] = useState<MenuAnchor | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -432,6 +432,7 @@ export function WorkspaceMap({
               verdicts={verdicts}
               analysing={analysing}
               measuring={measuring}
+              viewportHeight={drawingHeight}
               onOpenProject={onOpenProject}
               onContextMenu={openMenu}
             />

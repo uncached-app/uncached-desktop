@@ -1,4 +1,4 @@
-import { ArrowRight, Copy, Folder } from "lucide-react";
+import { ArrowRight, Folder } from "lucide-react";
 import { Panel } from "./panels";
 
 /**
@@ -9,11 +9,10 @@ import { Panel } from "./panels";
 export function DuplicatePanel({ paths, onOpen }: { paths: string[]; onOpen: (path: string) => void }) {
   return (
     <Panel
-      title="Duplicate Checkouts"
+      title={`Duplicate Checkouts (${paths.length})`}
       action={
-        <span className="inline-flex items-center gap-1 rounded-md bg-forest-850 px-2 py-0.5 font-mono text-[10px] font-medium text-mist-300">
-          <Copy size={11} className="text-sage-300" aria-hidden="true" />
-          {paths.length} {paths.length === 1 ? "copy" : "copies"}
+        <span className="font-mono text-xs font-semibold text-sage-300">
+          {paths.length} {paths.length === 1 ? "copy on disk" : "copies on disk"}
         </span>
       }
     >

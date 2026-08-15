@@ -1,4 +1,4 @@
-import { Boxes, Info, Package } from "lucide-react";
+import { Info, Package } from "lucide-react";
 import { Panel } from "./panels";
 import { formatBytes } from "../../../utils/format.mjs";
 import type { DuplicatePackage } from "../../../types/duplicates";
@@ -6,7 +6,7 @@ import type { DuplicatePackage } from "../../../types/duplicates";
 /**
  * Packages this project keeps its own copy of, that other projects also keep.
  *
- * Clean, unified list layout matching the rest of the app with zero nested card clutter.
+ * Clean, unified list layout matching the rest of the app.
  */
 export function SharedPanel({
   packages,
@@ -29,27 +29,21 @@ export function SharedPanel({
 
   return (
     <Panel
-      title="Shared With Other Projects"
+      title={`Shared With Other Projects (${packages.length})`}
       action={
-        <span className="inline-flex items-center gap-1 rounded-md bg-forest-850 px-2 py-0.5 font-mono text-[10px] font-medium text-mist-300">
-          <Boxes size={11} className="text-sage-300" aria-hidden="true" />
-          {packages.length} {packages.length === 1 ? "package" : "packages"}
-        </span>
+        wasted > 0 ? (
+          <span className="font-mono text-xs font-semibold text-sage-300">
+            {formatBytes(wasted)} duplicate
+          </span>
+        ) : null
       }
     >
       <div className="space-y-3">
         <p className="text-xs leading-5 text-mist-500">
-          Installed here and in other projects, each keeping its own copy.{" "}
-          {wasted > 0 && (
-            <>
-              Across the workspace that is{" "}
-              <strong className="font-mono font-semibold text-sage-300">{formatBytes(wasted)}</strong> held
-              more than once.
-            </>
-          )}
+          Installed here and in other projects, each keeping its own copy.
         </p>
 
-        {/* Clean, unified list container (no nested individual card boxes) */}
+        {/* Clean, unified list container */}
         <div className="overflow-hidden rounded-xl border border-forest-800 bg-forest-950/60">
           <ul className="divide-y divide-forest-800/60">
             {packages.map((entry) => (

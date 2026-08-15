@@ -18,6 +18,8 @@ type WorkspaceCanvasProps = {
   /** The duplicate reading has not finished, so the middle is not final. */
   analysing: boolean;
   measuring: boolean;
+  /** How tall the drawing area is on screen, in pixels. */
+  viewportHeight: number;
   onOpenProject: (path: string) => void;
   onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
 };
@@ -111,6 +113,7 @@ export function WorkspaceCanvas({
   verdicts = {},
   analysing,
   measuring,
+  viewportHeight,
   onOpenProject,
   onContextMenu,
 }: WorkspaceCanvasProps) {
@@ -157,11 +160,22 @@ export function WorkspaceCanvas({
   const activeProject = active?.path ? projects.find((entry) => entry.path === active.path) : null;
   const activeFootprint = activeProject ? footprints[activeProject.path] : null;
 
-  const nameEverything = graph.nodes.length <= 34 || map.view.scale > 1.4;
-  // Quantised, so a continuous zoom redraws the body twenty times over its
-  // range rather than on every frame of it. Names end up within five percent
-  // of their intended size, which is not a difference anyone can see.
-  const labelScale = Math.max(0.1, Math.round(map.view.scale * 10) / 10);
+  /**
+   * What one layout unit comes to on screen, zoom included.
+   *
+   * The counter-scale on every name used to be `1 / zoom`, which corrects for
+   * the view and not for the frame — and the frame is most of it. A viewBox a
+   * thousand units tall drawn into four hundred pixels puts everything at forty
+   * percent before the view has done anything, so on the default window a name
+   * set at twelve came out under five, and the map read as unlabelled.
+   *
+   * Quantised, so a continuous zoom redraws the body in steps across its range
+   * rather than on every frame of it. Names land within a twentieth of their
+   * intended size, which is not a difference anyone can see.
+   */
+  const onScreen = map.view.scale * (viewportHeight > 0 ? viewportHeight / SIDE : 0.5);
+  const labelScale = Math.max(0.05, Math.round(onScreen * 20) / 20);
+  const nameEverything = graph.nodes.length <= 34 || onScreen > 0.85;
 
   const placeTooltip = useCallback(() => {
     const tooltip = tooltipRef.current;
@@ -230,7 +244,7 @@ export function WorkspaceCanvas({
               verdicts={verdicts}
               projects={projects}
               nameEverything={nameEverything}
-              showWeights={map.view.scale > 1.6}
+              showWeights={onScreen > 1}
               labelScale={labelScale}
               onEnter={onEnter}
               onLeave={onLeave}
