@@ -25,7 +25,6 @@ function footprint(reclaimable, byCategory = []) {
     totalBytes: reclaimable,
     sourceBytes: 0,
     reclaimableBytes: reclaimable,
-    freeReclaimableBytes: reclaimable,
     byCategory,
     hasErrors: false,
   };

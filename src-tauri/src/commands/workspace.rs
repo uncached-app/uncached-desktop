@@ -50,8 +50,6 @@ pub struct Footprint {
     pub total_bytes: u64,
     pub source_bytes: u64,
     pub reclaimable_bytes: u64,
-    /// What the Free plan can act on today.
-    pub free_reclaimable_bytes: u64,
     pub by_category: Vec<CategoryBytes>,
     /// Some directory could not be read, so the total is partial.
     pub has_errors: bool,
@@ -640,10 +638,6 @@ fn measure_footprint(
         let size = crate::filesystem::size::calculate_dir_size_report(&target_path);
         footprint.has_errors = footprint.has_errors || size.errors > 0;
         footprint.reclaimable_bytes = footprint.reclaimable_bytes.saturating_add(size.bytes);
-        if crate::commands::entitlements::is_free_category(&category) {
-            footprint.free_reclaimable_bytes =
-                footprint.free_reclaimable_bytes.saturating_add(size.bytes);
-        }
         let wire = category.as_wire();
         match by_category.iter_mut().find(|(name, _)| name == &wire) {
             Some((_, bytes)) => *bytes = bytes.saturating_add(size.bytes),
@@ -764,10 +758,6 @@ mod tests {
         let footprint = super::measure_footprint(&root, &settings).unwrap();
 
         assert!(footprint.reclaimable_bytes >= 900);
-        assert_eq!(
-            footprint.free_reclaimable_bytes,
-            footprint.reclaimable_bytes
-        );
         assert_eq!(
             footprint.source_bytes,
             footprint.total_bytes - footprint.reclaimable_bytes

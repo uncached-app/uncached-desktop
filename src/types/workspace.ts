@@ -85,7 +85,6 @@ export type Footprint = {
   totalBytes: number;
   sourceBytes: number;
   reclaimableBytes: number;
-  freeReclaimableBytes: number;
   byCategory: CategoryBytes[];
   hasErrors: boolean;
 };

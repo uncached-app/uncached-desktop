@@ -150,6 +150,29 @@ mod tests {
         }
     }
 
+    /// The rule `PRODUCT.md` states as a brand commitment, defended where it
+    /// can actually be broken: nothing found by walking a folder the user chose
+    /// is ever behind the paywall. Free reclaims every artifact of every
+    /// project, and what Pro adds lives outside the workspace — the catalogued
+    /// tool caches, which `discovery_categories` gathers separately.
+    ///
+    /// `Footprint` used to carry a `free_reclaimable_bytes` beside its total,
+    /// summing the categories a Free plan could act on. Because of this
+    /// invariant the two figures were always equal, so the field described a
+    /// boundary that does not exist inside a project and no screen ever read
+    /// it. Asserting the invariant is worth more than carrying the field: add a
+    /// paid category to the workspace walk and this fails, which is the moment
+    /// the decision deserves to be made again rather than silently.
+    #[test]
+    fn nothing_inside_a_chosen_folder_is_behind_the_paywall() {
+        for category in active_categories(&get_default_providers(&AppSettings::default())) {
+            assert!(
+                crate::commands::entitlements::is_free_category(&category),
+                "{category:?} is found by the workspace walk and would be charged for"
+            );
+        }
+    }
+
     /// The five detection toggles are gone on purpose. An ignore rule reaches
     /// every category rather than five, and it wins in more places, so a switch
     /// beside it would have been a weaker duplicate.
