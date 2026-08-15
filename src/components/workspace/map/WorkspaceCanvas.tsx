@@ -1,4 +1,6 @@
+import { Maximize2, Minus, Plus } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMapGestures } from "./useMapGestures";
 import { nodeRadius, type GraphEdge, type GraphNode, type WorkspaceGraph } from "../../../utils/graph.mjs";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
@@ -56,23 +58,30 @@ export function WorkspaceCanvas({
     [graph.nodes],
   );
 
+  const map = useMapGestures(graph.width * SIDE, SIDE);
   const active = hovered ? byId.get(hovered) : null;
   // A line lights with either end. Hovering a package is the gesture that asks
   // "who else has this", so the answer has to light up with it.
   const isLit = (edge: GraphEdge) => edge.from === hovered || edge.to === hovered;
   // Enough room to name everything, or only what is pointed at: a map printing
   // sixty overlapping names is a map nobody reads one of.
-  const nameEverything = graph.nodes.length <= 34;
+  // Enough room to name everything, or only what is pointed at — and zooming in
+  // is the request for more of them, which is what makes closing in on a corner
+  // worth doing rather than just larger.
+  const nameEverything = graph.nodes.length <= 34 || map.view.scale > 1.5;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col">
       <svg
+        ref={map.ref}
         viewBox={`0 0 ${graph.width * SIDE} ${SIDE}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`${projects.length} projects and ${graph.nodes.length - projects.length} shared packages. The list reads the same workspace.`}
-        className="min-h-0 w-full flex-1"
+        className={`min-h-0 w-full flex-1 touch-none ${map.dragging ? "cursor-grabbing" : "cursor-grab"}`}
+        {...map.handlers}
       >
+        <g transform={`translate(${map.view.x} ${map.view.y}) scale(${map.view.scale})`}>
         {graph.edges.map((edge) => {
           const from = byId.get(edge.from);
           const to = byId.get(edge.to);
@@ -88,6 +97,9 @@ export function WorkspaceCanvas({
               className={on ? "stroke-sage-400" : EDGE_CLASS[edge.kind]}
               strokeWidth={edge.kind === "family" ? 3 : on ? 2 : 1.25}
               strokeLinecap="round"
+              // A line drawn four times its width because the picture is four
+              // times closer is a smear, not more information.
+              vectorEffect="non-scaling-stroke"
               strokeDasharray={edge.kind === "clone" ? "7 6" : undefined}
             />
           );
@@ -124,7 +136,12 @@ export function WorkspaceCanvas({
               key={node.id}
               onMouseEnter={() => setHovered(node.id)}
               onMouseLeave={() => setHovered((current) => (current === node.id ? null : current))}
-              onClick={() => node.path && onOpenProject(node.path)}
+              // A drag that ended on a node is a drag. Opening the project
+              // there would make the map impossible to move from anywhere
+              // except the gaps between things.
+              onClick={() => {
+                if (!map.wasDragged() && node.path) onOpenProject(node.path);
+              }}
               onContextMenu={(event) => {
                 const project = node.path && projects.find((entry) => entry.path === node.path);
                 if (project) onContextMenu(project, event);
@@ -143,6 +160,7 @@ export function WorkspaceCanvas({
                       }`
                 }
                 strokeWidth={on ? 3 : 1.75}
+                vectorEffect="non-scaling-stroke"
               />
               {(nameEverything || on) && (
                 <text
@@ -157,7 +175,10 @@ export function WorkspaceCanvas({
             </g>
           );
         })}
+        </g>
       </svg>
+
+      <MapControls map={map} />
 
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-forest-800 pt-3 text-xs">
         <div className="flex min-h-5 min-w-0 items-center gap-2">
@@ -187,6 +208,55 @@ export function WorkspaceCanvas({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Zoom in, out, and back to the whole thing.
+ *
+ * The gestures are the ones the platform already teaches — drag to move, pinch
+ * or wheel to zoom — and buttons exist because a gesture nobody is told about
+ * is a feature nobody finds. Reset appears only once there is something to
+ * reset, so the corner is empty on a map nobody has touched.
+ */
+function MapControls({ map }: { map: ReturnType<typeof useMapGestures> }) {
+  const step = (factor: number) => () => {
+    const element = map.ref.current;
+    if (!element) return;
+    const bounds = element.getBoundingClientRect();
+    // From the middle, because a button press has no pointer over the picture
+    // to hold still.
+    map.zoomBy(factor, { clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 });
+  };
+
+  return (
+    <div className="absolute right-3 top-3 flex flex-col gap-1 rounded-xl border border-forest-800 bg-forest-900/90 p-1 shadow-xs backdrop-blur-sm">
+      <Control label="Zoom in" onClick={step(1.35)}>
+        <Plus size={14} aria-hidden="true" />
+      </Control>
+      <Control label="Zoom out" onClick={step(1 / 1.35)}>
+        <Minus size={14} aria-hidden="true" />
+      </Control>
+      {map.moved && (
+        <Control label="Fit the whole workspace" onClick={map.reset}>
+          <Maximize2 size={13} aria-hidden="true" />
+        </Control>
+      )}
+    </div>
+  );
+}
+
+function Control({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      className="grid size-7 place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -223,9 +293,9 @@ function legend(graph: WorkspaceGraph): string {
   if (graph.edges.some((edge) => edge.kind === "clone")) parts.push("a dashed line is one repository checked out twice");
 
   if (parts.length === 0) {
-    return "Nothing here is shared: no package sits in more than one of these projects, and no two are the same repository.";
+    return "Nothing here is shared: no package sits in more than one of these projects, and no two are the same repository. Drag to move, scroll to zoom.";
   }
-  return `${parts.join(" · ")}.`;
+  return `${parts.join(" · ")}. Drag to move, scroll to zoom.`;
 }
 
 /** Long enough to recognise, short enough not to collide with the next one. */
