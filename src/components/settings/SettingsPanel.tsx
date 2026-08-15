@@ -241,55 +241,70 @@ function ScanningContent({ settings, updateSettings }: { settings: AppSettings; 
  */
 function OpeningContent({ settings, updateSettings }: { settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"] }) {
   const launchers = useLaunchers();
-  const editors = launchers.filter((launcher) => launcher.kind === "editor");
-  const terminals = launchers.filter((launcher) => launcher.kind === "terminal");
+  const editors = launchers?.filter((launcher) => launcher.kind === "editor") ?? null;
+  const terminals = launchers?.filter((launcher) => launcher.kind === "terminal") ?? null;
 
   return (
-    <div className="grid gap-7">
+    <SettingsGroup>
       <LauncherChoice
-        title="Editor"
-        empty="No editor was found in your Applications folder."
-        launchers={editors}
-        chosen={settings.preferredEditor}
-        onChoose={(preferredEditor) => updateSettings({ preferredEditor })}
+        label="Editor"
         /* Automatic is not "the first one alphabetically": a specialist opens
            the language it is built for and otherwise sorts below every
            general-purpose editor, which is what keeps Xcode from leading a
            React project on a Mac that has little else. */
-        automatic="Best for each project's language"
+        hint="Left automatic, the editor built for the project's language leads, then any general-purpose one."
+        empty="No editor was found in your Applications folder."
+        launchers={editors}
+        chosen={settings.preferredEditor}
+        onChoose={(preferredEditor) => updateSettings({ preferredEditor })}
       />
       <LauncherChoice
-        title="Terminal"
+        label="Terminal"
+        hint="No platform exposes a default terminal an app opening a directory could read, so automatic is whichever was found first."
         empty="No terminal was found."
         launchers={terminals}
         chosen={settings.preferredTerminal}
         onChoose={(preferredTerminal) => updateSettings({ preferredTerminal })}
-        automatic="Whichever was found first"
       />
-    </div>
+    </SettingsGroup>
   );
 }
 
-function LauncherChoice({ title, empty, launchers, chosen, onChoose, automatic }: { title: string; empty: string; launchers: Launcher[]; chosen: string | null; onChoose: (id: string | null) => void; automatic: string }) {
+/**
+ * A list of applications is a list, not a set of alternatives to weigh: on a
+ * developer's machine it runs to a dozen editors, and a dozen radio buttons
+ * push everything else off the panel. It collapses to the one line that
+ * matters — what opens a project today.
+ */
+function LauncherChoice({ label, hint, empty, launchers, chosen, onChoose }: { label: string; hint: string; empty: string; launchers: Launcher[] | null; chosen: string | null; onChoose: (id: string | null) => void }) {
+  const detecting = launchers === null;
+  const none = !detecting && launchers.length === 0;
+  // A preference outlives the application it names. Opening already falls back
+  // to detection when that happens; saying so is the difference between a
+  // setting that is being ignored and one that appears never to have been made.
+  const uninstalled = launchers !== null && !none && chosen !== null && !launchers.some((launcher) => launcher.id === chosen);
+
   return (
-    <div>
-      <p className="pb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">{title}</p>
-      {launchers.length === 0 ? (
-        <p className="py-4 text-sm text-mist-500">{empty}</p>
-      ) : (
-        <SettingsGroup>
-          <SettingRadio label={`Automatic — ${automatic}`} selected={chosen === null} onClick={() => onChoose(null)} />
-          {launchers.map((launcher) => (
-            <SettingRadio
-              key={launcher.id}
-              label={launcher.name}
-              selected={chosen === launcher.id}
-              onClick={() => onChoose(launcher.id)}
-            />
-          ))}
-        </SettingsGroup>
-      )}
-    </div>
+    <label className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span>{label}</span>
+        <span className="text-xs leading-5 text-mist-500">
+          {detecting ? "Reading what this machine has installed..." : none ? empty : uninstalled ? "The one you chose is no longer installed, so opening falls back to detection." : hint}
+        </span>
+      </span>
+      <select
+        value={chosen ?? ""}
+        disabled={detecting || none}
+        onChange={(event) => onChoose(event.target.value === "" ? null : event.target.value)}
+        className="w-44 shrink-0 rounded-lg border border-forest-800 bg-forest-950 px-2.5 py-2 text-sm text-mist-100 disabled:opacity-60"
+      >
+        <option value="">Automatic</option>
+        {(launchers ?? []).map((launcher) => (
+          <option key={launcher.id} value={launcher.id}>{launcher.name}</option>
+        ))}
+        {uninstalled && <option value={chosen ?? ""}>Not installed</option>}
+      </select>
+    </label>
   );
 }
 

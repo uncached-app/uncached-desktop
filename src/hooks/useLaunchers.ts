@@ -36,17 +36,25 @@ export function editorsFor(launchers: Launcher[], projectKind: string): Launcher
 }
 
 /**
- * The editors and terminals this machine actually has.
+ * The editors and terminals this machine actually has, or `null` until the
+ * machine has answered.
  *
  * Asked once. The alternative — a setting where you type the name of your
  * editor — makes the user do the one thing the machine can answer by looking,
  * and gets it wrong the first time someone spells it differently.
+ *
+ * The null is the difference between "nothing found" and "not asked yet", and
+ * a screen that reports the first while the second is true is stating as fact
+ * something it has not been told.
  */
-export function useLaunchers() {
-  const [launchers, setLaunchers] = useState<Launcher[]>([]);
+export function useLaunchers(): Launcher[] | null {
+  const [launchers, setLaunchers] = useState<Launcher[] | null>(null);
 
   useEffect(() => {
-    if (!isTauri()) return;
+    if (!isTauri()) {
+      setLaunchers([]);
+      return;
+    }
     invoke<Launcher[]>("available_launchers")
       .then(setLaunchers)
       .catch(() => setLaunchers([]));

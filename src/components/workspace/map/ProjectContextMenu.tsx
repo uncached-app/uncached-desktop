@@ -2,12 +2,11 @@ import { PanelRight } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MenuRow } from "../../shared/MenuRow";
 import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
+import { placeMenu } from "../../../utils/menuPlacement.mjs";
 import type { WorkspaceProject } from "../../../types/workspace";
 
 /** Where the pointer was, in viewport coordinates. */
 export type MenuAnchor = { project: WorkspaceProject; x: number; y: number };
-
-const MARGIN = 8;
 
 /**
  * The project's verbs, at the pointer.
@@ -40,19 +39,23 @@ export function ProjectContextMenu({
   // for; here it would be a run of identical pencils.
   const actions = withOneEditor(useProjectActions(anchor.project));
   const menuRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ left: anchor.x, top: anchor.y });
+  const [box, setBox] = useState(() => measure(anchor, 0, 0));
 
-  // Measured, then nudged back inside. A menu opened near the bottom-right of
-  // the window would otherwise render most of itself off-screen, and the one
-  // place a right-click is most likely is the last row in a long list.
+  // Placed from its measured size, and placed again whenever that size
+  // changes. The size changes on its own: the editor row appears once the
+  // machine has been asked what it has installed, so a menu that fit when it
+  // was drawn grows a row afterwards, downward, off the bottom of the window.
   useLayoutEffect(() => {
     const menu = menuRef.current;
     if (!menu) return;
-    const { width, height } = menu.getBoundingClientRect();
-    setPosition({
-      left: Math.min(anchor.x, window.innerWidth - width - MARGIN),
-      top: Math.min(anchor.y, window.innerHeight - height - MARGIN),
-    });
+    const place = () => {
+      const { width, height } = menu.getBoundingClientRect();
+      setBox(measure(anchor, width, height));
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(menu);
+    return () => observer.disconnect();
   }, [anchor]);
 
   useEffect(() => {
@@ -62,18 +65,22 @@ export function ProjectContextMenu({
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
+    // Any scroll moves the row this was anchored to, so the menu stops
+    // describing anything — except the menu's own, which happens when it is
+    // taller than the window and is the reader moving through it.
+    function onScroll(event: Event) {
+      if (!menuRef.current?.contains(event.target as Node)) onClose();
+    }
     // `capture` so a click that also lands on a row closes this first rather
     // than opening that project underneath the menu.
     window.addEventListener("mousedown", dismiss, true);
     window.addEventListener("keydown", onKey);
-    // Any scroll moves the row this was anchored to, so the menu stops
-    // describing anything.
-    window.addEventListener("scroll", onClose, true);
+    window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onClose);
     return () => {
       window.removeEventListener("mousedown", dismiss, true);
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", onClose, true);
+      window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onClose);
     };
   }, [onClose]);
@@ -83,12 +90,12 @@ export function ProjectContextMenu({
       ref={menuRef}
       role="menu"
       aria-label={`${anchor.project.name} actions`}
-      style={{ left: position.left, top: position.top }}
+      style={{ left: box.left, top: box.top, maxHeight: box.maxHeight }}
       /* The palette's tokens, at a menu's size. Sized to its content rather
          than to a minimum: the width was being set by a right-hand column
          carrying absolute paths, which is a detail you cannot need about the
          row you just right-clicked. */
-      className="fixed z-50 max-w-xs overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 py-1.5 shadow-2xl"
+      className="fixed z-50 max-w-xs overflow-y-auto overscroll-contain rounded-2xl border border-forest-800 bg-forest-900 py-1.5 shadow-2xl"
     >
       <MenuRow
         icon={PanelRight}
@@ -115,4 +122,15 @@ export function ProjectContextMenu({
       ))}
     </div>
   );
+}
+
+function measure(anchor: MenuAnchor, width: number, height: number) {
+  return placeMenu({
+    x: anchor.x,
+    y: anchor.y,
+    width,
+    height,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  });
 }

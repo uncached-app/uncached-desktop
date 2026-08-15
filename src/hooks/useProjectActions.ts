@@ -64,13 +64,14 @@ export function withOneEditor(actions: ProjectAction[]): ProjectAction[] {
  * checks the path against the folders the user chose.
  */
 export function useProjectActions(project: WorkspaceProject | null): ProjectAction[] {
-  const launchers = useLaunchers();
+  const detected = useLaunchers();
   const { settings } = useSettings();
   const preferredEditor = settings?.preferredEditor ?? null;
   const preferredTerminal = settings?.preferredTerminal ?? null;
 
   return useMemo(() => {
     if (!project) return [];
+    const launchers = detected ?? [];
     const actions: ProjectAction[] = [];
 
     // Every editor, best first. The action bar shows the first and the palette
@@ -163,5 +164,5 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
     }
 
     return actions;
-  }, [project, launchers, preferredEditor, preferredTerminal]);
+  }, [project, detected, preferredEditor, preferredTerminal]);
 }
