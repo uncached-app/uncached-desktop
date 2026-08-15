@@ -21,11 +21,26 @@
 //! reading a workspace mid-burst measures a directory that is still being
 //! written, which is a number that will be wrong by the time it is on screen.
 //!
-//! Recursive where the platform gives it away — macOS coalesces in the kernel,
-//! Windows watches a tree with one handle — and on Linux, where inotify wants a
-//! watch per directory and a large workspace would exhaust the user's limit,
-//! only the roots and the projects directly under them. There the deep changes
-//! still arrive on focus, which is where they arrived before this existed.
+//! And nothing is watched below the depth where the answers live. A root, the
+//! folders in it, and the folders in those: that reaches a project appearing, a
+//! project inside a group appearing, and a `node_modules` or a `target` being
+//! created or removed, which is every event this app has an answer to.
+//!
+//! It does not reach the inside of a build directory or of a source tree, and
+//! the whole point is that it must not. Somebody running a dev server in the
+//! folder they chose writes into both continuously — the disk is never quiet,
+//! the debounce never settles, and the app re-reads the workspace every few
+//! seconds forever. Recursive watching made that the ordinary case for anyone
+//! working in the folder they had pointed the app at.
+//!
+//! One rule on all three platforms, rather than recursive where the kernel
+//! coalesces and shallow where inotify counts. A few hundred watches is nothing
+//! anywhere, and one behaviour is one thing to reason about.
+//!
+//! What this gives up: a project added after the watcher started has its own
+//! interior unwatched until the folders change or the app restarts. Its arrival
+//! is seen — that is an event on its parent — and everything about it is read
+//! then. Only later changes inside it wait for focus.
 
 use notify::{Event, EventKind, RecursiveMode, Watcher};
 use std::collections::HashSet;
@@ -112,27 +127,45 @@ pub fn install(app: &AppHandle, roots: &[String]) -> Option<Watched> {
     })
 }
 
-/// Recursive where a tree costs one handle, shallow where it costs one per
-/// directory and the user has a finite number of them.
+/// How deep the watches go. A root is 0, a project in it is 1, and what that
+/// project holds is 2 — the last level that says anything this app can act on.
+const DEPTH: usize = 2;
+
+/// A ceiling on how many directories one root may cost, so a pathological tree
+/// cannot spend the user's watch limit.
+const MAX_WATCHES: usize = 600;
+
+/// Watches a root and the two levels under it, skipping what is only ever noise.
 fn watch(watcher: &mut notify::RecommendedWatcher, root: &Path) -> notify::Result<()> {
-    if cfg!(target_os = "linux") {
-        watcher.watch(root, RecursiveMode::NonRecursive)?;
-        let Ok(entries) = std::fs::read_dir(root) else {
-            return Ok(());
-        };
-        for entry in entries
-            .flatten()
-            .take(crate::commands::workspace::MAX_PROJECTS)
-        {
-            let path = entry.path();
-            if path.is_dir() && !is_artifact(&path) {
-                let _ = watcher.watch(&path, RecursiveMode::NonRecursive);
+    watcher.watch(root, RecursiveMode::NonRecursive)?;
+
+    let mut budget = MAX_WATCHES;
+    let mut level = vec![root.to_path_buf()];
+
+    for _ in 0..DEPTH {
+        let mut next = Vec::new();
+        for directory in &level {
+            let Ok(entries) = std::fs::read_dir(directory) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                if budget == 0 {
+                    return Ok(());
+                }
+                let path = entry.path();
+                if !path.is_dir() || is_artifact(&path) || is_hidden(&path) {
+                    continue;
+                }
+                if watcher.watch(&path, RecursiveMode::NonRecursive).is_ok() {
+                    budget -= 1;
+                    next.push(path);
+                }
             }
         }
-        Ok(())
-    } else {
-        watcher.watch(root, RecursiveMode::Recursive)
+        level = next;
     }
+
+    Ok(())
 }
 
 /// Collects events until the disk is quiet, then reports once.
@@ -201,6 +234,14 @@ fn collapse(path: &Path) -> PathBuf {
     collapsed
 }
 
+/// A dot directory is a tool's own bookkeeping, written to constantly by the
+/// very tools somebody is running while looking at this.
+fn is_hidden(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.starts_with('.'))
+}
+
 fn is_artifact(path: &Path) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
@@ -228,7 +269,7 @@ fn announce(app: &AppHandle, changed: HashSet<PathBuf>) {
 
 #[cfg(test)]
 mod tests {
-    use super::{collapse, is_artifact};
+    use super::{collapse, is_artifact, is_hidden};
     use std::path::{Path, PathBuf};
 
     #[test]
@@ -265,6 +306,26 @@ mod tests {
             collapse(Path::new("/w/api/node_modules")),
             PathBuf::from("/w/api/node_modules")
         );
+    }
+
+    #[test]
+    fn the_places_a_dev_server_writes_are_not_watched() {
+        // The reason the depth exists. A build writes into `target` and a dev
+        // server into `node_modules/.vite`, both continuously, and a watcher
+        // that reaches them never lets the disk go quiet — so the app re-reads
+        // the workspace every few seconds for as long as somebody is working in
+        // the folder they pointed it at.
+        for noisy in [
+            "/w/api/node_modules",
+            "/w/api/target",
+            "/w/api/.next",
+            "/w/api/.git",
+        ] {
+            assert!(
+                is_artifact(Path::new(noisy)) || is_hidden(Path::new(noisy)),
+                "{noisy} would be watched"
+            );
+        }
     }
 
     #[test]
