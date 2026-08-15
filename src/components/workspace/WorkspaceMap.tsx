@@ -8,8 +8,10 @@ import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
 import { useFocusedProject } from "./map/useFocusedProject";
 import { VERDICT_ORDER } from "./verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
+import { MAX_NODES, workspaceGraph } from "../../utils/graph.mjs";
 import { WorkspaceCanvas } from "./map/WorkspaceCanvas";
 import type { DuplicatePackage } from "../../types/duplicates";
+import type { WorkspaceView } from "../../types/settings";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
 import type { Footprint, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
 
@@ -43,6 +45,8 @@ type WorkspaceMapProps = {
   /** A project someone asked to be shown. The list is what makes it visible. */
   focusPath: string | null;
   onFocusHandled: () => void;
+  /** Which reading opens, from Settings. */
+  view: WorkspaceView;
   /** Shared packages, for the map. The list has no place to say this. */
   packages: DuplicatePackage[];
   /** That reading has not finished, so the middle of the map is not final. */
@@ -85,6 +89,7 @@ export function WorkspaceMap({
   onOpenProject,
   packages,
   analysing,
+  view,
 }: WorkspaceMapProps) {
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
   // Verdict first by default, because what a project holds decides whether its
@@ -92,11 +97,10 @@ export function WorkspaceMap({
   // was unreachable: grouping runs before sorting, so the heaviest project on
   // the machine could sit below three groups of smaller ones.
   const [order, setOrder] = useState<"verdict" | "size">("verdict");
-  // The list is the default and stays it: it is the reading that works by
-  // keyboard, at any size of workspace, on any plan.
-  const [view, setView] = useState<"list" | "map">("list");
-  // Pro decides whether the map exists at all, so it also decides what a view
-  // held from before a licence changed is allowed to still be showing.
+  // Which reading opens is a preference, kept in Settings — the header used to
+  // ask it on every visit and forget the answer on every close. Pro decides
+  // whether the map exists at all, so a preference set before a licence lapsed
+  // reads as the list rather than as an empty screen.
   const onMap = view === "map" && proEnabled;
   const [menu, setMenu] = useState<MenuAnchor | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -271,6 +275,15 @@ export function WorkspaceMap({
   const atRisk = index.projects.filter(
     (project) => (verdicts[project.path] ?? "unknown") === "protect",
   ).length;
+  // Built here rather than inside the canvas, because whether it can be drawn
+  // at all is what decides which view renders — and the answer to "no" is the
+  // list, not an empty frame where a picture would have been.
+  const graph = useMemo(
+    () => (onMap ? workspaceGraph({ projects: visible, footprints, verdicts, packages }) : null),
+    [onMap, visible, footprints, verdicts, packages],
+  );
+  const drawable = graph !== null && visible.length > 0 && !graph.tooLarge;
+
   const filtering =
     normalizedQuery.length > 0 ||
     activeRoot !== null ||
@@ -318,21 +331,17 @@ export function WorkspaceMap({
           searchRef={searchRef}
           order={order}
           onOrderChange={setOrder}
-          view={view}
-          onViewChange={setView}
-          canMap={proEnabled}
+          view={onMap ? "map" : "list"}
         />
 
         {/* The map reads the same narrowed set as the list. A filter is a
             question about the workspace, and switching view is not answering a
             different one. */}
-        {onMap && (
+        {drawable && graph && (
           <div className="min-h-0 flex-1 overflow-hidden pt-3.5 pr-2 pb-2">
             <WorkspaceCanvas
+              graph={graph}
               projects={visible}
-              footprints={footprints}
-              verdicts={verdicts}
-              packages={packages}
               analysing={analysing}
               measuring={measuring}
               onOpenProject={onOpenProject}
@@ -345,8 +354,18 @@ export function WorkspaceMap({
             list moves under it, and each verdict keeps its title in view. The
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
-        <div className={`min-h-0 flex-1 overflow-hidden pt-3.5 ${onMap ? "hidden" : ""}`}>
-          <div ref={listRef} className="h-full overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
+        <div className={`flex min-h-0 flex-1 flex-col overflow-hidden pt-3.5 ${drawable ? "hidden" : ""}`}>
+          {/* The map was asked for and cannot be made. Saying so beside the list
+              that replaced it is the difference between a view that fell back
+              and a setting that appears not to have been saved. */}
+          {onMap && !drawable && (
+            <p className="mb-3 shrink-0 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 text-xs leading-5 text-mist-500">
+              {visible.length === 0
+                ? "Nothing matches the filters, so there is no picture to draw."
+                : `${visible.length} projects, and the packages they share, is more than one picture holds. Narrow it and the map opens — ${MAX_NODES} nodes is the ceiling.`}
+            </p>
+          )}
+          <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
             {order === "size" && visible.length > 0 && (
               <section aria-label="Projects ranked by size" className="pb-5">
                 <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-x-2.5 rounded-t-none rounded-b-xl bg-forest-950/90 px-2.5 py-2 backdrop-blur-md">

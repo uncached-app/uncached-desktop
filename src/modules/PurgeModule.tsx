@@ -8,11 +8,13 @@ import { WorkspaceMap } from "../components/workspace/WorkspaceMap";
 import { WorkspaceUnavailable } from "../components/workspace/WorkspaceUnavailable";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useWorkspaceHistory } from "../hooks/useWorkspaceHistory";
-import type { CleanMode, LastCleanup } from "../types/settings";
+import type { CleanMode, LastCleanup, WorkspaceView } from "../types/settings";
 
 type PurgeModuleProps = {
   proEnabled: boolean;
   cleanMode: CleanMode;
+  /** Which reading of the workspace opens. A preference, not a control. */
+  workspaceView: WorkspaceView;
   lastCleanup: LastCleanup | null;
   activeIgnoreRules: number;
 };
@@ -23,7 +25,7 @@ type PurgeModuleProps = {
  * All four stay mounted and each renders only on its own step, which is what
  * lets their exit animations play. The step lives in the flow, not here.
  */
-export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRules }: PurgeModuleProps) {
+export function PurgeModule({ proEnabled, cleanMode, workspaceView, lastCleanup, activeIgnoreRules }: PurgeModuleProps) {
   const flow = usePurgeFlow();
   const { view, setView } = flow;
   const [query, setQuery] = useState("");
@@ -142,6 +144,7 @@ export function PurgeModule({ proEnabled, cleanMode, lastCleanup, activeIgnoreRu
           focusPath={flow.focusPath}
           onFocusHandled={flow.clearFocus}
           onOpenProject={flow.openProject}
+          view={workspaceView}
           packages={flow.analysis.duplicates.report?.packages ?? []}
           analysing={flow.analysis.stage === "duplicates" || !flow.analysis.taken}
         />

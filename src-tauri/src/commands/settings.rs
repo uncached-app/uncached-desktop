@@ -57,6 +57,15 @@ pub struct AppSettings {
     #[serde(default)]
     pub workspace_roots: Vec<String>,
     pub appearance: Appearance,
+    /// Which reading of the workspace opens: the list, or the map.
+    ///
+    /// A preference rather than a control in the header. The header toggle was
+    /// a decision offered on every visit for a question answered once, and the
+    /// answer did not survive the window closing. `List` for an old
+    /// `settings.json` and for every new one, and on Free, where there is no
+    /// map to open.
+    #[serde(default)]
+    pub workspace_view: WorkspaceView,
     /// Which detected editor and terminal a project opens in.
     ///
     /// A launcher id, or `None` for "whichever detection ranks first". Stored
@@ -109,6 +118,16 @@ pub enum Appearance {
     System,
 }
 
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum WorkspaceView {
+    /// Every project, readable by keyboard, on any plan and at any size.
+    #[default]
+    List,
+    /// The same workspace as one picture. Pro, and only up to a size.
+    Map,
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -127,6 +146,7 @@ impl Default for AppSettings {
             ignore_rules: String::new(),
             workspace_roots: Vec::new(),
             appearance: Appearance::Light,
+            workspace_view: WorkspaceView::default(),
             preferred_editor: None,
             preferred_terminal: None,
             last_cleanup: None,
@@ -291,7 +311,7 @@ pub fn record_maintenance_run(app: &AppHandle, at: i64) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_settings_from_path, AppSettings, Appearance};
+    use super::{load_settings_from_path, AppSettings, Appearance, WorkspaceView};
     use crate::models::action::CleanMode;
 
     #[test]
@@ -345,6 +365,11 @@ mod tests {
         assert!(
             settings.keep_running_in_background,
             "a field the file predates arrives at its default"
+        );
+        assert_eq!(
+            settings.workspace_view,
+            WorkspaceView::List,
+            "and the workspace opens as a list, which is what it did before the map existed"
         );
         assert_eq!(
             settings.maintenance,

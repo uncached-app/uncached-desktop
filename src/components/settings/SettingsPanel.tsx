@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { List, Monitor, Moon, Settings, Share2, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
 import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
@@ -17,12 +17,13 @@ type SettingsPanelProps = {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   /** The plan is native state; activating one has to re-read it. */
   onLicenseChange?: () => void;
+  proEnabled: boolean;
 };
 
 const sections = ["General", "Opening", "Scanning", "Ignore rules", "Deletion", "Appearance", "Licence", "About"] as const;
 type Section = (typeof sections)[number];
 
-export function SettingsPanel({ open, onClose, settings, loading, saving, error, updateSettings, onLicenseChange = () => { } }: SettingsPanelProps) {
+export function SettingsPanel({ open, onClose, settings, loading, saving, error, updateSettings, onLicenseChange = () => { }, proEnabled }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(null);
   const [confirmPermanent, setConfirmPermanent] = useState(false);
@@ -61,7 +62,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
-            {section === "Licence" ? <LicenseSection onActivated={onLicenseChange} /> : section === "About" ? <AboutContent appInfo={appInfo} /> : loading || !settings ? <div className="grid h-full place-items-center text-sm text-mist-500">Loading settings...</div> : <SettingsContent section={section} settings={settings} updateSettings={updateSettings} onRequestPermanentDelete={() => setConfirmPermanent(true)} />}
+            {section === "Licence" ? <LicenseSection onActivated={onLicenseChange} /> : section === "About" ? <AboutContent appInfo={appInfo} /> : loading || !settings ? <div className="grid h-full place-items-center text-sm text-mist-500">Loading settings...</div> : <SettingsContent section={section} settings={settings} updateSettings={updateSettings} proEnabled={proEnabled} onRequestPermanentDelete={() => setConfirmPermanent(true)} />}
             {error && <p className="mt-5 rounded-xl bg-forest-950 px-4 py-3 text-sm text-coral-300" role="alert">{error}</p>}
           </div>
           <footer className="flex shrink-0 justify-end border-t border-forest-800 px-5 py-3 text-xs text-mist-500 sm:px-7">{saving ? "Saving..." : "Saved automatically"}</footer>
@@ -72,13 +73,62 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
   );
 }
 
-function SettingsContent({ section, settings, updateSettings, onRequestPermanentDelete }: { section: Section; settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"]; onRequestPermanentDelete: () => void }) {
+function SettingsContent({ section, settings, updateSettings, proEnabled, onRequestPermanentDelete }: { section: Section; settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"]; proEnabled: boolean; onRequestPermanentDelete: () => void }) {
   if (section === "General") return <SettingsGroup><SettingToggle label="Open at startup" checked={settings.openAtStartup} onChange={(value) => updateSettings({ openAtStartup: value })} /><SettingToggle label="Keep running in the background" hint="Closing the window hides Uncached in the menu bar instead of quitting it. Scheduled maintenance runs from there; Quit ends it until you open the app again." checked={settings.keepRunningInBackground} onChange={(value) => updateSettings({ keepRunningInBackground: value })} /><SettingToggle label="Remember last workspace" checked={settings.rememberLastWorkspace} onChange={(value) => updateSettings({ rememberLastWorkspace: value })} /><SettingToggle label="Check for updates" checked={settings.checkForUpdates} onChange={(value) => updateSettings({ checkForUpdates: value })} /></SettingsGroup>;
   if (section === "Opening") return <OpeningContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Scanning") return <ScanningContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Ignore rules") return <IgnoreRulesContent settings={settings} updateSettings={updateSettings} />;
   if (section === "Deletion") return <SettingsGroup><SettingRadio label="Move to Recycle Bin" selected={settings.defaultCleanMode === "Trash"} onClick={() => updateSettings({ defaultCleanMode: "Trash" })} /><SettingRadio label="Permanently delete" selected={settings.defaultCleanMode === "Permanent"} onClick={onRequestPermanentDelete} /></SettingsGroup>;
-  return <SettingsGroup><SettingRadio icon={<Moon size={16} />} label="Dark" selected={settings.appearance === "dark"} onClick={() => updateSettings({ appearance: "dark" as Appearance })} /><SettingRadio icon={<Sun size={16} />} label="Light" selected={settings.appearance === "light"} onClick={() => updateSettings({ appearance: "light" as Appearance })} /><SettingRadio icon={<Monitor size={16} />} label="System" selected={settings.appearance === "system"} onClick={() => updateSettings({ appearance: "system" as Appearance })} /></SettingsGroup>;
+  return <AppearanceContent settings={settings} updateSettings={updateSettings} proEnabled={proEnabled} />;
+}
+
+/**
+ * Theme, and which reading of the workspace opens.
+ *
+ * The view used to be a pair of buttons in the workspace header — a decision
+ * offered on every visit, for a question answered once, whose answer did not
+ * survive the window closing. It belongs here, where a preference is kept.
+ */
+function AppearanceContent({ settings, updateSettings, proEnabled }: { settings: AppSettings; updateSettings: SettingsPanelProps["updateSettings"]; proEnabled: boolean }) {
+  return (
+    <div className="grid gap-7">
+      <div>
+        <SettingsLabel>Theme</SettingsLabel>
+        <SettingsGroup>
+          <SettingRadio icon={<Moon size={16} />} label="Dark" selected={settings.appearance === "dark"} onClick={() => updateSettings({ appearance: "dark" as Appearance })} />
+          <SettingRadio icon={<Sun size={16} />} label="Light" selected={settings.appearance === "light"} onClick={() => updateSettings({ appearance: "light" as Appearance })} />
+          <SettingRadio icon={<Monitor size={16} />} label="System" selected={settings.appearance === "system"} onClick={() => updateSettings({ appearance: "system" as Appearance })} />
+        </SettingsGroup>
+      </div>
+
+      <div>
+        <SettingsLabel>Workspace opens as</SettingsLabel>
+        <SettingsGroup>
+          <SettingRadio
+            icon={<List size={16} />}
+            label="List"
+            hint="Every project, grouped or ranked, and the only view reachable by keyboard."
+            selected={!proEnabled || settings.workspaceView === "list"}
+            onClick={() => updateSettings({ workspaceView: "list" })}
+          />
+          <SettingRadio
+            icon={<Share2 size={16} />}
+            label="Map"
+            hint={proEnabled
+              ? "The same workspace as one picture: what each project weighs, and which packages more than one of them carries."
+              : "Pro. A workspace too large to draw opens as a list whichever is chosen here."}
+            selected={proEnabled && settings.workspaceView === "map"}
+            disabled={!proEnabled}
+            onClick={() => updateSettings({ workspaceView: "map" })}
+          />
+        </SettingsGroup>
+      </div>
+    </div>
+  );
+}
+
+function SettingsLabel({ children }: { children: ReactNode }) {
+  return <p className="pb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">{children}</p>;
 }
 
 function AboutContent({ appInfo }: { appInfo: { name: string; version: string; website: string } | null }) {
@@ -313,4 +363,4 @@ function LauncherChoice({ label, hint, empty, launchers, chosen, onChoose }: { l
 
 function SettingsGroup({ children }: { children: ReactNode }) { return <div className="divide-y divide-forest-800">{children}</div>; }
 function SettingToggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (value: boolean) => void }) { return <label className="flex cursor-pointer items-center justify-between gap-4 py-4 text-sm text-mist-300"><span className="flex flex-col gap-0.5"><span>{label}</span>{hint && <span className="text-xs leading-5 text-mist-500">{hint}</span>}</span><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="size-4 shrink-0 accent-sage-400" /></label>; }
-function SettingRadio({ icon, label, selected, onClick }: { icon?: ReactNode; label: string; selected: boolean; onClick: () => void }) { return <button type="button" onClick={onClick} className={`flex w-full items-center justify-between gap-4 py-4 text-left text-sm ${selected ? "text-mist-100" : "text-mist-500"}`}><span className="flex items-center gap-3">{icon}<span>{label}</span></span><span className={`grid size-4 place-items-center rounded-full border ${selected ? "border-sage-400 bg-sage-400" : "border-forest-800"}`}>{selected && <span className="size-1.5 rounded-full bg-forest-950" />}</span></button>; }
+function SettingRadio({ icon, label, hint, selected, disabled = false, onClick }: { icon?: ReactNode; label: string; hint?: string; selected: boolean; disabled?: boolean; onClick: () => void }) { return <button type="button" disabled={disabled} onClick={onClick} className={`flex w-full items-center justify-between gap-4 py-4 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60 ${selected ? "text-mist-100" : "text-mist-500"}`}><span className="flex items-start gap-3">{icon && <span className="mt-0.5 shrink-0">{icon}</span>}<span className="flex flex-col gap-0.5"><span>{label}</span>{hint && <span className="text-xs leading-5 text-mist-500">{hint}</span>}</span></span><span className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border ${selected ? "border-sage-400 bg-sage-400" : "border-forest-800"}`}>{selected && <span className="size-1.5 rounded-full bg-forest-950" />}</span></button>; }

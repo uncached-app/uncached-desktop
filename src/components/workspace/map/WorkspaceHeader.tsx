@@ -22,8 +22,6 @@ export function WorkspaceHeader({
   order,
   onOrderChange,
   view,
-  onViewChange,
-  canMap,
 }: {
   projectCount: number;
   totalBytes: number;
@@ -40,10 +38,8 @@ export function WorkspaceHeader({
   searchRef: RefObject<HTMLInputElement | null>;
   order: "verdict" | "size";
   onOrderChange: (order: "verdict" | "size") => void;
+  /** Which reading is open. Chosen in Settings, not here. */
   view: "list" | "map";
-  onViewChange: (view: "list" | "map") => void;
-  /** The map is Pro. Free reads the same workspace as a list. */
-  canMap: boolean;
 }) {
   return (
     // `pr-2` matches the scrollbar gutter the list below reserves, so the
@@ -153,16 +149,6 @@ export function WorkspaceHeader({
           />
         )}
 
-        {canMap && (
-          <ChoiceRow
-            active={view}
-            onChange={onViewChange}
-            options={[
-              ["list", "List", "Every project, readable by keyboard"],
-              ["map", "Map", "What the workspace shares, as one picture"],
-            ]}
-          />
-        )}
       </div>
     </header>
   );

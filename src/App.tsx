@@ -54,6 +54,7 @@ function App() {
         <PurgeModule
           proEnabled={entitlement.proEnabled}
           cleanMode={cleanMode}
+          workspaceView={settings.settings?.workspaceView ?? "list"}
           lastCleanup={settings.settings?.lastCleanup ?? null}
           activeIgnoreRules={activeIgnoreRules}
         />

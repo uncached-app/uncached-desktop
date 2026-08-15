@@ -1,25 +1,22 @@
 import { useMemo, useState } from "react";
 import {
-  MAX_NODES,
   nodeRadius,
   packageRadiusCeiling,
   projectRadiusCeiling,
-  workspaceGraph,
   type GraphNode,
+  type WorkspaceGraph,
 } from "../../../utils/graph.mjs";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
-import type { DuplicatePackage } from "../../../types/duplicates";
-import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
+import type { WorkspaceProject } from "../../../types/workspace";
 
 /** The unit square, in the coordinates the SVG is drawn in. */
 const SIDE = 1000;
 
 type WorkspaceCanvasProps = {
+  /** Built by the caller, which is also what decides this can be drawn at all. */
+  graph: WorkspaceGraph;
   projects: WorkspaceProject[];
-  footprints: Record<string, Footprint>;
-  verdicts: Record<string, Verdict>;
-  packages: DuplicatePackage[];
   /** The duplicate reading has not finished, so the middle is not final. */
   analysing: boolean;
   measuring: boolean;
@@ -40,24 +37,18 @@ type WorkspaceCanvasProps = {
  * The list stays the default and stays the way through by keyboard. This is the
  * other reading, not the replacement: a graph cannot be tabbed through, and a
  * workspace of two hundred projects is a hairball however it is laid out — past
- * the ceiling it says so and sends the reader back rather than drawing one.
+ * that size the caller draws the list instead, which is why nothing here has to
+ * handle a picture it cannot make.
  */
 export function WorkspaceCanvas({
+  graph,
   projects,
-  footprints,
-  verdicts,
-  packages,
   analysing,
   measuring,
   onOpenProject,
   onContextMenu,
 }: WorkspaceCanvasProps) {
   const [hovered, setHovered] = useState<string | null>(null);
-
-  const graph = useMemo(
-    () => workspaceGraph({ projects, footprints, verdicts, packages }),
-    [projects, footprints, verdicts, packages],
-  );
 
   const byId = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph.nodes]);
   const heaviest = useMemo(
@@ -67,19 +58,6 @@ export function WorkspaceCanvas({
     }),
     [graph.nodes],
   );
-
-  if (projects.length === 0) {
-    return <Empty>Nothing to draw. No project matches the filters.</Empty>;
-  }
-
-  if (graph.tooLarge) {
-    return (
-      <Empty>
-        {projects.length} projects is more than a picture holds. The list reads this workspace;
-        narrow it below {MAX_NODES} and the map has something to say.
-      </Empty>
-    );
-  }
 
   // Both rings give up size as they fill: an arc that has to hold eighty nodes
   // cannot also hold eighty large ones.
@@ -210,14 +188,6 @@ export function WorkspaceCanvas({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid h-full place-items-center px-8 text-center text-sm leading-6 text-mist-500">
-      <p className="max-w-sm">{children}</p>
     </div>
   );
 }

@@ -2,6 +2,8 @@ import type { MaintenancePolicy, Schedule } from "./maintenance";
 
 export type CleanMode = "Trash" | "Permanent";
 export type Appearance = "dark" | "light" | "system";
+/** Which reading of the workspace opens. `map` needs Pro and a workspace small enough to draw. */
+export type WorkspaceView = "list" | "map";
 
 export type AppSettings = {
   openAtStartup: boolean;
@@ -19,6 +21,7 @@ export type AppSettings = {
   /** Folders the user last chose to scan. */
   workspaceRoots: string[];
   appearance: Appearance;
+  workspaceView: WorkspaceView;
   /**
    * Which detected editor and terminal a project opens in, by launcher id.
    *
