@@ -25,13 +25,22 @@ export type ConfidenceRankedTarget = {
 
 export type ListedTarget = ConfidenceRankedTarget & {
   plan?: string;
+  sizeBytes?: number;
 };
+
+/** Which reading of the list is on screen. */
+export type ListOrder = "confidence" | "size";
 
 /**
  * Orders the listing. On Free the targets the plan can clean come first;
- * within each group, and always on Pro, the confidence order applies.
+ * within each group, `order` decides — confidence by default, weight on disk
+ * otherwise, with confidence breaking its ties.
  */
-export function sortForListing<T extends ListedTarget>(targets: T[], proEnabled: boolean): T[];
+export function sortForListing<T extends ListedTarget>(
+  targets: T[],
+  proEnabled: boolean,
+  order?: ListOrder,
+): T[];
 
 /**
  * Returns a new array ordered review, medium, then high. The sort is stable,

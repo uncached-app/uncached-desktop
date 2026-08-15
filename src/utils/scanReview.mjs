@@ -43,14 +43,30 @@ export function getCleanupReadyTargets(targets) {
 // routine ones. An unrecognized level sorts first for the same reason.
 const CONFIDENCE_ORDER = { review: 0, medium: 1, high: 2 };
 
-// On Free, targets the plan cannot clean sink below the ones it can. A list
-// that opens on rows the user is not allowed to act on reads as a paywall
-// wearing a scan. Within each group the confidence order still applies.
-export function sortForListing(targets, proEnabled) {
+/**
+ * Orders the listing, one of two ways.
+ *
+ * `confidence` is the default and the product's opinion: a target the core is
+ * unsure about is the one worth a human's attention, and it must not sit below
+ * forty routine ones.
+ *
+ * `size` is the other reading, and it was unreachable. Confidence decided the
+ * order outright, so the largest directory on the machine could be anywhere in
+ * the list — the same defect the project map had before it could be ranked by
+ * weight, on the screen where reclaiming actually happens.
+ *
+ * On Free the plan still wins over both. A list that opens on rows the user is
+ * not allowed to act on reads as a paywall wearing a scan.
+ */
+export function sortForListing(targets, proEnabled, order = "confidence") {
   return [...targets].sort((left, right) => {
     if (!proEnabled) {
       const byPlan = planRank(left) - planRank(right);
       if (byPlan !== 0) return byPlan;
+    }
+    if (order === "size") {
+      const bySize = (right.sizeBytes ?? 0) - (left.sizeBytes ?? 0);
+      if (bySize !== 0) return bySize;
     }
     return confidenceRank(left) - confidenceRank(right);
   });

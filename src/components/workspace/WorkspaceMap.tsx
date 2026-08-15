@@ -6,7 +6,7 @@ import { WorkspaceHeader } from "./map/WorkspaceHeader";
 import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
 import { useFocusedProject } from "./map/useFocusedProject";
 import { VERDICT_ORDER } from "./verdictPresentation";
-import { useOpenCommandPalette } from "../../hooks/useCommandPalette";
+import { formatBytes } from "../../utils/format";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
 import type { Footprint, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
 
@@ -83,7 +83,6 @@ export function WorkspaceMap({
   // was unreachable: grouping runs before sorting, so the heaviest project on
   // the machine could sit below three groups of smaller ones.
   const [order, setOrder] = useState<"verdict" | "size">("verdict");
-  const openPalette = useOpenCommandPalette();
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
@@ -287,7 +286,6 @@ export function WorkspaceMap({
           searchRef={searchRef}
           order={order}
           onOrderChange={setOrder}
-          onOpenPalette={() => openPalette()}
         />
 
         {/* The only scroller on the screen: the header holds still while the
@@ -297,24 +295,45 @@ export function WorkspaceMap({
         <div className="min-h-0 flex-1 overflow-hidden pt-3.5">
           <div ref={listRef} className="h-full overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
             {order === "size" && visible.length > 0 && (
-              <div className="overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-xs">
-                {ranked.map((project, position) => (
-                  <ProjectRow
-                    key={project.path}
-                    project={project}
-                    verdict={verdicts[project.path] ?? "unknown"}
-                    footprint={footprints[project.path] ?? null}
-                    first={position === 0}
-                    showRoot={index.roots.length > 1 && activeRoot === null}
-                    // Nothing else says it here: there is no group heading above
-                    // a flat list, and a heavy project is exactly the one whose
-                    // verdict has to be read before acting on the number.
-                    showVerdict
-                    focused={project.path === focusPath}
-                    onOpen={onOpenProject}
-                  />
-                ))}
-              </div>
+              <section aria-label="Projects ranked by size" className="pb-5">
+                <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-x-2.5 rounded-t-none rounded-b-xl bg-forest-950/90 px-2.5 py-2 backdrop-blur-md">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="size-2 shrink-0 rounded-full bg-sage-400" aria-hidden="true" />
+                    <h2 className="shrink-0 text-xs font-semibold text-mist-100">
+                      Ranked by Disk Size
+                    </h2>
+                    <span className="shrink-0 rounded-md bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-mist-300">
+                      {ranked.length}
+                    </span>
+                    <span className="hidden sm:inline-block truncate text-xs text-mist-500">· Heaviest projects first</span>
+                  </div>
+
+                  {totals.reclaimableBytes > 0 && (
+                    <span className="shrink-0 rounded-md bg-forest-900 border border-forest-800 px-2 py-0.5 font-mono text-[11px] font-medium text-sage-300">
+                      {formatBytes(totals.reclaimableBytes)} reclaimable
+                    </span>
+                  )}
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-xs">
+                  {ranked.map((project, position) => (
+                    <ProjectRow
+                      key={project.path}
+                      project={project}
+                      verdict={verdicts[project.path] ?? "unknown"}
+                      footprint={footprints[project.path] ?? null}
+                      first={position === 0}
+                      showRoot={index.roots.length > 1 && activeRoot === null}
+                      // Nothing else says it here: there is no group heading above
+                      // a flat list, and a heavy project is exactly the one whose
+                      // verdict has to be read before acting on the number.
+                      showVerdict
+                      focused={project.path === focusPath}
+                      onOpen={onOpenProject}
+                    />
+                  ))}
+                </div>
+              </section>
             )}
 
             {order === "verdict" &&

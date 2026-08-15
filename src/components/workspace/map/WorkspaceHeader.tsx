@@ -1,6 +1,5 @@
-import { AlertTriangle, ArrowDownWideNarrow, ArrowRight, Command, RefreshCw, Search, ShieldCheck, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, RefreshCw, Search, Sparkles, X } from "lucide-react";
 import type { RefObject } from "react";
-import { commandKeyLabel } from "./naming";
 import { formatBytes } from "../../../utils/format";
 import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
 
@@ -20,7 +19,6 @@ export function WorkspaceHeader({
   searchRef,
   order,
   onOrderChange,
-  onOpenPalette,
 }: {
   projectCount: number;
   totalBytes: number;
@@ -37,12 +35,11 @@ export function WorkspaceHeader({
   searchRef: RefObject<HTMLInputElement | null>;
   order: "verdict" | "size";
   onOrderChange: (order: "verdict" | "size") => void;
-  onOpenPalette: () => void;
 }) {
   return (
-    // `pr-1.5` matches the scrollbar gutter the list below reserves, so the
+    // `pr-2` matches the scrollbar gutter the list below reserves, so the
     // search field and the cards end on the same edge.
-    <header className="shrink-0 border-b border-forest-800 pb-4">
+    <header className="shrink-0 border-b border-forest-800 pb-4 pr-2">
       {/* Top summary row: Project count, metrics cluster and Primary Reclaim CTA */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
@@ -134,51 +131,29 @@ export function WorkspaceHeader({
           )}
         </label>
 
-        {/* Order Segmented Control */}
-        <div className="flex shrink-0 items-center rounded-xl border border-forest-800 bg-forest-900 p-0.5 shadow-xs">
-          <button
-            type="button"
-            onClick={() => onOrderChange("verdict")}
-            aria-pressed={order === "verdict"}
-            title="Group projects by safety verdict"
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 ${
-              order === "verdict"
-                ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
-                : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-            }`}
-          >
-            <ShieldCheck size={12} className={order === "verdict" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
-            <span>Verdict</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onOrderChange("size")}
-            aria-pressed={order === "size"}
-            title="Sort projects by total size on disk"
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400 ${
-              order === "size"
-                ? "bg-forest-800 text-mist-100 font-semibold shadow-xs border border-forest-750"
-                : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
-            }`}
-          >
-            <ArrowDownWideNarrow size={12} className={order === "size" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
-            <span>Size</span>
-          </button>
+        {/* Order buttons */}
+        <div className="flex shrink-0 items-center gap-1 font-mono text-[11px]">
+          {(
+            [
+              ["verdict", "By verdict"],
+              ["size", "By size"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onOrderChange(value)}
+              aria-pressed={order === value}
+              className={`rounded-lg px-2.5 py-1.5 font-medium transition-all cursor-pointer ${
+                order === value
+                  ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"
+                  : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-
-        {/* Actions Button */}
-        <button
-          type="button"
-          onClick={onOpenPalette}
-          title="Open a project in your editor, terminal or file manager"
-          className="flex shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-forest-750 hover:bg-forest-850 hover:text-mist-100 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400"
-        >
-          <Command size={13} className="text-mist-500" aria-hidden="true" />
-          <span>Actions</span>
-          <kbd className="rounded border border-forest-800 bg-forest-950 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
-            {commandKeyLabel()}K
-          </kbd>
-        </button>
       </div>
     </header>
   );

@@ -144,3 +144,55 @@ test("a target with no cleanable flag at all is withheld rather than offered", (
   const ready = getCleanupReadyTargets([{ id: "malformed", sizePending: false, sizeHasErrors: false }]);
   assert.deepEqual(ready, []);
 });
+
+/**
+ * The other reading of the list, and the reason it exists: confidence decided
+ * the order outright, so the largest directory on the machine could be anywhere
+ * in it — on the screen where reclaiming actually happens.
+ */
+test("ranked by size, the heaviest target leads whatever the core thinks of it", () => {
+  const targets = [
+    { id: "small-review", sizeBytes: 10, confidence: { level: "review" } },
+    { id: "huge-high", sizeBytes: 9_000, confidence: { level: "high" } },
+    { id: "medium-medium", sizeBytes: 500, confidence: { level: "medium" } },
+  ];
+
+  assert.deepEqual(
+    sortForListing(targets, true, "size").map((target) => target.id),
+    ["huge-high", "medium-medium", "small-review"],
+  );
+  assert.deepEqual(
+    sortForListing(targets, true).map((target) => target.id),
+    ["small-review", "medium-medium", "huge-high"],
+    "and the default is still the product's opinion",
+  );
+});
+
+test("two targets of one size fall back to which is least certain", () => {
+  const targets = [
+    { id: "sure", sizeBytes: 100, confidence: { level: "high" } },
+    { id: "unsure", sizeBytes: 100, confidence: { level: "review" } },
+  ];
+
+  assert.deepEqual(
+    sortForListing(targets, true, "size").map((target) => target.id),
+    ["unsure", "sure"],
+  );
+});
+
+/**
+ * The plan outranks both orders. A list that opens on rows the user is not
+ * allowed to act on reads as a paywall wearing a scan, and that stays true
+ * however the rest is sorted.
+ */
+test("on free the plan still wins over the size order", () => {
+  const targets = [
+    { id: "pro-huge", plan: "pro", sizeBytes: 9_000, confidence: { level: "high" } },
+    { id: "free-small", plan: "free", sizeBytes: 10, confidence: { level: "high" } },
+  ];
+
+  assert.deepEqual(
+    sortForListing(targets, false, "size").map((target) => target.id),
+    ["free-small", "pro-huge"],
+  );
+});

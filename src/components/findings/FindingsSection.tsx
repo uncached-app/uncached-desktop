@@ -5,6 +5,7 @@ import type { CleanResult, ScanTarget, Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import { formatBytes } from "../../utils/format";
 import { getCleanupReadyTargets, sortForListing } from "../../utils/scanReview.mjs";
+import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { TargetCard } from "./TargetCard";
 import { openExternalUrl } from "../../utils/externalLink";
@@ -48,11 +49,14 @@ export function FindingsSection({
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmation, setConfirmation] = useState("");
+  // Confidence first, because a target the core is unsure about is the one
+  // worth a human's attention. Weight is the other reading and it had no way in.
+  const [order, setOrder] = useState<ListOrder>("confidence");
   const readyTargets = getCleanupReadyTargets(targets);
   // Least certain first: a target the core is unsure about is the one worth
   // looking at, and it would otherwise sit below dozens of routine ones. On
   // Free, what the plan can actually clean comes before all of it.
-  const listedTargets = sortForListing(targets, proEnabled);
+  const listedTargets = sortForListing(targets, proEnabled, order);
   const freeTargets = proEnabled ? readyTargets : readyTargets.filter(isFreeTarget);
   const selectedTargets = freeTargets.filter((target) => selectedIds.has(target.id));
   const allSelected = freeTargets.length > 0 && selectedTargets.length === freeTargets.length;
@@ -224,10 +228,41 @@ export function FindingsSection({
 
           {/* Action buttons */}
           <div className="flex shrink-0 items-center gap-2.5">
+            {/* The order was the product's opinion and nothing said so, which
+                left the least certain target sitting at the top for no visible
+                reason — and the heaviest one unreachable. */}
+            {targets.length > 1 && (
+              <div className="flex items-center gap-1 rounded-xl border border-forest-800 bg-forest-900 p-1">
+                {(
+                  [
+                    ["confidence", "Least certain", "Targets the core is least sure about come first"],
+                    ["size", "Largest", "Heaviest on disk first"],
+                  ] as const
+                ).map(([value, label, why]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setOrder(value)}
+                    aria-pressed={order === value}
+                    title={
+                      proEnabled ? why : `${why}. On Free, what your plan can clean comes first either way.`
+                    }
+                    className={`rounded-lg px-2.5 py-1 font-mono text-[11px] font-medium transition-all ${
+                      order === value
+                        ? "bg-forest-850 text-mist-100 font-semibold"
+                        : "text-mist-500 hover:bg-forest-850 hover:text-mist-100"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={toggleAll}
-              disabled={scanning || readyTargets.length === 0}
+              disabled={scanning || freeTargets.length === 0}
               className="inline-flex items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:opacity-40"
             >
               <div
@@ -245,7 +280,12 @@ export function FindingsSection({
               type="button"
               onClick={() => setConfirming(true)}
               disabled={deleteDisabled}
-              className="inline-flex min-h-10 min-w-32 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed"
+              title={
+                cleanupModeSupported
+                  ? undefined
+                  : "Uncached could not read what this system allows it to remove, so nothing is offered."
+              }
+              className="inline-flex min-h-10 min-w-32 items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-sm font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {confirming ? (
                 <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
