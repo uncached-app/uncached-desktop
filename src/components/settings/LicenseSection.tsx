@@ -144,7 +144,7 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
       </label>
 
       {error && (
-        <p role="alert" className="mt-3 text-xs leading-5 text-coral-300">
+        <p role="alert" className="select-text mt-3 text-xs leading-5 text-coral-300">
           {error}
         </p>
       )}

@@ -63,7 +63,7 @@ export function SettingsPanel({ open, onClose, settings, loading, saving, error,
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
             {section === "Licence" ? <LicenseSection onActivated={onLicenseChange} /> : section === "About" ? <AboutContent appInfo={appInfo} /> : loading || !settings ? <div className="grid h-full place-items-center text-sm text-mist-500">Loading settings...</div> : <SettingsContent section={section} settings={settings} updateSettings={updateSettings} proEnabled={proEnabled} onRequestPermanentDelete={() => setConfirmPermanent(true)} />}
-            {error && <p className="mt-5 rounded-xl bg-forest-950 px-4 py-3 text-sm text-coral-300" role="alert">{error}</p>}
+            {error && <p className="select-text mt-5 rounded-xl bg-forest-950 px-4 py-3 text-sm text-coral-300" role="alert">{error}</p>}
           </div>
           <footer className="flex shrink-0 justify-end border-t border-forest-800 px-5 py-3 text-xs text-mist-500 sm:px-7">{saving ? "Saving..." : "Saved automatically"}</footer>
         </div>

@@ -89,7 +89,7 @@ export function WorkspaceForm({
 
         {error && (
           <div
-            className="mt-6 flex w-full items-start gap-3 rounded-2xl border border-coral-300/40 bg-forest-900 p-4 text-left text-sm text-coral-300"
+            className="select-text mt-6 flex w-full items-start gap-3 rounded-2xl border border-coral-300/40 bg-forest-900 p-4 text-left text-sm text-coral-300"
             role="alert"
           >
             <AlertTriangle size={17} className="mt-0.5 shrink-0" aria-hidden="true" />
