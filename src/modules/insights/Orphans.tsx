@@ -18,15 +18,11 @@ export function Orphans({
   report,
   running,
   error,
-  rootCount,
-  onScan,
   onReveal,
 }: {
   report: OrphanReport | null;
   running: boolean;
   error: string | null;
-  rootCount: number;
-  onScan: () => void;
   onReveal: (path: string) => void;
 }) {
   return (
@@ -40,19 +36,16 @@ export function Orphans({
           <p className="mt-0.5 text-xs text-mist-500">
             {report
               ? `${report.examined} folders examined.`
-              : "Looks for build output whose project is gone. Nothing is moved or removed."}
+              : "Build output whose project is gone. Nothing is moved or removed."}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onScan}
-          disabled={running || rootCount === 0}
-          className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-forest-800 bg-forest-950 px-3.5 text-xs font-semibold text-mist-100 transition-colors hover:bg-forest-850 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {running && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
-          <span>{running ? "Looking" : report ? "Look again" : "Find leftovers"}</span>
-        </button>
+        {running && (
+          <span className="inline-flex shrink-0 items-center gap-2 text-xs text-mist-500">
+            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+            Looking
+          </span>
+        )}
       </div>
 
       {error && <p className="mt-3 font-mono text-[11px] leading-5 text-coral-300">{error}</p>}

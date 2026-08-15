@@ -1,5 +1,5 @@
 import { Check, Clock, Copy, History, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EVENT_PAGE, formatMoment, labelFor } from "./labels";
 import { formatBytes } from "../../utils/format";
 import type { Report } from "../../utils/report.d.mts";
@@ -9,13 +9,44 @@ export function EventLog({
   report,
   shown,
   onShowMore,
+  onShownChange,
 }: {
   report: Report;
   shown: number;
   onShowMore: () => void;
+  onShownChange?: (count: number) => void;
 }) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const visible = report.events.slice(0, shown);
+
+  const pageOptions = useMemo(() => {
+    const total = report.events.length;
+    if (total <= 10) return [];
+    const opts: number[] = [];
+    for (let i = 10; i < total; i += 10) {
+      opts.push(i);
+    }
+    opts.push(total);
+    return opts;
+  }, [report.events.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    function dismiss(event: MouseEvent) {
+      if (!dropdownRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("mousedown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
 
   async function handleCopy(path: string | null, index: number) {
     if (!path) return;
@@ -38,9 +69,58 @@ export function EventLog({
           </h2>
         </div>
 
-        <span className="font-mono text-xs text-mist-500">
-          {visible.length} of {report.events.length} {report.events.length === 1 ? "event" : "events"}
-        </span>
+        {pageOptions.length > 0 ? (
+          <div className="relative font-mono text-xs text-mist-500" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setOpen((current) => !current)}
+              aria-haspopup="listbox"
+              aria-expanded={open}
+              className="font-semibold text-mist-100 underline decoration-mist-500 decoration-dotted underline-offset-4 transition-colors hover:text-sage-300 hover:decoration-sage-400 cursor-pointer"
+            >
+              {visible.length}
+            </button>
+            {" "}of {report.events.length} {report.events.length === 1 ? "event" : "events"}
+
+            {open && (
+              <ul
+                role="listbox"
+                className="absolute right-0 top-full z-30 mt-1.5 min-w-28 max-h-60 overflow-y-auto rounded-xl border border-forest-800 bg-forest-900 p-1 shadow-2xl"
+              >
+                {pageOptions.map((count) => {
+                  const isSelected =
+                    visible.length === count ||
+                    (count === report.events.length && shown >= report.events.length);
+                  return (
+                    <li key={count}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          onShownChange?.(count);
+                          setOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-left text-xs font-mono transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-forest-800 text-sage-300 font-medium"
+                            : "text-mist-300 hover:bg-forest-850 hover:text-mist-100"
+                        }`}
+                      >
+                        <span>{count === report.events.length ? `All (${count})` : count}</span>
+                        {isSelected && <Check size={11} className="text-sage-400" aria-hidden="true" />}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <span className="font-mono text-xs text-mist-500">
+            {visible.length} of {report.events.length} {report.events.length === 1 ? "event" : "events"}
+          </span>
+        )}
       </div>
 
       {report.events.length === 0 ? (

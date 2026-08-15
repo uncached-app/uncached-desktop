@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { Loader2 } from "lucide-react";
 import { Breakdown } from "./insights/Breakdown";
 import { Duplicates } from "./insights/Duplicates";
 import { Orphans } from "./insights/Orphans";
@@ -13,10 +14,8 @@ import { Timeline } from "./insights/Timeline";
 import { EVENT_PAGE } from "./insights/labels";
 import { NoHistoryYet, ProPanel } from "./insights/states";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
+import type { AnalysisStage } from "../hooks/useWorkspaceAnalysis";
 import { useCleanupHistory } from "../hooks/useWorkspaceHistory";
-import { useDuplicatePackages } from "../hooks/useDuplicatePackages";
-import { useOrphanArtifacts } from "../hooks/useOrphanArtifacts";
-import { useWorkspaceHygiene } from "../hooks/useWorkspaceHygiene";
 import { buildInsights } from "../utils/insights.mjs";
 import { workspacePortrait } from "../utils/portrait.mjs";
 import type { Portrait as PortraitData } from "../utils/portrait.d.mts";
@@ -25,6 +24,13 @@ import { DIMENSIONS, buildReport } from "../utils/report.mjs";
 import type { Dimension, Filters, Report } from "../utils/report.d.mts";
 import { formatBytes } from "../utils/format";
 import type { Verdict } from "../types/workspace";
+
+/** What each reading is doing, while it is the one running. */
+const STAGE_COPY: Record<NonNullable<AnalysisStage>, string> = {
+  orphans: "Looking for build folders whose project is gone...",
+  repositories: "Reading every repository for dead branches and stashes...",
+  duplicates: "Reading every node_modules for identical copies...",
+};
 
 /**
  * The cleanup history, and what the last scan says about the present.
@@ -49,15 +55,9 @@ export function InsightsModule({
   const flow = usePurgeFlow();
   const projects = flow.index.index?.projects ?? [];
   const { events, totals, loading } = useCleanupHistory();
-  // Memoised: the hook keys its work on this array, and a fresh one every render
-  // would rebuild the callback on every keystroke elsewhere on the screen.
-  const projectPaths = useMemo(() => projects.map((project) => project.path), [projects]);
-  const duplicates = useDuplicatePackages(projectPaths);
-  // The chosen roots, not the indexed projects: an orphan is defined by there
-  // being no project over it, so a list of projects is the one input that
-  // cannot contain one.
-  const orphans = useOrphanArtifacts(flow.extraRoots);
-  const repositories = useWorkspaceHygiene(projectPaths);
+  // Taken once per workspace by the flow provider, so opening this screen shows
+  // what it found rather than three buttons, and leaving does not throw it away.
+  const { duplicates, repositories, orphans, stage, running, refresh } = flow.analysis;
 
   const [grain, setGrain] = useState("month");
   const [filters, setFilters] = useState<Filters>({});
@@ -136,7 +136,7 @@ export function InsightsModule({
         {proEnabled && !loading && !hasHistory && <NoHistoryYet />}
 
         {proEnabled && hasHistory && (
-          <div className="grid gap-4">
+          <div className="mb-4 grid gap-4">
             <FilterChips filters={filters} onClear={(dimension) => narrow(dimension, null)} />
 
             <Summary report={report} />
@@ -163,6 +163,7 @@ export function InsightsModule({
             <EventLog
               report={report}
               shown={shown}
+              onShownChange={setShown}
               onShowMore={() => setShown((current) => current + EVENT_PAGE)}
             />
           </div>
@@ -179,24 +180,38 @@ export function InsightsModule({
 
         {/* Below the highlights because these are the sections that cost
             something to produce — reading every node_modules, running git in
-            every repository, walking the tree for what nothing owns — and every
-            one of them only does so when asked. */}
+            every repository, walking the tree for what nothing owns. They are
+            taken in that order, cheapest first, once the weights have settled. */}
+        <div className="mt-6 flex items-center justify-between gap-3 border-t border-forest-800 pt-5">
+          <div>
+            <h2 className="text-sm font-semibold text-mist-100">A closer look</h2>
+            <p className="mt-0.5 text-xs text-mist-500">
+              {running ? STAGE_COPY[stage!] : "Read from your workspace when it settled."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={running || projects.length === 0}
+            className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl border border-forest-800 bg-forest-950 px-3.5 text-xs font-semibold text-mist-100 transition-colors hover:bg-forest-850 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {running && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
+            <span>{running ? "Reading" : "Read again"}</span>
+          </button>
+        </div>
+
         <div className="mt-4 grid gap-4">
           <Duplicates
             report={duplicates.report}
             running={duplicates.running}
             error={duplicates.error}
-            projectCount={projects.length}
             proEnabled={proEnabled}
-            onScan={duplicates.scan}
           />
 
           <Repositories
             report={repositories.report}
             running={repositories.running}
             error={repositories.error}
-            projectCount={projects.length}
-            onScan={repositories.scan}
             // The acting stays on the project page, so this hands the user
             // over rather than growing a second place that deletes branches.
             onOpen={(path) => {
@@ -209,8 +224,6 @@ export function InsightsModule({
             report={orphans.report}
             running={orphans.running}
             error={orphans.error}
-            rootCount={flow.extraRoots.length}
-            onScan={orphans.scan}
             onReveal={(path) => void invoke("reveal_project", { path })}
           />
         </div>

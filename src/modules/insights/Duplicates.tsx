@@ -21,16 +21,12 @@ export function Duplicates({
   report,
   running,
   error,
-  projectCount,
   proEnabled,
-  onScan,
 }: {
   report: DuplicateReport | null;
   running: boolean;
   error: string | null;
-  projectCount: number;
   proEnabled: boolean;
-  onScan: () => void;
 }) {
   const rows = report ? (proEnabled ? report.packages : report.packages.slice(0, FREE_ROWS)) : [];
   const hidden = report && !proEnabled ? Math.max(0, report.packages.length - FREE_ROWS) : 0;
@@ -46,19 +42,16 @@ export function Duplicates({
           <p className="mt-0.5 text-xs text-mist-500">
             {report
               ? `${report.distinctPackages} distinct packages across ${report.scannedProjects} ${report.scannedProjects === 1 ? "project" : "projects"}.`
-              : "Reads every node_modules in your workspace. Nothing is moved or removed."}
+              : "Read from every node_modules in your workspace. Nothing is moved or removed."}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onScan}
-          disabled={running || projectCount === 0}
-          className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-forest-800 bg-forest-950 px-3.5 text-xs font-semibold text-mist-100 transition-colors hover:bg-forest-850 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {running && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
-          <span>{running ? "Reading" : report ? "Read again" : "Find duplicates"}</span>
-        </button>
+        {running && (
+          <span className="inline-flex shrink-0 items-center gap-2 text-xs text-mist-500">
+            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+            Reading
+          </span>
+        )}
       </div>
 
       {error && <p className="mt-3 font-mono text-[11px] leading-5 text-coral-300">{error}</p>}

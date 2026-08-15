@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useScanWorkspace } from "./useScanWorkspace";
 import { useWorkspaceIndex } from "./useWorkspaceIndex";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
 import { useWorkspaceVerdicts } from "./useWorkspaceVerdicts";
+import { useWorkspaceAnalysis } from "./useWorkspaceAnalysis";
 import type { CleanMode } from "../types/settings";
 import type { WorkspaceProject } from "../types/workspace";
 
@@ -18,6 +19,11 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   /** Re-reads one project, for after something under it was removed. */
   remeasureProject: (path: string) => Promise<void>;
   verdicts: ReturnType<typeof useWorkspaceVerdicts>;
+  /**
+   * The three deeper readings, taken once per workspace and held here so
+   * switching tabs does not pay for them again.
+   */
+  analysis: ReturnType<typeof useWorkspaceAnalysis>;
   view: ResultsView;
   setView: (view: ResultsView) => void;
   /** The verdict the workspace list is narrowed to, if any. */
@@ -58,6 +64,14 @@ export function PurgeFlowProvider({
   const projects = index.index?.projects ?? NO_PROJECTS;
   const { footprints, measuring, remeasure } = useWorkspaceFootprints(projects);
   const verdicts = useWorkspaceVerdicts(projects, footprints);
+  const projectPaths = useMemo(() => projects.map((project) => project.path), [projects]);
+  const analysis = useWorkspaceAnalysis({
+    projectPaths,
+    roots: flow.extraRoots,
+    // Waits for the weights: these three contend for the same disk as the
+    // footprint pass, and those are the numbers the user is watching.
+    settled: !measuring && projects.length > 0,
+  });
   const [view, setView] = useState<ResultsView>("projects");
   // Held here rather than in the list: Insights sends the user to a filtered
   // workspace, and a sentence that cannot reach its own destination is the
@@ -134,6 +148,7 @@ export function PurgeFlowProvider({
         measuring,
         remeasureProject: remeasure,
         verdicts,
+        analysis,
         view,
         setView,
         activeVerdict,

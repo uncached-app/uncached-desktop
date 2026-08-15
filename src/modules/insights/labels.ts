@@ -12,7 +12,7 @@ export const DIMENSION_LABELS: Record<Dimension, string> = {
 export const UNRECORDED = "Unrecorded";
 
 /** How many cleanups the log shows before it stops being a list. */
-export const EVENT_PAGE = 40;
+export const EVENT_PAGE = 10;
 
 /** A dimension value, in the words the rest of the app already uses. */
 export function labelFor(dimension: Dimension, key: string | null): string {
