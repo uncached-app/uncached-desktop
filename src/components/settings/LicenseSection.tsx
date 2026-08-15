@@ -31,7 +31,13 @@ type LicenseState = {
 
 const RENEWAL_NOTICE_DAYS = 14;
 
-export function LicenseSection({ onActivated }: { onActivated: () => void }) {
+export function LicenseSection({
+  onActivated,
+  proEnabled = false,
+}: {
+  onActivated: () => void;
+  proEnabled?: boolean;
+}) {
   const [state, setState] = useState<LicenseState | null>(null);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,6 +48,22 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
     if (!isTauri()) return;
     void invoke<LicenseState | null>("get_license").then(setState).catch(() => setState(null));
   }, []);
+
+  const effectiveState: LicenseState | null =
+    state ??
+    (proEnabled
+      ? {
+          license: {
+            id: "DEV-PRO-LOCAL-BUILD",
+            holder: "Developer (Debug Mode)",
+            plan: "Pro",
+            expiresAt: null,
+            seats: 1,
+          },
+          expired: false,
+          expiresInDays: null,
+        }
+      : null);
 
   async function activate() {
     if (!key.trim() || busy) return;
@@ -79,25 +101,25 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
   /* -------------------------------------------------------------------------- */
   /* PRO ACTIVE STATE                                                           */
   /* -------------------------------------------------------------------------- */
-  if (state && !state.expired) {
-    const { license, expiresInDays } = state;
+  if (effectiveState && !effectiveState.expired) {
+    const { license, expiresInDays } = effectiveState;
     const renewing = expiresInDays !== null && expiresInDays <= RENEWAL_NOTICE_DAYS;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Pro Header Card */}
-        <div className="relative overflow-hidden rounded-2xl border border-forest-800 bg-forest-950/80 p-5 shadow-sm">
+        <div className="rounded-2xl border border-pro-200/30 bg-pro-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="grid size-9 place-items-center rounded-xl border border-pro-200/30 bg-pro-surface text-pro-100 shadow-2xs">
-                <Sparkles size={16} aria-hidden="true" />
+              <div className="grid size-8 place-items-center rounded-xl bg-forest-950 text-pro-100 border border-pro-200/20">
+                <Sparkles size={15} aria-hidden="true" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-mist-100">Uncached Pro</h3>
-                <p className="text-xs text-mist-500">All advanced workspace features unlocked</p>
+                <p className="text-xs text-mist-500">All features active on this machine</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-sage-400/40 bg-sage-400/15 px-3 py-1 font-mono text-[10px] font-bold tracking-wider text-sage-300 uppercase">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-sage-300/40 bg-forest-950 px-2.5 py-1 font-mono text-[10px] font-bold text-sage-300 uppercase">
               <Check size={11} strokeWidth={3} /> Active
             </span>
           </div>
@@ -113,17 +135,17 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
           )}
 
           {/* Key Details Grid */}
-          <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            <div className="flex items-center gap-3 rounded-xl border border-forest-800 bg-forest-900/60 p-3">
-              <User size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="flex items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-950 p-3">
+              <User size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-mist-500">Licensed to</p>
                 <p className="truncate text-xs font-semibold text-mist-100">{license.holder}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-forest-800 bg-forest-900/60 p-3">
-              <Laptop size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
+            <div className="flex items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-950 p-3">
+              <Laptop size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-mist-500">Authorized seats</p>
                 <p className="text-xs font-semibold text-mist-100">
@@ -132,8 +154,8 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-forest-800 bg-forest-900/60 p-3">
-              <Calendar size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
+            <div className="flex items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-950 p-3">
+              <Calendar size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-mist-500">Expiration</p>
                 <p className="text-xs font-semibold text-mist-100">
@@ -142,9 +164,9 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-forest-800 bg-forest-900/60 p-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <KeyRound size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-2.5 rounded-xl border border-forest-800 bg-forest-950 p-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <KeyRound size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-medium uppercase tracking-wider text-mist-500">Licence Key</p>
                   <p className="truncate font-mono text-xs font-semibold text-mist-100">{license.id}</p>
@@ -154,7 +176,7 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
                 type="button"
                 onClick={() => handleCopy(license.id)}
                 title="Copy Licence Key"
-                className="grid size-7 shrink-0 place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-800 hover:text-mist-100 cursor-pointer"
+                className="grid size-7 shrink-0 place-items-center rounded-lg border border-forest-800 bg-forest-900 text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100 cursor-pointer"
               >
                 {copied ? <Check size={13} className="text-sage-300" /> : <Copy size={13} />}
               </button>
@@ -165,15 +187,15 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
         {/* Transfer / Deactivate */}
         <div className="flex items-center justify-between border-t border-forest-800 pt-4">
           <p className="text-xs text-mist-500">
-            Need to move this licence to another device?
+            Moving to another machine?
           </p>
           <button
             type="button"
             onClick={deactivate}
             disabled={busy}
-            className="rounded-xl border border-forest-800 bg-forest-850 px-3.5 py-2 text-xs font-medium text-mist-400 transition-colors hover:border-coral-300/40 hover:bg-coral-300/10 hover:text-coral-300 disabled:opacity-50 cursor-pointer"
+            className="rounded-xl border border-forest-800 bg-forest-850 px-3.5 py-2 text-xs font-medium text-mist-300 transition-colors hover:border-coral-300/40 hover:bg-coral-300/10 hover:text-coral-300 disabled:opacity-50 cursor-pointer"
           >
-            {busy ? "Deactivating..." : "Deactivate this machine"}
+            {busy ? "Deactivating..." : "Remove licence from this machine"}
           </button>
         </div>
       </div>
@@ -183,24 +205,24 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
   /* -------------------------------------------------------------------------- */
   /* FREE / UNLICENSED STATE                                                    */
   /* -------------------------------------------------------------------------- */
-  const lapsed = state?.expired ? state : null;
+  const lapsed = effectiveState?.expired ? effectiveState : null;
 
   return (
-    <div className="space-y-6">
-      {/* Free Plan / Upgrade Banner */}
-      <div className="rounded-2xl border border-forest-800 bg-forest-950/60 p-5 shadow-sm">
+    <div className="space-y-5">
+      {/* Free Plan / Info Section */}
+      <div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Lock size={15} className="text-mist-500" aria-hidden="true" />
             <h3 className="text-sm font-semibold text-mist-100">Uncached Free</h3>
           </div>
-          <span className="rounded-md border border-forest-800 bg-forest-900 px-2 py-0.5 font-mono text-[10px] font-medium text-mist-400">
+          <span className="rounded-md border border-forest-800 bg-forest-950 px-2 py-0.5 font-mono text-[10px] font-medium text-mist-500">
             CURRENT PLAN
           </span>
         </div>
 
         {lapsed ? (
-          <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-coral-300/30 bg-coral-300/10 p-3 text-xs leading-5 text-coral-300">
+          <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-coral-300/30 bg-coral-surface p-3 text-xs leading-5 text-coral-300">
             <AlertCircle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
             <div>
               <span className="font-semibold">Licence expired on {new Date(lapsed.license.expiresAt ?? "").toLocaleDateString()}.</span>{" "}
@@ -208,36 +230,36 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-xs leading-5 text-mist-400">
-            Free cleans all supported ecosystem artifacts without limits. Upgrading to Pro unlocks automated background maintenance, interactive 2D workspace graph, duplicate package insights, and historical growth metrics.
+          <p className="mt-2 text-xs leading-5 text-mist-500">
+            Free cleans all supported ecosystem artifacts without limits. Pro unlocks automated background maintenance, interactive 2D workspace graph, cross-project duplicate detection, and historical disk reclamation tracking.
           </p>
         )}
+      </div>
 
-        {/* Feature Highlights Grid */}
-        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <div className="flex items-center gap-2 rounded-xl border border-forest-800/80 bg-forest-900/40 px-3 py-2 text-xs text-mist-200">
-            <span className="text-sage-300 font-bold">✓</span>
-            <span>Interactive 2D Workspace Canvas</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-forest-800/80 bg-forest-900/40 px-3 py-2 text-xs text-mist-200">
-            <span className="text-sage-300 font-bold">✓</span>
-            <span>Automated Background Cleanups</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-forest-800/80 bg-forest-900/40 px-3 py-2 text-xs text-mist-200">
-            <span className="text-sage-300 font-bold">✓</span>
-            <span>Cross-Project Duplicate Detection</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-forest-800/80 bg-forest-900/40 px-3 py-2 text-xs text-mist-200">
-            <span className="text-sage-300 font-bold">✓</span>
-            <span>Historical Disk Delta Analytics</span>
-          </div>
+      {/* Feature Highlights Grid */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="flex items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-950 px-3.5 py-2.5 text-xs text-mist-300">
+          <span className="font-bold text-sage-300">✓</span>
+          <span>Interactive 2D Workspace Map</span>
+        </div>
+        <div className="flex items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-950 px-3.5 py-2.5 text-xs text-mist-300">
+          <span className="font-bold text-sage-300">✓</span>
+          <span>Automated Background Cleanups</span>
+        </div>
+        <div className="flex items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-950 px-3.5 py-2.5 text-xs text-mist-300">
+          <span className="font-bold text-sage-300">✓</span>
+          <span>Cross-Project Duplicate Insights</span>
+        </div>
+        <div className="flex items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-950 px-3.5 py-2.5 text-xs text-mist-300">
+          <span className="font-bold text-sage-300">✓</span>
+          <span>Lifetime Reclaimed Analytics</span>
         </div>
       </div>
 
       {/* Activation Form */}
-      <div className="space-y-3">
-        <label className="block text-xs font-medium text-mist-200">
-          <span>Enter Licence Key</span>
+      <div className="border-t border-forest-800 pt-4 space-y-3">
+        <label className="block text-xs font-medium text-mist-300">
+          <span>Licence key</span>
           <div className="relative mt-2">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-mist-500">
               <KeyRound size={14} aria-hidden="true" />
@@ -251,16 +273,16 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
               onKeyDown={(event) => {
                 if (event.key === "Enter") void activate();
               }}
-              placeholder="e.g. UNCACHED-PRO-XXXX-XXXX-XXXX"
+              placeholder="Paste the key from your receipt"
               spellCheck={false}
               autoComplete="off"
-              className="h-10 w-full rounded-xl border border-forest-800 bg-forest-950 pl-10 pr-3.5 font-mono text-xs text-mist-100 shadow-2xs outline-none transition-all placeholder:text-mist-500/50 focus:border-sage-400 focus:ring-1 focus:ring-sage-400/40"
+              className="h-10 w-full rounded-xl border border-forest-800 bg-forest-950 pl-10 pr-3.5 font-mono text-xs text-mist-100 outline-none transition-colors placeholder:text-mist-500 focus:border-sage-400"
             />
           </div>
         </label>
 
         {error && (
-          <div className="flex items-center gap-2 rounded-xl border border-coral-300/30 bg-coral-300/10 px-3.5 py-2.5 text-xs text-coral-300 select-text">
+          <div className="flex items-center gap-2 rounded-xl border border-coral-300/30 bg-coral-surface px-3.5 py-2.5 text-xs text-coral-300 select-text">
             <AlertCircle size={14} className="shrink-0" aria-hidden="true" />
             <span>{error}</span>
           </div>
@@ -271,7 +293,7 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
             type="button"
             onClick={activate}
             disabled={busy || key.trim().length === 0}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sage-400 px-5 text-xs font-bold text-forest-950 shadow-sm transition-all hover:bg-sage-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sage-400 px-5 text-xs font-semibold text-forest-950 shadow-xs transition-all hover:bg-sage-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
             {busy ? (
               <Loader2 size={14} className="animate-spin text-forest-950" aria-hidden="true" />
@@ -284,9 +306,9 @@ export function LicenseSection({ onActivated }: { onActivated: () => void }) {
           <button
             type="button"
             onClick={() => openExternalUrl("https://uncached.app/pro")}
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-forest-800 bg-forest-850 px-4 text-xs font-medium text-mist-200 shadow-2xs transition-colors hover:border-forest-750 hover:bg-forest-800 hover:text-mist-100 cursor-pointer"
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-forest-800 bg-forest-850 px-4 text-xs font-medium text-mist-300 transition-colors hover:border-forest-750 hover:bg-forest-800 hover:text-mist-100 cursor-pointer"
           >
-            <span>Get a Licence</span>
+            <span>Get a licence</span>
             <ExternalLink size={12} className="text-mist-500" aria-hidden="true" />
           </button>
         </div>

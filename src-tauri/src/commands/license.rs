@@ -318,8 +318,23 @@ pub async fn deactivate_license(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn get_license() -> Option<LicenseState> {
-    let stored = STORED.read().ok().and_then(|kept| kept.clone())?;
-    Some(state_of(&stored, Utc::now()))
+    if let Some(stored) = STORED.read().ok().and_then(|kept| kept.clone()) {
+        return Some(state_of(&stored, Utc::now()));
+    }
+    if cfg!(debug_assertions) && std::env::var_os("UNCACHED_DEV_PRO").is_some() {
+        return Some(LicenseState {
+            license: LicenseInfo {
+                id: "DEV-PRO-LOCAL-BUILD".to_string(),
+                holder: "Developer (Debug Mode)".to_string(),
+                plan: "Pro".to_string(),
+                expires_at: None,
+                seats: 1,
+            },
+            expired: false,
+            expires_in_days: None,
+        });
+    }
+    None
 }
 
 #[cfg(test)]

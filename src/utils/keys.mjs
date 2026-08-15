@@ -178,3 +178,24 @@ export function toAccelerator(binding) {
   parts.push(parsed.key.length === 1 ? parsed.key.toUpperCase() : parsed.key);
   return parts.join("+");
 }
+
+/**
+ * The binding a keystroke would be, for recording one.
+ *
+ * Returns `null` for a press that is only modifiers — holding Command on the
+ * way to a real chord sends its own `keydown`, and taking that as the answer
+ * would bind every command to Command.
+ */
+export function bindingFrom(event) {
+  const key = (event.key ?? "").toLowerCase();
+  if (!key || ["meta", "control", "shift", "alt", "dead"].includes(key)) return null;
+
+  const parts = [];
+  // Written as `cmd` whichever key was actually held, because that is what the
+  // file says and what the other platform will read it as.
+  if (event.metaKey || event.ctrlKey) parts.push("cmd");
+  if (event.altKey) parts.push("alt");
+  if (event.shiftKey) parts.push("shift");
+  parts.push(key === " " ? "space" : key);
+  return parts.join("+");
+}

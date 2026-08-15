@@ -20,4 +20,7 @@ export declare function resolveBindings(
   overrides: Record<string, string> | undefined | null,
 ): Record<string, string>;
 export declare function toAccelerator(binding: string): string;
+export declare function bindingFrom(
+  event: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey">,
+): string | null;
 export declare function conflictsIn(bindings: Record<string, string>): string[][];

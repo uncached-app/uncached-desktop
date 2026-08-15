@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  bindingFrom,
   conflictsIn,
   toAccelerator,
   isTyping,
@@ -112,4 +113,23 @@ test("a key with no modifier is never printed beside a menu item", () => {
   // itself.
   assert.equal(toAccelerator("/"), "");
   assert.equal(toAccelerator("nonsense+"), "");
+});
+
+test("a recorded keystroke is written the way the file spells it", () => {
+  assert.equal(bindingFrom(press("M", { meta: true, shift: true })), "cmd+shift+m");
+  assert.equal(bindingFrom(press("/")), "/");
+  assert.equal(bindingFrom(press("k", { ctrl: true })), "cmd+k");
+});
+
+test("holding a modifier is not a binding", () => {
+  // Reaching for a chord sends a `keydown` for the modifier on its own. Taking
+  // that as the answer binds every command to Command.
+  for (const key of ["Meta", "Shift", "Control", "Alt", "Dead", ""]) {
+    assert.equal(bindingFrom(press(key, { meta: true })), null, key);
+  }
+});
+
+test("what is recorded is what will match", () => {
+  const recorded = bindingFrom(press("X", { meta: true, shift: true }));
+  assert.ok(matchesBinding(press("X", { meta: true, shift: true }), recorded));
 });

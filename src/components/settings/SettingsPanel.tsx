@@ -4,6 +4,7 @@ import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
 import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
+import { ShortcutsContent } from "./ShortcutsContent";
 import { useThemeFiles, type UserTheme } from "../../hooks/useThemeFiles";
 import type { AppSettings, Appearance, IgnoreRuleReview } from "../../types/settings";
 import { openExternalUrl } from "../../utils/externalLink";
@@ -18,6 +19,8 @@ type SettingsPanelProps = {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   /** The plan is native state; activating one has to re-read it. */
   onLicenseChange?: () => void;
+  /** Read by the licence screen alone, which is the only thing here it gates. */
+  proEnabled?: boolean;
 };
 
 const sections = [
@@ -26,6 +29,7 @@ const sections = [
   "Scanning",
   "Ignore rules",
   "Deletion",
+  "Shortcuts",
   "Appearance",
   "Licence",
   "About",
@@ -41,6 +45,7 @@ export function SettingsPanel({
   error,
   updateSettings,
   onLicenseChange = () => {},
+  proEnabled = false,
 }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(
@@ -136,7 +141,7 @@ export function SettingsPanel({
           {/* Body Content */}
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
             {section === "Licence" ? (
-              <LicenseSection onActivated={onLicenseChange} />
+              <LicenseSection onActivated={onLicenseChange} proEnabled={proEnabled} />
             ) : section === "About" ? (
               <AboutContent appInfo={appInfo} />
             ) : loading || !settings ? (
@@ -275,6 +280,9 @@ function SettingsContent({
   }
   if (section === "Ignore rules") {
     return <IgnoreRulesContent settings={settings} updateSettings={updateSettings} />;
+  }
+  if (section === "Shortcuts") {
+    return <ShortcutsContent settings={settings} updateSettings={updateSettings} />;
   }
   if (section === "Deletion") {
     return (
