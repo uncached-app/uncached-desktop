@@ -58,7 +58,7 @@ export function EventLog({
                   className="group flex flex-wrap items-center justify-between gap-3 py-3 transition-colors hover:bg-forest-850/30 px-1 rounded-lg"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="w-28 shrink-0 font-mono text-[11px] text-mist-500">
+                    <span className="w-36 shrink-0 whitespace-nowrap font-mono text-[11px] text-mist-500">
                       {formatMoment(event.at)}
                     </span>
 

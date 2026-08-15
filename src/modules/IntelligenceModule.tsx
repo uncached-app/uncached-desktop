@@ -37,19 +37,23 @@ export function IntelligenceModule({
   proEnabled,
   policy,
   onPolicyChange,
+  schedule,
   onScheduleChange,
   onOpenWorkspace,
 }: {
   proEnabled: boolean;
   policy: MaintenancePolicy;
   onPolicyChange: (policy: MaintenancePolicy) => void;
-  onScheduleChange: (schedule: Schedule) => void;
+  /** The stored schedule, which is what the switch and the chips render from. */
+  schedule: Schedule;
+  /** Resolves once the write has landed, so a refresh after it reads the new value. */
+  onScheduleChange: (schedule: Schedule) => Promise<void>;
   onOpenWorkspace: () => void;
 }) {
   const flow = usePurgeFlow();
   const projects = flow.index.index?.projects ?? [];
   const [run, setRun] = useState<RunState>({ kind: "idle" });
-  const { status: schedule, refresh: refreshSchedule } = useScheduleStatus(proEnabled);
+  const { status: scheduleStatus, refresh: refreshSchedule } = useScheduleStatus(proEnabled);
 
   // A result describes the selection it was run against. Change the policy and
   // it is describing something else, so it goes rather than sits there being
@@ -158,15 +162,16 @@ export function IntelligenceModule({
 
           {/* Pro only, and absent rather than disabled: a switch that cannot be
               flipped is a control with no operation behind it. */}
-          {proEnabled && schedule && (
+          {proEnabled && (
             <ScheduleCard
-              status={schedule}
-              onChange={(next) => {
-                onScheduleChange(next);
-                // Asked again rather than assumed. The stored schedule is one
-                // thing; the interval in force and whether a run would start
-                // now are the backend's answers, and turning the switch on can
-                // make a run due this minute.
+              schedule={schedule}
+              status={scheduleStatus}
+              onChange={async (next) => {
+                // Awaited. `maintenance_schedule_status` reads settings.json,
+                // so refreshing before the write lands returns the previous
+                // schedule and puts the switch back where it was — which is
+                // what made the toggle and the interval chips look broken.
+                await onScheduleChange(next);
                 void refreshSchedule();
               }}
             />

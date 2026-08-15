@@ -8,7 +8,7 @@ import { useEntitlement } from "./hooks/useEntitlement";
 import { useIgnoreRuleCount } from "./hooks/useIgnoreRuleCount";
 import { useSettings } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
-import { DEFAULT_POLICY } from "./types/maintenance";
+import { DEFAULT_POLICY, DEFAULT_SCHEDULE } from "./types/maintenance";
 import type { AppModule } from "./types/module";
 
 function App() {
@@ -44,8 +44,9 @@ function App() {
             proEnabled={entitlement.proEnabled}
             policy={settings.settings?.maintenance ?? DEFAULT_POLICY}
             onPolicyChange={(maintenance) => void settings.updateSettings({ maintenance })}
+            schedule={settings.settings?.maintenanceSchedule ?? DEFAULT_SCHEDULE}
             onScheduleChange={(maintenanceSchedule) =>
-              void settings.updateSettings({ maintenanceSchedule })
+              settings.updateSettings({ maintenanceSchedule })
             }
             onOpenWorkspace={() => setActiveModule("reclaim")}
           />

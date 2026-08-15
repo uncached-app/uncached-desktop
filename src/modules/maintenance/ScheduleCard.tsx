@@ -38,17 +38,31 @@ function when(at: number | null): string | null {
  * the Pro panel, which says this exists.
  */
 export function ScheduleCard({
+  schedule,
   status,
   onChange,
 }: {
-  status: ScheduleStatus;
+  /**
+   * The stored schedule, and the only thing the switch and the chips read.
+   *
+   * Not `status.schedule`: that comes from a backend call this screen refreshes
+   * on a timer, so rendering the controls from it made every click wait for a
+   * round trip — and a click answered by the previous value looks like a
+   * control that does not work.
+   */
+  schedule: Schedule;
+  /**
+   * What only the backend can answer: when the next run falls, what is holding
+   * it, and whether closing the window would end it. `null` until the first
+   * read lands, which is why every use of it is optional.
+   */
+  status: ScheduleStatus | null;
   onChange: (schedule: Schedule) => void;
 }) {
-  const { schedule } = status;
-  const lastRun = when(status.lastRunAt);
-  const nextRun = when(status.nextRunAt);
+  const lastRun = when(status?.lastRunAt ?? null);
+  const nextRun = when(status?.nextRunAt ?? null);
   const blocked =
-    status.held && status.held !== "tooSoon" && status.held !== "disabled"
+    status?.held && status.held !== "tooSoon" && status.held !== "disabled"
       ? HELD_COPY[status.held]
       : null;
 
@@ -88,9 +102,12 @@ export function ScheduleCard({
         </div>
         <div className="flex flex-wrap items-center gap-1">
           {INTERVAL_CHOICES.map(({ hours, label }) => {
-            // Compared against the interval in force rather than the one
-            // stored, so a hand-edited file shows the value the thread obeys.
-            const active = status.intervalHours === hours;
+            // Compared against what is stored, so the chip moves on the click
+            // rather than on the next backend read. Every chip here is inside
+            // the bounds the backend clamps to, so choosing one makes stored
+            // and in-force the same number; a stored value outside them
+            // highlights nothing, which is the honest answer.
+            const active = schedule.everyHours === hours;
             return (
               <button
                 key={hours}
@@ -142,7 +159,7 @@ export function ScheduleCard({
           a run only ever happens while this window is open — which is not a
           schedule. Said here, next to the switch that caused it, rather than
           left to be discovered by it never firing. */}
-      {schedule.enabled && !status.keepsRunningInBackground && (
+      {schedule.enabled && status && !status.keepsRunningInBackground && (
         <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs leading-5 text-mist-300">
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
           <span>
