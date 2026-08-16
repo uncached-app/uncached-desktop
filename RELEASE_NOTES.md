@@ -1,15 +1,24 @@
-## 0.1.1-alpha.3
+## 0.1.1-alpha.4
 
-Uncached can now update itself. A newer version appears as a badge in the
-corner — never a dialog in front of what you opened the app for — and nothing
-downloads or restarts until you ask. An update is never applied while a scan or
-a cleanup is running.
+Windows was where most of this went wrong.
 
-The workspace folder is now somewhere to work from. A chosen folder, and any
-folder holding several projects, opens in your editor, opens a terminal, and
-shows in the file manager — from the header, the folder list, the map, and the
-command palette.
+Scanning no longer strobes console windows across the screen. Reading a
+workspace starts four Git processes per project, and each one was opening a
+console of its own — the work was correct and the app looked like it was
+breaking.
 
-A project page can put its dependencies back. **Restore now** runs the reinstall
-in your own terminal, with the command already worked out from the lockfiles on
-disk.
+Paths are shown the way you write them, without the `\\?\` prefix the system's
+own canonical form carries.
+
+Settings opens from the bar at the bottom, on every screen. It used to be in a
+footer only the Workspace screen drew, so on Windows the way in disappeared on
+Maintenance and Insights.
+
+And the login item is named Uncached, not uncached.
+
+On macOS, the app no longer reports itself as damaged. It is still not signed by
+a certificate Apple knows — right-click and Open the first time — but that is a
+dialog with a way through rather than one telling you to throw it away.
+
+Everywhere, the window now opens in whatever appearance your machine already
+uses, instead of starting light and announcing it with a white flash.
