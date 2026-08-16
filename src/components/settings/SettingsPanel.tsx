@@ -567,6 +567,8 @@ function ScanningContent({
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
 }) {
+  const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
+
   return (
     <>
       <p className="mb-4 text-xs leading-5 text-mist-500">
@@ -592,12 +594,18 @@ function ScanningContent({
           checked={settings.detectEditorCaches}
           onChange={(value) => updateSettings({ detectEditorCaches: value })}
         />
-        <SettingToggle
-          label="Xcode developer data"
-          hint="Include DerivedData, device support, and the simulator store. Some of these are reported but never removed."
-          checked={settings.detectXcodeData}
-          onChange={(value) => updateSettings({ detectXcodeData: value })}
-        />
+        {/* Xcode exists on one platform, and so does everything this switch
+            reaches: the Linux and Windows catalogues list no Xcode locations at
+            all. Shown elsewhere it would be a control with nothing behind it —
+            the fault it was added to fix. */}
+        {isMac && (
+          <SettingToggle
+            label="Xcode developer data"
+            hint="Include DerivedData, device support, and the simulator store."
+            checked={settings.detectXcodeData}
+            onChange={(value) => updateSettings({ detectXcodeData: value })}
+          />
+        )}
       </SettingsGroup>
       <p className="mt-4 text-xs leading-5 text-mist-500">
         To leave something inside a workspace alone, add it under Ignore rules — a rule there covers
