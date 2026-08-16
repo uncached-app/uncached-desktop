@@ -104,7 +104,13 @@ export function AppLayout({
           </CommandPaletteContext.Provider>
           {!isMac && activeModule === "reclaim" && <Footer onOpenSettings={() => onSettingsOpenChange(true)} />}
         </div>
-        <ModuleBar activeModule={activeModule} onChange={onModuleChange} proEnabled={proEnabled} />
+        <ModuleBar
+          activeModule={activeModule}
+          onChange={onModuleChange}
+          proEnabled={proEnabled}
+          view={view}
+          onViewChange={flow.setView}
+        />
       </div>
       <UpdateToast update={update} busy={busy} />
 

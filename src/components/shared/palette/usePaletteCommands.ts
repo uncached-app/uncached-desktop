@@ -1,4 +1,4 @@
-import { Compass, FolderOpen, FolderPlus, PanelsTopLeft, RefreshCw, Settings, type LucideIcon } from "lucide-react";
+import { Compass, FolderOpen, FolderPlus, HardDrive, PanelsTopLeft, RefreshCw, Settings, type LucideIcon } from "lucide-react";
 import { useMemo } from "react";
 import { usePurgeFlow } from "../../../hooks/usePurgeFlow";
 import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
@@ -147,10 +147,28 @@ export function usePaletteCommands({
         id: "go-workspace",
         group: "commands",
         title: "Go to Workspace",
-        keywords: ["projects", "map", "reclaim"],
+        keywords: ["projects", "map"],
         icon: Compass,
         closes: true,
-        run: () => onModuleChange("reclaim"),
+        // The reading is named as well as the module. Without this it lands on
+        // whichever of the two was open last, so "Go to Workspace" and the
+        // Workspace button in the bar would mean different things.
+        run: () => {
+          onModuleChange("reclaim");
+          flow.setView("projects");
+        },
+      },
+      {
+        id: "go-reclaim",
+        group: "commands",
+        title: "Reclaim disk",
+        keywords: ["artifacts", "clean", "free", "remove", "targets"],
+        icon: HardDrive,
+        closes: true,
+        run: () => {
+          onModuleChange("reclaim");
+          flow.setView("artifacts");
+        },
       },
       {
         id: "go-insights",
