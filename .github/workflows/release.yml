@@ -232,6 +232,11 @@ jobs:
           # updates is its tarball, and the thing a visitor downloads is the
           # dmg. Only files are carried.
           printf '%s' "$ARTIFACTS" | jq -r '.[]' | while read -r path; do
+            # The bundler reports Windows paths with backslashes, and this runs
+            # under Git Bash there, where `D:\a\x` is not a path any test
+            # succeeds on. Every one would be skipped as "not a file" and the
+            # job would fail claiming nothing was built.
+            path="${path//\\//}"
             [ -f "$path" ] || continue
             cp "$path" "$destination/"
           done
@@ -271,6 +276,11 @@ jobs:
           path: release
           pattern: release-*
 
+      - name: Configure Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Build the manifest
         id: manifest
         shell: bash
@@ -284,16 +294,6 @@ jobs:
             --base "https://cdn.uncached.app/releases/$version" \
             --out "$GITHUB_WORKSPACE/release/latest.json"
           cat "$GITHUB_WORKSPACE/release/latest.json"
-
-      - name: Configure pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Configure Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
 
       # Bundles first, manifest last, and never in one command: a manifest that
       # lands before the file it names is a broken update for everyone whose
