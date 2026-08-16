@@ -35,6 +35,8 @@ export type GraphEdge = {
 
 export type GraphLabel = {
   id: string;
+  /** The directory itself, so it can be opened rather than only named. */
+  path: string;
   text: string;
   detail: string;
   declared: boolean;

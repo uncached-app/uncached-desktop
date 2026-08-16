@@ -23,7 +23,7 @@ use commands::entitlements::get_entitlement_status;
 use commands::git::{fetch_project, project_hygiene, prune_branches, workspace_hygiene};
 use commands::history::{cleanup_history, clear_history, record_workspace_visit};
 use commands::license::{activate_license, deactivate_license, get_license};
-use commands::locate::{available_launchers, open_project_with, reveal_project};
+use commands::locate::{available_launchers, open_project_with, restore_project, reveal_project};
 use commands::orphans::orphan_artifacts;
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{
@@ -90,6 +90,7 @@ pub fn run() {
             available_launchers,
             reveal_project,
             open_project_with,
+            restore_project,
             clear_history,
             get_settings,
             update_settings,

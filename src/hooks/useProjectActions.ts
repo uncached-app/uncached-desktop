@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useMemo } from "react";
-import { editorsFor, useLaunchers, type Launcher } from "./useLaunchers";
+import { editorsFor, preferred, useLaunchers } from "./useLaunchers";
 import { useSettings } from "./useSettings";
 import { remoteLabel, remoteToUrl } from "../utils/remoteUrl.mjs";
 import { copyText } from "../utils/clipboard";
@@ -27,13 +27,6 @@ export type ProjectAction = {
   leaves: boolean;
   perform: () => Promise<void>;
 };
-
-/** Moves the chosen launcher to the front, if it is still installed. */
-function preferred(launchers: Launcher[], chosen: string | null): Launcher[] {
-  if (!chosen) return launchers;
-  const match = launchers.find((launcher) => launcher.id === chosen);
-  return match ? [match, ...launchers.filter((launcher) => launcher !== match)] : launchers;
-}
 
 /**
  * The same list with one editor instead of every installed one.

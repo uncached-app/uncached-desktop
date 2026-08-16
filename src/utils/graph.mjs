@@ -522,6 +522,8 @@ function familyLabels(families, placed) {
 
       return {
         id: `family:${family.path}`,
+        /** The directory itself, so it can be opened rather than only named. */
+        path: family.path,
         text: family.name,
         detail: family.declaredBy ? `${family.declaredBy} workspace` : "one folder",
         declared: Boolean(family.declaredBy),

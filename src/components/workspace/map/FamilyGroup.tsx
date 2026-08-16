@@ -28,6 +28,7 @@ export function FamilyGroup({
   focusPath,
   onOpenProject,
   onContextMenu,
+  onFolderMenu,
 }: {
   id: string;
   name: string;
@@ -41,6 +42,13 @@ export function FamilyGroup({
   focusPath: string | null;
   onOpenProject: (path: string) => void;
   onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
+  /**
+   * The heading's own verbs, or absent when the heading is not a directory.
+   *
+   * "On their own" is a group this screen invented, not a folder anybody can
+   * open — so it gets no menu rather than one that would have to fail.
+   */
+  onFolderMenu?: (event: React.MouseEvent) => void;
 }) {
   const reclaimable = projects.reduce(
     (sum, project) => sum + (footprints[project.path]?.reclaimableBytes ?? 0),
@@ -50,16 +58,31 @@ export function FamilyGroup({
 
   return (
     <section aria-labelledby={`family-${id}`} className="pb-5">
-      <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-x-2.5 rounded-t-none rounded-b-xl bg-forest-950/90 px-2.5 py-2 backdrop-blur-md">
+      <div
+        onContextMenu={onFolderMenu}
+        className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-x-2.5 rounded-t-none rounded-b-xl bg-forest-950/90 px-2.5 py-2 backdrop-blur-md">
         <div className="flex min-w-0 items-center gap-2">
           <Icon
             size={13}
             className={declared ? "shrink-0 text-sage-300" : "shrink-0 text-mist-500"}
             aria-hidden="true"
           />
-          <h2 id={`family-${id}`} className="min-w-0 truncate text-xs font-semibold text-mist-100">
-            {name}
-          </h2>
+          {onFolderMenu ? (
+            <h2 id={`family-${id}`} className="min-w-0 truncate text-xs font-semibold text-mist-100">
+              <button
+                type="button"
+                onClick={onFolderMenu}
+                aria-haspopup="menu"
+                className="cursor-pointer rounded-md px-1 py-0.5 transition-colors hover:bg-forest-850 hover:text-sage-300"
+              >
+                {name}
+              </button>
+            </h2>
+          ) : (
+            <h2 id={`family-${id}`} className="min-w-0 truncate text-xs font-semibold text-mist-100">
+              {name}
+            </h2>
+          )}
           <span className="shrink-0 rounded-md bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-mist-300">
             {projects.length}
           </span>

@@ -1,6 +1,8 @@
 import { FolderOpen } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ProjectContextMenu, type MenuAnchor } from "./map/ProjectContextMenu";
+import { FolderMenu, type FolderAnchor } from "../shared/FolderMenu";
+import { useFlash } from "../../hooks/useFlash";
 import { ProjectRow } from "./map/ProjectRow";
 import { FamilyGroup } from "./map/FamilyGroup";
 import { VerdictGroup } from "./map/VerdictGroup";
@@ -166,7 +168,11 @@ export function WorkspaceMap({
     shortcuts,
   );
   const [menu, setMenu] = useState<MenuAnchor | null>(null);
-  const [flash, setFlash] = useState<string | null>(null);
+  // A folder was the one thing on this screen you could look at and not act on:
+  // named in the map, named above a group in the list, and openable from
+  // neither. The verbs are a project's minus the ones a directory cannot mean.
+  const [folderMenu, setFolderMenu] = useState<FolderAnchor | null>(null);
+  const [flash, report] = useFlash();
 
   // A right-click anywhere on a row, rather than a hidden button that has to be
   // found: the verbs already exist and the project page is one click away, so
@@ -176,12 +182,16 @@ export function WorkspaceMap({
     setMenu({ project, x: event.clientX, y: event.clientY });
   }
 
-  function report(message: string | null) {
-    setFlash(message);
-    if (message) {
-      window.setTimeout(() => setFlash((current) => (current === message ? null : current)), 3500);
-    }
+  // One folder, or none. Selecting one in the sidebar is what makes the answer
+  // unambiguous; with several chosen and none selected, an icon offering to
+  // open "the" folder would be picking for the reader.
+  const headerFolder = activeRoot ?? (chosenRoots.length === 1 ? chosenRoots[0] : null);
+
+  function openFolderMenu(path: string, name: string, event: React.MouseEvent) {
+    event.preventDefault();
+    setFolderMenu({ path, name, x: event.clientX, y: event.clientY });
   }
+
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
@@ -471,6 +481,7 @@ export function WorkspaceMap({
           onAddRoot={onAddRoot}
           onRemoveRoot={onRemoveRoot}
           onRemoveAllRoots={onRemoveAllRoots}
+          onFolderMenu={openFolderMenu}
         />
       </div>
 
@@ -488,6 +499,9 @@ export function WorkspaceMap({
           query={query}
           onQueryChange={onQueryChange}
           searchRef={searchRef}
+          folder={headerFolder}
+          onFolderResult={report}
+          onRescan={onRescan}
           order={order}
           onOrderChange={setOrder}
           hasFamilies={families.length > 0}
@@ -516,6 +530,8 @@ export function WorkspaceMap({
               viewState={mapView}
               onOpenProject={onOpenProject}
               onContextMenu={openMenu}
+              onFolderMenu={(label, event) => openFolderMenu(label.path, label.text, event)}
+              focusPath={focusPath}
             />
           </div>
         )}
@@ -549,6 +565,11 @@ export function WorkspaceMap({
                   focusPath={focusPath}
                   onOpenProject={onOpenProject}
                   onContextMenu={openMenu}
+                  onFolderMenu={
+                    group.id === "alone"
+                      ? undefined
+                      : (event) => openFolderMenu(group.id, group.name, event)
+                  }
                 />
               ))}
 
@@ -643,6 +664,10 @@ export function WorkspaceMap({
           onResult={report}
           onClose={() => setMenu(null)}
         />
+      )}
+
+      {folderMenu && (
+        <FolderMenu anchor={folderMenu} onResult={report} onClose={() => setFolderMenu(null)} />
       )}
 
       {/* The verbs mostly leave the app, so the only sign one happened is here.

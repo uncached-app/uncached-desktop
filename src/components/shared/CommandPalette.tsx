@@ -10,6 +10,7 @@ import type { WorkspaceProject } from "../../types/workspace";
 const GROUP_LABELS: Record<string, string> = {
   actions: "Actions",
   projects: "Projects",
+  folders: "Folders",
   commands: "Commands",
 };
 
@@ -92,7 +93,10 @@ export function CommandPalette({
       if (command.closes) onClose();
       // Something that finishes here says so. A copy with no evidence gets
       // pressed twice.
-      else if (command.group === "actions") setFlash(`${command.title} — done`);
+      // Selecting a project is the palette changing level, not a verb that
+      // finished — the new list of actions is its own evidence. Everything
+      // else that stays open has none, so it says so.
+      else if (command.group !== "projects") setFlash(`${command.title} — done`);
     } catch (error) {
       // Said out loud rather than swallowed: a folder that moved since the scan
       // is the most likely failure here, and silence would read as a palette

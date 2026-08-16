@@ -36,6 +36,18 @@ export function editorsFor(launchers: Launcher[], projectKind: string): Launcher
 }
 
 /**
+ * The same list with the chosen launcher first, if it is still installed.
+ *
+ * A preference naming something no longer on the machine is ignored rather
+ * than obeyed into an empty list.
+ */
+export function preferred(launchers: Launcher[], chosen: string | null): Launcher[] {
+  if (!chosen) return launchers;
+  const match = launchers.find((launcher) => launcher.id === chosen);
+  return match ? [match, ...launchers.filter((launcher) => launcher !== match)] : launchers;
+}
+
+/**
  * The editors and terminals this machine actually has, or `null` until the
  * machine has answered.
  *

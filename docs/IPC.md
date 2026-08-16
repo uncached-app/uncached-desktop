@@ -124,6 +124,16 @@ Detected by reading the application directories rather than by asking Launch Ser
 
 Both refuse a path that is not inside one of `workspaceRoots`, compared component-wise on canonical paths — `/work-archive` is not inside `/work` however the two are spelled. `open_project_with` also refuses a `program` that is not in `available_launchers`: a caller that could name any program could start any process, and these commands exist to open an editor.
 
+**Any authorized directory, despite the names.** The check is `path == root || path.starts_with(root)`, so a workspace root and a folder holding several projects are as acceptable as a project — which is what the folder menu and the palette's Folders group use. The names were kept because a project was the first caller, not because a project is the rule.
+
+### `restore_project`
+
+`{ "path": "/work/api", "program": "Ghostty" }` → the command it started, e.g. `"pnpm install"`.
+
+Same authorization as above, and `program` must be a detected **terminal**. **The command is not a parameter.** It is recomputed from the lockfiles on disk by the same `restore_for` that fills the `restore` field on a project — a command travelling from the interface would turn "reinstall this project" into "run anything".
+
+The terminal is handed a one-shot script written to the app cache directory under one fixed name, overwritten each time. A script rather than arguments because every terminal spells "and also run this" differently, and because the shell has to survive the command — the script ends in `exec $SHELL`, so the window stays open on whatever the install printed. On macOS that is `open -a <terminal> <script>`, which needs no Automation permission; elsewhere it is each terminal's documented execute option. **A terminal with no known option still opens, in the right directory, running nothing** — the interface copies the command first for exactly that case, so the worst outcome is one paste.
+
 An editor goes through the opener. A **terminal does not**, outside macOS. The opener runs `<app> <path>`, and no terminal emulator reads a bare positional path as a working directory: `gnome-terminal /w/api` opens in the home directory, and `cmd.exe C:\w\api` tries to execute the path. On Windows it also passes `CREATE_NO_WINDOW`, which is right for an editor and fatal for a console — the process would start with no window at all. So each terminal is spawned directly with its own documented option (`-d`, `/K cd /d`, `--workdir`, `--directory`, `--working-directory`, `start --cwd`, `-NoExit -Command Set-Location`), and one with no known option is spawned with its working directory set instead. macOS keeps the opener, where `open -a Terminal -- <path>` already means what it looks like.
 
 **Verified on macOS only.** The flags are each terminal's documented option; the other two platforms have not been run.

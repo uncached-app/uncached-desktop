@@ -345,7 +345,7 @@ fn project_from_directory(path: &Path, root: &Path) -> WorkspaceProject {
 /// The `packageManager` field is read only when a `package.json` is there to
 /// hold it, so the common case costs one `is_file` per candidate and no reads
 /// at all.
-fn restore_for(path: &Path) -> Option<restore::Restore> {
+pub(crate) fn restore_for(path: &Path) -> Option<restore::Restore> {
     let declared = std::fs::read_to_string(path.join("package.json"))
         .ok()
         .and_then(|contents| {

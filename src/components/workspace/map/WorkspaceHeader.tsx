@@ -3,6 +3,9 @@ import type { RefObject } from "react";
 import { formatBytes } from "../../../utils/format.mjs";
 import { Select } from "../../shared/Select";
 import { StatCard } from "../../shared/StatCard";
+import { ActionButton } from "../../shared/ActionButton";
+import { useFolderActions } from "../../../hooks/useFolderActions";
+import { withOneEditor } from "../../../hooks/useProjectActions";
 import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
 
 /** What the workspace adds up to, and the two ways to narrow or act on it. */
@@ -29,6 +32,9 @@ export function WorkspaceHeader({
   onClearAll,
   sidebarCollapsed = false,
   onToggleSidebar,
+  folder,
+  onFolderResult,
+  onRescan,
 }: {
   projectCount: number;
   totalBytes: number;
@@ -65,12 +71,24 @@ export function WorkspaceHeader({
   onClearAll: () => void;
   sidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
+  /**
+   * The folder these shortcuts mean, or null when there is no single answer.
+   *
+   * With several folders chosen and none selected in the sidebar, an icon
+   * saying "open a terminal" would have to guess which one — so it is not
+   * drawn. The sidebar is where a folder stops being ambiguous, and each row
+   * there carries the same verbs on a right-click.
+   */
+  folder: string | null;
+  onFolderResult: (message: string | null) => void;
+  onRescan: () => void;
 }) {
   return (
     // `pr-2` matches the scrollbar gutter the list below reserves, so the
     // search field and the cards end on the same edge.
     <header className="shrink-0 border-b border-forest-800 pb-4 pr-2">
-      {/* Row 1: Sidebar Toggle and Workspace Title */}
+      {/* Row 1: sidebar toggle, what this screen is, and how to reach the
+          folder it is about */}
       <div className="flex items-center gap-2 mb-3">
         {/* Bare, and to the left of the count it belongs beside.
             
@@ -94,9 +112,27 @@ export function WorkspaceHeader({
         <h1 id="workspace-title" className="text-xl font-bold tracking-tight text-mist-100 sm:text-2xl">
           {projectCount} {projectCount === 1 ? "project" : "projects"}
         </h1>
+
+        {/* Above the reclaim button rather than beside it. These leave the app
+            and cost nothing; that one empties directories. Ranking them by
+            where the eye lands keeps the heavier of the two at the bottom of
+            the header, next to the number it is about. */}
+        <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
+          {/* Reading the folders again, on demand. The app already does this
+              when its window comes back and when the watcher sees the disk
+              change; this is for the times you know something happened and
+              would rather not wonder whether it was noticed. */}
+          <ActionButton
+            icon={RefreshCw}
+            label="Read the workspace again"
+            onClick={onRescan}
+            align="right"
+          />
+          <FolderShortcuts folder={folder} onResult={onFolderResult} />
+        </div>
       </div>
 
-      {/* Row 2: Metrics cards on left, Primary Reclaim CTA on right */}
+      {/* Row 2: what the workspace measures, and the one button that changes it */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 min-w-0">
           <StatCard value={formatBytes(totalBytes)} label="on disk" />
@@ -127,21 +163,18 @@ export function WorkspaceHeader({
           )}
         </div>
 
-        {/* Primary Reclaim CTA aligned to the right edge */}
         {targetCount > 0 && (
-          <div className="shrink-0 flex items-center justify-end">
-            <button
-              type="button"
-              onClick={onReclaim}
-              className="group inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-sage-400 hover:bg-sage-300 text-forest-950 px-4 text-xs font-semibold shadow-sm transition-all active:scale-[0.99] cursor-pointer"
-            >
-              <span>Reclaim disk</span>
-              <span className="grid size-4.5 place-items-center rounded bg-forest-950/20 font-mono text-[11px] font-bold text-forest-950">
-                {targetCount}
-              </span>
-              <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onReclaim}
+            className="group inline-flex min-h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sage-400 px-4 text-xs font-semibold text-forest-950 shadow-sm transition-all hover:bg-sage-300 active:scale-[0.99]"
+          >
+            <span>Reclaim disk</span>
+            <span className="grid size-4.5 place-items-center rounded bg-forest-950/20 font-mono text-[11px] font-bold text-forest-950">
+              {targetCount}
+            </span>
+            <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          </button>
         )}
       </div>
 
@@ -325,3 +358,43 @@ function HistoryLine({
   );
 }
 
+
+/**
+ * The workspace folder's own verbs, as icons.
+ *
+ * The same list the folder menu and the palette read, drawn the way the project
+ * page draws a project's. Standing in your own workspace directory — a
+ * terminal, an editor, the file manager — used to mean leaving for Finder,
+ * which is the one gesture that makes an app like this stop being where you
+ * work.
+ */
+function FolderShortcuts({
+  folder,
+  onResult,
+}: {
+  folder: string | null;
+  onResult: (message: string | null) => void;
+}) {
+  const actions = withOneEditor(useFolderActions(folder));
+  if (actions.length === 0) return null;
+
+  return (
+    <>
+      {actions.map((action) => (
+        <ActionButton
+          key={action.id}
+          icon={action.icon}
+          label={action.title}
+          detail={action.detail}
+          align="right"
+          onClick={() =>
+            void action.perform().then(
+              () => onResult(action.leaves ? null : `${action.title.toLowerCase()} — done`),
+              (error) => onResult(typeof error === "string" ? error : "That did not work"),
+            )
+          }
+        />
+      ))}
+    </>
+  );
+}

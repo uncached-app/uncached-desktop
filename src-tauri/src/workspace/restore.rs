@@ -18,10 +18,17 @@
 //! and stopping automation on every project whose lockfile is gitignored would
 //! make the verdict mean something else.
 //!
-//! The command is a sentence, not a button. Running a package manager is a
-//! different product from removing a directory — it writes to the project,
-//! fetches from the network, and can fail in ways only the person who owns the
-//! project can read.
+//! **The app never runs this itself.** `restore_project` hands it to a terminal
+//! the user already has, in a window they own — the output is theirs to read,
+//! the failure theirs to see, and the process outlives this app's own. What was
+//! wrong about a package manager running inside a disk-cleaning tool was never
+//! the reinstall; it was a long, network-bound, project-writing job with its
+//! diagnostics buried in an app that has no business showing them.
+//!
+//! **The command never travels from the interface.** It is recomputed on the
+//! native side, from this file, against the lockfiles on disk. A command
+//! parameter would turn "reinstall this project" into "run anything", which is
+//! a different feature with a different blast radius.
 
 use serde::Serialize;
 

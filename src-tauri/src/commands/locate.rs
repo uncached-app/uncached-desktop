@@ -9,6 +9,14 @@
 //! Nothing here reads, writes or removes anything. It hands a directory to
 //! another program.
 //!
+//! **Any authorized directory, despite the names.** A project was the first
+//! caller and the names kept it, but the check is `path == root ||
+//! path.starts_with(root)` — so a workspace root and a folder holding several
+//! projects pass it too, which is what the folder menu and the palette's
+//! Folders group rely on. Reaching your own workspace directory used to mean
+//! leaving for Finder, and the capability had been here the whole time with
+//! nothing calling it.
+//!
 //! Two things are still checked, because "only opens things" is not the same as
 //! "harmless". The path has to be inside a folder the user chose, so a bug in
 //! the interface cannot ask the system to open somewhere the user never
@@ -418,6 +426,183 @@ fn open_terminal_at(launcher: &Launcher, target: &Path) -> Result<(), String> {
             .spawn()
             .map(|_| ())
             .map_err(|error| error.to_string())
+    }
+}
+
+/// Puts a project back, in the user's own terminal.
+///
+/// **The command is never taken from the caller.** It is recomputed here from
+/// the lockfiles on disk, by the same `restore_for` that fills the field the
+/// project page displays. A command parameter would make this "run anything",
+/// which is a different and much larger thing than "reinstall this project".
+///
+/// The app still does not run the package manager itself: it hands the work to
+/// a terminal the user already has, in a window they own, where the output is
+/// theirs to read and a failure is theirs to see. That was always the point of
+/// the rule in `workspace::restore` — not that reinstalling should be laborious.
+///
+/// Returns the command it started, so the interface can say what is running
+/// rather than guess.
+#[tauri::command]
+pub async fn restore_project(
+    app: AppHandle,
+    path: String,
+    program: String,
+) -> Result<String, String> {
+    let target = authorize(&app, &path)?;
+    let restore = crate::commands::workspace::restore_for(&target)
+        .ok_or_else(|| "Nothing here says how to reinstall".to_string())?;
+
+    let launcher = available_launchers()
+        .await
+        .into_iter()
+        .find(|launcher| launcher.program == program && launcher.kind == LauncherKind::Terminal)
+        .ok_or_else(|| "That terminal is not installed".to_string())?;
+
+    let script = write_script(&app, &target, &restore.command)?;
+    run_in_terminal(&launcher, &target, &script, &restore.command)?;
+    Ok(restore.command)
+}
+
+/// Writes the one-shot script the terminal is asked to run.
+///
+/// A script rather than arguments because every terminal spells "and also run
+/// this" differently, and because the shell it starts has to survive the
+/// command: `exec $SHELL` at the end leaves the window open on whatever the
+/// install printed, which is the only reason a person watches an install at all.
+///
+/// One fixed name, overwritten each time. A directory that accumulates a script
+/// per restore is litter the user never asked for.
+fn write_script(app: &AppHandle, target: &Path, command: &str) -> Result<PathBuf, String> {
+    use tauri::Manager;
+
+    let directory = app
+        .path()
+        .app_cache_dir()
+        .map_err(|_| "Nowhere to write the script".to_string())?;
+    std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+
+    #[cfg(windows)]
+    {
+        let file = directory.join("uncached-restore.cmd");
+        let body = format!(
+            "@echo off\r\ncd /d \"{}\"\r\necho {}\r\n{}\r\n",
+            target.display(),
+            command,
+            command
+        );
+        std::fs::write(&file, body).map_err(|error| error.to_string())?;
+        Ok(file)
+    }
+
+    #[cfg(not(windows))]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        // `.command` because that is the extension macOS associates with "a
+        // script a terminal runs"; harmless everywhere else.
+        let file = directory.join("uncached-restore.command");
+        let body = format!(
+            "#!/bin/sh\ncd {} || exit 1\necho {}\n{}\nexec \"$SHELL\" -l\n",
+            quote(&target.to_string_lossy()),
+            quote(command),
+            command
+        );
+        std::fs::write(&file, body).map_err(|error| error.to_string())?;
+        std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o755))
+            .map_err(|error| error.to_string())?;
+        Ok(file)
+    }
+}
+
+/// A string the shell will read as one word, whatever is in it.
+#[cfg(not(windows))]
+fn quote(text: &str) -> String {
+    format!("'{}'", text.replace('\'', r"'\''"))
+}
+
+/// Starts the terminal on that script.
+///
+/// **Verified on macOS only**, like the rest of this file — the flags below are
+/// each terminal's documented one, and this machine cannot run the other two
+/// platforms to check them. A terminal with no known way of being handed a
+/// command still opens, in the right directory, doing nothing: the interface
+/// leaves the command on the clipboard for exactly that case, so the worst
+/// outcome is one paste rather than a dead button.
+fn run_in_terminal(
+    launcher: &Launcher,
+    target: &Path,
+    script: &Path,
+    command: &str,
+) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        // The script already carries both; `open` takes neither.
+        let _ = (command, target);
+        // `open -a <app> <file>` hands the script to the terminal, which runs
+        // it. No Automation permission is involved, unlike the AppleScript
+        // route — a prompt the user can refuse is a restore that silently
+        // stops working.
+        tauri_plugin_opener::open_path(
+            script.to_string_lossy().to_string(),
+            Some(launcher.program.clone()),
+        )
+        .map_err(|_| "That terminal would not run the command".to_string())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let directory = target.to_string_lossy();
+        let arguments: Vec<String> = terminal_run_arguments(&launcher.id)
+            .iter()
+            .map(|argument| {
+                argument
+                    .replace("{dir}", &directory)
+                    .replace("{script}", &script.to_string_lossy())
+                    .replace("{cmd}", command)
+            })
+            .collect();
+
+        if arguments.is_empty() {
+            // Nothing known about how to hand this one a command, so it gets
+            // what it always got: a terminal, in the right place.
+            return open_terminal_at(launcher, target);
+        }
+
+        std::process::Command::new(&launcher.program)
+            .args(&arguments)
+            .spawn()
+            .map(|_| ())
+            .map_err(|error| error.to_string())
+    }
+}
+
+/// How each terminal is told to run something. `{script}` is the file written
+/// above, `{cmd}` the command itself for the shells that take no script.
+///
+/// Empty means this code knows no such option for that terminal, and the caller
+/// falls back to opening it in the directory.
+#[cfg(not(target_os = "macos"))]
+fn terminal_run_arguments(id: &str) -> &'static [&'static str] {
+    match id {
+        "wt" => &["-d", "{dir}", "cmd.exe", "/K", "{script}"],
+        "cmd" => &["/K", "{script}"],
+        "powershell" | "pwsh" => &[
+            "-NoExit",
+            "-Command",
+            "Set-Location -LiteralPath '{dir}'; {cmd}",
+        ],
+        "konsole" => &["--workdir", "{dir}", "-e", "{script}"],
+        "kitty" => &["--directory", "{dir}", "{script}"],
+        "alacritty" => &["--working-directory", "{dir}", "-e", "{script}"],
+        "wezterm" => &["start", "--cwd", "{dir}", "{script}"],
+        "gnome" | "ptyxis" => &["--working-directory={dir}", "--", "{script}"],
+        "tilix" | "terminator" | "xfce4" | "ghostty" => {
+            &["--working-directory={dir}", "-e", "{script}"]
+        }
+        "foot" => &["--working-directory={dir}", "{script}"],
+        "x-terminal" | "xterm" => &["-e", "{script}"],
+        _ => &[],
     }
 }
 

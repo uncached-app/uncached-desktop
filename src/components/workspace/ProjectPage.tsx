@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import { ArtifactList } from "./project/ArtifactList";
@@ -11,6 +10,7 @@ import { ProjectActions } from "./project/ProjectActions";
 import { ProjectHeader } from "./project/ProjectHeader";
 import { VerdictPanel } from "./project/VerdictPanel";
 import { useProjectHygiene } from "../../hooks/useProjectHygiene";
+import { useFlash } from "../../hooks/useFlash";
 import type { ScanTarget } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import type { DuplicatePackage } from "../../types/duplicates";
@@ -61,18 +61,11 @@ export function ProjectPage({
   packages,
   analysing,
 }: ProjectPageProps) {
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, handleResult] = useFlash();
   const reducedMotion = useReducedMotion();
   // Four Git processes per project, so it is read here — where the user is
   // looking at one repository — rather than during an index of up to 250.
   const hygiene = useProjectHygiene(project.git.branch ? project.path : null);
-
-  function handleResult(message: string | null) {
-    setFlash(message);
-    if (message) {
-      setTimeout(() => setFlash((current) => (current === message ? null : current)), 3500);
-    }
-  }
 
   return (
     <section aria-label={project.name} className="flex h-full w-full flex-1 flex-col overflow-hidden">
@@ -100,7 +93,12 @@ export function ProjectPage({
 
         {/* Clean, un-nested modular panels */}
         <div className="mt-4 grid gap-4">
-          <VerdictPanel project={project} verdict={verdict} footprint={footprint} />
+          <VerdictPanel
+            project={project}
+            verdict={verdict}
+            footprint={footprint}
+            onResult={handleResult}
+          />
 
           {/* Above Git and Activity: "why is this so big" is the question the
               page is opened with, and the answer was computed all along. */}

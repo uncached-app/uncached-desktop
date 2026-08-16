@@ -36,6 +36,8 @@ type WorkspaceSidebarProps = {
   onAddRoot: () => void;
   onRemoveRoot: (root: string) => void;
   onRemoveAllRoots: () => void;
+  /** A folder's own verbs, at the pointer. */
+  onFolderMenu: (path: string, name: string, event: React.MouseEvent) => void;
 };
 
 /**
@@ -62,6 +64,7 @@ export function WorkspaceSidebar({
   onAddRoot,
   onRemoveRoot,
   onRemoveAllRoots,
+  onFolderMenu,
 }: WorkspaceSidebarProps) {
   const singleRoot = chosenRoots.length === 1;
 
@@ -106,6 +109,7 @@ export function WorkspaceSidebar({
                 if (activeRoot === root) onActiveRoot(null);
                 onRemoveRoot(root);
               }}
+              onFolderMenu={(event) => onFolderMenu(root, rootName(root), event)}
             />
           ))}
 
@@ -242,6 +246,7 @@ function RootItem({
   indexed = true,
   onSelect,
   onRemove,
+  onFolderMenu,
   removeLabel,
 }: {
   active: boolean;
@@ -252,10 +257,13 @@ function RootItem({
   indexed?: boolean;
   onSelect: () => void;
   onRemove?: () => void;
+  /** A real directory's own verbs. Absent on "All projects", which is not one. */
+  onFolderMenu?: (event: React.MouseEvent) => void;
   removeLabel?: string;
 }) {
   return (
     <div
+      onContextMenu={onFolderMenu}
       className={`group/root flex w-full min-w-0 items-center gap-1 rounded-xl pr-1 transition-all ${
         active
           ? "bg-forest-800 text-mist-100 font-semibold shadow-xs"

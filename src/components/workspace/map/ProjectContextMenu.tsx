@@ -1,8 +1,7 @@
 import { PanelRight } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MenuRow } from "../../shared/MenuRow";
+import { ContextMenu } from "../../shared/ContextMenu";
 import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
-import { placeMenu } from "../../../utils/menuPlacement.mjs";
 import type { WorkspaceProject } from "../../../types/workspace";
 
 /** Where the pointer was, in viewport coordinates. */
@@ -38,65 +37,9 @@ export function ProjectContextMenu({
   // One editor, and no more. Choosing between them is what the palette is
   // for; here it would be a run of identical pencils.
   const actions = withOneEditor(useProjectActions(anchor.project));
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [box, setBox] = useState(() => measure(anchor, 0, 0));
-
-  // Placed from its measured size, and placed again whenever that size
-  // changes. The size changes on its own: the editor row appears once the
-  // machine has been asked what it has installed, so a menu that fit when it
-  // was drawn grows a row afterwards, downward, off the bottom of the window.
-  useLayoutEffect(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    const place = () => {
-      const { width, height } = menu.getBoundingClientRect();
-      setBox(measure(anchor, width, height));
-    };
-    place();
-    const observer = new ResizeObserver(place);
-    observer.observe(menu);
-    return () => observer.disconnect();
-  }, [anchor]);
-
-  useEffect(() => {
-    function dismiss(event: MouseEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) onClose();
-    }
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    // Any scroll moves the row this was anchored to, so the menu stops
-    // describing anything — except the menu's own, which happens when it is
-    // taller than the window and is the reader moving through it.
-    function onScroll(event: Event) {
-      if (!menuRef.current?.contains(event.target as Node)) onClose();
-    }
-    // `capture` so a click that also lands on a row closes this first rather
-    // than opening that project underneath the menu.
-    window.addEventListener("mousedown", dismiss, true);
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onClose);
-    return () => {
-      window.removeEventListener("mousedown", dismiss, true);
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onClose);
-    };
-  }, [onClose]);
 
   return (
-    <div
-      ref={menuRef}
-      role="menu"
-      aria-label={`${anchor.project.name} actions`}
-      style={{ left: box.left, top: box.top, maxHeight: box.maxHeight }}
-      /* The palette's tokens, at a menu's size. Sized to its content rather
-         than to a minimum: the width was being set by a right-hand column
-         carrying absolute paths, which is a detail you cannot need about the
-         row you just right-clicked. */
-      className="fixed z-50 max-w-xs overflow-y-auto overscroll-contain rounded-2xl border border-forest-800 bg-forest-900 py-1.5 shadow-2xl"
-    >
+    <ContextMenu at={anchor} label={`${anchor.project.name} actions`} onClose={onClose}>
       <MenuRow
         icon={PanelRight}
         title="Open project page"
@@ -120,17 +63,6 @@ export function ProjectContextMenu({
           }}
         />
       ))}
-    </div>
+    </ContextMenu>
   );
-}
-
-function measure(anchor: MenuAnchor, width: number, height: number) {
-  return placeMenu({
-    x: anchor.x,
-    y: anchor.y,
-    width,
-    height,
-    viewportWidth: window.innerWidth,
-    viewportHeight: window.innerHeight,
-  });
 }

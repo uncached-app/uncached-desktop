@@ -1,8 +1,12 @@
 import { Compass, FolderOpen, FolderPlus, PanelsTopLeft, RefreshCw, Settings, type LucideIcon } from "lucide-react";
 import { useMemo } from "react";
 import { usePurgeFlow } from "../../../hooks/usePurgeFlow";
-import { useProjectActions } from "../../../hooks/useProjectActions";
+import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
+import { folderActions } from "../../../hooks/useFolderActions";
+import { useLaunchers } from "../../../hooks/useLaunchers";
+import { useSettings } from "../../../hooks/useSettings";
 import { formatBytes } from "../../../utils/format.mjs";
+import { folderName } from "../../../utils/folderName";
 import type { PaletteItem } from "../../../utils/palette.d.mts";
 import type { AppModule } from "../../../types/module";
 import type { WorkspaceProject } from "../../../types/workspace";
@@ -41,6 +45,9 @@ export function usePaletteCommands({
   const flow = usePurgeFlow();
   const actions = useProjectActions(scope);
   const projects = flow.index.index?.projects ?? [];
+  const launchers = useLaunchers();
+  const { settings } = useSettings();
+  const roots = flow.extraRoots;
 
   const projectCommands = useMemo<PaletteCommand[]>(() => {
     if (!scope) return [];
@@ -109,6 +116,32 @@ export function usePaletteCommands({
       run: () => onScope(project),
     }));
 
+    // The chosen folders themselves, with the verbs a project already had.
+    // Without these the only way to stand in your own workspace directory was
+    // to leave for Finder, which is the gesture this app exists to replace.
+    for (const root of roots) {
+      const name = folderName(root);
+      for (const action of withOneEditor(
+        folderActions(
+          launchers ?? [],
+          root,
+          settings?.preferredEditor ?? null,
+          settings?.preferredTerminal ?? null,
+        ),
+      )) {
+        items.push({
+          id: `folder:${root}:${action.id}`,
+          group: "folders",
+          title: `${action.title} — ${name}`,
+          subtitle: root,
+          keywords: [...action.keywords, name, "workspace", "root"],
+          icon: action.icon,
+          closes: action.leaves,
+          run: action.perform,
+        });
+      }
+    }
+
     items.push(
       {
         id: "go-workspace",
@@ -168,7 +201,7 @@ export function usePaletteCommands({
 
     return items;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, flow.footprints, flow.verdicts]);
+  }, [projects, flow.footprints, flow.verdicts, roots, launchers, settings]);
 
   return { projectCommands, rootCommands };
 }

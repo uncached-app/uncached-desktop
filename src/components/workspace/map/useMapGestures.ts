@@ -169,6 +169,23 @@ export function useMapGestures(
     overflows: drawn.width > box.width + 1 || drawn.height > box.height + 1,
     /** The whole drawing, which is not the same as an untouched view. */
     fit: () => setView(fitTo(drawn, box)),
+    /**
+     * Puts a point of the drawing in the middle of the frame.
+     *
+     * `atLeast` is a floor on the zoom, not a setting of it: somebody asking to
+     * be shown one project from another screen wants to see it, and centring
+     * without it leaves the answer as an unreadable speck if they had zoomed
+     * out. A view already closer than that is left where it is.
+     */
+    centreOn: (x: number, y: number, atLeast = 1) =>
+      setView((current) => {
+        const scale = Math.max(current.scale, atLeast);
+        return clampView(
+          { x: box.width / 2 - x * scale, y: box.height / 2 - y * scale, scale },
+          box,
+          drawn,
+        );
+      }),
     reset: () => setView(RESET),
     /** True when the press that just ended was a drag, so it opened nothing.
         Stable, because the memoised drawing takes it as a prop. */

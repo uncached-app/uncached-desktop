@@ -1,7 +1,13 @@
 import { Maximize2, Minus, Plus } from "lucide-react";
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMapGestures } from "./useMapGestures";
-import { nodeRadius, type GraphEdge, type GraphNode, type WorkspaceGraph } from "../../../utils/graph.mjs";
+import {
+  nodeRadius,
+  type GraphEdge,
+  type GraphLabel,
+  type GraphNode,
+  type WorkspaceGraph,
+} from "../../../utils/graph.mjs";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
 import type { View } from "../../../utils/viewport.mjs";
@@ -31,6 +37,16 @@ type WorkspaceCanvasProps = {
   viewState: [View, (next: View | ((current: View) => View)) => void];
   onOpenProject: (path: string) => void;
   onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
+  onFolderMenu: (label: GraphLabel, event: React.MouseEvent) => void;
+  /**
+   * A project somebody asked to be shown, from somewhere that is not this map.
+   *
+   * The request used to reach the list alone. In map view the list is in the
+   * document and hidden, so scrolling it did nothing and the highlight was
+   * painted where nobody could see it — pressing the button had no effect at
+   * all, on the one reading whose name the button carried.
+   */
+  focusPath: string | null;
 };
 
 type NodeStyle = {
@@ -126,6 +142,8 @@ export function WorkspaceCanvas({
   viewState,
   onOpenProject,
   onContextMenu,
+  onFolderMenu,
+  focusPath,
 }: WorkspaceCanvasProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -146,6 +164,19 @@ export function WorkspaceCanvas({
   );
 
   const map = useMapGestures(graph.width * SIDE, SIDE, scaled(graph.extent), viewState);
+  const focused = focusPath ? (graph.nodes.find((node) => node.path === focusPath) ?? null) : null;
+
+  // While the request is live, and on where the node actually is. Showing a
+  // project first clears the filters, which redraws the map underneath — a
+  // centring that ran once, on the request, would aim at the position the node
+  // held before it moved. It stops as soon as the request does, so panning
+  // away from what you asked to see is never fought.
+  const centre = map.centreOn;
+  useEffect(() => {
+    if (!focused) return;
+    centre(focused.x * SIDE, focused.y * SIDE, 1.2);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusPath, focused?.x, focused?.y]);
   const active = hovered ? byId.get(hovered) : null;
   // A folder is not a node, so it is not in `byId`. Its badge is hoverable
   // because a directory holding four projects has a weight of its own, and
@@ -280,9 +311,25 @@ export function WorkspaceCanvas({
               onLeave={onLeave}
               onOpenProject={onOpenProject}
               onContextMenu={onContextMenu}
+              onFolderMenu={onFolderMenu}
               wasDragged={map.wasDragged}
             />
           </g>
+
+          {/* The answer to "show me this one", drawn outside the dimming so it
+              survives a pointer landing anywhere else. A ring rather than a
+              recolour: the node's colour is its verdict, and overwriting that
+              to say "here" would trade a fact for a gesture. */}
+          {focused && (
+            <circle
+              cx={focused.x * SIDE}
+              cy={focused.y * SIDE}
+              r={radiusOf(focused, heaviest, graph.maxRadius) + graph.maxRadius * SIDE * 0.6}
+              className="fill-none stroke-sage-400"
+              strokeWidth={2}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
 
           {hovered && (
             <MapHighlight
@@ -611,6 +658,7 @@ type BodyProps = {
   onLeave: (id: string) => void;
   onOpenProject: (path: string) => void;
   onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
+  onFolderMenu: (label: GraphLabel, event: React.MouseEvent) => void;
   wasDragged: () => boolean;
 };
 
@@ -633,6 +681,7 @@ const MapBody = memo(function MapBody({
   onLeave,
   onOpenProject,
   onContextMenu,
+  onFolderMenu,
   wasDragged,
 }: BodyProps) {
   const byId = new Map(graph.nodes.map((node) => [node.id, node]));
@@ -692,6 +741,7 @@ const MapBody = memo(function MapBody({
             key={label.id}
             onMouseEnter={() => onEnter(label.id)}
             onMouseLeave={() => onLeave(label.id)}
+            onContextMenu={(event) => onFolderMenu(label, event)}
             className="cursor-default"
           >
             {/* The hole, as a target. A reader aims at the folder, and a line
