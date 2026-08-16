@@ -132,6 +132,29 @@ git push origin master --tags
 The tag is the trigger. `workflow_dispatch` builds and signs without publishing,
 which is how a release is rehearsed.
 
+## The Windows installer's own artwork
+
+NSIS draws a wizard, and without images of ours it draws its own — a generic
+one, as the first thing anybody sees of this app on Windows. It takes exactly
+two, at sizes it will stretch anything else into:
+
+| | size | where |
+| --- | --- | --- |
+| `installer-sidebar.bmp` | 164 x 314 | down the left of the welcome and finish pages |
+| `installer-header.bmp` | 150 x 57 | the strip at the top of every page between them |
+
+Both are generated from the app icon by `scripts/build-installer-art.mjs`, so
+changing the icon changes the installer rather than leaving two files nobody
+remembers exist. BMP because NSIS takes nothing else — no PNG, no alpha — which
+is why each is composited onto a solid background rather than left transparent.
+The sidebar is the app's dark surface; the header is white, because it sits
+beside the page title on a white page and a dark strip there reads as a
+rendering fault rather than as branding.
+
+`installMode` is `currentUser`: this app writes to a workspace the user already
+owns and never needs administrator rights, so asking for them at install time
+would be asking for something it does not use.
+
 ## Windows ships NSIS and not MSI
 
 `bundle.targets` names them one by one rather than saying `all`, and MSI is the
