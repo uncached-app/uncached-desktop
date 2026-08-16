@@ -63,8 +63,15 @@ def mark_placement(fill=MARK_FILL):
         (CANVAS - height * scale) / 2 - min(ys) * scale,
     )
 
-PLATE_RGB = (255, 255, 255)
-MARK_RGB = (0x56, 0x7A, 0x3D)
+# Plate coloured, mark light — which is what every icon beside it in the Dock
+# does, and what the previous arrangement did not.
+#
+# It was a white plate with a green mark. On macOS 26 that was the only icon on
+# the row with a white plate, and it was the only one showing the system's
+# material treatment as a visible gradient: on blue, red or green the sheen has
+# somewhere to disappear into, and on white it does not.
+PLATE_RGB = (0x56, 0x7A, 0x3D)
+MARK_RGB = (255, 255, 255)
 
 SAMPLES = 4  # per axis
 
