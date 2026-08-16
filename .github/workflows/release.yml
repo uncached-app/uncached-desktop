@@ -200,7 +200,18 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then
-            echo "::notice::No Apple certificate configured. The bundle will install behind an unidentified-developer warning."
+            # Ad-hoc rather than nothing. An unsigned bundle on Apple Silicon is
+            # not merely untrusted — Gatekeeper reports it as *damaged*, and the
+            # only way past that is a terminal command, which is not something
+            # to ask of somebody who has just downloaded an app. An ad-hoc
+            # signature is still untrusted and still needs right-click → Open,
+            # but it says "unidentified developer", which is true and which the
+            # dialog itself offers a way through.
+            #
+            # It cannot be notarised, so this is the floor until the
+            # certificates exist, not a substitute for them.
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+            echo "::notice::No Apple certificate. Signing ad-hoc: installs behind an unidentified-developer warning, not a damaged-app error."
             exit 0
           fi
           for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do

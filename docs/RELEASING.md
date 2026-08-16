@@ -13,9 +13,19 @@ it, compares versions, verifies a signature, and asks. Nothing else is involved
 | **Apple / Windows certificate** | The app is not malware | The operating system | It installs, behind a warning |
 
 They fail differently and are configured separately. **The updater works today;
-the certificates are still outstanding**, so a first install shows "unidentified
-developer" on macOS and "Unknown publisher" on Windows. That is a purchase
-experience problem, not an update problem.
+the certificates are still outstanding.**
+
+Until they exist, macOS bundles are signed **ad-hoc** — `APPLE_SIGNING_IDENTITY=-`.
+That is not cosmetic. An unsigned bundle on Apple Silicon is not merely
+untrusted: Gatekeeper calls it *damaged* and offers no way through, and the only
+escape is `xattr -cr /Applications/Uncached.app` in a terminal — which is not
+something to ask of somebody who just downloaded an app. Ad-hoc makes it say
+"unidentified developer" instead, which is true, and which the dialog itself
+offers a way past (right-click → Open).
+
+An ad-hoc signature cannot be notarised, so this is the floor rather than a
+substitute. Windows still shows "Unknown publisher"; there is no equivalent
+half-measure there.
 
 ### The updater key cannot be rotated
 
