@@ -24,7 +24,16 @@ const TOLD = "uncached:update-announced";
  * Still not a modal, and still nothing automatic: it does not cover the app,
  * does not take focus, and downloads nothing until asked.
  */
-export function UpdateToast({ update, busy }: { update: UpdateState; busy: boolean }) {
+export function UpdateToast({
+  update,
+  busy,
+  onOpenUpdate,
+}: {
+  update: UpdateState;
+  busy: boolean;
+  /** Opens the dialog, which is where the notes are read and the download starts. */
+  onOpenUpdate: () => void;
+}) {
   const reducedMotion = useReducedMotion();
   const [dismissed, setDismissed] = useState(false);
   // What had been announced when this window opened, and only that. Read into a
@@ -80,11 +89,11 @@ export function UpdateToast({ update, busy }: { update: UpdateState; busy: boole
                 type="button"
                 onClick={() => {
                   setDismissed(true);
-                  void update.install();
+                  onOpenUpdate();
                 }}
                 className="cursor-pointer rounded-lg bg-sage-400 px-2.5 py-1 text-[11px] font-semibold text-forest-950 transition-colors hover:bg-sage-300"
               >
-                Update now
+                What's new
               </button>
               <button
                 type="button"

@@ -10,6 +10,7 @@ import { SettingsPanel } from "../components/settings/SettingsPanel";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useUpdate } from "../hooks/useUpdate";
 import { UpdateToast } from "../components/layout/UpdateToast";
+import { UpdateDialog } from "../components/layout/UpdateDialog";
 import { useNativeMenu } from "../hooks/useNativeMenu";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { useWindowFill } from "../hooks/useWindowFill";
@@ -52,6 +53,9 @@ export function AppLayout({
   const update = useUpdate({ busy });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteProject, setPaletteProject] = useState<WorkspaceProject | null>(null);
+  // Every route to an update ends here — the badge, the toast, and About — so
+  // there is one layout for reading release notes instead of three.
+  const [updateOpen, setUpdateOpen] = useState(false);
   useSplashScreen(!settings.loading && listenersReady);
   useWindowFill();
   // Stable, because it is handed to every screen through a context.
@@ -87,7 +91,7 @@ export function AppLayout({
     // `h-full`, not `h-screen`: the viewport is the whole window and the app
     // only occupies what is left inside the shadow gutter.
     <main className="relative flex h-full flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
-      <Titlebar step={step} view={view} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} update={update} />
+      <Titlebar step={step} view={view} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} update={update} onOpenUpdate={() => setUpdateOpen(true)} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* A column, until the window is filled.
             
@@ -111,9 +115,10 @@ export function AppLayout({
           onOpenSettings={isMac ? undefined : () => onSettingsOpenChange(true)}
         />
       </div>
-      <UpdateToast update={update} busy={busy} />
+      <UpdateToast update={update} busy={busy} onOpenUpdate={() => setUpdateOpen(true)} />
+      <UpdateDialog update={update} open={updateOpen} onClose={() => setUpdateOpen(false)} />
 
-      <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} proEnabled={proEnabled} update={update} {...settings} />
+      <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} proEnabled={proEnabled} update={update} onOpenUpdate={() => setUpdateOpen(true)} {...settings} />
       <CommandPalette
         open={paletteOpen}
         project={paletteProject}

@@ -24,6 +24,8 @@ type SettingsPanelProps = {
   proEnabled?: boolean;
   /** Shared with the titlebar badge, so one check answers both. */
   update: UpdateState;
+  /** Opens the update dialog, which owns the notes, the progress and the restart. */
+  onOpenUpdate: () => void;
 };
 
 const sections = [
@@ -50,6 +52,7 @@ export function SettingsPanel({
   onLicenseChange = () => { },
   proEnabled = false,
   update,
+  onOpenUpdate,
 }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(
@@ -146,7 +149,7 @@ export function SettingsPanel({
             {section === "Licence" ? (
               <LicenseSection onActivated={onLicenseChange} proEnabled={proEnabled} />
             ) : section === "About" ? (
-              <AboutContent appInfo={appInfo} update={update} />
+              <AboutContent appInfo={appInfo} update={update} onOpenUpdate={onOpenUpdate} />
             ) : loading || !settings ? (
               <div className="grid h-full place-items-center text-xs text-mist-500">
                 Loading settings...
@@ -442,9 +445,11 @@ function AppearanceContent({
 function AboutContent({
   appInfo,
   update,
+  onOpenUpdate,
 }: {
   appInfo: { name: string; version: string; website: string } | null;
   update: UpdateState;
+  onOpenUpdate: () => void;
 }) {
   const websiteUrl = appInfo?.website ?? "https://uncached.app";
   const eulaUrl = "https://uncached.app/eula";
@@ -457,7 +462,7 @@ function AboutContent({
       <p className="mt-2 text-sm text-mist-500">Reclaim disk from build artifacts.</p>
       <p className="mt-6 font-mono text-xs text-mist-500">Version {appInfo?.version ?? "..."}</p>
 
-      <UpdateStatus update={update} />
+      <UpdateStatus update={update} onOpenUpdate={onOpenUpdate} />
       <div className="mt-5 flex flex-col items-center gap-2">
         <a
           href={websiteUrl}
@@ -800,13 +805,19 @@ function SettingRadio({
 /**
  * Where somebody who went looking finds out about updates.
  *
- * The badge in the titlebar is the offer; this is the account. It is the only
- * place a failed check is reported, because a CDN that could not be reached is
- * ordinary and a permanent warning for it would be the app asking to be worried
- * about — but silence everywhere would leave "why has it not updated" with no
- * answer at all.
+ * Asking is what happens here; reading and accepting happen in the dialog.
+ * This pane is a centred column beside a logo and two links, and release notes
+ * are prose — they were being wrapped into a ribbon at `max-w-xs`, with the
+ * download progress reported in the same thread. What is left is the state in
+ * one line and the button that leads to the rest.
+ *
+ * It stays the only place a failed check is reported. A CDN that could not be
+ * reached is ordinary, and a permanent warning for it would be the app asking
+ * to be worried about — but silence everywhere would leave "why has it not
+ * updated" with no answer at all.
  */
-function UpdateStatus({ update }: { update: UpdateState }) {
+function UpdateStatus({ update, onOpenUpdate }: { update: UpdateState; onOpenUpdate: () => void }) {
+  const offered = update.stage === "available" || update.stage === "ready";
   const busy = update.stage === "checking" || update.stage === "downloading";
 
   return (
@@ -829,30 +840,18 @@ function UpdateStatus({ update }: { update: UpdateState }) {
         <p className="max-w-xs text-xs leading-5 text-mist-500">{update.problem}</p>
       )}
 
-      {/* The notes, when the release wrote any. Nobody is asked to accept an
-          update without being able to read what is in it. */}
-      {update.notes && (update.stage === "available" || update.stage === "ready") && (
-        <p className="max-w-xs whitespace-pre-line text-left text-[11px] leading-5 text-mist-500">
-          {update.notes}
-        </p>
-      )}
-
       <button
         type="button"
-        onClick={() =>
-          void (update.stage === "available" || update.stage === "ready"
-            ? update.install()
-            : update.check(true))
-        }
-        disabled={busy}
+        onClick={() => (offered || busy ? onOpenUpdate() : void update.check(true))}
+        disabled={update.stage === "checking"}
         className="cursor-pointer rounded-lg border border-forest-800 px-2.5 py-1 text-xs font-medium text-mist-300 transition-colors hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:cursor-default disabled:opacity-50"
       >
         {update.stage === "checking"
           ? "Checking…"
           : update.stage === "downloading"
-            ? "Downloading…"
+            ? "Show progress"
             : update.stage === "available"
-              ? "Download and install"
+              ? "See what's new"
               : update.stage === "ready"
                 ? "Restart now"
                 : "Check for updates"}

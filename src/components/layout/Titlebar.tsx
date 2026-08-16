@@ -16,6 +16,7 @@ export function Titlebar({
   activeModule,
   onOpenSettings,
   update,
+  onOpenUpdate,
 }: {
   step: Step;
   view: ResultsView;
@@ -23,6 +24,8 @@ export function Titlebar({
   onOpenSettings: () => void;
   /** The one bar both platforms always draw, so the offer lives here. */
   update: UpdateState;
+  /** Opens the update dialog, which is where the offer is read and taken. */
+  onOpenUpdate: () => void;
 }) {
   const [maximized, setMaximized] = useState(false);
   const [focused, setFocused] = useState(true);
@@ -92,7 +95,7 @@ export function Titlebar({
         })}
       </nav> : <span className={`pointer-events-none text-xs font-medium text-mist-500 ${isMac ? "absolute left-1/2 -translate-x-1/2" : "order-1"}`}>{title}</span>}
       <div className={`flex items-center gap-1.5 ${isMac ? "order-4 ml-auto" : "order-2"}`} data-tauri-drag-region="false">
-        <UpdateBadge update={update} />
+        <UpdateBadge update={update} onOpen={onOpenUpdate} />
         {isMac && <button type="button" onClick={onOpenSettings} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label="Open settings"><Settings size={16} /></button>}
         {!isMac && <WindowControls isMac={isMac} focused={focused} maximized={maximized} minimize={minimize} toggleMaximize={toggleMaximize} close={close} />}
       </div>

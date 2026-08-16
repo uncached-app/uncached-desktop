@@ -12,8 +12,12 @@ import type { UpdateState } from "../../hooks/useUpdate";
  * having a bad day is not news, and a permanent warning badge for it would be
  * the app asking to be worried about. Settings is where somebody who went
  * looking finds out why.
+ *
+ * It opens the dialog rather than starting the download itself. Pressing a
+ * word this small should not commit anyone to replacing their application
+ * before they have seen what is in the release.
  */
-export function UpdateBadge({ update }: { update: UpdateState }) {
+export function UpdateBadge({ update, onOpen }: { update: UpdateState; onOpen: () => void }) {
   if (update.stage === "idle" || update.stage === "checking" || update.stage === "failed") {
     return null;
   }
@@ -25,8 +29,7 @@ export function UpdateBadge({ update }: { update: UpdateState }) {
   return (
     <button
       type="button"
-      onClick={() => void update.install()}
-      disabled={downloading}
+      onClick={onOpen}
       title={
         ready
           ? `Uncached ${update.version} is installed — restart to use it`
@@ -34,10 +37,10 @@ export function UpdateBadge({ update }: { update: UpdateState }) {
             ? `Downloading Uncached ${update.version}`
             : `Uncached ${update.version} is available`
       }
-      className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium transition-colors ${
-        downloading
-          ? "cursor-default bg-forest-800 text-mist-500"
-          : "cursor-pointer bg-forest-800 text-sage-300 hover:bg-forest-850"
+      // Clickable while downloading too: that is when somebody most wants to
+      // see how far along it is, and the dialog is where the progress is.
+      className={`inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md bg-forest-800 px-2 text-[11px] font-medium transition-colors hover:bg-forest-850 ${
+        downloading ? "text-mist-500" : "text-sage-300"
       }`}
     >
       {downloading ? (
