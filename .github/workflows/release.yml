@@ -155,10 +155,14 @@ jobs:
         with:
           targets: ${{ matrix.rust }}
 
+      # The repo root is the Cargo workspace (`members = ["src-tauri"]`), so
+      # `target/` is there and not under src-tauri. Pointed at the wrong place
+      # this caches nothing and every build is a cold one, which on a macOS
+      # runner is billed at ten times the minutes.
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: uncached-desktop/src-tauri
+          workspaces: uncached-desktop
 
       # Forwarded only when they exist, and that is the whole point of the
       # step. A secret that is not set does not disappear from a workflow — it
@@ -194,6 +198,7 @@ jobs:
           echo "::notice::Apple signing is configured; the bundle will be signed and notarised."
 
       - name: Build and sign
+        id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           UNCACHED_LICENSE_PUBLIC_KEY: ${{ secrets.UNCACHED_LICENSE_PUBLIC_KEY }}
@@ -204,23 +209,43 @@ jobs:
           args: --target ${{ matrix.rust }}
           includeUpdaterJson: false
 
+      # Taken from the bundler rather than guessed at. The first attempt walked
+      # a path this workflow had reasoned out — and reasoned wrong, because the
+      # Cargo workspace root is the repository and `target/` is not under
+      # src-tauri. `artifactPaths` is the bundler saying what it produced,
+      # which cannot drift from what it produced.
       - name: Collect what will be published
         shell: bash
+        env:
+          ARTIFACTS: ${{ steps.tauri.outputs.artifactPaths }}
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/release/${{ matrix.target }}"
-          cd src-tauri/target/${{ matrix.rust }}/release/bundle
-          # The updater artifact and its detached signature, plus the installer
-          # a first-time visitor downloads. Everything else the bundler emits
-          # is intermediate.
-          find . -type f \
-            \( -name '*.tar.gz' -o -name '*.tar.gz.sig' \
-            -o -name '*.zip' -o -name '*.zip.sig' \
-            -o -name '*.dmg' -o -name '*.AppImage' \
-            -o -name '*.deb' -o -name '*.msi' -o -name '*.exe' \
-            -o -name '*.msi.zip' -o -name '*.msi.zip.sig' \
-            -o -name '*.nsis.zip' -o -name '*.nsis.zip.sig' \) \
-            -exec cp {} "$GITHUB_WORKSPACE/release/${{ matrix.target }}/" \;
-          ls -la "$GITHUB_WORKSPACE/release/${{ matrix.target }}"
+          set -euo pipefail
+          destination="$GITHUB_WORKSPACE/release/${{ matrix.target }}"
+          mkdir -p "$destination"
+
+          if [ -z "${ARTIFACTS:-}" ]; then
+            echo "tauri-action reported no artifacts at all." >&2
+            exit 1
+          fi
+
+          # `Uncached.app` is among them and is a directory: the thing that
+          # updates is its tarball, and the thing a visitor downloads is the
+          # dmg. Only files are carried.
+          printf '%s' "$ARTIFACTS" | jq -r '.[]' | while read -r path; do
+            [ -f "$path" ] || continue
+            cp "$path" "$destination/"
+          done
+
+          ls -la "$destination"
+
+          # An updater bundle with no detached signature is a bundle no client
+          # will install. It is not an error the bundler raises — the build
+          # succeeds and the `.sig` simply is not there — so it is caught here,
+          # rather than by every user at once after a release.
+          if ! ls "$destination"/*.sig >/dev/null 2>&1; then
+            echo "No .sig beside any bundle: the updater signing key did not reach this build." >&2
+            exit 1
+          fi
 
       - name: Upload for the publish job
         uses: actions/upload-artifact@v4
