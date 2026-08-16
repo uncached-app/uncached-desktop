@@ -41,3 +41,12 @@ docs/superpowers/
 
 
 .DS_Store
+
+# macOS writes a metadata file literally called `Icon\r`, and the usual global
+# rule for it is `Icon?`. On a case-insensitive filesystem that also matches the
+# directory `icons`, so every app icon in this repository is ignored by default
+# and a new one is silently never committed — which is only discovered by a
+# release failing on a file it was told to bundle.
+#
+# The 54 icons already here were added before that rule existed on this machine.
+!/src-tauri/icons/
