@@ -35,8 +35,33 @@ MARK = (
     "523 522.645 523 546.031C523 569.417 504.042 588.375 480.656 588.375H78.45C35.123 588.375 0 553.252 "
     "0 509.925V78.45C0 35.123 35.123 0 78.45 0H444.55C487.877 0 523 35.123 523 78.45V175.238Z"
 )
-MARK_SCALE = 0.803015
-MARK_OFFSET = (302.012, 275.512)
+# How much of the plate the mark covers, on its taller axis.
+#
+# One number rather than a scale and an offset tuned by hand, because those two
+# have to agree — a scale changed without recomputing the offset moves the mark
+# off centre, which is a worse fault than the one being fixed and is invisible
+# until somebody looks at a Dock.
+#
+# It was 0.57 — 51% of the plate across, 57% down — which is small beside
+# Apple's own icons, and on macOS 26 the empty white around it is exactly where
+# the system's material treatment shows. 0.68 leaves the plate and the grid
+# untouched and gives that white back to the mark.
+MARK_FILL = 0.68
+
+def mark_placement(fill=MARK_FILL):
+    """Scale and offset that put the mark at `fill` of the plate, centred."""
+    xs, ys = [], []
+    for contour in parse_path(MARK):
+        for x, y in contour:
+            xs.append(x)
+            ys.append(y)
+    width = max(xs) - min(xs)
+    height = max(ys) - min(ys)
+    scale = (PLATE * fill) / max(width, height)
+    return scale, (
+        (CANVAS - width * scale) / 2 - min(xs) * scale,
+        (CANVAS - height * scale) / 2 - min(ys) * scale,
+    )
 
 PLATE_RGB = (255, 255, 255)
 MARK_RGB = (0x56, 0x7A, 0x3D)
@@ -192,7 +217,9 @@ def add_span(row, x0, x1, width, samples):
     row[last] += (x1 - last) * weight
 
 
-def compose():
+def compose(fill=MARK_FILL):
+    mark_scale, mark_offset = mark_placement(fill)
+
     pixels = [[(0, 0, 0, 0.0)] * CANVAS for _ in range(CANVAS)]
 
     layers = [
@@ -200,7 +227,7 @@ def compose():
         (
             [
                 [
-                    (x * MARK_SCALE + MARK_OFFSET[0], y * MARK_SCALE + MARK_OFFSET[1])
+                    (x * mark_scale + mark_offset[0], y * mark_scale + mark_offset[1])
                     for x, y in contour
                 ]
                 for contour in parse_path(MARK)
