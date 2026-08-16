@@ -73,6 +73,23 @@ git push origin master --tags
 The tag is the trigger. `workflow_dispatch` builds and signs without publishing,
 which is how a release is rehearsed.
 
+## Windows ships NSIS and not MSI
+
+`bundle.targets` names them one by one rather than saying `all`, and MSI is the
+one left out. Two reasons, either enough on its own:
+
+MSI requires a pre-release identifier that is **numeric only** — `0.1.1-3`
+passes, `0.1.1-alpha.3` does not. Keeping it would mean the product's version
+scheme answering to an installer format for as long as the product exists.
+
+And `all` produces a signed `.msi.zip` *and* a signed `.nsis.zip`. Both are
+valid updater bundles, which leaves "which one updates" unanswerable — the
+manifest builder refuses that rather than guessing, so the release would stop
+even with a version MSI accepts.
+
+What is given up is enterprise deployment by Group Policy, which wants an MSI.
+Nothing else: NSIS is what Tauri recommends and what an individual downloads.
+
 ## What the workflow does, and the order it matters in
 
 1. Builds four targets: macOS arm64, macOS x64, Linux x64, Windows x64.
