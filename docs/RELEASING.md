@@ -82,27 +82,41 @@ Apple and Windows signing add `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
 `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`. The
 workflow passes them through already; they are simply absent.
 
-## CI is one Linux job, and that is deliberate
+## Nothing runs on a push
 
-It used to build three platforms on every push. macOS is billed at ten times
-the minutes and was seventy per cent of that cost while being the fastest job,
-so the whole thing was removed — and the next two releases died on code that
-had never been compiled off macOS, each costing about eleven times what a
-single Linux job costs.
+Every workflow is manual or tagged. The release runs on a tag; both CI jobs run
+only when asked. So **the checks before a tag are yours to run**, and this is
+the list:
 
-So Linux only: roughly eight cents a push against eighty-seven for a release
-that fails on it. macOS is covered by the machine this is written on. **Windows
-is not**, and that is a known gap — a release is still the first thing to
-compile it.
+```bash
+# in uncached-desktop
+pnpm test && npx tsc --noEmit
+cd src-tauri && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check
+cd .. && bash scripts/check-platforms.sh
 
-`scripts/check-platforms.sh` runs before a tag. It cross-checks
-`uncached-core` for Linux and Windows directly, and compiles the desktop crate
-with its macOS-only blocks turned off. Read its header before trusting it: it
-cannot catch a call to an API that only exists on macOS, because the dependency
-providing it is still compiled for this host. That is exactly what broke
-0.1.1-alpha.4, and it passes this check.
+# and, if uncached-core changed
+cd ../uncached-core && cargo test && cargo fmt --check
+cargo clippy --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+cargo clippy --target x86_64-pc-windows-msvc --all-targets -- -D warnings
+```
 
-The rest of the checks live where you are:
+**What that list cannot do is compile the Tauri crate for Linux or Windows.**
+Its C dependencies do not cross-build from a Mac, and `check-platforms.sh` says
+so in its own header: it turns off our macOS-only blocks, which catches an error
+inside them, and cannot make a dependency's macOS-only method disappear. Two
+releases died on exactly that, at about eighty-seven cents each.
+
+The eight-cent answer, when a tag is close:
+
+```bash
+gh workflow run ci.yml                                  # desktop, Linux
+gh workflow run ci.yml --repo uncached-app/uncached-core
+```
+
+Windows is compiled for the first time by the release either way. That is the
+standing gap, and it is written here rather than hoped about.
+
+The rest of the checks live where you are:The rest of the checks live where you are:
 
 ```bash
 pnpm test                                   # 178 tests

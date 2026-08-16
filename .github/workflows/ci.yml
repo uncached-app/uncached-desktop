@@ -14,18 +14,16 @@
 # still the first thing to compile it.
 name: CI
 
+# Nothing runs on a push. Only when asked, and before a tag is when to ask.
+#
+# This job costs about eight cents and has already paid for itself once: it
+# caught a call to a macOS-only API that had killed a release costing eighty-
+# seven. Left automatic it also ran alongside every release, checking Linux
+# while the release was already building it.
+#
+#   gh workflow run ci.yml
 on:
-  pull_request:
-  push:
-    branches:
-      - master
-      - main
-    # Prose does not compile.
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "LICENSE"
-      - ".gitignore"
+  workflow_dispatch:
 
 permissions:
   contents: read
