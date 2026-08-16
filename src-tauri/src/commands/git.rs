@@ -20,12 +20,11 @@ use crate::commands::locate::authorize;
 use crate::workspace::hygiene::{self, Hygiene};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use tauri::AppHandle;
 
 /// Runs a read-only Git command in `path`.
 fn run(path: &Path, args: &[&str]) -> Option<String> {
-    Command::new("git")
+    crate::process::quiet("git")
         .arg("-C")
         .arg(path)
         .args(args)
@@ -208,7 +207,7 @@ pub struct FetchResult {
 pub async fn fetch_project(app: AppHandle, path: String) -> Result<FetchResult, String> {
     let target = authorize(&app, &path)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let output = Command::new("git")
+        let output = crate::process::quiet("git")
             .arg("-C")
             .arg(&target)
             .args(["fetch", "--prune", "--quiet"])
@@ -293,7 +292,7 @@ pub async fn prune_branches(
                 });
                 continue;
             }
-            let output = Command::new("git")
+            let output = crate::process::quiet("git")
                 .arg("-C")
                 .arg(&target)
                 .args(["branch", "-d", &name])
@@ -338,7 +337,6 @@ mod tests {
     use super::{aggregate, read_hygiene, PruneResult, RefusedBranch};
     use crate::workspace::hygiene::{BranchState, Hygiene};
     use std::path::{Path, PathBuf};
-    use std::process::Command;
 
     /// Aggregation against real repositories: one carrying a stash, one clean,
     /// and one directory that is not a repository at all.
@@ -353,7 +351,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
 
         let git = |directory: &Path, args: &[&str]| {
-            Command::new("git")
+            crate::process::quiet("git")
                 .arg("-C")
                 .arg(directory)
                 .args(args)
@@ -425,7 +423,7 @@ mod tests {
         std::fs::create_dir_all(&origin).unwrap();
 
         let git = |directory: &Path, args: &[&str]| {
-            Command::new("git")
+            crate::process::quiet("git")
                 .arg("-C")
                 .arg(directory)
                 .args(args)

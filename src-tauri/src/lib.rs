@@ -4,6 +4,7 @@ pub mod filesystem;
 pub mod logging;
 pub mod menu;
 pub mod models;
+mod process;
 pub mod scanner;
 mod scheduler;
 pub mod services;

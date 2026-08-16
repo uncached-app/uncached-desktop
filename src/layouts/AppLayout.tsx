@@ -3,7 +3,6 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CommandPalette } from "../components/shared/CommandPalette";
 import { CommandPaletteContext } from "../hooks/useCommandPalette";
-import { Footer } from "../components/layout/Footer";
 import { ModuleBar } from "../components/layout/ModuleBar";
 import { Screen } from "../components/layout/Screen";
 import { Titlebar } from "../components/layout/Titlebar";
@@ -102,7 +101,6 @@ export function AppLayout({
           <CommandPaletteContext.Provider value={openPalette}>
             <Screen align={align}>{children}</Screen>
           </CommandPaletteContext.Provider>
-          {!isMac && activeModule === "reclaim" && <Footer onOpenSettings={() => onSettingsOpenChange(true)} />}
         </div>
         <ModuleBar
           activeModule={activeModule}
@@ -110,6 +108,7 @@ export function AppLayout({
           proEnabled={proEnabled}
           view={view}
           onViewChange={flow.setView}
+          onOpenSettings={isMac ? undefined : () => onSettingsOpenChange(true)}
         />
       </div>
       <UpdateToast update={update} busy={busy} />

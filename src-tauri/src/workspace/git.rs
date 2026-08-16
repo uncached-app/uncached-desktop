@@ -3,7 +3,6 @@
 use super::verdict::{recoverability_level, RecoverabilityLevel};
 use serde::Serialize;
 use std::path::Path;
-use std::process::Command;
 
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -136,7 +135,7 @@ pub fn read(path: &Path) -> GitContext {
 }
 
 fn run(path: &Path, args: &[&str]) -> Option<String> {
-    Command::new("git")
+    crate::process::quiet("git")
         .arg("-C")
         .arg(path)
         .args(args)
