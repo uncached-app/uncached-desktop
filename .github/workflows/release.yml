@@ -1,0 +1,289 @@
+# Builds every platform, signs the update artifacts, and publishes them.
+#
+# The manifest is written last, on purpose. `latest.json` is what tells running
+# copies of Uncached that a new version exists, so it must not name a file that
+# is still uploading — a client that reads it a second too early downloads a
+# truncated bundle and fails its signature check, which is the one failure mode
+# that looks like the update system being broken rather than slow.
+#
+# Two signings, and they are not the same thing:
+#
+#   TAURI_SIGNING_PRIVATE_KEY  proves an update came from us. Compiled into
+#                              every shipped binary as its public half, so it
+#                              can never be rotated for copies already out
+#                              there. Losing it ends the update path.
+#   Apple / Windows signing    proves the app is not malware, to the operating
+#                              system. Absent here until the certificates
+#                              exist; its absence does not stop updates, it
+#                              stops them being installed without a warning.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and sign, but publish nothing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CORE_REPOSITORY: uncached-app/uncached-core
+  CORE_REF: main
+
+defaults:
+  run:
+    working-directory: uncached-desktop
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Two separate macOS builds rather than a universal binary: the
+          # updater manifest keys on architecture, and an Intel machine
+          # downloading an Apple Silicon bundle is a failure with no message
+          # worth reading.
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            rust: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            rust: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            rust: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            rust: x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout desktop
+        uses: actions/checkout@v4
+        with:
+          path: uncached-desktop
+
+      - name: Require private core deploy key
+        shell: bash
+        env:
+          UNCACHED_CORE_DEPLOY_KEY: ${{ secrets.UNCACHED_CORE_DEPLOY_KEY }}
+        run: |
+          if [ -z "$UNCACHED_CORE_DEPLOY_KEY" ]; then
+            echo "Missing Actions secret UNCACHED_CORE_DEPLOY_KEY." >&2
+            exit 1
+          fi
+
+      - name: Checkout core as a sibling repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CORE_REPOSITORY }}
+          ref: ${{ env.CORE_REF }}
+          ssh-key: ${{ secrets.UNCACHED_CORE_DEPLOY_KEY }}
+          path: uncached-core
+          fetch-depth: 0
+
+      # Without this the build succeeds and produces an app that can verify no
+      # licence at all: every activation fails, silently, in the hands of
+      # somebody who has just paid. Checked before anything is compiled.
+      - name: Require the licence public key
+        shell: bash
+        env:
+          UNCACHED_LICENSE_PUBLIC_KEY: ${{ secrets.UNCACHED_LICENSE_PUBLIC_KEY }}
+        run: |
+          if [ -z "$UNCACHED_LICENSE_PUBLIC_KEY" ]; then
+            echo "Missing Actions secret UNCACHED_LICENSE_PUBLIC_KEY; a build without it can unlock nothing." >&2
+            exit 1
+          fi
+
+      - name: Install Linux Tauri dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            patchelf \
+            build-essential \
+            file
+
+      - name: Configure pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Configure Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: uncached-desktop/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust }}
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: uncached-desktop/src-tauri
+
+      - name: Build and sign
+        uses: tauri-apps/tauri-action@v0
+        env:
+          UNCACHED_LICENSE_PUBLIC_KEY: ${{ secrets.UNCACHED_LICENSE_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Present once the certificates exist. Until then the bundles are
+          # unsigned to the operating system, which the workflow does not
+          # pretend otherwise about.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: uncached-desktop
+          args: --target ${{ matrix.rust }}
+          includeUpdaterJson: false
+
+      - name: Collect what will be published
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/release/${{ matrix.target }}"
+          cd src-tauri/target/${{ matrix.rust }}/release/bundle
+          # The updater artifact and its detached signature, plus the installer
+          # a first-time visitor downloads. Everything else the bundler emits
+          # is intermediate.
+          find . -type f \
+            \( -name '*.tar.gz' -o -name '*.tar.gz.sig' \
+            -o -name '*.zip' -o -name '*.zip.sig' \
+            -o -name '*.dmg' -o -name '*.AppImage' \
+            -o -name '*.deb' -o -name '*.msi' -o -name '*.exe' \
+            -o -name '*.msi.zip' -o -name '*.msi.zip.sig' \
+            -o -name '*.nsis.zip' -o -name '*.nsis.zip.sig' \) \
+            -exec cp {} "$GITHUB_WORKSPACE/release/${{ matrix.target }}/" \;
+          ls -la "$GITHUB_WORKSPACE/release/${{ matrix.target }}"
+
+      - name: Upload for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: release/${{ matrix.target }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish to the CDN
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || !inputs.dry_run
+    steps:
+      - name: Checkout desktop
+        uses: actions/checkout@v4
+        with:
+          path: uncached-desktop
+
+      - name: Download every platform
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          pattern: release-*
+
+      - name: Build the manifest
+        id: manifest
+        shell: bash
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          node scripts/build-update-manifest.mjs \
+            --version "$version" \
+            --notes "${{ github.event.head_commit.message || format('Uncached {0}', github.ref_name) }}" \
+            --from "$GITHUB_WORKSPACE/release" \
+            --base "https://cdn.uncached.app/releases/$version" \
+            --out "$GITHUB_WORKSPACE/release/latest.json"
+          cat "$GITHUB_WORKSPACE/release/latest.json"
+
+      - name: Configure pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Configure Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Bundles first, manifest last, and never in one command: a manifest that
+      # lands before the file it names is a broken update for everyone whose
+      # app happens to check in that window.
+      - name: Upload the bundles
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BUCKET: ${{ vars.R2_BUCKET }}
+          VERSION: ${{ steps.manifest.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/release"
+          for file in */*; do
+            # `release-<triple>/<name>` becomes `releases/<version>/<triple>/<name>`.
+            # The triple stays in the path because two of these bundles share a
+            # filename, and flattening them loses one.
+            triple=$(basename "$(dirname "$file")")
+            triple=${triple#release-}
+            name=$(basename "$file")
+            npx --yes wrangler@4 r2 object put \
+              "$BUCKET/releases/$VERSION/$triple/$name" \
+              --file "$file" \
+              --remote \
+              --cache-control "public, max-age=31536000, immutable"
+          done
+
+      - name: Upload the manifest
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BUCKET: ${{ vars.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          # Five minutes, not a year. This is the one object whose whole job is
+          # to change, and an immutable cache on it would mean a release nobody
+          # is told about until the edge forgets.
+          npx --yes wrangler@4 r2 object put \
+            "$BUCKET/latest.json" \
+            --file "$GITHUB_WORKSPACE/release/latest.json" \
+            --remote \
+            --content-type "application/json" \
+            --cache-control "public, max-age=300"
+
+      - name: Attach the installers to the GitHub release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*/*
+          draft: true
+          generate_release_notes: true

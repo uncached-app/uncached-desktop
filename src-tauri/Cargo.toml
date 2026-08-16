@@ -29,6 +29,8 @@ thiserror = "2.0"
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-autostart = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 # The workspace changing while the window is in front. Default features off:
 # the crossbeam channel it would otherwise bring is a second one beside the
 # `std` channel this uses.

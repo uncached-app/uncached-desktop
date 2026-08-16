@@ -40,6 +40,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        // Updates. The check is the frontend's to make, because only it knows
+        // whether the user is in the middle of a scan or a cleanup — an app
+        // that replaces itself under a running cleanup is the one bug this
+        // feature could introduce that matters.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         // The login item launches with `--minimized`, so a start the user did
         // not ask for never puts a window in front of them.
         .plugin(tauri_plugin_autostart::init(

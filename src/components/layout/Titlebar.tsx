@@ -5,6 +5,8 @@ import { Check, Maximize2, Minus, Settings, Square, X } from "lucide-react";
 import type { Step } from "../../types/scan";
 import type { AppModule } from "../../types/module";
 import type { ResultsView } from "../../hooks/usePurgeFlow";
+import { UpdateBadge } from "./UpdateBadge";
+import type { UpdateState } from "../../hooks/useUpdate";
 
 const STEPS = ["Workspace", "Scan", "Review", "Done"] as const;
 
@@ -13,11 +15,14 @@ export function Titlebar({
   view,
   activeModule,
   onOpenSettings,
+  update,
 }: {
   step: Step;
   view: ResultsView;
   activeModule: AppModule;
   onOpenSettings: () => void;
+  /** The one bar both platforms always draw, so the offer lives here. */
+  update: UpdateState;
 }) {
   const [maximized, setMaximized] = useState(false);
   const [focused, setFocused] = useState(true);
@@ -81,7 +86,8 @@ export function Titlebar({
           return <span key={label} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ${isCurrent ? "bg-forest-800 text-sage-300" : isPassed ? "text-mist-300" : "text-mist-500"}`}><span className={`grid size-4 place-items-center rounded-full text-[10px] font-mono ${isCurrent ? "bg-sage-400 font-bold text-forest-950" : isPassed ? "bg-forest-800 text-sage-300" : "bg-forest-900 text-mist-500"}`}>{isPassed ? <Check size={10} strokeWidth={3} /> : stepNumber}</span>{label}</span>;
         })}
       </nav> : <span className={`text-xs font-medium text-mist-500 ${isMac ? "absolute left-1/2 -translate-x-1/2" : "order-1"}`}>{title}</span>}
-      <div className={`flex items-center ${isMac ? "order-4 ml-auto" : "order-2 gap-1"}`} data-tauri-drag-region="false">
+      <div className={`flex items-center gap-1.5 ${isMac ? "order-4 ml-auto" : "order-2"}`} data-tauri-drag-region="false">
+        <UpdateBadge update={update} />
         {isMac && <button type="button" onClick={onOpenSettings} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label="Open settings"><Settings size={16} /></button>}
         {!isMac && <WindowControls isMac={isMac} focused={focused} maximized={maximized} minimize={minimize} toggleMaximize={toggleMaximize} close={close} />}
       </div>

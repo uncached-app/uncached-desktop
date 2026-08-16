@@ -9,6 +9,7 @@ import { Screen } from "../components/layout/Screen";
 import { Titlebar } from "../components/layout/Titlebar";
 import { SettingsPanel } from "../components/settings/SettingsPanel";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
+import { useUpdate } from "../hooks/useUpdate";
 import { useNativeMenu } from "../hooks/useNativeMenu";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { useWindowFill } from "../hooks/useWindowFill";
@@ -42,7 +43,14 @@ export function AppLayout({
   children,
 }: AppLayoutProps) {
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
-  const { step, view, listenersReady } = usePurgeFlow();
+  const flow = usePurgeFlow();
+  const { step, view, listenersReady } = flow;
+  // Gated on the same signal the workspace watcher refuses on. Replacing the
+  // binary under a running cleanup is the one way this feature could break
+  // something that matters.
+  const update = useUpdate({
+    busy: flow.scanning || flow.cleaningTargetIds.size > 0,
+  });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteProject, setPaletteProject] = useState<WorkspaceProject | null>(null);
   useSplashScreen(!settings.loading && listenersReady);
@@ -80,7 +88,7 @@ export function AppLayout({
     // `h-full`, not `h-screen`: the viewport is the whole window and the app
     // only occupies what is left inside the shadow gutter.
     <main className="relative flex h-full flex-col overflow-hidden rounded-[18px] bg-forest-950 text-mist-100">
-      <Titlebar step={step} view={view} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} />
+      <Titlebar step={step} view={view} activeModule={activeModule} onOpenSettings={() => onSettingsOpenChange(true)} update={update} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* A column, until the window is filled.
             
@@ -98,7 +106,7 @@ export function AppLayout({
         </div>
         <ModuleBar activeModule={activeModule} onChange={onModuleChange} proEnabled={proEnabled} />
       </div>
-      <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} proEnabled={proEnabled} {...settings} />
+      <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} proEnabled={proEnabled} update={update} {...settings} />
       <CommandPalette
         open={paletteOpen}
         project={paletteProject}

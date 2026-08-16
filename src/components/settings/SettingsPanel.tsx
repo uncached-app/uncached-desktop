@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
+import type { UpdateState } from "../../hooks/useUpdate";
 import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
 import { ShortcutsContent } from "./ShortcutsContent";
@@ -21,6 +22,8 @@ type SettingsPanelProps = {
   onLicenseChange?: () => void;
   /** Read by the licence screen alone, which is the only thing here it gates. */
   proEnabled?: boolean;
+  /** Shared with the titlebar badge, so one check answers both. */
+  update: UpdateState;
 };
 
 const sections = [
@@ -46,6 +49,7 @@ export function SettingsPanel({
   updateSettings,
   onLicenseChange = () => { },
   proEnabled = false,
+  update,
 }: SettingsPanelProps) {
   const [section, setSection] = useState<Section>("General");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(
@@ -142,7 +146,7 @@ export function SettingsPanel({
             {section === "Licence" ? (
               <LicenseSection onActivated={onLicenseChange} proEnabled={proEnabled} />
             ) : section === "About" ? (
-              <AboutContent appInfo={appInfo} />
+              <AboutContent appInfo={appInfo} update={update} />
             ) : loading || !settings ? (
               <div className="grid h-full place-items-center text-xs text-mist-500">
                 Loading settings...
@@ -435,7 +439,13 @@ function AppearanceContent({
   );
 }
 
-function AboutContent({ appInfo }: { appInfo: { name: string; version: string; website: string } | null }) {
+function AboutContent({
+  appInfo,
+  update,
+}: {
+  appInfo: { name: string; version: string; website: string } | null;
+  update: UpdateState;
+}) {
   const websiteUrl = appInfo?.website ?? "https://uncached.app";
   const eulaUrl = "https://uncached.app/eula";
 
@@ -446,6 +456,8 @@ function AboutContent({ appInfo }: { appInfo: { name: string; version: string; w
       <h3 className="mt-6 text-2xl font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
       <p className="mt-2 text-sm text-mist-500">Reclaim disk from build artifacts.</p>
       <p className="mt-6 font-mono text-xs text-mist-500">Version {appInfo?.version ?? "..."}</p>
+
+      <UpdateStatus update={update} />
       <div className="mt-5 flex flex-col items-center gap-2">
         <a
           href={websiteUrl}
@@ -768,5 +780,69 @@ function SettingRadio({
         {selected && <span className="size-1.5 rounded-full bg-forest-950" />}
       </span>
     </button>
+  );
+}
+
+/**
+ * Where somebody who went looking finds out about updates.
+ *
+ * The badge in the titlebar is the offer; this is the account. It is the only
+ * place a failed check is reported, because a CDN that could not be reached is
+ * ordinary and a permanent warning for it would be the app asking to be worried
+ * about — but silence everywhere would leave "why has it not updated" with no
+ * answer at all.
+ */
+function UpdateStatus({ update }: { update: UpdateState }) {
+  const busy = update.stage === "checking" || update.stage === "downloading";
+
+  return (
+    <div className="mt-3 flex flex-col items-center gap-2">
+      {update.stage === "available" && (
+        <p className="text-xs text-sage-300">Uncached {update.version} is available</p>
+      )}
+      {update.stage === "downloading" && (
+        <p className="text-xs text-mist-500">
+          Downloading {update.version}
+          {update.progress === null ? "" : ` — ${Math.round(update.progress * 100)}%`}
+        </p>
+      )}
+      {update.stage === "ready" && (
+        <p className="text-xs text-sage-300">
+          Uncached {update.version} is installed — restart to use it
+        </p>
+      )}
+      {update.stage === "failed" && update.problem && (
+        <p className="max-w-xs text-xs leading-5 text-mist-500">{update.problem}</p>
+      )}
+
+      {/* The notes, when the release wrote any. Nobody is asked to accept an
+          update without being able to read what is in it. */}
+      {update.notes && (update.stage === "available" || update.stage === "ready") && (
+        <p className="max-w-xs whitespace-pre-line text-left text-[11px] leading-5 text-mist-500">
+          {update.notes}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={() =>
+          void (update.stage === "available" || update.stage === "ready"
+            ? update.install()
+            : update.check(true))
+        }
+        disabled={busy}
+        className="cursor-pointer rounded-lg border border-forest-800 px-2.5 py-1 text-xs font-medium text-mist-300 transition-colors hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:cursor-default disabled:opacity-50"
+      >
+        {update.stage === "checking"
+          ? "Checking…"
+          : update.stage === "downloading"
+            ? "Downloading…"
+            : update.stage === "available"
+              ? "Download and install"
+              : update.stage === "ready"
+                ? "Restart now"
+                : "Check for updates"}
+      </button>
+    </div>
   );
 }
