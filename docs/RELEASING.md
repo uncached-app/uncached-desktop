@@ -44,9 +44,29 @@ gh variable set R2_BUCKET --body "<the bucket behind cdn.uncached.app>"
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | Empty string, because the key was generated without one |
 | `UNCACHED_LICENSE_PUBLIC_KEY` | secret, **optional** | Not needed. The key is committed in `src-tauri/.cargo/config.toml`, where a public key belongs — it verifies signatures and unlocks nothing, and keeping it there is what makes a laptop build and a release build accept the same licences. Set this secret only to override that. The workflow refuses to build when **neither** exists, because such a build unlocks nothing for anybody and says so nowhere |
 | `UNCACHED_CORE_DEPLOY_KEY` | secret | The private core cannot be checked out |
-| `CLOUDFLARE_API_TOKEN` | secret | Nothing reaches R2. Needs **Object Read & Write** on that bucket and nothing else |
-| `CLOUDFLARE_ACCOUNT_ID` | secret | Same |
+| `R2_ACCESS_KEY_ID` | secret | Nothing reaches R2. Shown once, beside the R2 token |
+| `R2_SECRET_ACCESS_KEY` | secret | Same |
+| `CLOUDFLARE_ACCOUNT_ID` | secret | Forms the S3 endpoint, `https://<id>.r2.cloudflarestorage.com` |
 | `R2_BUCKET` | variable | Same |
+
+### R2 is written over S3, not through wrangler
+
+The R2 token that owns this bucket is scoped to **objects in it** — the least
+privilege the job needs — and that is exactly the scope the S3 API was built
+for. Its three values are shown together at creation and only then:
+
+| value | what it is for |
+| --- | --- |
+| Token value | wrangler and Cloudflare's REST API. **Not used here** |
+| Access Key ID | `R2_ACCESS_KEY_ID` |
+| Secret Access Key | `R2_SECRET_ACCESS_KEY` |
+
+`wrangler r2 object put` was tried first and always returned `403` with
+`code: 10000`, while reporting itself as authenticated — which it was, for a
+route the token was not entitled to. That REST route wants account-level R2
+permission, so making it work meant either widening the token to one that can
+create and delete buckets, or speaking the protocol the narrow token already
+has. `aws` ships on the runner, so the narrow token stays.
 
 Apple and Windows signing add `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
 `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`. The

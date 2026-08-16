@@ -354,15 +354,28 @@ jobs:
             --out "$GITHUB_WORKSPACE/release/latest.json"
           cat "$GITHUB_WORKSPACE/release/latest.json"
 
+      # R2 is spoken to over its S3 API rather than through wrangler.
+      #
+      # Wrangler's `r2 object put` goes through Cloudflare's REST API, and that
+      # route wants account-level R2 permission. The token that owns this bucket
+      # is scoped to objects in it — the least privilege the job actually needs —
+      # and every attempt came back `403 / code 10000` while wrangler happily
+      # reported being authenticated, because it was: authenticated for a route
+      # it was not entitled to. The S3 API is what an object-scoped token is
+      # for, and `aws` is already on the runner.
+      #
       # Bundles first, manifest last, and never in one command: a manifest that
-      # lands before the file it names is a broken update for everyone whose
-      # app happens to check in that window.
+      # lands before the file it names is a broken update for everyone whose app
+      # happens to check in that window.
       - name: Upload the bundles
         if: github.event_name == 'push' || !inputs.dry_run
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+          ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
           BUCKET: ${{ vars.R2_BUCKET }}
           VERSION: ${{ steps.manifest.outputs.version }}
         run: |
@@ -375,31 +388,33 @@ jobs:
             triple=$(basename "$(dirname "$file")")
             triple=${triple#release-}
             name=$(basename "$file")
-            npx --yes wrangler@4 r2 object put \
-              "$BUCKET/releases/$VERSION/$triple/$name" \
-              --file "$file" \
-              --remote \
-              --cache-control "public, max-age=31536000, immutable"
+            echo "→ $triple/$name"
+            aws s3 cp "$file" "s3://$BUCKET/releases/$VERSION/$triple/$name" \
+              --endpoint-url "$ENDPOINT" \
+              --cache-control "public, max-age=31536000, immutable" \
+              --only-show-errors
           done
 
       - name: Upload the manifest
         if: github.event_name == 'push' || !inputs.dry_run
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+          ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
           BUCKET: ${{ vars.R2_BUCKET }}
         run: |
           set -euo pipefail
           # Five minutes, not a year. This is the one object whose whole job is
           # to change, and an immutable cache on it would mean a release nobody
           # is told about until the edge forgets.
-          npx --yes wrangler@4 r2 object put \
-            "$BUCKET/latest.json" \
-            --file "$GITHUB_WORKSPACE/release/latest.json" \
-            --remote \
+          aws s3 cp "$GITHUB_WORKSPACE/release/latest.json" "s3://$BUCKET/latest.json" \
+            --endpoint-url "$ENDPOINT" \
             --content-type "application/json" \
-            --cache-control "public, max-age=300"
+            --cache-control "public, max-age=300" \
+            --only-show-errors
 
       - name: Say that nothing was published
         if: github.event_name != 'push' && inputs.dry_run
