@@ -5,6 +5,7 @@ import {
   conflictsIn,
   toAccelerator,
   isTyping,
+  formatBinding,
   matchesBinding,
   parseBinding,
   resolveBindings,
@@ -48,17 +49,39 @@ test("a modifier the app does not know is not silently ignored", () => {
   assert.equal(parseBinding("hyper+k"), null);
 });
 
+// The platform is passed in rather than detected, so both rules are checked
+// wherever this runs. Left to detection, a Mac would only ever exercise the
+// Mac branch and CI only the other — each of us testing the half we are not
+// shipping to. These two failed on Linux for exactly that reason.
+const MAC = true;
+const PC = false;
+
 test("the key matches whichever case the browser reports it in", () => {
   // Shift makes the browser send `X`; the binding says `x` and means both.
-  assert.ok(matchesBinding(press("X", { meta: true, shift: true }), "cmd+shift+x"));
-  assert.ok(matchesBinding(press("x", { meta: true, shift: true }), "cmd+shift+x"));
+  assert.ok(matchesBinding(press("X", { meta: true, shift: true }), "cmd+shift+x", MAC));
+  assert.ok(matchesBinding(press("x", { meta: true, shift: true }), "cmd+shift+x", MAC));
+  assert.ok(matchesBinding(press("X", { ctrl: true, shift: true }), "cmd+shift+x", PC));
 });
 
 test("a binding only fires with exactly its own modifiers", () => {
-  assert.ok(matchesBinding(press("m", { meta: true }), "cmd+m"));
-  assert.ok(!matchesBinding(press("m", { meta: true, shift: true }), "cmd+m"));
-  assert.ok(!matchesBinding(press("m"), "cmd+m"));
-  assert.ok(!matchesBinding(press("n", { meta: true }), "cmd+m"));
+  assert.ok(matchesBinding(press("m", { meta: true }), "cmd+m", MAC));
+  assert.ok(!matchesBinding(press("m", { meta: true, shift: true }), "cmd+m", MAC));
+  assert.ok(!matchesBinding(press("m"), "cmd+m", MAC));
+  assert.ok(!matchesBinding(press("n", { meta: true }), "cmd+m", MAC));
+});
+
+test("cmd is the Command key on a Mac and the Control key everywhere else", () => {
+  // One binding, written once, meaning the gesture each platform actually has.
+  assert.ok(matchesBinding(press("k", { meta: true }), "cmd+k", MAC));
+  assert.ok(!matchesBinding(press("k", { ctrl: true }), "cmd+k", MAC));
+
+  assert.ok(matchesBinding(press("k", { ctrl: true }), "cmd+k", PC));
+  assert.ok(!matchesBinding(press("k", { meta: true }), "cmd+k", PC));
+});
+
+test("a binding reads as symbols on a Mac and as words elsewhere", () => {
+  assert.equal(formatBinding("cmd+shift+x", MAC), "⇧⌘X");
+  assert.equal(formatBinding("cmd+shift+x", PC), "Shift+Ctrl+X");
 });
 
 test("a keystroke being typed into a field is left to the field", () => {
@@ -130,6 +153,18 @@ test("holding a modifier is not a binding", () => {
 });
 
 test("what is recorded is what will match", () => {
-  const recorded = bindingFrom(press("X", { meta: true, shift: true }));
-  assert.ok(matchesBinding(press("X", { meta: true, shift: true }), recorded));
+  // The round trip has to close on the gesture each platform actually has:
+  // `bindingFrom` writes `cmd` for either physical key, and `matchesBinding`
+  // reads it back as the one that exists there. Recording a Mac gesture and
+  // checking it everywhere passes on a Mac and fails on CI, which says nothing
+  // about the round trip and everything about where it ran.
+  const onMac = bindingFrom(press("X", { meta: true, shift: true }));
+  assert.ok(matchesBinding(press("X", { meta: true, shift: true }), onMac, MAC));
+
+  const onPc = bindingFrom(press("X", { ctrl: true, shift: true }));
+  assert.ok(matchesBinding(press("X", { ctrl: true, shift: true }), onPc, PC));
+
+  // And both spell it the same in the file, which is what makes a settings
+  // file written on one machine work on the other.
+  assert.equal(onMac, onPc);
 });

@@ -12,7 +12,15 @@
  * that fires while the user is typing a project name into a filter.
  */
 
-/** What `cmd` means where this is running. Set once, read everywhere. */
+/**
+ * What `cmd` means where this is running. Set once, read everywhere.
+ *
+ * Every function that consults it takes it as a last argument instead of
+ * closing over it, defaulting to what was detected. Production never passes it;
+ * tests always do, and that is the point — otherwise each platform's branch is
+ * only ever exercised on that platform. A Mac would test the Mac rule and CI
+ * would test the other, and neither would ever check the one it is not on.
+ */
 const APPLE = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform ?? "");
 
 /** Written this way in a settings file; shown as a symbol on a Mac. */
@@ -60,13 +68,13 @@ export function parseBinding(binding) {
  * is down and `x` when it is not, and a binding written `cmd+shift+x` means the
  * same gesture either way. Digits and punctuation come through unchanged.
  */
-export function matchesBinding(event, binding) {
+export function matchesBinding(event, binding, apple = APPLE) {
   const parsed = typeof binding === "string" ? parseBinding(binding) : binding;
   if (!parsed) return false;
 
   const wanted = {
-    cmd: parsed.cmd && APPLE,
-    ctrl: parsed.ctrl || (parsed.cmd && !APPLE),
+    cmd: parsed.cmd && apple,
+    ctrl: parsed.ctrl || (parsed.cmd && !apple),
     shift: parsed.shift,
     alt: parsed.alt,
   };
@@ -100,19 +108,19 @@ export function isTyping(target, binding) {
 }
 
 /** The binding as a person reads it: symbols on a Mac, words elsewhere. */
-export function formatBinding(binding) {
+export function formatBinding(binding, apple = APPLE) {
   const parsed = parseBinding(binding);
   if (!parsed) return "";
 
-  const names = APPLE ? SYMBOLS : WORDS;
+  const names = apple ? SYMBOLS : WORDS;
   const parts = [];
-  if (parsed.ctrl && !(parsed.cmd && !APPLE)) parts.push(names.ctrl);
+  if (parsed.ctrl && !(parsed.cmd && !apple)) parts.push(names.ctrl);
   if (parsed.alt) parts.push(names.alt);
   if (parsed.shift) parts.push(names.shift);
   if (parsed.cmd) parts.push(names.cmd);
   parts.push(label(parsed.key));
 
-  return APPLE ? parts.join("") : parts.join("+");
+  return apple ? parts.join("") : parts.join("+");
 }
 
 /** What the key itself is called on screen. */

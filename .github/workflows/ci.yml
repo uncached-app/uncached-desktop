@@ -6,6 +6,15 @@ on:
     branches:
       - master
       - main
+    # Prose does not compile. Three platforms per push is right for a project
+    # that ships three, and it is what caught two platforms that had never been
+    # built — but paying macOS rates to confirm that a paragraph is still a
+    # paragraph is spending with nothing on the other side.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
 
 permissions:
   contents: read
