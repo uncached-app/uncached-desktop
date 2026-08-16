@@ -160,21 +160,45 @@ jobs:
         with:
           workspaces: uncached-desktop/src-tauri
 
-      - name: Build and sign
-        uses: tauri-apps/tauri-action@v0
+      # Forwarded only when they exist, and that is the whole point of the
+      # step. A secret that is not set does not disappear from a workflow — it
+      # arrives as an empty string, and the bundler tests for the variable
+      # being *present*, not for it having a value. Passing them
+      # unconditionally made the macOS build try to import an empty certificate
+      # and fail: "no code signing" became "broken code signing", which is
+      # strictly worse than never mentioning Apple at all.
+      - name: Forward Apple signing, if there is any
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
         env:
-          UNCACHED_LICENSE_PUBLIC_KEY: ${{ secrets.UNCACHED_LICENSE_PUBLIC_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Present once the certificates exist. Until then the bundles are
-          # unsigned to the operating system, which the workflow does not
-          # pretend otherwise about.
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "::notice::No Apple certificate configured. The bundle will install behind an unidentified-developer warning."
+            exit 0
+          fi
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            value=$(printenv "$name" || true)
+            [ -n "$value" ] || continue
+            {
+              echo "$name<<UNCACHED_EOF"
+              echo "$value"
+              echo "UNCACHED_EOF"
+            } >> "$GITHUB_ENV"
+          done
+          echo "::notice::Apple signing is configured; the bundle will be signed and notarised."
+
+      - name: Build and sign
+        uses: tauri-apps/tauri-action@v0
+        env:
+          UNCACHED_LICENSE_PUBLIC_KEY: ${{ secrets.UNCACHED_LICENSE_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: uncached-desktop
           args: --target ${{ matrix.rust }}
