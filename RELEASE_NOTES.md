@@ -1,24 +1,15 @@
-## 0.1.1-alpha.4
+## 0.1.1-alpha.5
 
-Windows was where most of this went wrong.
+An update check that could not reach the network used to give up for six hours
+and say nothing, because a failed check is deliberately quiet. The first one
+lands eight seconds after launch, which on a laptop is often before the network
+is up — so an app opened at the start of the day would never mention an update
+all morning. It now tries again shortly after, and when you come back to the
+window.
 
-Scanning no longer strobes console windows across the screen. Reading a
-workspace starts four Git processes per project, and each one was opening a
-console of its own — the work was correct and the app looked like it was
-breaking.
+The app icon's mark was small inside its plate, leaving white that macOS 26
+fills with its own material treatment. The mark is larger now; the plate and
+its position on Apple's grid are unchanged.
 
-Paths are shown the way you write them, without the `\\?\` prefix the system's
-own canonical form carries.
-
-Settings opens from the bar at the bottom, on every screen. It used to be in a
-footer only the Workspace screen drew, so on Windows the way in disappeared on
-Maintenance and Insights.
-
-And the login item is named Uncached, not uncached.
-
-On macOS, the app no longer reports itself as damaged. It is still not signed by
-a certificate Apple knows — right-click and Open the first time — but that is a
-dialog with a way through rather than one telling you to throw it away.
-
-Everywhere, the window now opens in whatever appearance your machine already
-uses, instead of starting light and announcing it with a white flash.
+On Windows the installer shows this app's artwork instead of the ones NSIS
+ships with.
