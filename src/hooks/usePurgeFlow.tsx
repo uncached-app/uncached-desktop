@@ -161,15 +161,18 @@ export function PurgeFlowProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roots]);
 
-  // A new scan replaces both readings, so it also puts the projects back in
-  // front: the artifact list it would otherwise return to no longer exists.
+  // A scan replaces the index, so a project page left open would be describing
+  // something that no longer exists.
+  //
+  // The reading is deliberately *not* reset with it. It used to be — a scan put
+  // the projects back in front — which was right while Reclaim was somewhere
+  // you passed through rather than somewhere you chose. Now that the bar goes
+  // straight to it, scanning from Reclaim is exactly how somebody there asks
+  // for fresh artifacts, and answering by moving them to the projects takes
+  // away the thing they pressed for. Every step renders on its own regardless
+  // of the reading, so nothing depends on this being forced.
   useEffect(() => {
-    if (flow.step !== 3) {
-      setView("projects");
-      // The page reads a project out of the index. A scan replaces the index,
-      // so a page left open would be describing something that no longer exists.
-      setDetailPath(null);
-    }
+    if (flow.step !== 3) setDetailPath(null);
   }, [flow.step]);
 
   return (
