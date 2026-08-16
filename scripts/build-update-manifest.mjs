@@ -16,25 +16,36 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * Rust target triples to the keys Tauri's updater looks itself up by.
+ * Rust target triples to the keys Tauri's updater looks itself up by, and what
+ * each one updates *from*.
  *
  * Two macOS entries rather than a universal binary: the manifest keys on
  * architecture, and an Intel machine handed an Apple Silicon bundle fails in a
  * way whose message helps nobody.
+ *
+ * The pattern is per platform rather than one list of extensions, because
+ * "carries a `.sig`" does not mean "is the thing that updates". A Linux build
+ * signs its `.deb` and its `.rpm` too — both are installers a person downloads
+ * once, and neither is something the updater can apply to a running copy. One
+ * shared pattern made those three indistinguishable, and the release stopped on
+ * an ambiguity that was not one.
+ *
+ * Linux is the `.AppImage` itself. Tauri 1 wrapped it in a `.tar.gz` and Tauri
+ * 2 signs it directly; both spellings are accepted so that upgrading the
+ * bundler does not quietly produce a manifest with no Linux entry.
  */
 const PLATFORMS = {
-  "aarch64-apple-darwin": "darwin-aarch64",
-  "x86_64-apple-darwin": "darwin-x86_64",
-  "x86_64-unknown-linux-gnu": "linux-x86_64",
-  "x86_64-pc-windows-msvc": "windows-x86_64",
+  "aarch64-apple-darwin": { key: "darwin-aarch64", updates: /\.app\.tar\.gz$/ },
+  "x86_64-apple-darwin": { key: "darwin-x86_64", updates: /\.app\.tar\.gz$/ },
+  "x86_64-unknown-linux-gnu": {
+    key: "linux-x86_64",
+    updates: /\.AppImage(\.tar\.gz)?$/,
+  },
+  "x86_64-pc-windows-msvc": {
+    key: "windows-x86_64",
+    updates: /\.(nsis|msi)\.zip$/,
+  },
 };
-
-/**
- * What each platform updates *from*. Only these carry a `.sig`, and only these
- * belong in the manifest — a `.dmg` is what a first-time visitor downloads and
- * is not something the updater can apply.
- */
-const UPDATER_ARTIFACT = /\.(app\.tar\.gz|AppImage\.tar\.gz|tar\.gz|nsis\.zip|msi\.zip)$/;
 
 function argument(name, fallback = null) {
   const at = process.argv.indexOf(`--${name}`);
@@ -57,7 +68,7 @@ const out = argument("out");
 const platforms = {};
 const missing = [];
 
-for (const [triple, key] of Object.entries(PLATFORMS)) {
+for (const [triple, { key, updates }] of Object.entries(PLATFORMS)) {
   const directory = join(from, `release-${triple}`);
   let entries;
   try {
@@ -75,9 +86,7 @@ for (const [triple, key] of Object.entries(PLATFORMS)) {
   const signatures = entries.filter((name) => name.endsWith(".sig"));
   const paired = signatures
     .map((signature) => ({ signature, bundle: signature.slice(0, -".sig".length) }))
-    .filter(
-      (pair) => UPDATER_ARTIFACT.test(pair.bundle) && entries.includes(pair.bundle),
-    );
+    .filter((pair) => updates.test(pair.bundle) && entries.includes(pair.bundle));
 
   if (paired.length === 0) {
     missing.push(`${key}: no signed updater bundle in ${directory}`);

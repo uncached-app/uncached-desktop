@@ -276,11 +276,18 @@ jobs:
           path: release/${{ matrix.target }}
           if-no-files-found: error
 
+  # Runs on a dry run too, and stops before uploading anything.
+  #
+  # The manifest builder is the part of a release with the most ways to be
+  # quietly wrong — it decides which of several signed bundles is the one that
+  # updates, and gets it right per platform. Skipping this job on dry runs meant
+  # that logic was first exercised by the real release, on the one path where
+  # being wrong is expensive. It found a genuine fault the moment it was run:
+  # Linux signs its `.deb` and `.rpm` as well as its `.AppImage`.
   publish:
     name: Publish to the CDN
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || !inputs.dry_run
     steps:
       - name: Checkout desktop
         uses: actions/checkout@v4
@@ -316,6 +323,7 @@ jobs:
       # lands before the file it names is a broken update for everyone whose
       # app happens to check in that window.
       - name: Upload the bundles
+        if: github.event_name == 'push' || !inputs.dry_run
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -340,6 +348,7 @@ jobs:
           done
 
       - name: Upload the manifest
+        if: github.event_name == 'push' || !inputs.dry_run
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -356,6 +365,10 @@ jobs:
             --remote \
             --content-type "application/json" \
             --cache-control "public, max-age=300"
+
+      - name: Say that nothing was published
+        if: github.event_name != 'push' && inputs.dry_run
+        run: echo "::notice::Dry run — the manifest above was built and validated, and nothing was uploaded."
 
       - name: Attach the installers to the GitHub release
         if: github.event_name == 'push'

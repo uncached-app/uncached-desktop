@@ -22,11 +22,32 @@ function staged(bundles) {
   return root;
 }
 
+/**
+ * The filenames a real release actually produced, copied from a run rather than
+ * imagined. The first version of this table was invented, and every name in it
+ * that mattered was wrong: Linux signs three bundles, not one, and the one that
+ * updates is a bare `.AppImage` — Tauri 1's `.AppImage.tar.gz` no longer
+ * exists. A fixture that agrees with the code and not with the bundler tests
+ * nothing.
+ */
 const COMPLETE = {
-  "aarch64-apple-darwin": { "Uncached.app.tar.gz": "sig-arm" },
-  "x86_64-apple-darwin": { "Uncached.app.tar.gz": "sig-intel" },
-  "x86_64-unknown-linux-gnu": { "Uncached.AppImage.tar.gz": "sig-linux" },
-  "x86_64-pc-windows-msvc": { "Uncached_x64-setup.nsis.zip": "sig-windows" },
+  "aarch64-apple-darwin": {
+    "Uncached.app.tar.gz": "sig-arm",
+    "Uncached_0.1.1-alpha.3_aarch64.dmg": null,
+  },
+  "x86_64-apple-darwin": {
+    "Uncached.app.tar.gz": "sig-intel",
+    "Uncached_0.1.1-alpha.3_x64.dmg": null,
+  },
+  "x86_64-unknown-linux-gnu": {
+    "Uncached_0.1.1-alpha.3_amd64.AppImage": "sig-linux",
+    "Uncached_0.1.1-alpha.3_amd64.deb": "sig-deb",
+    "Uncached-0.1.1-alpha.3-1.x86_64.rpm": "sig-rpm",
+  },
+  "x86_64-pc-windows-msvc": {
+    "Uncached_0.1.1-alpha.3_x64-setup.nsis.zip": "sig-windows",
+    "Uncached_0.1.1-alpha.3_x64-setup.exe": null,
+  },
 };
 
 function build(from, extra = []) {
@@ -89,7 +110,10 @@ test("a missing platform fails the release rather than shrinking the manifest", 
 });
 
 test("an unsigned bundle is not published", () => {
-  const unsigned = { ...COMPLETE, "x86_64-unknown-linux-gnu": { "Uncached.AppImage.tar.gz": null } };
+  const unsigned = {
+    ...COMPLETE,
+    "x86_64-unknown-linux-gnu": { "Uncached_0.1.1-alpha.3_amd64.AppImage": null },
+  };
   const said = refuses(staged(unsigned));
   assert.match(said ?? "", /linux-x86_64/);
 });
@@ -98,22 +122,40 @@ test("two signed bundles for one platform is a question the script may not answe
   const ambiguous = {
     ...COMPLETE,
     "x86_64-pc-windows-msvc": {
-      "Uncached_x64-setup.nsis.zip": "a",
-      "Uncached_x64_en-US.msi.zip": "b",
+      "Uncached_0.1.1-alpha.3_x64-setup.nsis.zip": "a",
+      "Uncached_0.1.1-alpha.3_x64_en-US.msi.zip": "b",
     },
   };
   const said = refuses(staged(ambiguous));
   assert.match(said ?? "", /windows-x86_64/);
 });
 
+test("a signed installer is still not the thing that updates", () => {
+  // The one that nearly shipped wrong. Linux signs its `.deb` and its `.rpm`
+  // as well as its `.AppImage`, so "carries a signature" is not the same
+  // question as "is what the updater applies" — and a rule that could not tell
+  // them apart refused the release for an ambiguity that was not one.
+  const manifest = build(staged(COMPLETE));
+  assert.match(manifest.platforms["linux-x86_64"].url, /\.AppImage$/);
+  assert.equal(manifest.platforms["linux-x86_64"].signature, "sig-linux");
+});
+
+test("the Tauri 1 spelling of the Linux bundle is still understood", () => {
+  // So that changing bundler version fails loudly rather than producing a
+  // manifest quietly missing Linux.
+  const older = {
+    ...COMPLETE,
+    "x86_64-unknown-linux-gnu": { "Uncached.AppImage.tar.gz": "sig-linux-v1" },
+  };
+  const manifest = build(staged(older));
+  assert.equal(manifest.platforms["linux-x86_64"].signature, "sig-linux-v1");
+});
+
 test("an installer with no signature is ignored rather than mistaken for one", () => {
   // `.dmg` and `.deb` are what a first-time visitor downloads. They carry no
   // signature and the updater cannot apply them, so they belong in the release
   // and not in the manifest.
-  const withInstallers = {
-    ...COMPLETE,
-    "aarch64-apple-darwin": { "Uncached.app.tar.gz": "sig-arm", "Uncached.dmg": null },
-  };
-  const manifest = build(staged(withInstallers));
+  const manifest = build(staged(COMPLETE));
   assert.match(manifest.platforms["darwin-aarch64"].url, /Uncached\.app\.tar\.gz$/);
+  assert.match(manifest.platforms["windows-x86_64"].url, /\.nsis\.zip$/);
 });
