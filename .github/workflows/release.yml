@@ -322,6 +322,24 @@ jobs:
         with:
           node-version: 22
 
+      # What a user reads about a release has to be about *this* release. A
+      # notes file left at the previous version is worse than none: it is
+      # confidently wrong, and nothing downstream can tell.
+      #
+      # This replaced the commit message, which is what the notes used to be —
+      # five paragraphs of engineering rationale, written for whoever maintains
+      # this, shown to whoever installed it.
+      - name: Require notes for the version being released
+        shell: bash
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          heading=$(head -1 RELEASE_NOTES.md | sed 's/^#* *//')
+          echo "RELEASE_NOTES.md opens with: $heading"
+          if [ "$heading" != "$version" ]; then
+            echo "RELEASE_NOTES.md is for \"$heading\" and this release is $version." >&2
+            exit 1
+          fi
+
       - name: Build the manifest
         id: manifest
         shell: bash
@@ -330,7 +348,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           node scripts/build-update-manifest.mjs \
             --version "$version" \
-            --notes "${{ github.event.head_commit.message || format('Uncached {0}', github.ref_name) }}" \
+            --notes-file RELEASE_NOTES.md \
             --from "$GITHUB_WORKSPACE/release" \
             --base "https://cdn.uncached.app/releases/$version" \
             --out "$GITHUB_WORKSPACE/release/latest.json"

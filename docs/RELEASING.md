@@ -64,6 +64,12 @@ Drift here is not visible from outside: the badge would offer a version the
 About screen says is already installed, which reads as the updater being
 broken. The release workflow checks them before it builds anything.
 
+And `RELEASE_NOTES.md` is what the update panel shows. Its first line is the
+version it describes, which is how the workflow refuses to publish notes left
+at the previous release — notes for the wrong version are worse than none,
+because nothing downstream can tell. That heading is dropped from what ships:
+the app draws the version directly above these words.
+
 ```bash
 git commit -am "release: 0.1.2"
 git tag v0.1.2

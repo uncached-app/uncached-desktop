@@ -64,7 +64,17 @@ function argument(name, fallback = null) {
 }
 
 const version = argument("version");
-const notes = argument("notes", "");
+// Read from a file rather than an argument: what a user reads about a release
+// is prose, and prose on a command line is one unescaped quote away from being
+// truncated in a way nobody notices until it is published.
+const notesFile = argument("notes-file", "");
+// The file opens with the version, which is what the release step checks the
+// notes are not stale against. The reader does not need it — the app draws the
+// version directly above these words — so the heading anchors the guard and is
+// dropped from what ships.
+const notes = notesFile
+  ? readFileSync(notesFile, "utf8").replace(/^#.*\n+/, "").trim()
+  : argument("notes", "");
 const from = argument("from");
 const base = argument("base").replace(/\/+$/, "");
 const out = argument("out");
