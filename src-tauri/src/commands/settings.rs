@@ -184,7 +184,13 @@ impl Default for AppSettings {
             default_clean_mode: CleanMode::Trash,
             ignore_rules: String::new(),
             workspace_roots: Vec::new(),
-            appearance: Appearance::Light,
+            // Following the system, not a colour of our own choosing. A
+            // first launch on a machine set to dark otherwise painted dark
+            // from the pre-paint script, then turned white the instant these
+            // settings arrived — and stayed white every launch after, because
+            // the answer was written down. Nobody asked for light; it was the
+            // default that had never been reconsidered.
+            appearance: Appearance::System,
             workspace_view: WorkspaceView::default(),
             workspace_sidebar_hidden: false,
             insights_grain: default_grain(),
@@ -366,7 +372,10 @@ mod tests {
     fn defaults_are_safe() {
         let settings = AppSettings::default();
         assert_eq!(settings.default_clean_mode, CleanMode::Trash);
-        assert_eq!(settings.appearance, Appearance::Light);
+        // Not a colour. A default of `Light` is a decision taken on behalf of
+        // somebody whose machine already states a preference, and it announced
+        // itself as a white flash over an app that had just painted dark.
+        assert_eq!(settings.appearance, Appearance::System);
     }
 
     /// The two background defaults are on, and neither is destructive: one
