@@ -54,13 +54,17 @@ workflow passes them through already; they are simply absent.
 
 ## Publishing
 
-```bash
-# 1. Bump both, and keep them equal — the manifest is built from tauri.conf.json
-#    and the app reports package.json. A mismatch means the badge offers a
-#    version the About screen says is already installed.
-#      package.json            "version"
-#      src-tauri/tauri.conf.json  "version"
+Three files carry the version and all three must agree:
 
+- `package.json`
+- `src-tauri/tauri.conf.json` — the manifest is built from this one
+- `src-tauri/Cargo.toml`
+
+Drift here is not visible from outside: the badge would offer a version the
+About screen says is already installed, which reads as the updater being
+broken. The release workflow checks them before it builds anything.
+
+```bash
 git commit -am "release: 0.1.2"
 git tag v0.1.2
 git push origin master --tags

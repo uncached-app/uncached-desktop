@@ -106,6 +106,23 @@ jobs:
       # release runner's — accept the same licences. The secret exists only to
       # override it, and demanding one would fail every release over a value
       # that is already correct.
+      # Three files carry the version and all three must agree. The manifest is
+      # built from tauri.conf.json, the binary reports it, and Cargo stamps it —
+      # so a drift means the update badge offering a version the About screen
+      # says is already installed, which is unfalsifiable from the outside and
+      # looks like the updater being broken.
+      - name: Require one version, in three places
+        shell: bash
+        run: |
+          conf=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          pkg=$(node -p "require('./package.json').version")
+          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' src-tauri/Cargo.toml | head -1)
+          echo "tauri.conf.json=$conf  package.json=$pkg  Cargo.toml=$crate"
+          if [ "$conf" != "$pkg" ] || [ "$conf" != "$crate" ]; then
+            echo "These must be the same version." >&2
+            exit 1
+          fi
+
       - name: Require a licence public key
         shell: bash
         env:
