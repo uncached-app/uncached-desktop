@@ -52,6 +52,29 @@ Apple and Windows signing add `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
 `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`. The
 workflow passes them through already; they are simply absent.
 
+## There is no CI
+
+This workflow is the only one. Nothing checks a push, so the checks live where
+you are:
+
+```bash
+pnpm test                                   # 178 tests
+npx tsc --noEmit
+cd src-tauri && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check
+```
+
+**Those only cover the platform you are on.** Two bugs shipped this way already
+— a lifetime error in `tray.rs` and a pair of key tests asserting the macOS
+rule — both invisible from a Mac and both found by a build that cost four
+platforms to run. `cargo clippy --target x86_64-unknown-linux-gnu` and
+`--target x86_64-pc-windows-msvc` check the other two without leaving your
+machine, and are worth running before a tag. They work because checking does
+not link.
+
+For the Tauri crate, whose Linux build needs system libraries a Mac does not
+have, the same thing is done by inverting a `cfg` locally and compiling. Less
+tidy, and still cheaper than finding out on a release runner.
+
 ## Publishing
 
 Three files carry the version and all three must agree:
