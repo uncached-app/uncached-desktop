@@ -35,6 +35,27 @@ use commands::workspace::{
     normalize_workspace_roots, preview_maintenance, scan_workspace_index,
 };
 
+/// The login item, named rather than inherited.
+///
+/// Left alone the entry takes `package_info().name`, which falls back to the
+/// Cargo crate name — so Windows listed it as "uncached", lower case, in a
+/// system screen beside every other application spelled the way its makers
+/// spell it.
+///
+/// `macos_launcher` exists only on macOS: the field behind it carries the same
+/// `cfg`, so calling it anywhere else does not compile. Shadowed rather than
+/// written as two whole builders, so the shared half cannot drift.
+fn autostart<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    let builder = tauri_plugin_autostart::Builder::new()
+        .arg(tray::MINIMIZED_FLAG)
+        .app_name("Uncached");
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.macos_launcher(tauri_plugin_autostart::MacosLauncher::LaunchAgent);
+
+    builder.build()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -49,18 +70,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         // The login item launches with `--minimized`, so a start the user did
         // not ask for never puts a window in front of them.
-        .plugin(
-            tauri_plugin_autostart::Builder::new()
-                .macos_launcher(tauri_plugin_autostart::MacosLauncher::LaunchAgent)
-                .arg(tray::MINIMIZED_FLAG)
-                // Named here rather than inherited. Left alone the entry takes
-                // `package_info().name`, which falls back to the Cargo crate
-                // name — so Windows listed the login item as "uncached",
-                // lowercase, in a system screen beside every other application
-                // spelled the way its makers spell it.
-                .app_name("Uncached")
-                .build(),
-        )
+        .plugin(autostart())
         // Verified once, before anything can ask what the plan is. A licence
         // that no longer holds leaves the app on Free rather than refusing to
         // start: losing Pro is recoverable, a window that will not open is not.
