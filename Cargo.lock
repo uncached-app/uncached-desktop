@@ -4829,6 +4829,7 @@ dependencies = [
 [[package]]
 name = "uncached-core"
 version = "0.1.0"
+source = "git+ssh://git@github.com/uncached-app/uncached-core.git?rev=b7bc855d65a6a969f27db99dea128e895a91919e#b7bc855d65a6a969f27db99dea128e895a91919e"
 dependencies = [
  "dunce",
  "globset",

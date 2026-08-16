@@ -9,6 +9,27 @@ const SETTLE = 8000;
 /** How often a window left open asks again. */
 const AGAIN = 6 * 60 * 60 * 1000;
 
+/**
+ * How soon a failed check is tried again.
+ *
+ * The first attempt lands eight seconds after launch, which on a laptop is
+ * routinely before the network is up. One attempt and then six hours of
+ * silence means an app opened at the start of the day never mentions an update
+ * all morning — and says nothing about why, because a failed check is
+ * deliberately quiet.
+ */
+const RETRY = 45 * 1000;
+
+/**
+ * How many times in a row that is worth doing.
+ *
+ * Without a cap, a machine with no network retries every forty-five seconds for
+ * as long as the window is open — an app quietly hammering a CDN because nobody
+ * bounded a loop. After these, it waits for the ordinary interval or for the
+ * window to come back, both of which are cheap and both of which are enough.
+ */
+const RETRIES = 3;
+
 export type UpdateStage = "idle" | "checking" | "available" | "downloading" | "ready" | "failed";
 
 export type UpdateState = {
@@ -54,11 +75,16 @@ export function useUpdate({ busy }: { busy: boolean }): UpdateState {
   // Held rather than stored: it carries a native handle, and re-rendering on it
   // would say nothing the stage does not already say.
   const pending = useRef<Update | null>(null);
+  /** When the last attempt was made, so returning to the window can decide. */
+  const lastTried = useRef(0);
+  /** Consecutive failures, reset by anything that works. */
+  const failures = useRef(0);
   const busyNow = useRef(busy);
   busyNow.current = busy;
 
   const run = useCallback(async (byHand = false) => {
     if (!isTauri()) return;
+    lastTried.current = Date.now();
     setAsked(byHand);
     setProblem(null);
     setStage("checking");
@@ -66,10 +92,12 @@ export function useUpdate({ busy }: { busy: boolean }): UpdateState {
       const update = await check();
       if (!update) {
         pending.current = null;
+        failures.current = 0;
         setStage("idle");
         return;
       }
       pending.current = update;
+      failures.current = 0;
       setVersion(update.version);
       setNotes(update.body ?? null);
       setStage("available");
@@ -78,6 +106,7 @@ export function useUpdate({ busy }: { busy: boolean }): UpdateState {
       // firewall, a plane, a CDN having a bad day — and it is only worth a
       // sentence where somebody went looking. It never reaches the workspace.
       pending.current = null;
+      failures.current += 1;
       setProblem(describe(error));
       setStage("failed");
     } finally {
@@ -125,6 +154,35 @@ export function useUpdate({ busy }: { busy: boolean }): UpdateState {
       clearInterval(again);
     };
   }, [run]);
+
+  // A failed check is tried again soon rather than in six hours. Eight seconds
+  // after launch is often before the network is up, and the window that misses
+  // it is the whole morning.
+  useEffect(() => {
+    if (stage !== "failed" || failures.current >= RETRIES) return;
+    const soon = setTimeout(() => void run(), RETRY);
+    return () => clearTimeout(soon);
+  }, [stage, run]);
+
+  // And when the window comes back, which is the moment a laptop that was shut
+  // has a network again. Only after a failure or a long silence — returning to
+  // a window is not a request for news, and asking every time would make it
+  // one.
+  useEffect(() => {
+    if (!isTauri()) return;
+    function onFocus() {
+      const quiet = Date.now() - lastTried.current;
+      // A failure that has used up its retries is exactly the case a returning
+      // window should answer: the reason it failed was usually that there was
+      // no network, and there is one now.
+      if (stage === "failed" || quiet > AGAIN) {
+        failures.current = 0;
+        void run();
+      }
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [stage, run]);
 
   return {
     stage,
