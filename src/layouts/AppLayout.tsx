@@ -10,6 +10,7 @@ import { Titlebar } from "../components/layout/Titlebar";
 import { SettingsPanel } from "../components/settings/SettingsPanel";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useUpdate } from "../hooks/useUpdate";
+import { UpdateToast } from "../components/layout/UpdateToast";
 import { useNativeMenu } from "../hooks/useNativeMenu";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { useWindowFill } from "../hooks/useWindowFill";
@@ -48,9 +49,8 @@ export function AppLayout({
   // Gated on the same signal the workspace watcher refuses on. Replacing the
   // binary under a running cleanup is the one way this feature could break
   // something that matters.
-  const update = useUpdate({
-    busy: flow.scanning || flow.cleaningTargetIds.size > 0,
-  });
+  const busy = flow.scanning || flow.cleaningTargetIds.size > 0;
+  const update = useUpdate({ busy });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteProject, setPaletteProject] = useState<WorkspaceProject | null>(null);
   useSplashScreen(!settings.loading && listenersReady);
@@ -106,6 +106,8 @@ export function AppLayout({
         </div>
         <ModuleBar activeModule={activeModule} onChange={onModuleChange} proEnabled={proEnabled} />
       </div>
+      <UpdateToast update={update} busy={busy} />
+
       <SettingsPanel open={settingsOpen} onClose={() => onSettingsOpenChange(false)} onLicenseChange={onLicenseChange} proEnabled={proEnabled} update={update} {...settings} />
       <CommandPalette
         open={paletteOpen}
