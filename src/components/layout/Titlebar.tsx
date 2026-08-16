@@ -74,18 +74,23 @@ export function Titlebar({
       className={`relative flex h-12 shrink-0 items-center border-b border-forest-800 bg-forest-950 px-4 select-none ${isMac ? "justify-start gap-5" : "justify-between"}`}
     >
       {isMac && <WindowControls isMac={isMac} focused={focused} maximized={maximized} minimize={minimize} toggleMaximize={toggleMaximize} close={close} />}
-      {!isMac && <div className="order-1">
+      {/* Everything that is only drawn is transparent to the pointer, so the
+          header underneath keeps receiving it. Tauri decides a drag from the
+          element under the cursor and children do not inherit the attribute, so
+          anything painted on top of the bar is a patch the window cannot be
+          dragged by — which was most of the bar. */}
+      {!isMac && <div className="pointer-events-none order-1">
         <img src="/brand/UNCACHED-LOGO-LIGHT-NOBG.svg" alt="Uncached" className="theme-logo-light h-5 w-auto object-contain" />
         <img src="/brand/UNCACHED-LOGO-DARK-NOBG.svg" alt="" className="theme-logo-dark h-5 w-auto object-contain" />
       </div>}
-      {reclaiming ? <nav aria-label="Progress pipeline" className={`hidden items-center gap-1.5 text-xs sm:flex ${isMac ? "absolute left-1/2 order-2 -translate-x-1/2" : "order-1"}`} data-tauri-drag-region="false">
+      {reclaiming ? <nav aria-label="Progress pipeline" className={`pointer-events-none hidden items-center gap-1.5 text-xs sm:flex ${isMac ? "absolute left-1/2 order-2 -translate-x-1/2" : "order-1"}`}>
         {STEPS.map((label, index) => {
           const stepNumber = (index + 1) as Step;
           const isCurrent = step === stepNumber;
           const isPassed = step > stepNumber;
           return <span key={label} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ${isCurrent ? "bg-forest-800 text-sage-300" : isPassed ? "text-mist-300" : "text-mist-500"}`}><span className={`grid size-4 place-items-center rounded-full text-[10px] font-mono ${isCurrent ? "bg-sage-400 font-bold text-forest-950" : isPassed ? "bg-forest-800 text-sage-300" : "bg-forest-900 text-mist-500"}`}>{isPassed ? <Check size={10} strokeWidth={3} /> : stepNumber}</span>{label}</span>;
         })}
-      </nav> : <span className={`text-xs font-medium text-mist-500 ${isMac ? "absolute left-1/2 -translate-x-1/2" : "order-1"}`}>{title}</span>}
+      </nav> : <span className={`pointer-events-none text-xs font-medium text-mist-500 ${isMac ? "absolute left-1/2 -translate-x-1/2" : "order-1"}`}>{title}</span>}
       <div className={`flex items-center gap-1.5 ${isMac ? "order-4 ml-auto" : "order-2"}`} data-tauri-drag-region="false">
         <UpdateBadge update={update} />
         {isMac && <button type="button" onClick={onOpenSettings} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label="Open settings"><Settings size={16} /></button>}
