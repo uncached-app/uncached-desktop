@@ -431,10 +431,22 @@ jobs:
         if: github.event_name != 'push' && inputs.dry_run
         run: echo "::notice::Dry run — the manifest above was built and validated, and nothing was uploaded."
 
+      # Installers only. The updater bundles are not here on purpose: both macOS
+      # builds emit a file called `Uncached.app.tar.gz`, and a GitHub release is
+      # one flat list of assets — so attaching them collided, one overwrote the
+      # other, and the upload failed on the metadata update. The CDN keeps them
+      # apart under each target triple, and the updater reads them from there.
+      #
+      # What belongs on this page is what a person clicks.
       - name: Attach the installers to the GitHub release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*/*
+          files: |
+            release/*/*.dmg
+            release/*/*.exe
+            release/*/*.deb
+            release/*/*.rpm
+            release/*/*.AppImage
           draft: true
           generate_release_notes: true

@@ -26,6 +26,9 @@ export function ScanView({
   resetScan,
 }: ScanViewProps) {
   const reducedMotion = useReducedMotion();
+  // Counted rather than tracked separately: a target stops being pending the
+  // moment its size arrives, and that event is already being listened for.
+  const measured = targets.filter((target) => !target.sizePending).length;
 
   if (step !== 2) return null;
 
@@ -53,10 +56,20 @@ export function ScanView({
             : "Computing size on disk for each target."}
         </p>
 
+        {/* The left figure changes with the phase, because the walk's own
+            number stops the moment the walk does — and the measuring that
+            follows it is the long part. Leaving `directories checked` frozen
+            under the word "Measuring" is a screen insisting nothing is
+            happening while the disk is at its busiest, which on Windows lasts
+            long enough to look like a hang. */}
         <div className="mt-8 flex min-h-16 items-center justify-center gap-12 px-4 py-3 text-center">
           <div>
-            <strong className="block font-mono text-2xl font-medium tracking-tight text-sage-300">{progress?.directoriesScanned.toLocaleString() ?? "0"}</strong>
-            <span className="mt-1 block font-sans text-xs text-mist-500">directories checked</span>
+            <strong className="block font-mono text-2xl font-medium tracking-tight text-sage-300">
+              {scanning ? (progress?.directoriesScanned.toLocaleString() ?? "0") : measured}
+            </strong>
+            <span className="mt-1 block font-sans text-xs text-mist-500">
+              {scanning ? "directories checked" : "measured"}
+            </span>
           </div>
           <div>
             <strong className="block font-mono text-2xl font-medium tracking-tight text-sage-300">{targets.length}</strong>

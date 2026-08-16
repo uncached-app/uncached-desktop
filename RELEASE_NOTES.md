@@ -1,15 +1,13 @@
-## 0.1.1-alpha.5
+## 0.1.1-alpha.6
 
-An update check that could not reach the network used to give up for six hours
-and say nothing, because a failed check is deliberately quiet. The first one
-lands eight seconds after launch, which on a laptop is often before the network
-is up — so an app opened at the start of the day would never mention an update
-all morning. It now tries again shortly after, and when you come back to the
-window.
+Measuring a workspace was doing twice the work it needed to. It walked each
+project whole for its total, then walked every artifact directory again for its
+own figure — and in a typical project those directories are ninety-eight per
+cent of the files. They are now read once. On Windows, where a real-time
+scanner inspects every file as it is opened, that is the difference between
+seconds and minutes.
 
-The app icon's mark was small inside its plate, leaving white that macOS 26
-fills with its own material treatment. The mark is larger now; the plate and
-its position on Apple's grid are unchanged.
-
-On Windows the installer shows this app's artwork instead of the ones NSIS
-ships with.
+The scan screen also stopped freezing. The number it showed came from the
+directory walk, which finishes long before the measuring does, so it sat still
+under the word "Measuring" while the disk was at its busiest. It now counts
+what is actually being measured.

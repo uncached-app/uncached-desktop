@@ -687,7 +687,6 @@ fn measure_footprint(
     path: &Path,
     settings: &crate::commands::settings::AppSettings,
 ) -> Result<Footprint, String> {
-    let total = crate::filesystem::size::calculate_dir_size_report(path);
     // Same providers and exclusions as the Purge, so reclaimable matches what cleanup takes.
     let providers = crate::scanner::get_default_providers(settings);
     let cancelled = AtomicBool::new(false);
@@ -712,11 +711,12 @@ fn measure_footprint(
     );
 
     let mut footprint = Footprint {
-        total_bytes: total.bytes,
-        has_errors: total.errors > 0 || walk_incomplete,
+        has_errors: walk_incomplete,
         ..Footprint::default()
     };
     let mut by_category: Vec<(String, u64)> = Vec::new();
+    let artifact_paths: Vec<std::path::PathBuf> =
+        targets.iter().map(|(path, _)| path.clone()).collect();
 
     for (target_path, category) in targets {
         let size = crate::filesystem::size::calculate_dir_size_report(&target_path);
@@ -729,10 +729,33 @@ fn measure_footprint(
         }
     }
 
-    // Saturating: the two sizing passes disagree if a file vanishes between them.
-    footprint.source_bytes = footprint
-        .total_bytes
-        .saturating_sub(footprint.reclaimable_bytes);
+    // The rest of the project, without descending into anything already
+    // measured above. The artifacts are most of a project's files — 355 source
+    // files against 17,880 artifact ones in this very repository — and sizing
+    // the whole tree and then each artifact again walked those twice. On a warm
+    // macOS cache the difference is milliseconds; on Windows, where a real-time
+    // scanner inspects every file as it is opened, it is the difference between
+    // seconds and minutes.
+    //
+    // From the canonical root, because that is the spelling the traversal
+    // returned the artifact paths in — `/var` resolves to `/private/var` on
+    // macOS, and comparing one against the other matches nothing, so every
+    // artifact would be walked again and counted twice. The test caught exactly
+    // that.
+    let source = uncached_core::filesystem::directory_size_report_skipping(
+        &uncached_core::filesystem::canonical(path).unwrap_or_else(|_| path.to_path_buf()),
+        &artifact_paths,
+        &cancelled,
+    )
+    .map(|report| report.unwrap_or_default())
+    .unwrap_or_default();
+
+    footprint.source_bytes = source.bytes;
+    footprint.has_errors = footprint.has_errors || source.errors > 0;
+    // Added rather than subtracted. Taking reclaimable off a separately measured
+    // total meant two passes disagreeing whenever a file moved between them, and
+    // a saturating subtraction hid that as a zero.
+    footprint.total_bytes = source.bytes.saturating_add(footprint.reclaimable_bytes);
     by_category.sort_by_key(|(_, bytes)| std::cmp::Reverse(*bytes));
     footprint.by_category = by_category
         .into_iter()
