@@ -13,6 +13,7 @@ export type AppSettings = {
   detectPackageManagerCaches: boolean;
   detectAiToolCaches: boolean;
   detectEditorCaches: boolean;
+  detectXcodeData: boolean;
   rememberLastWorkspace: boolean;
   checkForUpdates: boolean;
   defaultCleanMode: CleanMode;

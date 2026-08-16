@@ -62,10 +62,14 @@ pub fn discovery_categories(
     if settings.detect_editor_caches {
         categories.push(uncached_core::Category::EditorCache);
     }
-    // Xcode's developer data is reached by the same probe but is not a tool
-    // cache the user opted into: it is the same category the workspace walk
-    // reports, and it follows the workspace rather than these switches.
-    categories.push(uncached_core::Category::XcodeDerivedData);
+    // Xcode's own directories: DerivedData, device support, the simulator
+    // store. This used to be added unconditionally on the grounds that it
+    // follows the workspace rather than a preference — but two of its entries
+    // can only be reported and never removed, and a row somebody can neither
+    // act on nor switch off is noise they are stuck with.
+    if settings.detect_xcode_data {
+        categories.push(uncached_core::Category::XcodeDerivedData);
+    }
     categories
 }
 
@@ -200,21 +204,32 @@ mod tests {
     }
 
     #[test]
-    fn discovery_follows_its_switches_and_xcode_follows_the_workspace() {
+    fn every_discovery_category_has_a_switch_that_reaches_it() {
         use uncached_core::Category as C;
         let all = super::discovery_categories(&AppSettings::default());
         assert!(all.contains(&C::PackageManagerCache));
         assert!(all.contains(&C::AiToolCache));
         assert!(all.contains(&C::EditorCache));
+        assert!(all.contains(&C::XcodeDerivedData));
 
         let reduced = super::discovery_categories(&AppSettings {
             detect_ai_tool_caches: false,
             ..Default::default()
         });
         assert!(!reduced.contains(&C::AiToolCache));
+
+        // Xcode used to be added whatever the settings said, described under
+        // the editor caches switch and unaffected by it. Two of its entries can
+        // only ever be reported, so that left rows nobody could act on or turn
+        // off — the shape of thing this assertion exists to stop coming back.
+        let no_xcode = super::discovery_categories(&AppSettings {
+            detect_xcode_data: false,
+            ..Default::default()
+        });
+        assert!(!no_xcode.contains(&C::XcodeDerivedData));
         assert!(
-            reduced.contains(&C::XcodeDerivedData),
-            "Xcode data is the workspace's category, not a tool cache switch"
+            no_xcode.contains(&C::EditorCache),
+            "one switch, one category"
         );
     }
 }

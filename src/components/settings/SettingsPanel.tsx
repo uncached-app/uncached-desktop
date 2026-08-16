@@ -588,9 +588,15 @@ function ScanningContent({
         />
         <SettingToggle
           label="Editor caches"
-          hint="Include VS Code, Xcode, and JetBrains workspace metadata caches."
+          hint="Include VS Code and JetBrains workspace metadata caches."
           checked={settings.detectEditorCaches}
           onChange={(value) => updateSettings({ detectEditorCaches: value })}
+        />
+        <SettingToggle
+          label="Xcode developer data"
+          hint="Include DerivedData, device support, and the simulator store. Some of these are reported but never removed."
+          checked={settings.detectXcodeData}
+          onChange={(value) => updateSettings({ detectXcodeData: value })}
         />
       </SettingsGroup>
       <p className="mt-4 text-xs leading-5 text-mist-500">

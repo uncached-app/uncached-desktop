@@ -44,6 +44,13 @@ pub struct AppSettings {
     pub detect_package_manager_caches: bool,
     pub detect_ai_tool_caches: bool,
     pub detect_editor_caches: bool,
+    /// Xcode's own directories: DerivedData, device support, the simulator.
+    ///
+    /// Its own switch rather than folded into the editor caches, which is where
+    /// it used to be described and never was. Turning those off left every
+    /// Xcode row in place, including the two that can only ever be reported —
+    /// a control that announced something it did not do.
+    pub detect_xcode_data: bool,
     pub remember_last_workspace: bool,
     pub check_for_updates: bool,
     pub default_clean_mode: CleanMode,
@@ -171,6 +178,7 @@ impl Default for AppSettings {
             detect_package_manager_caches: true,
             detect_ai_tool_caches: true,
             detect_editor_caches: true,
+            detect_xcode_data: true,
             remember_last_workspace: true,
             check_for_updates: true,
             default_clean_mode: CleanMode::Trash,

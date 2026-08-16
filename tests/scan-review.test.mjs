@@ -196,3 +196,18 @@ test("on free the plan still wins over the size order", () => {
     ["free-small", "pro-huge"],
   );
 });
+
+test("a target that cannot be removed is not offered as work", () => {
+  // Xcode's archives and the simulator store are reported and never touched.
+  // A row in a reclaim list with its control taken out reads as a feature that
+  // stopped halfway — worst of all at a few kilobytes, where the honest total
+  // it was there to protect is worth nothing.
+  const targets = [
+    { id: "keep", confidence: { level: "high" }, sizeBytes: 10 },
+    { id: "drop", confidence: { level: "high" }, sizeBytes: 999, cleanable: false },
+  ];
+  assert.deepEqual(
+    sortForListing(targets, true, "size").map((target) => target.id),
+    ["keep"],
+  );
+});

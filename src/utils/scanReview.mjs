@@ -57,9 +57,19 @@ const CONFIDENCE_ORDER = { review: 0, medium: 1, high: 2 };
  *
  * On Free the plan still wins over both. A list that opens on rows the user is
  * not allowed to act on reads as a paywall wearing a scan.
+ *
+ * And what cannot be removed is not listed. The catalogue reports two
+ * directories it will never touch — Xcode's archives, which hold the symbols
+ * that decode crashes from a release already in users' hands, and the simulator
+ * store, which holds whatever was installed inside it. Reporting them was meant
+ * to keep the total honest. In a list whose whole purpose is reclaiming, a row
+ * with the control taken out reads as a feature that stopped halfway, and it
+ * read that way hardest at six kilobytes, where the honest total is not worth
+ * anything. They remain in the scan, so nothing that counts them is now
+ * counting less; they are simply not offered as work.
  */
 export function sortForListing(targets, proEnabled, order = "confidence") {
-  return [...targets].sort((left, right) => {
+  return [...targets].filter((target) => target.cleanable !== false).sort((left, right) => {
     if (!proEnabled) {
       const byPlan = planRank(left) - planRank(right);
       if (byPlan !== 0) return byPlan;
