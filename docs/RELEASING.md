@@ -42,7 +42,7 @@ gh variable set R2_BUCKET --body "<the bucket behind cdn.uncached.app>"
 | --- | --- | --- |
 | `TAURI_SIGNING_PRIVATE_KEY` | secret | Bundles ship unsigned; every client refuses them |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | Empty string, because the key was generated without one |
-| `UNCACHED_LICENSE_PUBLIC_KEY` | secret | The build verifies no licence at all — every activation fails, silently, for somebody who has just paid. The workflow refuses to build without it |
+| `UNCACHED_LICENSE_PUBLIC_KEY` | secret, **optional** | Not needed. The key is committed in `src-tauri/.cargo/config.toml`, where a public key belongs — it verifies signatures and unlocks nothing, and keeping it there is what makes a laptop build and a release build accept the same licences. Set this secret only to override that. The workflow refuses to build when **neither** exists, because such a build unlocks nothing for anybody and says so nowhere |
 | `UNCACHED_CORE_DEPLOY_KEY` | secret | The private core cannot be checked out |
 | `CLOUDFLARE_API_TOKEN` | secret | Nothing reaches R2. Needs **Object Read & Write** on that bucket and nothing else |
 | `CLOUDFLARE_ACCOUNT_ID` | secret | Same |

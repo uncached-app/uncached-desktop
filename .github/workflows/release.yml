@@ -95,18 +95,29 @@ jobs:
           path: uncached-core
           fetch-depth: 0
 
-      # Without this the build succeeds and produces an app that can verify no
-      # licence at all: every activation fails, silently, in the hands of
-      # somebody who has just paid. Checked before anything is compiled.
-      - name: Require the licence public key
+      # A build without this compiles, runs, and can verify no licence at all:
+      # every activation fails, silently, in the hands of somebody who has just
+      # paid. So it is checked before anything is compiled — but checked for
+      # being *present*, not for coming from a secret.
+      #
+      # It normally comes from `[env]` in src-tauri/.cargo/config.toml, where it
+      # is committed on purpose: a public key verifies signatures and unlocks
+      # nothing, and keeping it there is what makes every build — a laptop's, a
+      # release runner's — accept the same licences. The secret exists only to
+      # override it, and demanding one would fail every release over a value
+      # that is already correct.
+      - name: Require a licence public key
         shell: bash
         env:
-          UNCACHED_LICENSE_PUBLIC_KEY: ${{ secrets.UNCACHED_LICENSE_PUBLIC_KEY }}
+          OVERRIDE: ${{ secrets.UNCACHED_LICENSE_PUBLIC_KEY }}
         run: |
-          if [ -z "$UNCACHED_LICENSE_PUBLIC_KEY" ]; then
-            echo "Missing Actions secret UNCACHED_LICENSE_PUBLIC_KEY; a build without it can unlock nothing." >&2
+          committed=$(sed -n 's/^UNCACHED_LICENSE_PUBLIC_KEY *= *"\(.*\)"/\1/p' src-tauri/.cargo/config.toml)
+          if [ -z "$OVERRIDE" ] && [ -z "$committed" ]; then
+            echo "No licence public key: none in src-tauri/.cargo/config.toml and no UNCACHED_LICENSE_PUBLIC_KEY secret." >&2
+            echo "A build without one unlocks nothing, for anybody, and says so nowhere." >&2
             exit 1
           fi
+          echo "Licence key source: ${OVERRIDE:+secret override}${OVERRIDE:-src-tauri/.cargo/config.toml}"
 
       - name: Install Linux Tauri dependencies
         if: startsWith(matrix.os, 'ubuntu')
