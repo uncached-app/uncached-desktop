@@ -564,7 +564,7 @@ impl ScanService {
                     "Scan root must be a real directory".to_string(),
                 ));
             }
-            canonical.push(scan_path(&std::fs::canonicalize(root_path)?));
+            canonical.push(scan_path(&dunce::canonicalize(root_path)?));
         }
         // Nested roots collapse into the outermost before the plan limit
         // applies, so a redundant folder never costs the user a slot.

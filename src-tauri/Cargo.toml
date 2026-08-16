@@ -19,6 +19,9 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["macos-private-api", "tray-icon", "image-png"] }
+# See uncached-core's Cargo.toml: on Windows `fs::canonicalize` returns the
+# extended-length form, and that prefix reaches the screen beside every project.
+dunce = "1"
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -45,4 +48,4 @@ base64 = "0.22"
 # decide what gets compiled — CI builds whatever `uncached-core` main is at. It
 # decides what a build without that sibling would resolve, and it is what the
 # drift warning compares against before a release.
-uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "309543ea12caf88ac75ca3482d1aabef3ce8dee8", package = "uncached-core" }
+uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "b88c214a0a576fd4a05fc7f8c97b5e24d02c5835", package = "uncached-core" }

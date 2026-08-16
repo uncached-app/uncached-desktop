@@ -331,7 +331,7 @@ fn inside_a_root(path: &Path, roots: &[PathBuf]) -> bool {
 /// interface goes through this one function, so "inside the workspace" has a
 /// single definition and a second command cannot quietly get a weaker one.
 pub(crate) fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, String> {
-    let requested = std::fs::canonicalize(path).map_err(|_| "That folder is gone".to_string())?;
+    let requested = dunce::canonicalize(path).map_err(|_| "That folder is gone".to_string())?;
     if !requested.is_dir() {
         return Err("That is not a folder".to_string());
     }
@@ -339,7 +339,7 @@ pub(crate) fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, String> 
     let roots: Vec<PathBuf> = settings
         .workspace_roots
         .iter()
-        .filter_map(|root| std::fs::canonicalize(root).ok())
+        .filter_map(|root| dunce::canonicalize(root).ok())
         .collect();
 
     if inside_a_root(&requested, &roots) {

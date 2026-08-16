@@ -48,7 +48,7 @@ pub fn is_safe_to_delete(path: &Path) -> bool {
         return false;
     }
 
-    let Ok(canonical) = fs::canonicalize(path) else {
+    let Ok(canonical) = dunce::canonicalize(path) else {
         return false;
     };
     if canonical.parent().is_none() || is_critical_directory(&canonical) {
@@ -67,7 +67,7 @@ pub fn canonicalize_target(path: &Path) -> NukeResult<PathBuf> {
         ));
     }
 
-    let canonical = fs::canonicalize(path)?;
+    let canonical = dunce::canonicalize(path)?;
     if !is_safe_to_delete(&canonical) {
         return Err(NukeError::PermissionDenied(
             "Refusing to delete unsafe path".to_string(),
@@ -77,10 +77,10 @@ pub fn canonicalize_target(path: &Path) -> NukeResult<PathBuf> {
 }
 
 pub fn is_within_root(root: &Path, target: &Path) -> bool {
-    let Ok(canonical_root) = fs::canonicalize(root) else {
+    let Ok(canonical_root) = dunce::canonicalize(root) else {
         return false;
     };
-    let Ok(canonical_target) = fs::canonicalize(target) else {
+    let Ok(canonical_target) = dunce::canonicalize(target) else {
         return false;
     };
     canonical_target != canonical_root && canonical_target.starts_with(canonical_root)

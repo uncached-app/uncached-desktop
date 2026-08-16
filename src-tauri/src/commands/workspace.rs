@@ -104,7 +104,7 @@ impl Skipped {
 pub async fn normalize_workspace_roots(paths: Vec<String>) -> Vec<String> {
     let canonical = paths
         .into_iter()
-        .map(|path| Path::new(&path).canonicalize().unwrap_or(path.into()))
+        .map(|path| dunce::canonicalize(Path::new(&path)).unwrap_or(path.into()))
         .collect();
     crate::scanner::outermost_roots(canonical)
         .into_iter()
@@ -126,8 +126,7 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String>
     }
     let mut canonical = Vec::new();
     for path in paths {
-        let root = Path::new(path)
-            .canonicalize()
+        let root = dunce::canonicalize(Path::new(path))
             .map_err(|error| format!("Cannot open workspace: {error}"))?;
         if !root.is_dir() {
             return Err("Workspace path is not a directory".to_string());

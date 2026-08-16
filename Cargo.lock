@@ -4807,6 +4807,7 @@ version = "0.1.1-alpha.3"
 dependencies = [
  "base64 0.22.1",
  "chrono",
+ "dunce",
  "ed25519-dalek",
  "jwalk",
  "notify",
@@ -4828,7 +4829,9 @@ dependencies = [
 [[package]]
 name = "uncached-core"
 version = "0.1.0"
+source = "git+ssh://git@github.com/uncached-app/uncached-core.git?rev=b88c214a0a576fd4a05fc7f8c97b5e24d02c5835#b88c214a0a576fd4a05fc7f8c97b5e24d02c5835"
 dependencies = [
+ "dunce",
  "globset",
  "jwalk",
  "libc",
