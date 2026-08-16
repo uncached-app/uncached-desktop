@@ -37,7 +37,13 @@ fn tray_icon(app: &AppHandle) -> tauri::image::Image<'static> {
     }
     #[cfg(not(target_os = "macos"))]
     {
-        app.default_window_icon().cloned().expect("bundled icon")
+        // `to_owned` rather than `cloned` alone: `default_window_icon` borrows
+        // from the handle, and a clone of a borrow keeps that lifetime. The
+        // tray outlives the call, so the icon has to stop borrowing.
+        app.default_window_icon()
+            .cloned()
+            .expect("bundled icon")
+            .to_owned()
     }
 }
 
