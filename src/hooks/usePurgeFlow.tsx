@@ -146,16 +146,25 @@ export function PurgeFlowProvider({
     onChanged: () => void index.scanRoots(roots),
   });
 
-  // Changing the folders while results are on screen re-reads both of them. The
-  // artifact list authorizes deletion, so it can never outlive the folders it
-  // was built from; step 1 is excluded because it has its own scan button.
+  // Changing the folders re-reads them. The artifact list authorizes deletion,
+  // so it can never outlive the folders it was built from.
   const rootsKey = useRef<string | null>(null);
   useEffect(() => {
     const key = roots.join("\n");
     const first = rootsKey.current === null;
     if (rootsKey.current === key) return;
     rootsKey.current = key;
-    if (first || roots.length === 0 || flow.step === 1) return;
+    if (roots.length === 0) return;
+    // On step 1 only the projects are read. Adding a folder used to set it and
+    // ask for nothing, so Maintenance — which needs the index and never runs a
+    // scan — sat on "Reading your folders" waiting for a read nobody started.
+    // Discovery is milliseconds; the artifact scan is the expensive half and
+    // stays behind the button.
+    if (flow.step === 1) {
+      void index.scanRoots(roots);
+      return;
+    }
+    if (first) return;
     // `startScan` re-indexes the projects as well, so this covers both readings.
     void flow.startScan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
