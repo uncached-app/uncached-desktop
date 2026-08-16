@@ -41,9 +41,13 @@ const PLATFORMS = {
     key: "linux-x86_64",
     updates: /\.AppImage(\.tar\.gz)?$/,
   },
+  // Windows updates from the NSIS installer itself. Tauri 2 signs
+  // `-setup.exe` and reports only that pair as artifacts; the `.nsis.zip`
+  // beside it is Tauri 1's shape and is accepted so a bundler change fails
+  // loudly rather than dropping Windows from the manifest.
   "x86_64-pc-windows-msvc": {
     key: "windows-x86_64",
-    updates: /\.(nsis|msi)\.zip$/,
+    updates: /(-setup\.exe|\.(nsis|msi)\.zip)$/,
   },
 };
 

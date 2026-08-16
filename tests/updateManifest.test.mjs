@@ -44,9 +44,9 @@ const COMPLETE = {
     "Uncached_0.1.1-alpha.3_amd64.deb": "sig-deb",
     "Uncached-0.1.1-alpha.3-1.x86_64.rpm": "sig-rpm",
   },
+  // Tauri 2 signs the installer itself and reports exactly this pair.
   "x86_64-pc-windows-msvc": {
-    "Uncached_0.1.1-alpha.3_x64-setup.nsis.zip": "sig-windows",
-    "Uncached_0.1.1-alpha.3_x64-setup.exe": null,
+    "Uncached_0.1.1-alpha.3_x64-setup.exe": "sig-windows",
   },
 };
 
@@ -122,8 +122,8 @@ test("two signed bundles for one platform is a question the script may not answe
   const ambiguous = {
     ...COMPLETE,
     "x86_64-pc-windows-msvc": {
-      "Uncached_0.1.1-alpha.3_x64-setup.nsis.zip": "a",
-      "Uncached_0.1.1-alpha.3_x64_en-US.msi.zip": "b",
+      "Uncached_0.1.1-alpha.3_x64-setup.exe": "a",
+      "Uncached_0.1.1-alpha.3_x64-setup.nsis.zip": "b",
     },
   };
   const said = refuses(staged(ambiguous));
@@ -157,5 +157,5 @@ test("an installer with no signature is ignored rather than mistaken for one", (
   // and not in the manifest.
   const manifest = build(staged(COMPLETE));
   assert.match(manifest.platforms["darwin-aarch64"].url, /Uncached\.app\.tar\.gz$/);
-  assert.match(manifest.platforms["windows-x86_64"].url, /\.nsis\.zip$/);
+  assert.match(manifest.platforms["windows-x86_64"].url, /-setup\.exe$/);
 });

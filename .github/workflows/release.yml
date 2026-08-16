@@ -248,13 +248,30 @@ jobs:
           # `Uncached.app` is among them and is a directory: the thing that
           # updates is its tarball, and the thing a visitor downloads is the
           # dmg. Only files are carried.
-          printf '%s' "$ARTIFACTS" | jq -r '.[]' | while read -r path; do
-            # The bundler reports Windows paths with backslashes, and this runs
-            # under Git Bash there, where `D:\a\x` is not a path any test
-            # succeeds on. Every one would be skipped as "not a file" and the
-            # job would fail claiming nothing was built.
-            path="${path//\\//}"
-            [ -f "$path" ] || continue
+          # `cygpath` rather than a substitution of my own. The bundler reports
+          # `D:\a\x` on Windows and this runs under Git Bash, which wants
+          # `/d/a/x`; converting it by hand is guessing at a translation the
+          # platform ships a tool for, and a guess that is subtly wrong here
+          # skips every artifact and reports that nothing was built.
+          #
+          # Each skip says why. A previous attempt failed with an empty
+          # directory and no explanation, which left the cause to be inferred
+          # from a log that had not been asked to record it.
+          printf '%s' "$ARTIFACTS" | jq -r '.[]' | while IFS= read -r reported; do
+            path=$(printf '%s' "$reported" | tr -d '\r')
+            if command -v cygpath >/dev/null 2>&1; then
+              path=$(cygpath -u "$path")
+            fi
+            if [ ! -e "$path" ]; then
+              echo "::warning::not on disk, skipped: $reported -> $path"
+              continue
+            fi
+            # A macOS build reports `Uncached.app`, which is a directory. What
+            # updates is its tarball; the directory is the thing the tarball is
+            # made of.
+            if [ -d "$path" ]; then
+              continue
+            fi
             cp "$path" "$destination/"
           done
 
