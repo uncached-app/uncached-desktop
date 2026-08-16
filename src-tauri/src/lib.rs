@@ -79,6 +79,7 @@ pub fn run() {
             let handle = app.handle();
             commands::license::install(handle);
             tray::install(handle)?;
+            tray::hide_dock_on_silent_start(handle);
             tray::watch_scans(handle);
             commands::settings::apply_autostart(handle);
             scheduler::install(handle);

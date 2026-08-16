@@ -47,6 +47,30 @@ fn tray_icon(app: &AppHandle) -> tauri::image::Image<'static> {
     }
 }
 
+/// Whether the app holds a Dock tile.
+///
+/// Closing hid the window and left the tile behind, so an app that had been put
+/// away was still occupying the Dock — with nothing to click it back open with,
+/// because the icon of a hidden app opens nothing. Two places to reopen from and
+/// only one of them working is exactly the split `show_main_window` exists to
+/// avoid.
+///
+/// macOS only, and deliberately so. On Windows and Linux hiding a window already
+/// takes it out of the taskbar; there is nothing left to withdraw.
+///
+/// This is not ⌘H. Hide is the system putting a running app aside and it keeps
+/// its tile, which is the platform's behaviour and not ours to reinterpret.
+fn set_dock_visible(app: &AppHandle, visible: bool) {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = app.set_dock_visibility(visible);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (app, visible);
+    }
+}
+
 /// Puts the window back in front, from wherever the user asked for it.
 ///
 /// Every way back into a hidden app goes through here — the tray icon, the tray
@@ -56,9 +80,24 @@ pub fn show_main_window(app: &AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
+    // Before the window, not after. The tile is what the window is restored
+    // into, and asking for focus while the app is still an accessory gives the
+    // key window to whatever was in front.
+    set_dock_visible(app, true);
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
+}
+
+/// Takes the app out of the Dock, for a start nobody watched.
+///
+/// The login item launches with `--minimized` and the window is never shown, so
+/// a tile would announce an app the user did not open and cannot open by
+/// clicking it.
+pub fn hide_dock_on_silent_start(app: &AppHandle) {
+    if starts_hidden() {
+        set_dock_visible(app, false);
+    }
 }
 
 /// Builds the tray icon and its menu.
@@ -129,6 +168,9 @@ pub fn intercept_close(app: &AppHandle, event: &WindowEvent) -> bool {
     }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
+        // And the tile with it. What is left is the menu bar, which is the
+        // whole point of a close that does not quit.
+        set_dock_visible(app, false);
     }
     true
 }
