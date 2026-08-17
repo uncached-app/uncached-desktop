@@ -1,10 +1,11 @@
 use crate::workspace::git::{self, GitContext};
 use crate::workspace::maintenance;
 use crate::workspace::restore;
+use crate::workspace::running;
 use crate::workspace::schedule;
 use crate::workspace::verdict::{self, ActivityState, Verdict};
 use serde::Serialize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -471,6 +472,19 @@ pub async fn measure_project_footprint(
     tauri::async_runtime::spawn_blocking(move || measure_footprint(Path::new(&path), &settings))
         .await
         .map_err(|error| error.to_string())?
+}
+
+/// Which of these projects has a process working inside it right now.
+///
+/// One listing answers for the whole workspace, so this is asked for the batch
+/// rather than per project. Re-asked whenever the workspace is read again: a
+/// dev server started a minute ago is exactly the case this exists for.
+#[tauri::command]
+pub async fn running_projects(paths: Vec<String>) -> Result<Vec<running::RunningProject>, String> {
+    let projects: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
+    tauri::async_runtime::spawn_blocking(move || running::running_projects(&projects))
+        .await
+        .map_err(|error| error.to_string())
 }
 
 /// One project's inputs to the verdict, on its way across the boundary.

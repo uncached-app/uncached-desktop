@@ -214,11 +214,60 @@ input {
 }
 
 button {
-  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease,
+    color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
 button:active:not(:disabled) {
   transform: translateY(1px) scale(0.99);
+}
+
+/* Changing theme, for a quarter of a second.
+
+   A theme swap is twenty-one custom properties changing at once, and custom
+   properties do not transition — so every surface, border and glyph in the
+   window jumps to its new colour on the same frame. Previewing a theme by
+   arrowing down a list made that a strobe.
+
+   The transition therefore goes on the properties that *read* the tokens, and
+   only while the swap is happening: `useTheme` sets this attribute and takes it
+   off again. `!important` because most of these elements carry a transition of
+   their own for hover, and for these few frames this one is the subject.
+
+   The reduced-motion block at the end of this file collapses it, like
+   everything else here. */
+:root[data-theme-swapping] *,
+:root[data-theme-swapping] *::before,
+:root[data-theme-swapping] *::after {
+  transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease,
+    fill 220ms ease, stroke 220ms ease, box-shadow 220ms ease, outline-color 220ms ease !important;
+}
+
+/* Panels arrive, rather than appearing.
+
+   Forty milliseconds of scale is not decoration: a dialog that is simply there
+   on the next frame reads as a redraw, and one that grows a hair from where it
+   was opened reads as a thing that opened. Enter only — these unmount on close,
+   and an exit animation would need every one of them to hold its own removal. */
+@keyframes ui-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+}
+
+@keyframes ui-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.ui-rise {
+  animation: ui-rise 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-fade {
+  animation: ui-fade 140ms ease-out;
 }
 
 .traffic-light {

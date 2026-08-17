@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CommandPalette } from "../components/shared/CommandPalette";
 import { CommandPaletteContext } from "../hooks/useCommandPalette";
 import { ModuleBar } from "../components/layout/ModuleBar";
+import { ResizeHandles } from "../components/layout/ResizeHandles";
 import { Screen } from "../components/layout/Screen";
 import { Titlebar } from "../components/layout/Titlebar";
 import { SettingsPanel } from "../components/settings/SettingsPanel";
@@ -115,6 +116,7 @@ export function AppLayout({
           onOpenSettings={isMac ? undefined : () => onSettingsOpenChange(true)}
         />
       </div>
+      <ResizeHandles />
       <UpdateToast update={update} busy={busy} onOpenUpdate={() => setUpdateOpen(true)} />
       <UpdateDialog update={update} open={updateOpen} onClose={() => setUpdateOpen(false)} />
 

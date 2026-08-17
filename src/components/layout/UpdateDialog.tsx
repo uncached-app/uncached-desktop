@@ -86,6 +86,9 @@ export function UpdateDialog({
           className="fixed inset-0 z-50 grid place-items-center bg-forest-950/70 p-4 backdrop-blur-xs select-none"
           onClick={onClose}
         >
+          {/* A covered drag region is not one; without this the window cannot
+              be moved while the dialog is open. */}
+          <div data-tauri-drag-region className="absolute inset-x-0 top-0 h-12" />
           <motion.section
             role="dialog"
             aria-modal="true"

@@ -28,6 +28,7 @@ export function Select({
   className = "",
   size = "md",
   icon,
+  onPreview,
 }: {
   value: string;
   options: SelectOption[];
@@ -38,6 +39,15 @@ export function Select({
   className?: string;
   size?: "sm" | "md";
   icon?: React.ReactNode;
+  /**
+   * The option the cursor is resting on, for a value worth showing before it is
+   * chosen. `null` when the list closes without a choice, which is the caller's
+   * cue to put back whatever was there.
+   *
+   * Driven by the highlight rather than by the pointer, so the arrow keys
+   * preview exactly as hovering does — they are the same cursor.
+   */
+  onPreview?: (value: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -104,13 +114,46 @@ export function Select({
     document.getElementById(`${id}-${active}`)?.scrollIntoView({ block: "nearest" });
   }, [open, active, id]);
 
+  // Held in a ref so the effect below does not re-run whenever the caller
+  // happens to pass a new function, which is every render.
+  const preview = useRef(onPreview);
+  preview.current = onPreview;
+  /** Whether the list is closing because something was picked. */
+  const chose = useRef(false);
+
+  const previewing = open ? (options[active]?.value ?? null) : null;
+  useEffect(() => {
+    if (previewing === null && chose.current) {
+      chose.current = false;
+      return;
+    }
+    preview.current?.(previewing);
+  }, [previewing]);
+
+  // Closing the panel this lives in unmounts the whole thing, and a preview
+  // nobody took back would leave the app wearing a theme nobody chose.
+  useEffect(() => () => preview.current?.(null), []);
+
   function show() {
     const at = options.findIndex((option) => option.value === value);
     setActive(at < 0 ? 0 : at);
     setOpen(true);
+    // Taken, not assumed.
+    //
+    // On macOS, clicking a button does not focus it — WebKit follows the
+    // platform convention, and Full Keyboard Access is the setting that changes
+    // it. Every key this control listens for is bound to the trigger, so a list
+    // opened with the mouse was one the arrow keys could not reach: the events
+    // were going to the body. Asking for focus here is what makes the keyboard
+    // half of this control exist on a Mac.
+    triggerRef.current?.focus();
   }
 
   function choose(option: SelectOption) {
+    // The preview does not have to be taken back: the value it was showing is
+    // now the value. Clearing it here would repaint the old one for as long as
+    // saving takes, which is a flash of the theme the user just replaced.
+    chose.current = true;
     onChange(option.value);
     setOpen(false);
     triggerRef.current?.focus();
@@ -156,12 +199,21 @@ export function Select({
         aria-activedescendant={open ? `${id}-${active}` : undefined}
         onClick={() => (open ? setOpen(false) : show())}
         onKeyDown={onKey}
-        className={`flex items-center justify-between gap-2 rounded-xl border text-left transition-colors cursor-pointer disabled:opacity-60 ${
+        /* `outline-none`, and the border says it instead.
+
+           Opening the list focuses the trigger, which is what makes the arrow
+           keys work on a Mac — and it brought the platform's focus ring with
+           it, drawn square around a rounded control in a colour from neither
+           theme. The control already has a way of saying it is live: the same
+           sage border it wears while open, which is exactly when arrowing
+           happens. Keyboard focus on the closed control keeps it too, so
+           tabbing here still shows where you are. */
+        className={`flex items-center justify-between gap-2 rounded-xl border text-left outline-none transition-colors cursor-pointer disabled:opacity-60 ${
           size === "sm" ? "h-9 px-3 text-xs" : "px-3 py-2 text-sm"
         } ${
           open
             ? "border-sage-400 bg-forest-850 text-mist-100"
-            : "border-forest-800 bg-forest-900 text-mist-100 enabled:hover:border-forest-750 enabled:hover:bg-forest-850"
+            : "border-forest-800 bg-forest-900 text-mist-100 focus-visible:border-sage-400/70 enabled:hover:border-forest-750 enabled:hover:bg-forest-850"
         } ${className}`}
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -181,7 +233,7 @@ export function Select({
             style={{ left: box.left, top: box.top, maxHeight: box.maxHeight, minWidth: box.minWidth }}
             /* The context menu's panel. A second dropdown drawn its own way is
                how two surfaces of one app stop looking like one app. */
-            className="fixed z-50 max-w-xs overflow-y-auto overscroll-contain rounded-2xl border border-forest-800 bg-forest-900 py-1.5 shadow-2xl"
+            className="ui-rise fixed z-50 max-w-xs overflow-y-auto overscroll-contain rounded-2xl border border-forest-800 bg-forest-900 py-1.5 shadow-2xl"
             /* Portalled content still bubbles through the React tree, and the
                panel this opens over closes on a click outside itself. */
             onClick={(event) => event.stopPropagation()}
@@ -198,7 +250,7 @@ export function Select({
                 /* `MenuRow`'s tokens, deliberately: a menu row is a verb with
                    an icon and an option is a value with a state, so they are
                    not the same component, and they are the same line. */
-                className={`flex w-full items-center gap-3 px-4 py-2 text-left transition-colors ${
+                className={`flex w-full items-center gap-3 px-4 py-2 text-left outline-none transition-colors ${
                   at === active ? "bg-forest-800" : ""
                 }`}
               >

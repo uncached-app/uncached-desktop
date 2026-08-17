@@ -52,11 +52,22 @@ export type ScanStarted = {
   rootPath: string;
 };
 
+/**
+ * Which half of the scan the counts belong to.
+ *
+ * `workspace` is the walk through the chosen folders; `caches` is the pass over
+ * the tool caches in the home directory, where the directory counter no longer
+ * moves and the paths belong to no project. Optional, because a core that
+ * predates the field must still produce a scan.
+ */
+export type ScanPhase = "workspace" | "caches";
+
 export type ScanProgress = {
   scanId: string;
   directoriesScanned: number;
   targetsFound: number;
   totalBytesFound: number;
+  phase?: ScanPhase;
 };
 
 export type TargetFound = {

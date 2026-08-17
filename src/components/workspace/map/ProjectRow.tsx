@@ -1,8 +1,8 @@
-import { ChevronRight, Copy, GitBranch } from "lucide-react";
+import { ChevronRight, Copy, GitBranch, Radio } from "lucide-react";
 import { rootName } from "./naming";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION, projectEvidence } from "../verdictPresentation";
-import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
+import type { Footprint, RunningProject, Verdict, WorkspaceProject } from "../../../types/workspace";
 
 /**
  * What the project weighs, and whether that figure is a total or a floor.
@@ -34,6 +34,7 @@ export function ProjectRow({
   project,
   verdict,
   footprint,
+  running = null,
   first,
   showRoot,
   showVerdict = false,
@@ -44,6 +45,8 @@ export function ProjectRow({
   project: WorkspaceProject;
   verdict: Verdict;
   footprint: Footprint | null;
+  /** The process working inside it, when there is one. */
+  running?: RunningProject | null;
   first: boolean;
   showRoot: boolean;
   /**
@@ -172,6 +175,17 @@ export function ProjectRow({
             ) : (
               <OnDisk footprint={footprint} />
             )
+          ) : running ? (
+            // Not "measuring...". A project being written to is never going to
+            // finish measuring, and a spinner that never resolves is the app
+            // claiming to be working while it has deliberately stopped.
+            <span
+              title={`${running.command} is working inside this project${running.processes > 1 ? ` (${running.processes} processes)` : ""}. Its artifacts cannot be reclaimed until it stops.`}
+              className="inline-flex items-center gap-1.5 font-mono text-[10px] text-coral-300"
+            >
+              <Radio size={10} aria-hidden="true" />
+              running · {running.command}
+            </span>
           ) : (
             <span className="font-mono text-[10px] text-mist-500">measuring...</span>
           )}

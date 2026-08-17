@@ -23,16 +23,17 @@ use commands::duplicates::duplicate_packages;
 use commands::entitlements::get_entitlement_status;
 use commands::git::{fetch_project, project_hygiene, prune_branches, workspace_hygiene};
 use commands::history::{cleanup_history, clear_history, record_workspace_visit};
-use commands::license::{activate_license, deactivate_license, get_license};
+use commands::license::{activate_license, deactivate_license, get_license, stored_license_key};
 use commands::locate::{available_launchers, open_project_with, restore_project, reveal_project};
 use commands::orphans::orphan_artifacts;
 use commands::scan::{retry_target_size, start_scan};
 use commands::settings::{
     get_app_info, get_settings, review_ignore_rules, starts_hidden, update_settings,
 };
+use commands::window::set_window_frame;
 use commands::workspace::{
     assess_projects, maintenance_schedule_status, maintenance_targets, measure_project_footprint,
-    normalize_workspace_roots, preview_maintenance, scan_workspace_index,
+    normalize_workspace_roots, preview_maintenance, running_projects, scan_workspace_index,
 };
 
 /// The login item, named rather than inherited.
@@ -111,6 +112,7 @@ pub fn run() {
             activate_license,
             deactivate_license,
             get_license,
+            stored_license_key,
             record_workspace_visit,
             cleanup_history,
             available_launchers,
@@ -126,6 +128,8 @@ pub fn run() {
             scan_workspace_index,
             measure_project_footprint,
             normalize_workspace_roots,
+            running_projects,
+            set_window_frame,
             assess_projects,
             preview_maintenance,
             maintenance_targets,

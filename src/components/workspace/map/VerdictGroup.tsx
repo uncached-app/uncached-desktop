@@ -1,13 +1,14 @@
 import { ProjectRow } from "./ProjectRow";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
-import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
+import type { Footprint, RunningProject, Verdict, WorkspaceProject } from "../../../types/workspace";
 
 /** The projects that share a verdict, under a heading that stays in view. */
 export function VerdictGroup({
   verdict,
   projects,
   footprints,
+  running,
   showRoot,
   focusPath,
   onOpenProject,
@@ -16,6 +17,8 @@ export function VerdictGroup({
   verdict: Verdict;
   projects: WorkspaceProject[];
   footprints: Record<string, Footprint>;
+  /** The projects something is working inside, by path. */
+  running: Record<string, RunningProject>;
   showRoot: boolean;
   focusPath: string | null;
   onOpenProject: (path: string) => void;
@@ -56,6 +59,7 @@ export function VerdictGroup({
             project={project}
             verdict={verdict}
             footprint={footprints[project.path] ?? null}
+            running={running[project.path] ?? null}
             first={position === 0}
             showRoot={showRoot}
             focused={project.path === focusPath}

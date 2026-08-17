@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useScanWorkspace } from "./useScanWorkspace";
 import { useWorkspaceIndex } from "./useWorkspaceIndex";
 import { useWorkspaceWatch } from "./useWorkspaceWatch";
 import { RESET, type View as MapViewState } from "../utils/viewport.mjs";
+import { useRunningProjects } from "./useRunningProjects";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
 import { useWorkspaceVerdicts } from "./useWorkspaceVerdicts";
 import { useWorkspaceAnalysis } from "./useWorkspaceAnalysis";
@@ -18,6 +19,8 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   index: ReturnType<typeof useWorkspaceIndex>;
   footprints: Record<string, import("../types/workspace").Footprint>;
   measuring: boolean;
+  /** Projects with a process working inside them, by path. */
+  running: ReturnType<typeof useRunningProjects>;
   /** Re-reads one project, for after something under it was removed. */
   remeasureProject: (path: string) => Promise<void>;
   verdicts: ReturnType<typeof useWorkspaceVerdicts>;
@@ -72,7 +75,14 @@ export function PurgeFlowProvider({
   const index = useWorkspaceIndex();
   const flow = useScanWorkspace(cleanMode, index.scanRoots, onRootsChange, proEnabled);
   const projects = index.index?.projects ?? NO_PROJECTS;
-  const { footprints, measuring, remeasure } = useWorkspaceFootprints(projects);
+  // Taken before anything is weighed: a project being written to is one the
+  // measurement pass skips and the list reports instead.
+  const running = useRunningProjects(projects);
+  const { footprints, measuring, remeasure } = useWorkspaceFootprints(
+    projects,
+    running.running,
+    running.checked,
+  );
   const verdicts = useWorkspaceVerdicts(projects, footprints);
   const projectPaths = useMemo(() => projects.map((project) => project.path), [projects]);
   const analysis = useWorkspaceAnalysis({
@@ -83,6 +93,23 @@ export function PurgeFlowProvider({
     settled: !measuring && projects.length > 0,
   });
   const [view, setView] = useState<ResultsView>("projects");
+  // Opening Reclaim *is* the request for artifacts.
+  //
+  // The walk used to run on the way into the workspace, so everybody paid for
+  // it — including the people who came to look at their projects — and the pass
+  // over the home caches ran inside it, on a machine nobody had chosen. Now the
+  // reading that needs it asks for it, once per set of folders, and step 2 says
+  // so while it happens.
+  const changeView = useCallback(
+    (next: ResultsView) => {
+      setView(next);
+      if (next !== "artifacts") return;
+      if (flow.extraRoots.length === 0 || flow.scanning || flow.scanTaken) return;
+      void flow.startScan();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [flow.extraRoots, flow.scanning, flow.scanTaken],
+  );
   // Held here rather than in the list: Insights sends the user to a filtered
   // workspace, and a sentence that cannot reach its own destination is the
   // decoration this module is supposed to avoid.
@@ -155,17 +182,16 @@ export function PurgeFlowProvider({
     if (rootsKey.current === key) return;
     rootsKey.current = key;
     if (roots.length === 0) return;
-    // On step 1 only the projects are read. Adding a folder used to set it and
-    // ask for nothing, so Maintenance — which needs the index and never runs a
-    // scan — sat on "Reading your folders" waiting for a read nobody started.
-    // Discovery is milliseconds; the artifact scan is the expensive half and
-    // stays behind the button.
-    if (flow.step === 1) {
+    // Adding a folder used to set it and ask for nothing, so Maintenance —
+    // which needs the index and never runs a scan — sat on "Reading your
+    // folders" waiting for a read nobody started.
+    if (first || view !== "artifacts") {
       void index.scanRoots(roots);
       return;
     }
-    if (first) return;
-    // `startScan` re-indexes the projects as well, so this covers both readings.
+    // Only the reading that has an artifact list pays to rebuild it. That list
+    // authorizes deletion, so it can never outlive the folders it was built
+    // from; `startScan` re-indexes the projects as well, covering both.
     void flow.startScan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roots]);
@@ -191,11 +217,12 @@ export function PurgeFlowProvider({
         index,
         footprints,
         measuring,
+        running,
         remeasureProject: remeasure,
         verdicts,
         analysis,
         view,
-        setView,
+        setView: changeView,
         activeVerdict,
         setActiveVerdict,
         activeCategory,

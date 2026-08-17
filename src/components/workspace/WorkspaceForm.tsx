@@ -13,7 +13,8 @@ interface WorkspaceFormProps {
   removeRoot: (path: string) => void;
   pickRoot: () => void;
   proEnabled: boolean;
-  startScan: (event: FormEvent) => void;
+  /** Reads the projects and opens the workspace. The artifact walk is Reclaim's. */
+  openWorkspace: (event: FormEvent) => void;
   listenersReady: boolean;
   notice: ScanNotice | null;
   cleanupSummary: { removed: number; freedBytes: number };
@@ -27,7 +28,7 @@ export function WorkspaceForm({
   removeRoot,
   pickRoot,
   proEnabled,
-  startScan,
+  openWorkspace,
   listenersReady,
   notice,
   cleanupSummary,
@@ -62,7 +63,7 @@ export function WorkspaceForm({
         title="Reclaim disk from build artifacts."
         subtitle="Finds dependency, build, and cache directories your toolchains can regenerate."
       >
-        <form onSubmit={startScan} className="w-full">
+        <form onSubmit={openWorkspace} className="w-full">
           <RootPicker
             roots={extraRoots}
             onPick={pickRoot}
@@ -77,7 +78,7 @@ export function WorkspaceForm({
               className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 transition-colors hover:bg-sage-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ScanSearch size={17} aria-hidden="true" />
-              <span>Scan workspace</span>
+              <span>Open workspace</span>
             </button>
           </div>
 

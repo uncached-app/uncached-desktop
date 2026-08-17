@@ -78,6 +78,27 @@ pub fn install<R: Runtime>(app: &AppHandle<R>, actions: &[MenuAction]) -> tauri:
         .quit()
         .build()?;
 
+    // Not decoration, and not "the menus a Mac app is supposed to have".
+    //
+    // On macOS ⌘V is delivered by the menu bar, not by the web view: the key
+    // goes up the responder chain looking for a menu item that claims it, and
+    // finds nothing when there is no Edit menu. So an app without one has text
+    // fields that cannot be pasted into — which is every field in this app, and
+    // the licence key is the one that matters, because a 263-character signed
+    // token is not something anybody is going to type.
+    //
+    // The items are the system's own, so they act on whatever holds focus and
+    // grey themselves out when nothing does.
+    let edit = SubmenuBuilder::new(app, "Edit")
+        .undo()
+        .redo()
+        .separator()
+        .cut()
+        .copy()
+        .paste()
+        .select_all()
+        .build()?;
+
     let window = SubmenuBuilder::new(app, "Window")
         .minimize()
         .maximize()
@@ -88,6 +109,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>, actions: &[MenuAction]) -> tauri:
     let menu: Menu<R> = MenuBuilder::new(app)
         .item(&application)
         .item(&file.build()?)
+        .item(&edit)
         .item(&view.build()?)
         .item(&workspace.build()?)
         .item(&window)

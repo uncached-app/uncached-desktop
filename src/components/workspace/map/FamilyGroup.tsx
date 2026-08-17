@@ -1,7 +1,7 @@
 import { Folder, FolderGit2 } from "lucide-react";
 import { ProjectRow } from "./ProjectRow";
 import { formatBytes } from "../../../utils/format.mjs";
-import type { Footprint, Verdict, WorkspaceProject } from "../../../types/workspace";
+import type { Footprint, RunningProject, Verdict, WorkspaceProject } from "../../../types/workspace";
 
 /**
  * The projects that share a directory, under that directory's name.
@@ -24,6 +24,7 @@ export function FamilyGroup({
   projects,
   verdicts,
   footprints,
+  running,
   showRoot,
   focusPath,
   onOpenProject,
@@ -38,6 +39,8 @@ export function FamilyGroup({
   projects: WorkspaceProject[];
   verdicts: Record<string, Verdict>;
   footprints: Record<string, Footprint>;
+  /** The projects something is working inside, by path. */
+  running: Record<string, RunningProject>;
   showRoot: boolean;
   focusPath: string | null;
   onOpenProject: (path: string) => void;
@@ -103,6 +106,7 @@ export function FamilyGroup({
             project={project}
             verdict={verdicts[project.path] ?? "unknown"}
             footprint={footprints[project.path] ?? null}
+            running={running[project.path] ?? null}
             first={position === 0}
             showRoot={showRoot}
             // Nothing else says it here: the heading is a directory, not a

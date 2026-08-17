@@ -299,6 +299,22 @@ pub async fn activate_license(app: AppHandle, key: String) -> Result<LicenseInfo
     Ok(info)
 }
 
+/// The key as it was pasted, for moving this licence to another machine.
+///
+/// The settings screen offers removal, and removal is the step that locks
+/// somebody out: the key lives in an email they may no longer be able to find,
+/// and the app was the last place holding a copy. Handing it back before the
+/// destructive button is what makes that button safe to press.
+///
+/// Not a secret this hides from its owner — it is their receipt, on their
+/// machine, readable with a text editor either way.
+#[tauri::command]
+pub async fn stored_license_key(app: AppHandle) -> Option<String> {
+    let key = fs::read_to_string(license_path(&app).ok()?).ok()?;
+    let key = key.trim();
+    (!key.is_empty()).then(|| key.to_owned())
+}
+
 #[tauri::command]
 pub async fn deactivate_license(app: AppHandle) -> Result<(), String> {
     let path = license_path(&app)?;

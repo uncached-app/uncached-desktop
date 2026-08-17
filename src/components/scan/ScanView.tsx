@@ -1,5 +1,5 @@
 import { Ban, Info, LoaderCircle, RotateCcw } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ScanNotice, ScanProgress, ScanTarget, Step } from "../../types/scan";
 
 interface ScanViewProps {
@@ -29,6 +29,24 @@ export function ScanView({
   // Counted rather than tracked separately: a target stops being pending the
   // moment its size arrives, and that event is already being listened for.
   const measured = targets.filter((target) => !target.sizePending).length;
+  // The walk through the chosen folders, and then the pass over the tool caches
+  // in the home directory. The second reads a place nobody picked, so it says
+  // so rather than arriving as more of the same walk.
+  const caches = progress?.phase === "caches";
+  const heading = !scanning
+    ? "Measuring targets"
+    : caches
+      ? "Checking your tool caches"
+      : "Scanning your projects";
+  const subheading = !scanning
+    ? "Computing size on disk for each target."
+    : caches
+      ? "Package manager, AI and editor caches in your home folder."
+      : "Targets are measured as they are found.";
+  // Newest first, and only the last few. What this answers is "is it finding
+  // anything", which a name and the folder it sits in answer and a full path
+  // set in a column this width does not.
+  const recent = targets.slice(-5).reverse();
 
   if (step !== 2) return null;
 
@@ -47,14 +65,10 @@ export function ScanView({
         </div>
 
         <h2 className="text-3xl font-semibold tracking-[-0.04em] text-mist-100 sm:text-4xl">
-          {scanning ? "Scanning workspace" : "Measuring targets"}
+          {heading}
         </h2>
 
-        <p className="mt-3 text-sm leading-relaxed text-mist-500 max-w-lg">
-          {scanning
-            ? "Targets are measured as they are found."
-            : "Computing size on disk for each target."}
-        </p>
+        <p className="mt-3 text-sm leading-relaxed text-mist-500 max-w-lg">{subheading}</p>
 
         {/* The left figure changes with the phase, because the walk's own
             number stops the moment the walk does — and the measuring that
@@ -65,10 +79,10 @@ export function ScanView({
         <div className="mt-8 flex min-h-16 items-center justify-center gap-12 px-4 py-3 text-center">
           <div>
             <strong className="block font-mono text-2xl font-medium tracking-tight text-sage-300">
-              {scanning ? (progress?.directoriesScanned.toLocaleString() ?? "0") : measured}
+              {scanning && !caches ? (progress?.directoriesScanned.toLocaleString() ?? "0") : measured}
             </strong>
             <span className="mt-1 block font-sans text-xs text-mist-500">
-              {scanning ? "directories checked" : "measured"}
+              {scanning && !caches ? "directories checked" : "measured"}
             </span>
           </div>
           <div>
@@ -78,6 +92,35 @@ export function ScanView({
             </span>
           </div>
         </div>
+
+        {/* What it is finding, as it finds it.
+
+            A pair of counters is a claim that something is happening; this is
+            the evidence. It matters most in the second phase, where the paths
+            are in the home directory rather than under anything the user chose
+            — a screen that went quiet there read as a scan that had stopped. */}
+        <ul
+          aria-label="Recently found"
+          aria-live="polite"
+          className="mt-2 flex h-24 w-full flex-col items-center justify-start gap-1 overflow-hidden"
+        >
+          <AnimatePresence initial={false}>
+            {recent.map((target, position) => (
+              <motion.li
+                key={target.id}
+                layout={!reducedMotion}
+                initial={reducedMotion ? false : { opacity: 0, y: -6 }}
+                animate={{ opacity: 1 - position * 0.18, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex max-w-full items-baseline gap-2 truncate font-mono text-[11px] text-mist-500"
+              >
+                <span className="shrink-0 text-sage-300">{target.label ?? target.name}</span>
+                <span className="truncate" dir="rtl">{target.path}</span>
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
 
         {/* A Cancel reaches the backend after the walk has already ended more
             often than it looks: the button is live for the whole walk, and the

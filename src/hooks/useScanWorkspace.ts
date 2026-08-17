@@ -64,6 +64,14 @@ export function useScanWorkspace(
   const [cleanupMode, setCleanupMode] = useState<CleanMode>("Trash");
   const [scanFinished, setScanFinished] = useState(false);
   const [scanTargetCount, setScanTargetCount] = useState<number | null>(null);
+  // Which folders the artifact list on hand describes, or null for none.
+  //
+  // The workspace no longer pays for that list to be opened: reading the
+  // projects is milliseconds and walking every one of them for artifacts is the
+  // long part, so the walk waits for somebody to ask for it. This is how
+  // Reclaim knows whether it is being opened onto an answer or has to go and
+  // get one.
+  const [scannedRoots, setScannedRoots] = useState<string | null>(null);
   // Folders the walk was not allowed to open. Above zero, the target count and
   // the byte total are both short by whatever is inside them, and the review
   // screen has to say so rather than presenting either as the whole workspace.
@@ -72,6 +80,8 @@ export function useScanWorkspace(
 
   const activeScanId = useRef<string | null>(null);
   const scanGeneration = useRef(0);
+  /** The folders the in-flight walk was started for, for when it finishes. */
+  const walkingRoots = useRef("");
   const pendingScan = useRef(false);
   const pendingEvents = useRef<PendingScanEvent[]>([]);
   const pendingSizeUpdates = useRef<Map<string, TargetSized>>(new Map());
@@ -92,6 +102,7 @@ export function useScanWorkspace(
     setProgress(null);
     setScanFinished(false);
     setScanTargetCount(null);
+    setScannedRoots(null);
     setUnreadable(0);
     setStep(1);
     setNotice(null);
@@ -145,6 +156,7 @@ export function useScanWorkspace(
       setScanning(false);
       setScanFinished(true);
       setScanTargetCount(event.payload.totalTargets);
+      setScannedRoots(walkingRoots.current);
       setUnreadable(event.payload.unreadable);
     } else if (event.kind === "cancelled") {
       pendingScan.current = false;
@@ -154,6 +166,7 @@ export function useScanWorkspace(
       setCancelling(false);
       setTargets([]);
       setProgress(null);
+      setScannedRoots(null);
       // What it had already found when it stopped. The backend sends real
       // counts now, and a scan cancelled after finding four gigabytes tells the
       // user that rather than reporting the stop as if nothing happened.
@@ -300,8 +313,24 @@ export function useScanWorkspace(
     setExtraRoots(paths);
   }
 
-  /// The form submits it, and so does a change to the chosen folders, which has
-  /// no event to cancel.
+  /// Opens the chosen folders as a workspace: the projects, and nothing else.
+  ///
+  /// This is what the picker submits now. Discovery is milliseconds and the
+  /// weights fill in behind it, so the map is on screen almost at once — where
+  /// it used to sit behind a full artifact walk of every project plus a pass
+  /// over the home directory, which is most of a minute on a real disk and none
+  /// of it needed to answer "what have I got".
+  function openWorkspace(event?: FormEvent) {
+    event?.preventDefault();
+    if (extraRoots.length === 0) return;
+    setError(null);
+    setNotice(null);
+    void indexRoots(extraRoots);
+    setStep(3);
+  }
+
+  /// The reclaim scan, and a change to the chosen folders while its list is
+  /// open — which has no event to cancel.
   async function startScan(event?: FormEvent) {
     event?.preventDefault();
     const roots = extraRoots;
@@ -315,6 +344,8 @@ export function useScanWorkspace(
     setCleanupSummary({ removed: 0, freedBytes: 0 });
     setScanFinished(false);
     setScanTargetCount(null);
+    setScannedRoots(null);
+    walkingRoots.current = roots.join("\n");
     setUnreadable(0);
     pendingSizeUpdates.current.clear();
     setProgress(null);
@@ -397,7 +428,8 @@ export function useScanWorkspace(
       setStep(1);
       setScanFinished(false);
       setScanTargetCount(null);
-    setUnreadable(0);
+      setScannedRoots(null);
+      setUnreadable(0);
       } else {
         setCancelling(false);
         setNotice({ kind: "cancelRefused" });
@@ -490,12 +522,15 @@ export function useScanWorkspace(
     setStep(1);
     setScanFinished(false);
     setScanTargetCount(null);
+    setScannedRoots(null);
     setUnreadable(0);
     setNotice(null);
     setCleanupMode("Trash");
   }
 
   const cleanupModeSupported = canUseCleanupMode(capabilities, cleanMode);
+  /// Whether the artifact list on hand is about the folders currently chosen.
+  const scanTaken = scannedRoots !== null && scannedRoots === extraRoots.join("\n");
 
   return {
     extraRoots,
@@ -517,6 +552,8 @@ export function useScanWorkspace(
     cleanupMode,
     capabilities,
     cleanupModeSupported,
+    scanTaken,
+    openWorkspace,
     startScan,
     cancelScan,
     cleanTarget,

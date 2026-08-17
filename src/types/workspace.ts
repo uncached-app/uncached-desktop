@@ -104,6 +104,21 @@ export type Footprint = {
   hasErrors: boolean;
 };
 
+/**
+ * A project with a process working inside it right now.
+ *
+ * Its artifacts are not reclaimable while that is true: the tree is being
+ * written to, so a weight is a number that is already wrong, and a removal
+ * either fails or takes files the process still has open.
+ */
+export type RunningProject = {
+  path: string;
+  /** The command name, for a sentence that can say what is holding it. */
+  command: string;
+  /** How many processes are inside, when it is more than the one. */
+  processes: number;
+};
+
 export type WorkspaceIndex = {
   roots: string[];
   projects: WorkspaceProject[];

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowLeft, Check, FolderSearch, LoaderCircle, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, FolderSearch, LoaderCircle, Radio, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { CleanResult, ScanTarget, Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
+import type { RunningProject } from "../../types/workspace";
 import { formatBytes } from "../../utils/format.mjs";
+import { isInside } from "../../utils/paths.mjs";
 import { getCleanupReadyTargets, sortForListing } from "../../utils/scanReview.mjs";
 import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
@@ -29,6 +31,14 @@ interface FindingsSectionProps {
   activeIgnoreRules: number;
   /** Folders the walk was not allowed to open, so the totals can say they are a floor. */
   unreadable: number;
+  /**
+   * The projects something is working inside, by path.
+   *
+   * A target under one of them is not removable — the process holds files open
+   * inside it — so selecting it has to say so before the button is pressed
+   * rather than after the system refuses.
+   */
+  running: Record<string, RunningProject>;
   onBack: () => void;
 }
 
@@ -46,6 +56,7 @@ export function FindingsSection({
   proEnabled,
   activeIgnoreRules,
   unreadable,
+  running,
 }: FindingsSectionProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
@@ -68,6 +79,12 @@ export function FindingsSection({
   const confirmationReady = !permanent || confirmation === "Nuke";
 
   const selectedNoun = selectedTargets.length === 1 ? "target" : "targets";
+  const held = Object.values(running);
+  const heldSelection = held.length === 0
+    ? []
+    : selectedTargets.filter((target) =>
+        held.some((project) => isInside(target.path, project.path)),
+      );
 
   const { freeBytes, proBytes } = summarizePlans(readyTargets);
   const totalBytesFound = freeBytes + proBytes;
@@ -326,6 +343,16 @@ export function FindingsSection({
                     )}
                   </span>
                 </button>
+
+                {heldSelection.length > 0 && (
+                  <span
+                    title={heldSelection.map((target) => target.path).join("\n")}
+                    className="ml-3 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-coral-300/40 bg-coral-surface px-2 py-1 font-mono text-[10px] text-coral-300"
+                  >
+                    <Radio size={10} aria-hidden="true" />
+                    {heldSelection.length} in {heldSelection.length === 1 ? "a project" : "projects"} that {heldSelection.length === 1 ? "is" : "are"} running — {heldSelection.length === 1 ? "it will" : "they will"} not be removed
+                  </span>
+                )}
 
                 <div className="flex-1" aria-hidden="true" />
 

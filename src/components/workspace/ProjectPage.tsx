@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Radio } from "lucide-react";
 import { ArtifactList } from "./project/ArtifactList";
 import { ActivityPanel, GitPanel } from "./project/ContextPanels";
 import { DuplicatePanel } from "./project/DuplicatePanel";
@@ -14,12 +14,14 @@ import { useFlash } from "../../hooks/useFlash";
 import type { ScanTarget } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import type { DuplicatePackage } from "../../types/duplicates";
-import type { Footprint, Verdict, WorkspaceProject } from "../../types/workspace";
+import type { Footprint, RunningProject, Verdict, WorkspaceProject } from "../../types/workspace";
 
 type ProjectPageProps = {
   project: WorkspaceProject;
   verdict: Verdict;
   footprint: Footprint | null;
+  /** The process working inside this project, when there is one. */
+  running: RunningProject | null;
   /** Every artifact the same scan found, unfiltered. */
   targets: ScanTarget[];
   cleaningTargetIds: Set<string>;
@@ -50,6 +52,7 @@ export function ProjectPage({
   project,
   verdict,
   footprint,
+  running,
   targets,
   cleaningTargetIds,
   cleanMode,
@@ -93,6 +96,30 @@ export function ProjectPage({
 
         {/* Clean, un-nested modular panels */}
         <div className="mt-4 grid gap-4">
+          {/* First, and above the verdict.
+
+              Everything below this reads a tree that is being written to while
+              it is read: the weight is missing because measuring was stopped,
+              and every Clean on the page is one the system will refuse for the
+              files the process still holds open. Saying that once at the top is
+              the honest version of a page that would otherwise offer a dozen
+              buttons that cannot work. */}
+          {running && (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-2xl border border-coral-300/40 bg-coral-surface px-4 py-3 text-sm text-coral-300"
+            >
+              <Radio size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <p>
+                <span className="font-semibold">This project is running.</span>{" "}
+                {running.processes > 1
+                  ? `${running.processes} processes are working inside it, one of them ${running.command}.`
+                  : `${running.command} is working inside it.`}{" "}
+                Its artifacts are not measured and cannot be reclaimed until it stops.
+              </p>
+            </div>
+          )}
+
           <VerdictPanel
             project={project}
             verdict={verdict}

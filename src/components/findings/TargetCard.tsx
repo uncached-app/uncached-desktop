@@ -253,10 +253,6 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
               <strong className="block text-lg font-semibold text-mist-300">{target.formattedSize}</strong>
               <span className="text-[10px] font-medium text-mist-500">reported, not removed</span>
             </div>
-          ) : proLocked ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-pro-100">
-              <LockKeyhole size={14} aria-hidden="true" /> Unlock to clean
-            </span>
           ) : target.sizePending ? (
             <span className="inline-flex items-center gap-2 text-sm text-mist-500">
               <LoaderCircle size={16} className="animate-spin text-sage-400" aria-hidden="true" /> Loading size
@@ -275,6 +271,29 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
               >
                 <RefreshCw size={13} aria-hidden="true" /> Retry
               </button>
+            </div>
+          ) : proLocked ? (
+            /* The weight, and then what the plan can do about it.
+
+               This row used to say "Unlock to clean" *instead of* the size, and
+               it was the only row in the app that withheld a number it already
+               had — the target is walked and measured exactly like every other
+               one, whatever the plan. The screen was already honest in
+               aggregate, two elements away: the header chip reads "Free 4.2 GB
+               · Pro 11 GB" and the banner offers the same total again. Only the
+               row it came from would not say its own share.
+
+               Withholding it also argued against the sale it was making. "Pro"
+               is worth buying in proportion to a number, and this was the one
+               place a reader could check that number against a path they
+               recognise. */
+            <div className="flex flex-col items-end gap-0.5">
+              <strong className="block text-lg font-semibold text-mist-300">
+                {target.formattedSize}
+              </strong>
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-pro-100">
+                <LockKeyhole size={10} aria-hidden="true" /> unlock to clean
+              </span>
             </div>
           ) : (
             <strong className={`block text-lg font-semibold ${selected ? "text-mist-100" : "text-mist-300"}`}>

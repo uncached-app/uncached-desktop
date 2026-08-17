@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
@@ -7,6 +7,7 @@ import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
 import { ShortcutsContent } from "./ShortcutsContent";
 import { useThemeFiles, type UserTheme } from "../../hooks/useThemeFiles";
+import { paintTheme } from "../../hooks/useTheme";
 import type { AppSettings, Appearance, IgnoreRuleReview } from "../../types/settings";
 import { openExternalUrl } from "../../utils/externalLink";
 
@@ -84,15 +85,18 @@ export function SettingsPanel({
 
   return (
     <div
-      className="fixed inset-0 z-40 grid place-items-center bg-forest-950/60 p-4 backdrop-blur-xs select-none"
+      className="ui-fade fixed inset-0 z-40 grid place-items-center bg-forest-950/60 p-4 backdrop-blur-xs select-none"
       onClick={onClose}
     >
+      {/* The titlebar is underneath this, and a covered drag region is not one.
+          Without this strip the window cannot be moved while settings is open. */}
+      <div data-tauri-drag-region className="absolute inset-x-0 top-0 h-12" />
       <section
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
         onClick={(event) => event.stopPropagation()}
-        className="flex h-[min(680px,calc(100vh-32px))] w-full max-w-3xl overflow-hidden rounded-3xl border border-forest-800 bg-forest-900 shadow-2xl"
+        className="ui-rise flex h-[min(680px,calc(100vh-32px))] w-full max-w-3xl overflow-hidden rounded-3xl border border-forest-800 bg-forest-900 shadow-2xl"
       >
         {/* Left Sidebar */}
         <aside className="hidden w-52 shrink-0 border-r border-forest-800 bg-forest-950 sm:flex sm:flex-col">
@@ -348,12 +352,43 @@ function AppearanceContent({
   const chosen = themes.find((entry) => entry.id === settings.theme) ?? null;
   const problems = chosen?.problems ?? [];
 
+  // The theme the list is resting on, which is not yet the theme.
+  //
+  // A theme is a thing you have to see, and the only way to see one was to
+  // choose it — so trying four meant four saves and four trips back. The
+  // highlight in the list drives this, so arrowing through the options paints
+  // the window exactly as hovering them does.
+  const [preview, setPreview] = useState<string | null>(null);
+  const shown = preview === null ? chosen : (themes.find((entry) => entry.id === preview) ?? null);
+
+  useEffect(() => {
+    paintTheme(settings.appearance, shown);
+  }, [settings.appearance, shown]);
+
+  // The preview has become the truth, so it stops being a preview. Without
+  // this the override outlives the choice it was showing, and the next change
+  // to the saved theme would paint nothing.
+  useEffect(() => {
+    if (preview !== null && preview === (settings.theme ?? "")) setPreview(null);
+  }, [preview, settings.theme]);
+
+  // Leaving this screen with a preview applied would strand the window in a
+  // theme nobody picked: `useTheme` sits above the settings panel and has no
+  // reason to re-run just because the panel closed.
+  const saved = useRef({ appearance: settings.appearance, theme: chosen });
+  saved.current = { appearance: settings.appearance, theme: chosen };
+  useEffect(() => () => paintTheme(saved.current.appearance, saved.current.theme), []);
+
   // A theme carrying one mode answers with that mode whatever is asked, so the
   // other choices are shown as unavailable rather than offered and overruled.
   // Which is what the appearance row would otherwise be: a control that keeps
   // its selection and changes nothing on screen.
   const only = chosen && !(chosen.light && chosen.dark) ? (chosen.light ? "light" : "dark") : null;
   const locked = (mode: Appearance) => only !== null && mode !== only;
+  // The row is greyed and its pointer says no; neither says why. The paragraph
+  // above does, and somebody who arrives at the row it is about has already
+  // read past it.
+  const because = only ? `${chosen?.name} carries no ${only === "light" ? "dark" : "light"} colours.` : undefined;
 
   return (
     <>
@@ -369,6 +404,7 @@ function AppearanceContent({
           hint="Sleek dark theme optimized for low-light development environments."
           selected={only ? only === "dark" : settings.appearance === "dark"}
           disabled={locked("dark")}
+          unavailable={because}
           onClick={() => updateSettings({ appearance: "dark" as Appearance })}
         />
         <SettingRadio
@@ -377,6 +413,7 @@ function AppearanceContent({
           hint="Clean high-contrast light theme."
           selected={only ? only === "light" : settings.appearance === "light"}
           disabled={locked("light")}
+          unavailable={because}
           onClick={() => updateSettings({ appearance: "light" as Appearance })}
         />
         <SettingRadio
@@ -385,6 +422,7 @@ function AppearanceContent({
           hint="Automatically follows your operating system appearance preference."
           selected={only ? false : settings.appearance === "system"}
           disabled={only !== null}
+          unavailable={because}
           onClick={() => updateSettings({ appearance: "system" as Appearance })}
         />
       </SettingsGroup>
@@ -416,6 +454,7 @@ function AppearanceContent({
               })),
             ]}
             onChange={(value) => void updateSettings({ theme: value === "" ? null : value })}
+            onPreview={setPreview}
             className="w-44 shrink-0"
           />
         </div>
@@ -762,6 +801,7 @@ function SettingRadio({
   hint,
   selected,
   disabled = false,
+  unavailable,
   onClick,
 }: {
   icon?: ReactNode;
@@ -769,19 +809,32 @@ function SettingRadio({
   hint?: string;
   selected: boolean;
   disabled?: boolean;
+  /** Why this one cannot be chosen, for the row that cannot say it itself. */
+  unavailable?: string;
   onClick: () => void;
 }) {
+  // `:hover` still matches a disabled button — the pointer is over it, and CSS
+  // has no opinion about whether pressing would do anything. So a row that
+  // could not be chosen still lit up on the way past, three times over: the
+  // label, the icon and the dot each carried their own hover rule. Built here
+  // rather than with a variant, so the condition is visible beside the styles
+  // it gates.
+  const live = !disabled;
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`group flex w-full items-center justify-between gap-4 py-4 text-left text-xs transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "text-mist-100" : "text-mist-500 hover:text-mist-300"
-        }`}
+      title={disabled ? unavailable : undefined}
+      className={`group flex w-full items-center justify-between gap-4 py-4 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
+        disabled ? "" : "cursor-pointer"
+      } ${selected ? "text-mist-100" : `text-mist-500 ${live ? "hover:text-mist-300" : ""}`}`}
     >
       <span className="flex min-w-0 flex-1 items-start gap-3">
         {icon && (
-          <span className="mt-0.5 shrink-0 text-mist-500 transition-colors group-hover:text-mist-300">
+          <span
+            className={`mt-0.5 shrink-0 text-mist-500 transition-colors ${live ? "group-hover:text-mist-300" : ""}`}
+          >
             {icon}
           </span>
         )}
@@ -793,7 +846,7 @@ function SettingRadio({
       <span
         className={`grid size-4.5 shrink-0 place-items-center rounded-full border transition-colors ${selected
             ? "border-sage-400 bg-sage-400 text-forest-950"
-            : "border-forest-750 bg-forest-950/60 group-hover:border-forest-700"
+            : `border-forest-750 bg-forest-950/60 ${live ? "group-hover:border-forest-700" : ""}`
           }`}
       >
         {selected && <span className="size-1.5 rounded-full bg-forest-950" />}

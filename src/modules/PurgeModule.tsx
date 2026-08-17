@@ -89,7 +89,7 @@ export function PurgeModule({
         removeRoot={flow.removeRoot}
         pickRoot={flow.pickRoot}
         proEnabled={proEnabled}
-        startScan={flow.startScan}
+        openWorkspace={flow.openWorkspace}
         listenersReady={flow.listenersReady}
         notice={flow.notice}
         cleanupSummary={flow.cleanupSummary}
@@ -114,6 +114,7 @@ export function PurgeModule({
           project={openProject}
           verdict={flow.verdicts[openProject.path] ?? "unknown"}
           footprint={flow.footprints[openProject.path] ?? null}
+          running={flow.running.running[openProject.path] ?? null}
           targets={flow.targets}
           cleaningTargetIds={flow.cleaningTargetIds}
           cleanMode={cleanMode}
@@ -148,12 +149,13 @@ export function PurgeModule({
           proEnabled={proEnabled}
           footprints={flow.footprints}
           measuring={flow.measuring}
+          running={flow.running.running}
           verdicts={flow.verdicts}
           chosenRoots={flow.extraRoots}
           onAddRoot={flow.pickRoot}
           onRemoveRoot={removeWorkspaceRoot}
           onRemoveAllRoots={clearWorkspace}
-          targetCount={flow.targets.length}
+          targetCount={flow.scanTaken ? flow.targets.length : null}
           onReclaim={() => setView("artifacts")}
           change={history.change}
           reclaimed={history.totals}
@@ -205,6 +207,7 @@ export function PurgeModule({
         proEnabled={proEnabled}
         activeIgnoreRules={activeIgnoreRules}
         unreadable={flow.unreadable}
+        running={flow.running.running}
       />}
 
       <CompletionView

@@ -20,7 +20,7 @@ import type { DuplicatePackage } from "../../types/duplicates";
 import type { View as MapViewState } from "../../utils/viewport.mjs";
 import type { WorkspaceView } from "../../types/settings";
 import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
-import type { Footprint, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
+import type { Footprint, RunningProject, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
 
 type WorkspaceMapProps = {
   index: WorkspaceIndex;
@@ -29,6 +29,14 @@ type WorkspaceMapProps = {
   proEnabled: boolean;
   footprints: Record<string, Footprint>;
   measuring: boolean;
+  /**
+   * The projects something is working inside, by path.
+   *
+   * They are not measured — the tree is being written to while it would be read
+   * — so the row says what is holding them rather than a weight it cannot
+   * stand behind.
+   */
+  running: Record<string, RunningProject>;
   verdicts: Record<string, Verdict>;
   /** Every folder the user chose, including any this plan did not index. */
   chosenRoots: string[];
@@ -36,8 +44,11 @@ type WorkspaceMapProps = {
   onRemoveRoot: (root: string) => void;
   /** Drops every folder, which leaves nothing to show but the picker. */
   onRemoveAllRoots: () => void;
-  /** How many artifacts the same scan found, and where reclaiming them happens. */
-  targetCount: number;
+  /**
+   * How many artifacts the same folders hold, and where reclaiming them
+   * happens. Null until that walk has been run, which is Reclaim's to ask for.
+   */
+  targetCount: number | null;
   onReclaim: () => void;
   /** Absent until a visit has been recorded, and always absent on Free. */
   change: WorkspaceChange | null;
@@ -97,6 +108,7 @@ export function WorkspaceMap({
   proEnabled,
   footprints,
   measuring,
+  running,
   verdicts,
   chosenRoots,
   onAddRoot,
@@ -490,7 +502,6 @@ export function WorkspaceMap({
           projectCount={index.projects.length}
           totalBytes={totals.totalBytes}
           reclaimableBytes={totals.reclaimableBytes}
-          measuring={measuring}
           atRisk={atRisk}
           targetCount={targetCount}
           onReclaim={onReclaim}
@@ -561,6 +572,7 @@ export function WorkspaceMap({
                   projects={group.projects}
                   verdicts={verdicts}
                   footprints={footprints}
+                  running={running}
                   showRoot={index.roots.length > 1 && activeRoot === null}
                   focusPath={focusPath}
                   onOpenProject={onOpenProject}
@@ -601,6 +613,7 @@ export function WorkspaceMap({
                       project={project}
                       verdict={verdicts[project.path] ?? "unknown"}
                       footprint={footprints[project.path] ?? null}
+                      running={running[project.path] ?? null}
                       first={position === 0}
                       showRoot={index.roots.length > 1 && activeRoot === null}
                       // Nothing else says it here: there is no group heading above
@@ -623,6 +636,7 @@ export function WorkspaceMap({
                   verdict={verdict}
                   projects={projects}
                   footprints={footprints}
+                  running={running}
                   showRoot={index.roots.length > 1 && activeRoot === null}
                   focusPath={focusPath}
                   onOpenProject={onOpenProject}

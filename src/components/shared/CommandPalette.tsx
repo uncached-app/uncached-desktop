@@ -151,6 +151,9 @@ export function CommandPalette({
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-forest-950/70"
       />
+      {/* Over the backdrop rather than under it: a covered drag region is not
+          one, and the titlebar is what this sits on top of. */}
+      <div data-tauri-drag-region className="absolute inset-x-0 top-0 h-12" />
 
       <div className="relative flex max-h-[64vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-2xl">
         <div className="flex items-center gap-3 border-b border-forest-800 px-4">

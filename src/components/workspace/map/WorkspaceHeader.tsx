@@ -13,7 +13,6 @@ export function WorkspaceHeader({
   projectCount,
   totalBytes,
   reclaimableBytes,
-  measuring,
   atRisk,
   targetCount,
   onReclaim,
@@ -39,10 +38,10 @@ export function WorkspaceHeader({
   projectCount: number;
   totalBytes: number;
   reclaimableBytes: number;
-  measuring: boolean;
   /** Counted over the whole index, never over what is on screen. */
   atRisk: number;
-  targetCount: number;
+  /** Null until the artifact walk has been run for these folders. */
+  targetCount: number | null;
   onReclaim: () => void;
   change: WorkspaceChange | null;
   reclaimed: CleanupTotals | null;
@@ -156,23 +155,28 @@ export function WorkspaceHeader({
             </div>
           )}
 
-          {measuring && (
-            <span className="inline-flex items-center gap-1.5 rounded-xl border border-forest-800 bg-forest-900 px-2.5 py-1.5 font-mono text-[11px] text-mist-500">
-              <RefreshCw size={11} className="animate-spin text-sage-300" /> measuring...
-            </span>
-          )}
         </div>
 
-        {targetCount > 0 && (
+        {/* Offered whether or not anything has been counted yet. The count
+            arrives from a walk that now only runs because somebody pressed
+            this, so gating the button on it would have hidden the one control
+            that produces it. */}
+        {targetCount !== 0 && (
           <button
             type="button"
             onClick={onReclaim}
             className="group inline-flex min-h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sage-400 px-4 text-xs font-semibold text-forest-950 shadow-sm transition-all hover:bg-sage-300 active:scale-[0.99]"
           >
             <span>Reclaim disk</span>
-            <span className="grid size-4.5 place-items-center rounded bg-forest-950/20 font-mono text-[11px] font-bold text-forest-950">
-              {targetCount}
-            </span>
+            {/* Inverted, not tinted. A translucent wash of the label colour
+                moves the chip towards the number written on it, which is the
+                one direction that costs contrast — and it widens with the
+                count rather than clipping a fourth digit. */}
+            {targetCount !== null && (
+              <span className="grid h-5 min-w-5 place-items-center rounded bg-forest-950 px-1 font-mono text-[11px] font-bold text-sage-400">
+                {targetCount}
+              </span>
+            )}
             <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </button>
         )}

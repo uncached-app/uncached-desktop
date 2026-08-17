@@ -515,11 +515,35 @@ impl SizingSubmitter {
     }
 }
 
+/// Which half of a scan is running.
+///
+/// A scan reads two places that have nothing to do with each other: the folders
+/// the user chose, and the tool caches in their home directory. The second is
+/// not a continuation of the first — the directory counter stops, the paths
+/// stop belonging to any project — so the screen is told which one it is
+/// watching rather than presenting both as one long walk.
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+enum ScanPhase {
+    #[default]
+    Workspace,
+    Caches,
+}
+
+impl ScanPhase {
+    fn as_wire(self) -> &'static str {
+        match self {
+            Self::Workspace => "workspace",
+            Self::Caches => "caches",
+        }
+    }
+}
+
 #[derive(Default)]
 struct ScanStats {
     directories_scanned: u64,
     targets_found: u64,
     total_bytes_found: u64,
+    phase: ScanPhase,
     /// Folders the walk was not allowed to open, summed across every root.
     ///
     /// Recorded rather than only logged: the counts beside it are short by
@@ -713,7 +737,8 @@ impl ScanService {
                             "scanId": callback_event_scan_id,
                             "directoriesScanned": stats.directories_scanned,
                             "targetsFound": stats.targets_found,
-                            "totalBytesFound": stats.total_bytes_found
+                            "totalBytesFound": stats.total_bytes_found,
+                            "phase": stats.phase.as_wire()
                         });
                         drop(stats);
                         target_event_sink(
@@ -1223,7 +1248,8 @@ fn emit_progress(event_sink: &EventSink, scan_id: &str, stats: &Arc<Mutex<ScanSt
             "scanId": scan_id,
             "directoriesScanned": stats.directories_scanned,
             "targetsFound": stats.targets_found,
-            "totalBytesFound": stats.total_bytes_found
+            "totalBytesFound": stats.total_bytes_found,
+            "phase": stats.phase.as_wire()
         })))
         .unwrap(),
     );
@@ -1296,6 +1322,12 @@ fn discover_home_locations(
     if discoveries.is_empty() {
         return;
     }
+    // Said before the first of them is registered. The walk's counter has
+    // stopped and the paths about to arrive are in the home directory rather
+    // than under anything the user picked, so the screen is told the phase
+    // changed instead of being left to present this as more of the same walk.
+    run.stats.lock().unwrap().phase = ScanPhase::Caches;
+    emit_progress(run.events, scan_id, run.stats);
     // The same rules that prune the walk apply here. A catalogued location the
     // user excluded is not reported at all: offering it and then refusing to
     // clean it would be the worst of both.
@@ -1342,6 +1374,7 @@ fn discover_home_locations(
 
         run.stats.lock().unwrap().targets_found += 1;
         emit_target_found(run.events, scan_id, &target);
+        emit_progress(run.events, scan_id, run.stats);
         if !run.sizing.submit(SizingJob {
             scan_id: scan_id.to_owned(),
             target_id: target.id.clone(),

@@ -432,6 +432,8 @@ There is no background-fetch setting. Fetch is something the user asks for, one 
 
 Neither reaches `recoverability`. Being behind says something exists elsewhere, not that something here is at risk, and letting it decide would make a `git fetch` change what may be deleted unattended.
 
+`running_projects` takes `paths` and returns `[{ path, command, processes }]` for those with a process whose working directory is inside them. One process listing answers for the whole workspace, so it is asked for the batch. A project it names is not measured — the tree is being written to while it would be read, so the weight would be stale on arrival — and every screen that would offer a Clean for it says why instead. Unsupported platforms return an empty list rather than a guess; cleanup still refuses a locked directory on its own.
+
 An index entry carries no `verdict`. It cannot: the verdict depends on the reclaimable figure, which is measured after the walk, so the field was always `Unknown` and nothing read it. Verdicts come from `assess_projects`, which takes a batch of `{ path, recoverability, activity, reclaimableBytes, installMissing, installStale }` and returns `[path, verdict]` pairs. The path is echoed back rather than the caller zipping the reply against the request by position — a verdict attached to the wrong project is the one mistake the map must not make. Asked as a batch because the answer is a pure function of five scalars and one call per project meant a round trip each, up to 250 of them.
 
 Each entry also carries `restore`, or `null` when nothing there identifies a package manager:
@@ -457,12 +459,14 @@ All events are emitted by Tauri with a v1 envelope. Event names are exact and ca
 | `scan:started` | `scanId`, `rootPath` |
 | `scan:target_found` | `scanId`, `target` |
 | `scan:target_sized` | `scanId`, `targetId`, `sizeBytes`, `sizePending`, `sizeHasErrors`, `formattedSize` |
-| `scan:progress` | `scanId`, `directoriesScanned`, `targetsFound`, `totalBytesFound` |
+| `scan:progress` | `scanId`, `directoriesScanned`, `targetsFound`, `totalBytesFound`, `phase` |
 | `scan:finished` | `scanId`, `totalTargets`, `totalBytesFound`, `durationMs`, `unreadable` |
 | `scan:cancelled` | `scanId`, `totalTargets`, `totalBytesFound` |
 | `scan:failed` | `scanId`, nested sanitized `error` |
 
 `scan:target_found` target fields are `id`, `path`, `name`, `label`, `category`, `plan`, `confidence`, `cleanable`, `sizeBytes`, `sizePending`, `sizeHasErrors` and `formattedSize`. The target has no `identity` field, and no `lastModified`: it was a `metadata` call per target filling a field no screen read.
+
+`scan:progress` carries `phase`: `"workspace"` while the chosen folders are being walked, `"caches"` for the pass over the catalogued tool caches in the home directory. They are two readings of two different places — the directory counter stops when the walk does, and the paths that follow belong to no project — so step 2 names the one it is showing rather than presenting both as one long walk. Optional on arrival: a core that predates the field produces a scan that reads as the first phase throughout.
 
 `scan:finished` carries `unreadable`: folders the walk was not allowed to open, summed across every root. Above zero, both `totalTargets` and `totalBytesFound` are short by whatever is inside them, and the review screen says so rather than presenting either as the whole workspace. On macOS without Full Disk Access that is the ordinary case. The field is defaulted on both sides, so a desktop running against a core that predates it reads zero rather than throwing the event away.
 
