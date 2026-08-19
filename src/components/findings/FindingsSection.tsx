@@ -31,6 +31,8 @@ interface FindingsSectionProps {
   activeIgnoreRules: number;
   /** Folders the walk was not allowed to open, so the totals can say they are a floor. */
   unreadable: number;
+  /** What the backend said about the last refusal, if it said anything. */
+  error: string | null;
   /**
    * The projects something is working inside, by path.
    *
@@ -57,8 +59,11 @@ export function FindingsSection({
   activeIgnoreRules,
   unreadable,
   running,
+  error,
 }: FindingsSectionProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  /** Targets the last cleanup asked for and did not get. */
+  const [failed, setFailed] = useState<ScanTarget[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmation, setConfirmation] = useState("");
@@ -79,6 +84,10 @@ export function FindingsSection({
   const confirmationReady = !permanent || confirmation === "Nuke";
 
   const selectedNoun = selectedTargets.length === 1 ? "target" : "targets";
+  // Catalogued caches whose tool is running. Counted from the whole list, not
+  // from the ready set — they are excluded from that by definition, which is
+  // exactly why the number has to be said somewhere.
+  const inUse = targets.filter((target) => target.blockedBy);
   const held = Object.values(running);
   const heldSelection = held.length === 0
     ? []
@@ -93,6 +102,9 @@ export function FindingsSection({
   useEffect(() => {
     const available = new Set(targets.map((target) => target.id));
     setSelectedIds((current) => new Set([...current].filter((id) => available.has(id))));
+    // A target that is gone is one that was removed, so a refusal about it is
+    // no longer true.
+    setFailed((current) => current.filter((target) => available.has(target.id)));
   }, [targets]);
 
   useEffect(() => {
@@ -120,13 +132,27 @@ export function FindingsSection({
   async function confirmDelete() {
     if (selectedTargets.length === 0 || !confirmationReady) return;
     setDeleting(true);
-    const results = [];
-    for (const target of selectedTargets) results.push(await cleanTarget(target.id, permanent ? confirmation : null));
+    setFailed([]);
+    // Which ones the backend refused, not how many.
+    //
+    // A cleanup of forty targets where two are refused used to end the same way
+    // as one where none were: the dialog closed, the selection emptied, and the
+    // two rows stayed on screen with nothing saying they had been asked for and
+    // declined. The rest of the app never showed the error `cleanTarget`
+    // recorded, so the only evidence was a row that did not disappear.
+    const refused: ScanTarget[] = [];
+    for (const target of selectedTargets) {
+      const result = await cleanTarget(target.id, permanent ? confirmation : null);
+      if (!result) refused.push(target);
+    }
     setDeleting(false);
     setConfirming(false);
     setConfirmation("");
-    setSelectedIds(new Set());
-    if (results.length > 0 && results.every(Boolean)) onDone();
+    // The refused stay selected: they are still what the user asked for, and
+    // pressing again after closing the tool that holds them is the fix.
+    setSelectedIds(new Set(refused.map((target) => target.id)));
+    setFailed(refused);
+    if (refused.length === 0) onDone();
   }
 
   if (step !== 3) return null;
@@ -190,6 +216,18 @@ export function FindingsSection({
                     label={`selected (${selectedTargets.length})`}
                     accent
                   />
+                )}
+
+                {inUse.length > 0 && (
+                  <span
+                    title={inUse
+                      .map((target) => `${target.label ?? target.name} — ${target.blockedBy} is running`)
+                      .join("\n")}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-coral-300/40 bg-coral-surface px-3 py-1.5 font-mono text-[11px] text-coral-300"
+                  >
+                    <Radio size={11} aria-hidden="true" />
+                    {formatBytes(inUse.reduce((sum, target) => sum + target.sizeBytes, 0))} in use
+                  </span>
                 )}
 
                 {!proEnabled && (
@@ -294,6 +332,26 @@ export function FindingsSection({
             className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-linear-to-t from-forest-950 to-transparent"
           />
           <div className="h-full overflow-y-auto pr-1.5 pt-5 pb-8">
+            {failed.length > 0 && (
+              <div
+                role="alert"
+                className="mb-4 flex items-start gap-3 rounded-2xl border border-coral-300/40 bg-coral-surface px-4 py-3 text-xs leading-5 text-coral-300"
+              >
+                <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+                <div className="min-w-0 select-text">
+                  <p className="font-semibold">
+                    {failed.length === 1
+                      ? "One target was not removed."
+                      : `${failed.length} targets were not removed.`}{" "}
+                    {error ?? "The system refused the removal."}
+                  </p>
+                  <p className="mt-1 text-coral-300/80">
+                    {failed.length === 1 ? "It is" : "They are"} still selected, so pressing again
+                    once the reason is gone retries {failed.length === 1 ? "it" : "them"}.
+                  </p>
+                </div>
+              </div>
+            )}
             {!proEnabled && proBytes > 0 && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pro-200/30 bg-pro-surface px-4 py-3">
                 <div>

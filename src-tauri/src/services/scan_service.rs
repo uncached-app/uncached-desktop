@@ -45,6 +45,12 @@ pub struct RegisteredTarget {
     pub target: ScanTarget,
     pub root_path: PathBuf,
     pub providers: Arc<uncached_core::ProviderSet>,
+    /// The programs that own this directory, for the check at removal time.
+    ///
+    /// Empty for everything found by walking a workspace: a project's artifacts
+    /// are guarded by the running-project check on the screen that offers them,
+    /// and there is no single program that owns a `node_modules`.
+    pub owner: &'static [&'static str],
 }
 
 #[repr(u8)]
@@ -218,6 +224,24 @@ pub fn platform() -> uncached_core::contract::v1::Platform {
 pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorInfo {
     let core_error = match error {
         NukeError::Core(info) => return info.clone(),
+        // The one desktop-local refusal whose message is the useful half.
+        //
+        // Everything else here is mapped to a stable core error precisely to
+        // keep its private text off the wire. This carries a process name and
+        // nothing else — no path, no internal state — and "close it and scan
+        // again" is the whole point of refusing. `TargetContextInvalid` is the
+        // declared code for exactly this: the target was vouched for, and the
+        // ground it was vouched on has changed since.
+        NukeError::InUse(owner) => {
+            return uncached_core::CoreErrorInfo {
+                code: uncached_core::CoreErrorCode::TargetContextInvalid,
+                message: format!(
+                "{owner} is running. Close it and scan again — removing this now would break it."
+            ),
+                path: None,
+                operation: None,
+            }
+        }
         NukeError::Io(error) => {
             uncached_core::CoreError::Io(std::io::Error::new(error.kind(), "desktop I/O error"))
         }
@@ -711,6 +735,7 @@ impl ScanService {
                                     target: target.clone(),
                                     root_path: callback_root.clone(),
                                     providers: Arc::clone(&callback_providers),
+                                    owner: &[],
                                 },
                             );
                             drop(registry);
@@ -1317,6 +1342,10 @@ fn discover_home_locations(
     // scan does less work, not that the results are hidden afterwards.
     let discoveries: Vec<_> = uncached_core::probe_home(home)
         .into_iter()
+        // Scratch a tool keeps outside the home directory — a coding agent's
+        // per-session working files live under the system temp directory, and
+        // no catalogue written relative to `$HOME` can reach them.
+        .chain(uncached_core::probe_temp(home))
         .filter(|discovery| wanted.contains(&discovery.category))
         .collect();
     if discoveries.is_empty() {
@@ -1335,6 +1364,9 @@ fn discover_home_locations(
         uncached_core::KnownLocationScanner::provider_set(home.to_path_buf())
             .with_ignore_rules(crate::scanner::compile_ignore_rules(ignore_rules).0),
     );
+    // Once for the whole pass. Asking per location would run `ps` forty times
+    // to answer a question whose answer cannot change meaningfully in between.
+    let running = crate::workspace::running::running_commands();
     crate::logging::info(
         "scan",
         &format!(
@@ -1351,7 +1383,7 @@ fn discover_home_locations(
         if providers.excludes(&discovery.path) {
             continue;
         }
-        let target = ScanTarget::from_discovery(scan_id, discovery);
+        let target = ScanTarget::from_discovery(scan_id, discovery, &running);
 
         let mut registry = registry().lock().unwrap();
         let Some(session) = registry.sessions.get_mut(scan_id) else {
@@ -1366,8 +1398,16 @@ fn discover_home_locations(
             target.id.clone(),
             RegisteredTarget {
                 target: target.clone(),
-                root_path: home.to_path_buf(),
+                // The root the discovery reports, not the home directory.
+                //
+                // Cleanup refuses anything outside the root its target was
+                // registered against. Registering everything against home
+                // was true until session scratch, which lives under `/tmp`
+                // — so the largest thing this pass finds was offered on
+                // screen and then refused on removal.
+                root_path: discovery.root.clone(),
                 providers: Arc::clone(&providers),
+                owner: discovery.owner,
             },
         );
         drop(registry);
@@ -1458,6 +1498,7 @@ mod tests {
             assert_eq!(
                 keys,
                 [
+                    "blockedBy",
                     "category",
                     "cleanable",
                     "confidence",
@@ -1725,13 +1766,20 @@ mod tests {
         );
         sizing.finish();
 
+        // Narrowed to the fixture. Discovery also probes the system temp roots
+        // for a coding agent's session scratch, and those belong to the machine
+        // running the test rather than to the home directory built for it.
         let events = emitted.lock().unwrap();
+        let fixture: Vec<_> = events
+            .iter()
+            .filter(|event| event["data"]["target"]["label"] == location.label)
+            .collect();
         assert_eq!(
-            events.len(),
+            fixture.len(),
             1,
             "one catalogued location exists in the fixture"
         );
-        let target = &events[0]["data"]["target"];
+        let target = &fixture[0]["data"]["target"];
         assert_eq!(target["label"], location.label);
         // Read from the boundary rather than pinned to a literal: which plan a
         // catalogued location needs is the entitlement module's decision, and
@@ -1746,7 +1794,14 @@ mod tests {
 
         let target_id = target["id"].as_str().unwrap().to_owned();
         let registered = ScanService::get_target(&target_id).expect("discovery should register");
-        assert_eq!(registered.root_path, home);
+        // Canonical, which on macOS is `/private/var/...` where the fixture
+        // said `/var/...`. That is the point of the field rather than an
+        // inconvenience of it: cleanup checks containment against resolved
+        // paths, so a root that is not itself resolved contains nothing.
+        assert_eq!(
+            registered.root_path,
+            uncached_core::canonical(&home).unwrap_or_else(|_| home.clone())
+        );
         assert!(
             uncached_core::validate_clean_target(
                 &registered.root_path,
@@ -1821,7 +1876,11 @@ mod tests {
         sizing.finish();
 
         assert!(
-            emitted.lock().unwrap().is_empty(),
+            !emitted
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|event| event["data"]["target"]["label"] == location.label),
             "an excluded location must not be reported"
         );
 
@@ -2019,6 +2078,7 @@ mod tests {
             target,
             root_path: root.clone(),
             providers: std::sync::Arc::clone(&providers),
+            owner: &[],
         };
 
         assert!(
@@ -2076,6 +2136,7 @@ mod tests {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
                 providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                owner: &[],
             },
         );
 
@@ -2109,6 +2170,7 @@ mod tests {
                         target: ScanTarget::new(path.clone(), Category::NodeModules, 1, false),
                         root_path: PathBuf::from("/w"),
                         providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                        owner: &[],
                     },
                 );
                 id
@@ -2159,6 +2221,7 @@ mod tests {
                     target,
                     root_path: PathBuf::from("/m"),
                     providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                    owner: &[],
                 },
             );
         }
@@ -2231,6 +2294,7 @@ mod tests {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
                 providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                owner: &[],
             },
         );
 
@@ -2331,6 +2395,7 @@ mod tests {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
                 providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                owner: &[],
             },
         );
 
@@ -2353,6 +2418,7 @@ mod tests {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
                 providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                owner: &[],
             },
         );
 
@@ -2458,6 +2524,7 @@ mod tests {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
                 providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                owner: &[],
             },
         );
     }
@@ -2486,6 +2553,7 @@ mod tests {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
                 providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                owner: &[],
             },
         );
 
@@ -2523,6 +2591,7 @@ mod tests {
                 target,
                 root_path: PathBuf::from("C:\\workspace"),
                 providers: Arc::new(providers_for_scan(&AppSettings::default())),
+                owner: &[],
             },
         );
         registry

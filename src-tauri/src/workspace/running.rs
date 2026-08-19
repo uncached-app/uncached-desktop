@@ -11,7 +11,7 @@
 //! query: it is a field every process has, so nothing has to be walked.
 
 use serde::Serialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 /// A project with a live process inside it, and what that process is.
@@ -61,6 +61,41 @@ pub fn running_projects(projects: &[PathBuf]) -> Vec<RunningProject> {
             processes,
         })
         .collect()
+}
+
+/// The programs running right now, by the name a process list reports.
+///
+/// A cache is only disposable while the tool that owns it is not using it.
+/// `.claude/ide` holds the lock files of live sessions; a session's scratch
+/// directory under `/tmp` is where the agent is writing as you read this.
+/// Removing either mid-flight does not free space, it breaks what was running
+/// — and afterwards the tool cannot tell that from a corrupt cache.
+///
+/// Names only, and compared exactly. Matching loosely would block a cache
+/// because some unrelated process merely contains the word, and a block that
+/// fires when it should not is one people learn to work around.
+pub fn running_commands() -> BTreeSet<String> {
+    let Ok(output) = crate::process::quiet("ps").args(["-axo", "comm="]).output() else {
+        return BTreeSet::new();
+    };
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| {
+            // `comm` is a path for anything not started from `$PATH`, and an
+            // app bundle's executable is always one:
+            // `/Applications/Foo.app/Contents/MacOS/Foo`.
+            let name = line.trim().rsplit('/').next()?.trim();
+            (!name.is_empty()).then(|| name.to_owned())
+        })
+        .collect()
+}
+
+/// Which of `owners` is running, if any. The first is what the screen says.
+pub fn first_running<'a>(owners: &[&'a str], running: &BTreeSet<String>) -> Option<&'a str> {
+    owners
+        .iter()
+        .copied()
+        .find(|owner| running.contains(*owner))
 }
 
 /// Separator-aware, because `/work-archive` starts with `/work`.
@@ -114,7 +149,8 @@ fn working_directories() -> Vec<(String, PathBuf)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_inside, running_projects};
+    use super::{is_inside, running_commands, running_projects};
+    use std::collections::BTreeSet;
     use std::path::{Path, PathBuf};
 
     #[test]
@@ -122,6 +158,35 @@ mod tests {
         assert!(is_inside(Path::new("/work/api"), Path::new("/work")));
         assert!(!is_inside(Path::new("/work-archive"), Path::new("/work")));
         assert!(is_inside(Path::new("/work"), Path::new("/work")));
+    }
+
+    /// `ps` lists this test binary, whatever else the machine is doing.
+    #[cfg(unix)]
+    #[test]
+    fn the_process_list_contains_the_process_asking_for_it() {
+        let running = running_commands();
+        assert!(!running.is_empty(), "ps reported nothing at all");
+        let me = std::env::current_exe()
+            .ok()
+            .and_then(|path| {
+                path.file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+            })
+            .expect("this test has an executable");
+        assert!(running.contains(&me), "{me} is running and was not listed");
+    }
+
+    #[test]
+    fn an_owner_matches_by_whole_name_and_not_by_part() {
+        let running: BTreeSet<String> = ["claude", "node"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(super::first_running(&["claude"], &running), Some("claude"));
+        assert_eq!(
+            super::first_running(&["codex", "claude"], &running),
+            Some("claude")
+        );
+        assert_eq!(super::first_running(&["claude-code"], &running), None);
+        assert_eq!(super::first_running(&["clau"], &running), None);
+        assert_eq!(super::first_running(&[], &running), None);
     }
 
     #[test]

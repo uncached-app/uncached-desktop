@@ -3,6 +3,7 @@ import { useScanWorkspace } from "./useScanWorkspace";
 import { useWorkspaceIndex } from "./useWorkspaceIndex";
 import { useWorkspaceWatch } from "./useWorkspaceWatch";
 import { RESET, type View as MapViewState } from "../utils/viewport.mjs";
+import { isInside } from "../utils/paths.mjs";
 import { useRunningProjects } from "./useRunningProjects";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
 import { useWorkspaceVerdicts } from "./useWorkspaceVerdicts";
@@ -92,6 +93,26 @@ export function PurgeFlowProvider({
     // footprint pass, and those are the numbers the user is watching.
     settled: !measuring && projects.length > 0,
   });
+  // Artifacts that belong to a project something is working inside.
+  //
+  // The catalogued caches carry their own `blockedBy` — the backend names the
+  // tool that owns each one. Nothing said the same about the artifacts of a
+  // running project: the workspace screen knew, because it asks separately, and
+  // Reclaim did not, so the same project read as busy on one screen and
+  // reclaimable on the other. Filled in here rather than on either screen, so
+  // the artifact list, the totals, the selection and the project page all agree
+  // without each deriving it.
+  const held = running.running;
+  const targets = useMemo(() => {
+    const projects = Object.values(held);
+    if (projects.length === 0) return flow.targets;
+    return flow.targets.map((target) => {
+      if (target.blockedBy) return target;
+      const owner = projects.find((project) => isInside(target.path, project.path));
+      return owner ? { ...target, blockedBy: owner.command } : target;
+    });
+  }, [flow.targets, held]);
+
   const [view, setView] = useState<ResultsView>("projects");
   // Opening Reclaim *is* the request for artifacts.
   //
@@ -214,6 +235,8 @@ export function PurgeFlowProvider({
     <PurgeFlowContext.Provider
       value={{
         ...flow,
+        // After the spread: the enriched list is the one every screen reads.
+        targets,
         index,
         footprints,
         measuring,

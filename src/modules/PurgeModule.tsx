@@ -208,6 +208,7 @@ export function PurgeModule({
         activeIgnoreRules={activeIgnoreRules}
         unreadable={flow.unreadable}
         running={flow.running.running}
+        error={flow.error}
       />}
 
       <CompletionView

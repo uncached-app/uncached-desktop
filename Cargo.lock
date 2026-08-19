@@ -4803,7 +4803,7 @@ dependencies = [
 
 [[package]]
 name = "uncached"
-version = "0.1.1-alpha.7"
+version = "0.1.1-alpha.8"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4829,7 +4829,7 @@ dependencies = [
 [[package]]
 name = "uncached-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/uncached-app/uncached-core.git?rev=bb2d36f#bb2d36fd70f3f6f941ef6cd76c3ef2b2f6360b84"
+source = "git+ssh://git@github.com/uncached-app/uncached-core.git?rev=630e3ce62c37e3a972ecf6ff5cc877cd95a10da6#630e3ce62c37e3a972ecf6ff5cc877cd95a10da6"
 dependencies = [
  "dunce",
  "globset",

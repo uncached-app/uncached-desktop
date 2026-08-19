@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy, Eye, LoaderCircle, LockKeyhole, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
+import { Check, Copy, Eye, LoaderCircle, LockKeyhole, Radio, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
 import { categoryPresentation } from "./categoryPresentation";
 import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
 
@@ -124,7 +124,13 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
   // Reported, never removed. The backend refuses it because no provider vouches
   // for it; the card leaves the checkbox out so the refusal is never reached.
   const reportOnly = target.cleanable === false;
-  const disabled = isCleaning || target.sizePending || target.sizeHasErrors || proLocked || reportOnly;
+  // Disposable, but not now: the tool that wrote it is running. Reported with
+  // its weight like everything else — hiding it would move the totals between
+  // two scans with nothing on screen accounting for the difference — and with
+  // no control, because the backend refuses it at removal either way.
+  const inUse = target.blockedBy ?? null;
+  const disabled =
+    isCleaning || target.sizePending || target.sizeHasErrors || proLocked || reportOnly || inUse !== null;
   const category = categoryPresentation(target.category);
   const CategoryIcon = category.icon;
 
@@ -162,7 +168,14 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
       }`}
     >
       <div className="flex min-w-0 items-start gap-3.5">
-        {reportOnly ? (
+        {inUse ? (
+          <span
+            aria-hidden="true"
+            className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-coral-300/40 text-coral-300"
+          >
+            <Radio size={12} />
+          </span>
+        ) : reportOnly ? (
           <span
             aria-hidden="true"
             className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-forest-800 text-mist-500"
@@ -203,6 +216,14 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
                 directory is called `store`, `_cacache` or `Cache`, which would
                 leave the user guessing which tool each row belongs to. */}
             <span className="text-xs font-medium text-mist-500">{target.label ?? target.name}</span>
+            {inUse && (
+              <span
+                title={`Uncached will not remove this while ${inUse} is running: the files it holds open would go with it.`}
+                className="inline-flex items-center gap-1 rounded-md border border-coral-300/40 bg-coral-surface px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-coral-300"
+              >
+                <Radio size={10} aria-hidden="true" /> In use
+              </span>
+            )}
             {proLocked && (
               <span className="inline-flex items-center gap-1 rounded-md border border-pro-200/30 bg-pro-surface px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pro-100">
                 <LockKeyhole size={10} aria-hidden="true" /> Pro
@@ -271,6 +292,15 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
               >
                 <RefreshCw size={13} aria-hidden="true" /> Retry
               </button>
+            </div>
+          ) : inUse ? (
+            <div className="flex flex-col items-end gap-0.5">
+              <strong className="block text-lg font-semibold text-mist-300">
+                {target.formattedSize}
+              </strong>
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-coral-300">
+                <Radio size={10} aria-hidden="true" /> {inUse} is running
+              </span>
             </div>
           ) : proLocked ? (
             /* The weight, and then what the plan can do about it.

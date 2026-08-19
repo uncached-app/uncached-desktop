@@ -34,7 +34,14 @@ export function shouldOpenReview(step, scanFinished, targetCount, targets) {
  */
 export function getCleanupReadyTargets(targets) {
   return targets.filter(
-    (target) => target.cleanable && !target.sizePending && !target.sizeHasErrors,
+    (target) =>
+      target.cleanable &&
+      // The tool that owns it is running. It is still reported and still
+      // weighed — the totals above the list are honest about it — but nothing
+      // that offers a removal may include it, because the backend refuses it.
+      !target.blockedBy &&
+      !target.sizePending &&
+      !target.sizeHasErrors,
   );
 }
 

@@ -15,6 +15,20 @@ impl CleanService {
         confirmation: Option<String>,
     ) -> NukeResult<CleanResult> {
         validate_confirmation(mode, confirmation.as_deref())?;
+        // Asked here rather than trusted from the scan.
+        //
+        // The row already says so, but a scan and a removal are minutes apart
+        // and starting the tool in between is the ordinary case, not an exotic
+        // one. A guarantee that lives only in the interface is a guarantee the
+        // interface can forget to make — this is the same reasoning that keeps
+        // `validate_clean_target` below rather than in the screen that offers
+        // the button.
+        if let Some(owner) = crate::workspace::running::first_running(
+            registered.owner,
+            &crate::workspace::running::running_commands(),
+        ) {
+            return Err(crate::errors::NukeError::InUse(owner.to_owned()));
+        }
         if mode == CleanMode::Trash && settings.is_none() {
             return Err(crate::errors::NukeError::PermissionDenied(
                 "Trash cleanup requires settings".to_string(),
@@ -106,6 +120,7 @@ mod tests {
             target,
             root_path,
             providers: std::sync::Arc::new(crate::scanner::get_default_providers(settings)),
+            owner: &[],
         }
     }
 

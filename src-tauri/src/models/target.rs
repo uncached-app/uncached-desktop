@@ -36,6 +36,16 @@ pub struct ScanTarget {
     /// the backend would refuse. The refusal exists either way — no provider
     /// vouches for these — so this field is what keeps the two in agreement.
     pub cleanable: bool,
+    /// The program using this directory right now, if one is.
+    ///
+    /// Distinct from `cleanable`, which is a permanent property of what the
+    /// thing *is*. This is a fact about this moment: the cache is disposable,
+    /// and disposing of it while its owner is mid-write does not free space,
+    /// it breaks what was running. Set at scan time so the row can say so, and
+    /// asked again at removal — the two are minutes apart, and starting the
+    /// tool in between is the ordinary case rather than an exotic one.
+    #[serde(default)]
+    pub blocked_by: Option<String>,
     pub size_bytes: u64,
     pub size_has_errors: bool,
     pub size_pending: bool,
@@ -61,13 +71,19 @@ impl ScanTarget {
     /// for one would report "no project found" for every discovery — true, and
     /// useless. What the entry is, and what removing it costs, were both
     /// decided in the core when the location was catalogued.
-    pub fn from_discovery(scan_id: &str, discovery: &uncached_core::Discovery) -> Self {
+    pub fn from_discovery(
+        scan_id: &str,
+        discovery: &uncached_core::Discovery,
+        running: &std::collections::BTreeSet<String>,
+    ) -> Self {
         let mut target = Self::pending(discovery.path.clone(), discovery.category.clone());
         target.id = format!("{scan_id}-{}", target.id);
         target.label = Some(discovery.label.to_owned());
         target.confidence = uncached_core::assess(uncached_core::discovery::signals_for(discovery));
         target.identity = uncached_core::filesystem::file_identity(&discovery.path);
         target.cleanable = discovery.kind != uncached_core::LocationKind::ReportOnly;
+        target.blocked_by = crate::workspace::running::first_running(discovery.owner, running)
+            .map(|owner| owner.to_owned());
         target
     }
 
@@ -97,6 +113,7 @@ impl ScanTarget {
             // Only the catalogue can produce something reportable but not
             // removable, and `from_discovery` sets this from the entry's kind.
             cleanable: true,
+            blocked_by: None,
             size_bytes,
             size_has_errors,
             size_pending: false,
@@ -380,18 +397,47 @@ mod tests {
             label: "pnpm store",
             category: Category::PackageManagerCache,
             kind: uncached_core::LocationKind::SharedCache,
+            owner: &[],
+            root: std::env::temp_dir(),
         };
 
-        let target = ScanTarget::from_discovery("scan-1", &discovery);
+        let target = ScanTarget::from_discovery("scan-1", &discovery, &Default::default());
 
         assert_eq!(target.label.as_deref(), Some("pnpm store"));
         assert_eq!(target.name, "store");
         assert_eq!(target.plan, Plan::Pro);
+        assert_eq!(target.blocked_by, None);
         assert_eq!(
             target.confidence.level,
             uncached_core::ConfidenceLevel::Medium,
             "a shared cache is never offered as high confidence"
         );
+    }
+
+    /// The point of the whole mechanism: a cache whose tool is running is
+    /// reported with its weight and refused, not offered.
+    #[test]
+    fn a_cache_whose_owner_is_running_is_blocked() {
+        let discovery = uncached_core::Discovery {
+            path: std::env::temp_dir().join("uncached-discovery-target/.claude/ide"),
+            label: "Claude Code IDE locks",
+            category: Category::AiToolCache,
+            kind: uncached_core::LocationKind::ToolState,
+            owner: &["claude"],
+            root: std::env::temp_dir(),
+        };
+        let running = ["claude".to_string(), "node".to_string()]
+            .into_iter()
+            .collect();
+
+        let blocked = ScanTarget::from_discovery("scan-1", &discovery, &running);
+        assert_eq!(blocked.blocked_by.as_deref(), Some("claude"));
+        // Still reported, and still weighed. Hiding it would make the total
+        // move between two scans with nothing on screen saying why.
+        assert!(blocked.cleanable, "the entry itself is still disposable");
+
+        let idle = ScanTarget::from_discovery("scan-1", &discovery, &Default::default());
+        assert_eq!(idle.blocked_by, None);
     }
 
     #[test]

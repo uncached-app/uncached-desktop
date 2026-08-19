@@ -1,46 +1,35 @@
-## 0.1.1-alpha.7
+## 0.1.1-alpha.8
 
-Opening a workspace no longer walks it for artifacts. Reading the projects
-takes milliseconds; finding every build directory inside them, and then the
-tool caches in your home folder, is the long part — and none of it answers
-"what have I got". That walk now runs when you open Reclaim, which is the
-screen that needs it, and it says what it is doing while it does: first your
-projects, then your caches, naming folders as it finds them.
+Uncached now finds the scratch directories AI coding tools leave outside your
+home folder. A Claude Code session keeps its working files under `/tmp`, in a
+directory named after your user id, and no catalogue entry could reach it —
+this machine had 7.6 GB sitting there. Codex, Cursor, Copilot, Aider, opencode
+and Continue are read the same way, alongside the model and inference caches
+that Hugging Face, Ollama, llama.cpp, PyTorch, Whisper and Torch Inductor keep
+in the home directory.
 
-A project with a dev server or a watcher running inside it is left alone and
-says so. Its artifacts are being written to while they would be read, so a
-weight would be wrong on arrival and a reclaim is one the system will refuse.
-The row names the process instead, the project's page opens with a warning, and
-selecting one of its targets tells you before you press the button rather than
-after.
+Nothing is offered while the tool that owns it is running. A cache being
+written to is not disposable at that moment: removing it takes files the
+process still has open, which breaks what was running instead of freeing space.
+The row shows what it weighs and why it cannot be taken, and has no checkbox —
+and the check is taken again at removal, because a scan and a cleanup are
+minutes apart and opening the tool in between is the ordinary case rather than
+the exotic one.
 
-Bundled `vendor` directories are no longer offered. A WordPress plugin ships
-other people's package trees, each with a `composer.json` that looks from the
-outside exactly like a project root — but nothing there can put the directory
-back. Composer artifacts now need a lock file or a repository, and anything
-below a plugin or theme root is left where it is.
+The same is now true of your own projects. A project with a dev server or a
+watcher inside it read as busy on the workspace screen and as reclaimable in
+Reclaim, because only one of the two screens was asking. Both read the same
+answer now, so its artifacts carry the reason there as well.
 
-The window resizes from its own edge on macOS. It never did: the only border
-the system offered was the outer rim of the shadow, sixteen pixels out in
-transparent space.
+A cleanup that is refused says so. Removing forty targets where two are
+declined used to end exactly like one where none were — the dialog closed, the
+selection emptied, and the two rows simply stayed on screen. The refused ones
+now stay selected under a notice that says how many there were and what the
+system answered, so pressing again once the reason is gone retries them.
 
-Paste works. There was no Edit menu, and on macOS that is what delivers ⌘V —
-so no text field in the app could be pasted into, including the one that takes
-a licence key.
-
-The licence screen was rebuilt around that. It offers the key itself before the
-button that removes it, rather than the order reference under a label that said
-"Licence Key"; an expired licence leads with itself instead of greeting a
-paying customer as a free user; and a key pasted out of an email has the line
-breaks taken out of it, which were reaching the verifier as part of the
-signature.
-
-Themes preview as you move through them, by pointer or by arrow key, and the
-window crossfades rather than jumping. The arrow keys reached that list for the
-first time here — clicking a button on macOS does not focus it, so every
-dropdown in the app was one the keyboard could not drive.
-
-Smaller things: locked targets show what they weigh, which the totals above them
-were already counting; options that cannot be chosen stop lighting up under the
-pointer and say why; the workspace header dropped a spinner that described work
-happening elsewhere.
+What is offered is deliberately narrow. Only directories whose owner can be
+named, never a tool's own folder — `~/.claude` mixes disposable scratch with
+history and settings, so only proven subpaths under it appear. Session scratch
+is read on macOS and Linux, where the convention is the same; Windows keeps its
+temporary files somewhere this has not confirmed, and a guess there would be a
+guess about a directory the product offers to delete.

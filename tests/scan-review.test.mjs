@@ -211,3 +211,22 @@ test("a target that cannot be removed is not offered as work", () => {
     ["keep"],
   );
 });
+
+test("a target whose owner is running is never offered for cleanup", () => {
+  const base = {
+    cleanable: true,
+    sizePending: false,
+    sizeHasErrors: false,
+    sizeBytes: 10,
+  };
+  const ready = getCleanupReadyTargets([
+    { ...base, id: "free" },
+    { ...base, id: "held", blockedBy: "claude" },
+  ]);
+
+  assert.deepEqual(
+    ready.map((target) => target.id),
+    ["free"],
+    "the backend refuses a blocked target, so nothing may select it",
+  );
+});

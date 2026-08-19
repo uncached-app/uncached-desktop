@@ -1,6 +1,6 @@
 [package]
 name = "uncached"
-version = "0.1.1-alpha.7"
+version = "0.1.1-alpha.8"
 description = "Reclaim disk from build artifacts."
 authors = ["you"]
 edition = "2021"
@@ -48,4 +48,4 @@ base64 = "0.22"
 # decide what gets compiled — CI builds whatever `uncached-core` main is at. It
 # decides what a build without that sibling would resolve, and it is what the
 # drift warning compares against before a release.
-uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "bb2d36f", package = "uncached-core" }
+uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "630e3ce62c37e3a972ecf6ff5cc877cd95a10da6", package = "uncached-core" }

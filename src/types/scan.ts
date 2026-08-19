@@ -23,6 +23,16 @@ export type ScanTarget = {
   confidence: Confidence;
   /** False for a catalogued location the product reports but never removes. */
   cleanable: boolean;
+  /**
+   * The program using this directory right now, if one is.
+   *
+   * Different from `cleanable`, which says what the thing permanently is. This
+   * says the cache is disposable and this is not the moment: removing it while
+   * its owner is mid-write breaks what was running rather than freeing space.
+   * The backend refuses it again at removal, so this is what the row shows
+   * rather than what makes it safe.
+   */
+  blockedBy?: string | null;
   sizeBytes: number;
   sizeHasErrors: boolean;
   sizePending: boolean;

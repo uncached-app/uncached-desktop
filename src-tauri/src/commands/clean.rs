@@ -167,6 +167,7 @@ mod tests {
                 ),
                 root_path: PathBuf::from(r"C:\workspace"),
                 providers: Arc::new(crate::scanner::get_default_providers(&settings)),
+                owner: &[],
             },
             control,
             Some(&settings),
