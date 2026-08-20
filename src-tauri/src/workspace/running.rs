@@ -74,6 +74,12 @@ pub fn running_projects(projects: &[PathBuf]) -> Vec<RunningProject> {
 /// Names only, and compared exactly. Matching loosely would block a cache
 /// because some unrelated process merely contains the word, and a block that
 /// fires when it should not is one people learn to work around.
+///
+/// **Linux truncates.** `comm` there is the kernel's `TASK_COMM_LEN` field,
+/// which is fifteen characters plus a terminator, so a longer executable name
+/// arrives cut short. Every owner in the catalogue is well inside that —
+/// `claude`, `cursor`, `ollama`, `node`, `Xcode` — and the test below pins the
+/// behaviour rather than leaving it to be rediscovered by an owner that is not.
 pub fn running_commands() -> BTreeSet<String> {
     let Ok(output) = crate::process::quiet("ps").args(["-axo", "comm="]).output() else {
         return BTreeSet::new();
@@ -161,9 +167,17 @@ mod tests {
     }
 
     /// `ps` lists this test binary, whatever else the machine is doing.
+    ///
+    /// Compared on the first fifteen characters, which is what Linux reports:
+    /// `comm` is the kernel's `TASK_COMM_LEN` field and a test binary's name —
+    /// `uncached_lib-9c249e9c22cad2b8` — is far longer than that. macOS returns
+    /// it whole, so the same assertion holds on both by truncating each side.
     #[cfg(unix)]
     #[test]
     fn the_process_list_contains_the_process_asking_for_it() {
+        /// `TASK_COMM_LEN - 1`, from the Linux kernel.
+        const COMM_LEN: usize = 15;
+
         let running = running_commands();
         assert!(!running.is_empty(), "ps reported nothing at all");
         let me = std::env::current_exe()
@@ -173,7 +187,11 @@ mod tests {
                     .map(|name| name.to_string_lossy().into_owned())
             })
             .expect("this test has an executable");
-        assert!(running.contains(&me), "{me} is running and was not listed");
+        let short: String = me.chars().take(COMM_LEN).collect();
+        assert!(
+            running.contains(&me) || running.contains(&short),
+            "{me} is running and was not listed, as itself or as {short}"
+        );
     }
 
     #[test]
