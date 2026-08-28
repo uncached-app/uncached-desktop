@@ -2,7 +2,7 @@
 
 This document outlines the future product strategy, technical security architecture, feature differentiation, and implementation roadmap for monetizing **Uncached**.
 
-**Current state:** Uncached is in private early access with the free tier only. There is no public download, checkout, license activation, or Pro feature availability yet. Prices below are planning values and must not appear as current offers until the merchant and licensing implementation are complete.
+**Current state:** the free tier is a public download and Pro is sold through Paddle at $19.90/year or $89.90 once. Licence issuing and offline activation are implemented. The Pro feature set below ships progressively — a capability listed here is not necessarily shipped.
 
 ---
 
@@ -11,23 +11,23 @@ This document outlines the future product strategy, technical security architect
 - **App Name**: Uncached
 - **Business Model**: Hybrid Freemium / Paywall
 - **Target Audience**: Software Engineers, Web Developers, Mobile Developers, & DevOps Engineers
-- **Merchant of Record (MoR)**: [LemonSqueezy](https://www.lemonsqueezy.com/) / [Paddle](https://www.paddle.com/)
+- **Merchant of Record (MoR)**: [Paddle](https://www.paddle.com/)
   - *Handles global sales tax / VAT, invoicing, multi-currency payments, and license key generation automatically.*
 
 ### Pricing Tiers
 
 1. **Free / Starter ($0)**
    - Core manual scanning and basic cleanup (`node_modules`, Cargo `target/`, `.gradle/`).
-2. **Pro Monthly Subscription ($4.90 / month)**
-   - Full access to all Pro features with cancel-anytime flexibility.
-3. **Pro Lifetime License ($59.90 one-time)**
-   - Permanent license key for all Pro features and lifetime access.
+2. **Pro Annual Subscription ($19.90 / year)**
+   - Full access to all Pro features, renewed yearly. A new licence key is emailed on every renewal.
+3. **Pro Lifetime License ($89.90 one-time)**
+   - Permanent license key for all Pro features, with no expiry.
 
 ---
 
 ## 📊 Feature Matrix (Free vs. Pro)
 
-| Feature | Free Tier ($0) | Pro Tier ($4.90/mo or $59.90) |
+| Feature | Free Tier ($0) | Pro Tier ($19.90/yr or $89.90) |
 | :--- | :---: | :---: |
 | **Standard Target Scans** (`node_modules`, `target/`, `.gradle/`) | ✅ | ✅ |
 | **Manual One-Click Cleanup** | ✅ | ✅ |
@@ -46,7 +46,7 @@ To prevent unauthorized cracking, **all feature gating and license validation lo
 
 ```
                        +-----------------------------------+
-                       |    LemonSqueezy / Paddle Checkout  |
+                       |         Paddle Checkout           |
                        +-----------------+-----------------+
                                          |
                                          v  (Generates License Key)
@@ -83,18 +83,18 @@ To prevent unauthorized cracking, **all feature gating and license validation lo
    lto = true          # Link-Time Optimization (obfuscates control flow)
    panic = "abort"
    ```
-5. **Periodic Online Heartbeat**: Rust backend verifies active subscription status against LemonSqueezy API when connected to the internet, revoking canceled/refunded licenses automatically.
+5. **Periodic Online Heartbeat**: Rust backend verifies active subscription status against the Paddle API when connected to the internet, revoking canceled/refunded licenses automatically.
 
 ---
 
 ## 🗺️ Implementation Roadmap
 
 ### Phase 1: Merchant & Store Setup
-- [ ] Register LemonSqueezy merchant account.
-- [ ] Create **Uncached Pro** product with 2 variants:
-  - Variant 1: Subscription ($4.90/month)
-  - Variant 2: Lifetime License ($59.90 one-time)
-- [ ] Configure Webhooks and License Key generation rules.
+- [ ] Register Paddle merchant account (approved).
+- [ ] Create **Uncached Pro** product with 2 prices:
+  - Price 1: Annual subscription ($19.90/year)
+  - Price 2: Lifetime License ($89.90 one-time)
+- [ ] Point a Paddle notification destination at `POST /api/license` and subscribe it to `transaction.completed`.
 
 ### Phase 2: Rust Licensing Engine (`src-tauri/src/licensing/`)
 - [ ] Implement HWID fingerprint generator.
@@ -110,7 +110,7 @@ To prevent unauthorized cracking, **all feature gating and license validation lo
 - [ ] Implement background daemon scheduler for automated cleanups.
 
 ### Phase 4: Frontend UI Integration (React)
-- [ ] Build "Upgrade to Pro" modal with pricing cards ($4.90/mo vs $59.90 lifetime).
+- [ ] Build "Upgrade to Pro" modal with pricing cards ($19.90/yr vs $89.90 lifetime).
 - [ ] Add License Key input form with instant validation feedback.
 - [ ] Add Pro badges on advanced settings options.
 

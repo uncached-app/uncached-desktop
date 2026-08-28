@@ -20,8 +20,8 @@
 //! ```
 //!
 //! `verify` reads the same code path the app does, so it also proves that a key
-//! minted anywhere else — the Lemon Squeezy webhook signs with WebCrypto, not
-//! with this file — is one the app will accept.
+//! minted anywhere else — the Paddle webhook signs with WebCrypto, not with
+//! this file — is one the app will accept.
 //!
 //! The seed is the whole security model. Anyone holding it can mint licences;
 //! nobody without it can. It belongs in a password manager or the merchant's

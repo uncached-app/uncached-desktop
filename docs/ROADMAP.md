@@ -1,6 +1,6 @@
 # Roadmap
 
-Current release state: private early access for the free tier. Public download and Pro monetization follow completed product and licensing work.
+Current release state: public download for the free tier, with Pro sold through Paddle. Pro capabilities ship progressively.
 
 ## Phase 1: Core seguro
 
