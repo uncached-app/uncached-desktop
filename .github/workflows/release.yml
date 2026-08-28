@@ -28,9 +28,15 @@ on:
         description: "Build and sign, but publish nothing"
         type: boolean
         default: true
+      reuse_run_id:
+        description: "Publish what this run already built, instead of building again"
+        type: string
+        default: ""
 
 permissions:
   contents: write
+  # Reading another run's artifacts, for a republish.
+  actions: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -48,6 +54,11 @@ defaults:
 jobs:
   build:
     name: ${{ matrix.target }}
+    # Skipped when a republish names the run to take bundles from. Compiling
+    # four platforms of Rust is the expensive half of a release, and a release
+    # that failed after the build — on a version string, a notes file, a
+    # credential — does not need any of it done twice.
+    if: github.event_name == 'push' || inputs.reuse_run_id == ''
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -315,6 +326,9 @@ jobs:
   publish:
     name: Publish to the CDN
     needs: build
+    # `always()` so a skipped build does not take publish with it, and the
+    # explicit result check so a *failed* build still does.
+    if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout desktop
@@ -327,6 +341,10 @@ jobs:
         with:
           path: release
           pattern: release-*
+          # This run's own artifacts unless a republish names another's. The
+          # token is what makes reading across runs possible at all.
+          run-id: ${{ inputs.reuse_run_id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Node
         uses: actions/setup-node@v4
@@ -439,9 +457,12 @@ jobs:
       #
       # What belongs on this page is what a person clicks.
       - name: Attach the installers to the GitHub release
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || (inputs.reuse_run_id != '' && !inputs.dry_run)
         uses: softprops/action-gh-release@v2
         with:
+          # Named rather than inferred: a republish is dispatched from a branch,
+          # and the ref it runs on is not the tag the release belongs to.
+          tag_name: v${{ steps.manifest.outputs.version }}
           files: |
             release/*/*.dmg
             release/*/*.exe
