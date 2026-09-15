@@ -122,6 +122,37 @@ test("carries the tool label a discovered cache is named by", () => {
   );
 });
 
+test("carries the command that reclaims a report-only location", () => {
+  const reported = {
+    scanId: "scan-1",
+    target: {
+      id: "scan-1-target-3",
+      path: "/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime",
+      label: "Simulator runtimes",
+      category: "XcodeDerivedData",
+      plan: "pro",
+      confidence: { level: "review", signals: ["knownArtifact", "knownLocation", "reportOnly"] },
+      cleanable: false,
+      reclaimWith: "xcrun simctl runtime delete --notUsedSinceDays 30",
+      sizeBytes: 1,
+      sizePending: false,
+      sizeHasErrors: false,
+      formattedSize: "1 B",
+    },
+  };
+
+  assert.equal(
+    normalizeTargetFound(reported).target.reclaimWith,
+    "xcrun simctl runtime delete --notUsedSinceDays 30",
+  );
+  const { reclaimWith: _omitted, ...older } = reported.target;
+  assert.equal(normalizeTargetFound({ ...reported, target: older }).target.reclaimWith, null);
+  assert.throws(
+    () => normalizeTargetFound({ ...reported, target: { ...reported.target, reclaimWith: "" } }),
+    /shape/,
+  );
+});
+
 test("keeps the plan the native layer sent instead of deriving it", () => {
   const target = normalizeTargetFound({
     scanId: "scan-1",

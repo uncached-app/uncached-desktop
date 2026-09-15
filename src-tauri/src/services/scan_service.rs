@@ -1346,6 +1346,7 @@ fn discover_home_locations(
         // per-session working files live under the system temp directory, and
         // no catalogue written relative to `$HOME` can reach them.
         .chain(uncached_core::probe_temp(home))
+        .chain(uncached_core::probe_system())
         .filter(|discovery| wanted.contains(&discovery.category))
         .collect();
     if discoveries.is_empty() {
@@ -1508,6 +1509,7 @@ mod tests {
                     "name",
                     "path",
                     "plan",
+                    "reclaimWith",
                     "sizeBytes",
                     "sizeHasErrors",
                     "sizePending",

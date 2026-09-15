@@ -4,6 +4,7 @@ import {
   canOpenReview,
   getCleanupReadyTargets,
   holdsNothing,
+  listReportedOnly,
   shouldOpenReview,
   sortForListing,
 } from "../src/utils/scanReview.mjs";
@@ -224,6 +225,21 @@ test("a target that cannot be removed is not offered as work", () => {
   assert.deepEqual(
     sortForListing(targets, true, "size").map((target) => target.id),
     ["keep"],
+  );
+});
+
+test("reported-only locations are listed apart, heaviest first, once measured", () => {
+  const targets = [
+    { id: "cleanable", cleanable: true, sizePending: false, sizeBytes: 99_999 },
+    { id: "small", cleanable: false, sizePending: false, sizeBytes: 10 },
+    { id: "large", cleanable: false, sizePending: false, sizeBytes: 9_000 },
+    { id: "pending", cleanable: false, sizePending: true, sizeBytes: 0 },
+    { id: "empty", cleanable: false, sizePending: false, sizeBytes: 0 },
+  ];
+
+  assert.deepEqual(
+    listReportedOnly(targets).map((target) => target.id),
+    ["large", "small"],
   );
 });
 

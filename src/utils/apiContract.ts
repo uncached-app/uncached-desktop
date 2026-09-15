@@ -82,6 +82,7 @@ export type RawTargetFound = {
     plan: Plan;
     confidence: Confidence;
     cleanable: boolean;
+    reclaimWith?: string | null;
     sizeBytes: number;
     sizePending: boolean;
     sizeHasErrors: boolean;
@@ -364,6 +365,13 @@ export function normalizeTargetFound(payload: RawTargetFound) {
   ) {
     throw new Error("Invalid target payload shape");
   }
+  if (
+    hasOwn(target, "reclaimWith") &&
+    target.reclaimWith !== null &&
+    (typeof target.reclaimWith !== "string" || target.reclaimWith.length === 0)
+  ) {
+    throw new Error("Invalid target payload shape");
+  }
   return {
     scanId: payload.scanId,
     target: {
@@ -371,6 +379,7 @@ export function normalizeTargetFound(payload: RawTargetFound) {
       name: target.name || targetName(target.path),
       label: target.label ?? null,
       cleanable: target.cleanable ?? true,
+      reclaimWith: target.reclaimWith ?? null,
       formattedSize: target.sizePending ? "" : target.formattedSize,
     },
   };

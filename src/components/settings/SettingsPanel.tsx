@@ -622,13 +622,13 @@ function ScanningContent({
       <SettingsGroup>
         <SettingToggle
           label="Package manager caches"
-          hint="Include npm, pnpm, yarn, cargo, and pip global package caches."
+          hint="Include npm, pnpm, yarn, cargo, pip, and uv global package caches."
           checked={settings.detectPackageManagerCaches}
           onChange={(value) => updateSettings({ detectPackageManagerCaches: value })}
         />
         <SettingToggle
           label="AI tool caches"
-          hint="Include local weights, completions, and embedding caches."
+          hint="Include Claude Code, the Claude app, Codex, and opencode caches."
           checked={settings.detectAiToolCaches}
           onChange={(value) => updateSettings({ detectAiToolCaches: value })}
         />
@@ -645,7 +645,7 @@ function ScanningContent({
         {isMac && (
           <SettingToggle
             label="Xcode developer data"
-            hint="Include DerivedData, device support, and the simulator store."
+            hint="Include DerivedData, device support, simulators, and simulator runtimes."
             checked={settings.detectXcodeData}
             onChange={(value) => updateSettings({ detectXcodeData: value })}
           />

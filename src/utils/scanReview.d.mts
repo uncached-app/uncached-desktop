@@ -23,6 +23,10 @@ export function getCleanupReadyTargets<T extends ReviewTargetState>(targets: T[]
 /** True once a measurement has settled at exactly zero bytes. */
 export function holdsNothing(target: ReviewTargetState): boolean;
 
+export function listReportedOnly<T extends { cleanable?: boolean; sizePending: boolean; sizeBytes: number }>(
+  targets: T[],
+): T[];
+
 export type ConfidenceRankedTarget = {
   confidence?: { level?: string };
 };

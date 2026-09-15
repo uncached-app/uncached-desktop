@@ -23,6 +23,8 @@ export type ScanTarget = {
   confidence: Confidence;
   /** False for a catalogued location the product reports but never removes. */
   cleanable: boolean;
+  /** The owning tool's command that reclaims a location that is not cleanable. */
+  reclaimWith: string | null;
   /**
    * The program using this directory right now, if one is.
    *

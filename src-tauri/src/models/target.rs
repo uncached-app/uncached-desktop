@@ -36,6 +36,10 @@ pub struct ScanTarget {
     /// the backend would refuse. The refusal exists either way — no provider
     /// vouches for these — so this field is what keeps the two in agreement.
     pub cleanable: bool,
+    /// The owning tool's command for reclaiming a location that is reported
+    /// and never removed here. Run by the user, never by the app.
+    #[serde(default)]
+    pub reclaim_with: Option<String>,
     /// The program using this directory right now, if one is.
     ///
     /// Distinct from `cleanable`, which is a permanent property of what the
@@ -82,6 +86,7 @@ impl ScanTarget {
         target.confidence = uncached_core::assess(uncached_core::discovery::signals_for(discovery));
         target.identity = uncached_core::filesystem::file_identity(&discovery.path);
         target.cleanable = discovery.kind != uncached_core::LocationKind::ReportOnly;
+        target.reclaim_with = discovery.reclaim_with.map(str::to_owned);
         target.blocked_by = crate::workspace::running::first_running(discovery.owner, running)
             .map(|owner| owner.to_owned());
         target
@@ -113,6 +118,7 @@ impl ScanTarget {
             // Only the catalogue can produce something reportable but not
             // removable, and `from_discovery` sets this from the entry's kind.
             cleanable: true,
+            reclaim_with: None,
             blocked_by: None,
             size_bytes,
             size_has_errors,
@@ -410,6 +416,7 @@ mod tests {
             kind: uncached_core::LocationKind::SharedCache,
             owner: &[],
             root: std::env::temp_dir(),
+            reclaim_with: None,
         };
 
         let target = ScanTarget::from_discovery("scan-1", &discovery, &Default::default());
@@ -436,6 +443,7 @@ mod tests {
             kind: uncached_core::LocationKind::ToolState,
             owner: &["claude"],
             root: std::env::temp_dir(),
+            reclaim_with: None,
         };
         let running = ["claude".to_string(), "node".to_string()]
             .into_iter()
@@ -449,6 +457,27 @@ mod tests {
 
         let idle = ScanTarget::from_discovery("scan-1", &discovery, &Default::default());
         assert_eq!(idle.blocked_by, None);
+    }
+
+    #[test]
+    fn a_report_only_location_carries_the_command_that_reclaims_it() {
+        let discovery = uncached_core::Discovery {
+            path: std::env::temp_dir().join("uncached-discovery-target/Devices"),
+            label: "Simulator devices",
+            category: Category::XcodeDerivedData,
+            kind: uncached_core::LocationKind::ReportOnly,
+            owner: &[],
+            root: std::env::temp_dir(),
+            reclaim_with: Some("xcrun simctl delete unavailable"),
+        };
+
+        let target = ScanTarget::from_discovery("scan-1", &discovery, &Default::default());
+
+        assert!(!target.cleanable);
+        assert_eq!(
+            target.reclaim_with.as_deref(),
+            Some("xcrun simctl delete unavailable")
+        );
     }
 
     #[test]

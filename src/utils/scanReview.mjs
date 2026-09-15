@@ -84,6 +84,16 @@ const CONFIDENCE_ORDER = { review: 0, medium: 1, high: 2 };
  * anything. They remain in the scan, so nothing that counts them is now
  * counting less; they are simply not offered as work.
  */
+/**
+ * Locations the product reports and never removes, heaviest first.
+ * Zero-byte and unsettled measurements are left out.
+ */
+export function listReportedOnly(targets) {
+  return targets
+    .filter((target) => target.cleanable === false && !target.sizePending && target.sizeBytes > 0)
+    .sort((left, right) => right.sizeBytes - left.sizeBytes);
+}
+
 export function sortForListing(targets, proEnabled, order = "confidence") {
   return [...targets].filter((target) => target.cleanable !== false).sort((left, right) => {
     if (!proEnabled) {

@@ -6,9 +6,10 @@ import type { CleanMode } from "../../types/settings";
 import type { RunningProject } from "../../types/workspace";
 import { formatBytes } from "../../utils/format.mjs";
 import { isInside } from "../../utils/paths.mjs";
-import { getCleanupReadyTargets, holdsNothing, sortForListing } from "../../utils/scanReview.mjs";
+import { getCleanupReadyTargets, holdsNothing, listReportedOnly, sortForListing } from "../../utils/scanReview.mjs";
 import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
+import { ReportedOnlyList } from "./ReportedOnlyList";
 import { TargetCard } from "./TargetCard";
 import { openExternalUrl } from "../../utils/externalLink";
 import { ChoiceRow } from "../shared/ChoiceRow";
@@ -77,6 +78,7 @@ export function FindingsSection({
   // looking at, and it would otherwise sit below dozens of routine ones. On
   // Free, what the plan can actually clean comes before all of it.
   const listedTargets = sortForListing(targets, proEnabled, order);
+  const reportedOnly = listReportedOnly(targets);
   const freeTargets = proEnabled ? readyTargets : readyTargets.filter(isFreeTarget);
   const selectedTargets = freeTargets.filter((target) => selectedIds.has(target.id));
   const allSelected = freeTargets.length > 0 && selectedTargets.length === freeTargets.length;
@@ -458,6 +460,7 @@ export function FindingsSection({
                 />
               ))}
             </div>
+            <ReportedOnlyList targets={reportedOnly} />
           </div>
         </div>
       )}
