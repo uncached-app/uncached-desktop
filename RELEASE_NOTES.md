@@ -1,26 +1,20 @@
-## 0.1.1-alpha.9
+## 0.1.1-alpha.10
 
-Uncached now finds the caches you moved off your boot disk.
+Uncached now shows more of what fills a developer's disk, including what it
+will not remove itself.
 
-Relocating a package store or Xcode's `DerivedData` onto a second volume is the
-ordinary thing to do on a machine whose internal drive is the small one: you
-move the directory and leave a link where it used to be, and every tool that
-looks for it follows the link without noticing. Uncached did notice, and
-stopped — a catalogued entry that turned out to be a link was skipped, without
-saying so. The entries people move are the largest ones the catalogue names, so
-the caches most worth finding were the ones guaranteed to be missed.
+The uv cache is found and offered on macOS, Linux and Windows, as a shared
+cache: reviewed, never cleaned automatically, and rebuilt by uv on demand. The
+Claude app's browser caches are found too, and held back while the app is open.
 
-The link is followed now. What is reported is where the directory actually
-lives, on whichever volume that is, and the cleanup that follows is checked
-against that volume rather than against your home folder — so a target you were
-offered is a target that can be removed. Finding something and then refusing to
-touch it would have been the worse half of this fix.
+Simulator runtimes are usually the heaviest thing Xcode leaves behind, and they
+live outside your home folder, where Uncached never looked. They are measured
+now, and listed below the reclaim list under "Not removed by Uncached" together
+with Xcode's archives and simulator devices. Each row carries the command its
+own tool reclaims it with — `xcrun simctl runtime delete`, `xcrun simctl delete
+unavailable` — ready to copy. Uncached does not run it, and still refuses to
+delete those folders itself.
 
-On Windows the same move is usually a junction rather than a symbolic link,
-because making one needs no administrator. Junctions are read too, along with
-every other kind of reparse point, rather than only the one the platform calls
-a symbolic link.
-
-A link that leads nowhere, or to a file rather than a directory, is still
-ignored. It is not the cache the catalogue named, and guessing that it might be
-is not a guess this product makes about a directory it offers to delete.
+A folder that measures zero bytes is no longer listed. A pnpm workspace
+package's `node_modules` holds only links to its siblings: removing it frees
+nothing and breaks imports until the next install.
