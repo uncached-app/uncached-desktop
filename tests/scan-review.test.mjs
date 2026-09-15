@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canOpenReview, getCleanupReadyTargets, shouldOpenReview, sortForListing } from "../src/utils/scanReview.mjs";
+import {
+  canOpenReview,
+  getCleanupReadyTargets,
+  holdsNothing,
+  shouldOpenReview,
+  sortForListing,
+} from "../src/utils/scanReview.mjs";
 
 // `cleanable` is present on every target the contract lets through —
 // `validateScanTarget` defaults it — so a fixture without it was modelling a
@@ -10,6 +16,7 @@ const target = (overrides = {}) => ({
   cleanable: true,
   sizePending: false,
   sizeHasErrors: false,
+  sizeBytes: 4096,
   ...overrides,
 });
 
@@ -121,17 +128,25 @@ test("on pro, confidence alone decides the order", () => {
  */
 test("cleanup-ready mirrors ScanTarget::cleanup_ready, condition for condition", () => {
   const ready = getCleanupReadyTargets([
-    { id: "ready", cleanable: true, sizePending: false, sizeHasErrors: false },
-    { id: "report-only", cleanable: false, sizePending: false, sizeHasErrors: false },
-    { id: "measuring", cleanable: true, sizePending: true, sizeHasErrors: false },
-    { id: "unreadable", cleanable: true, sizePending: false, sizeHasErrors: true },
+    { id: "ready", cleanable: true, sizePending: false, sizeHasErrors: false, sizeBytes: 4096 },
+    { id: "report-only", cleanable: false, sizePending: false, sizeHasErrors: false, sizeBytes: 4096 },
+    { id: "measuring", cleanable: true, sizePending: true, sizeHasErrors: false, sizeBytes: 0 },
+    { id: "unreadable", cleanable: true, sizePending: false, sizeHasErrors: true, sizeBytes: 0 },
+    { id: "empty", cleanable: true, sizePending: false, sizeHasErrors: false, sizeBytes: 0 },
   ]);
 
   assert.deepEqual(
     ready.map((target) => target.id),
     ["ready"],
-    "a catalogue-only location, an unfinished measurement and a failed one are all refusals the backend already makes",
+    "a catalogue-only location, an unfinished or failed measurement, and a settled zero are all withheld",
   );
+});
+
+test("only a settled zero-byte size is hidden", () => {
+  assert.equal(holdsNothing(target({ sizeBytes: 0 })), true, "measured, and empty");
+  assert.equal(holdsNothing(target({ sizeBytes: 0, sizePending: true })), false, "still measuring");
+  assert.equal(holdsNothing(target({ sizeBytes: 0, sizeHasErrors: true })), false, "failed to measure");
+  assert.equal(holdsNothing(target({ sizeBytes: 1 })), false, "one byte is something");
 });
 
 /**

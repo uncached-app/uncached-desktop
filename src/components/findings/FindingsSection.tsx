@@ -6,7 +6,7 @@ import type { CleanMode } from "../../types/settings";
 import type { RunningProject } from "../../types/workspace";
 import { formatBytes } from "../../utils/format.mjs";
 import { isInside } from "../../utils/paths.mjs";
-import { getCleanupReadyTargets, sortForListing } from "../../utils/scanReview.mjs";
+import { getCleanupReadyTargets, holdsNothing, sortForListing } from "../../utils/scanReview.mjs";
 import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { TargetCard } from "./TargetCard";
@@ -47,7 +47,7 @@ interface FindingsSectionProps {
 export function FindingsSection({
   step,
   scanning,
-  targets,
+  targets: scannedTargets,
   cleaningTargetIds,
   cleanMode,
   onDone,
@@ -61,6 +61,8 @@ export function FindingsSection({
   running,
   error,
 }: FindingsSectionProps) {
+  // Every count, total, selection and listing below derives from this set.
+  const targets = scannedTargets.filter((target) => !holdsNothing(target));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   /** Targets the last cleanup asked for and did not get. */
   const [failed, setFailed] = useState<ScanTarget[]>([]);

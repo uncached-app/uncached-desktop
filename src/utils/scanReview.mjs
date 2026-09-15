@@ -32,6 +32,14 @@ export function shouldOpenReview(step, scanFinished, targetCount, targets) {
  * A fourth condition added there has to be added here. Both sides are tested,
  * and both test names point at the other file.
  */
+/**
+ * True once a measurement has settled at exactly zero bytes. A pending or
+ * failed size is not zero yet, so it stays visible until it resolves.
+ */
+export function holdsNothing(target) {
+  return !target.sizePending && !target.sizeHasErrors && target.sizeBytes === 0;
+}
+
 export function getCleanupReadyTargets(targets) {
   return targets.filter(
     (target) =>
@@ -41,7 +49,8 @@ export function getCleanupReadyTargets(targets) {
       // that offers a removal may include it, because the backend refuses it.
       !target.blockedBy &&
       !target.sizePending &&
-      !target.sizeHasErrors,
+      !target.sizeHasErrors &&
+      target.sizeBytes > 0,
   );
 }
 

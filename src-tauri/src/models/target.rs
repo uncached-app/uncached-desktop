@@ -146,8 +146,12 @@ impl ScanTarget {
     /// It is not stamped onto the wire because two of its three inputs are
     /// mutated after a target is registered — sizing settles later — so a
     /// cached copy would be stale exactly when it mattered.
+    ///
+    /// A settled size of zero is also withheld: there is nothing to reclaim,
+    /// and the directory can still be load-bearing — a pnpm workspace
+    /// package's `node_modules` holds only links to its sibling packages.
     pub fn cleanup_ready(&self) -> bool {
-        self.cleanable && !self.size_pending && !self.size_has_errors
+        self.cleanable && !self.size_pending && !self.size_has_errors && self.size_bytes > 0
     }
 
     pub fn set_size(&mut self, size_bytes: u64, size_has_errors: bool) {
@@ -280,6 +284,13 @@ mod cleanup_ready_tests {
         assert!(
             !unreadable.cleanup_ready(),
             "and refuses one whose measurement failed"
+        );
+
+        let mut empty = base();
+        empty.set_size(0, false);
+        assert!(
+            !empty.cleanup_ready(),
+            "a settled size of zero reclaims nothing"
         );
     }
 

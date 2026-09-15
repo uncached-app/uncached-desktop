@@ -2,6 +2,7 @@ export type ReviewTargetState = {
   sizePending: boolean;
   /** Sizing errors are settled for Review gating but block cleanup. */
   sizeHasErrors: boolean;
+  sizeBytes: number;
 };
 
 export function canOpenReview(
@@ -18,6 +19,9 @@ export function shouldOpenReview(
 ): boolean;
 
 export function getCleanupReadyTargets<T extends ReviewTargetState>(targets: T[]): T[];
+
+/** True once a measurement has settled at exactly zero bytes. */
+export function holdsNothing(target: ReviewTargetState): boolean;
 
 export type ConfidenceRankedTarget = {
   confidence?: { level?: string };
