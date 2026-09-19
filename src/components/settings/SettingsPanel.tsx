@@ -638,6 +638,24 @@ function ScanningContent({
           checked={settings.detectEditorCaches}
           onChange={(value) => updateSettings({ detectEditorCaches: value })}
         />
+        <SettingToggle
+          label="Game engine caches"
+          hint="Include Unity's package and Asset Store downloads, and Godot's editor cache and export templates."
+          checked={settings.detectGameEngineCaches}
+          onChange={(value) => updateSettings({ detectGameEngineCaches: value })}
+        />
+        <SettingToggle
+          label="Android SDK"
+          hint="Include downloaded system images and the emulators built from them."
+          checked={settings.detectAndroidSdk}
+          onChange={(value) => updateSettings({ detectAndroidSdk: value })}
+        />
+        <SettingToggle
+          label="Container storage"
+          hint="Report the size of Docker Desktop's disk image. Uncached never removes it."
+          checked={settings.detectContainerStorage}
+          onChange={(value) => updateSettings({ detectContainerStorage: value })}
+        />
         {/* Xcode exists on one platform, and so does everything this switch
             reaches: the Linux and Windows catalogues list no Xcode locations at
             all. Shown elsewhere it would be a control with nothing behind it —

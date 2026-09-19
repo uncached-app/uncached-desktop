@@ -59,6 +59,7 @@ export const CATEGORY_PRESENTATION: Record<string, { label: string; icon: Lucide
   PackageManagerCache: { label: "Package cache", icon: Database },
   AiToolCache: { label: "AI tool cache", icon: Sparkles },
   EditorCache: { label: "Editor cache", icon: Code },
+  AndroidSdk: { label: "Android SDK", icon: Smartphone },
 };
 
 const CUSTOM_CATEGORY_PREFIX = "Custom:";

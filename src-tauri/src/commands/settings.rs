@@ -51,6 +51,18 @@ pub struct AppSettings {
     /// Xcode row in place, including the two that can only ever be reported —
     /// a control that announced something it did not do.
     pub detect_xcode_data: bool,
+    /// Unity's and Godot's own caches, outside any project.
+    ///
+    /// Defaulted rather than required, so a settings file written before this
+    /// existed still loads.
+    #[serde(default = "enabled")]
+    pub detect_game_engine_caches: bool,
+    /// The Android SDK's machine-wide downloads and its emulators.
+    #[serde(default = "enabled")]
+    pub detect_android_sdk: bool,
+    /// Docker Desktop's disk image, which is reported and never removed here.
+    #[serde(default = "enabled")]
+    pub detect_container_storage: bool,
     pub remember_last_workspace: bool,
     pub check_for_updates: bool,
     pub default_clean_mode: CleanMode,
@@ -166,6 +178,10 @@ pub enum WorkspaceView {
     Map,
 }
 
+fn enabled() -> bool {
+    true
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -179,6 +195,9 @@ impl Default for AppSettings {
             detect_ai_tool_caches: true,
             detect_editor_caches: true,
             detect_xcode_data: true,
+            detect_game_engine_caches: true,
+            detect_android_sdk: true,
+            detect_container_storage: true,
             remember_last_workspace: true,
             check_for_updates: true,
             default_clean_mode: CleanMode::Trash,

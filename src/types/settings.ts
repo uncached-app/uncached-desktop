@@ -14,6 +14,12 @@ export type AppSettings = {
   detectAiToolCaches: boolean;
   detectEditorCaches: boolean;
   detectXcodeData: boolean;
+  /** Unity's and Godot's own caches, outside any project. */
+  detectGameEngineCaches: boolean;
+  /** The Android SDK's system images and the emulators built from them. */
+  detectAndroidSdk: boolean;
+  /** Docker Desktop's disk image, reported and never removed. */
+  detectContainerStorage: boolean;
   rememberLastWorkspace: boolean;
   checkForUpdates: boolean;
   defaultCleanMode: CleanMode;

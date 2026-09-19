@@ -140,6 +140,21 @@ pub fn discovery_categories(
     if settings.detect_xcode_data {
         categories.push(uncached_core::Category::XcodeDerivedData);
     }
+    // A game engine's own caches, which are nowhere near its projects: Unity's
+    // package and Asset Store downloads, Godot's editor cache and the export
+    // templates it fetches per version.
+    if settings.detect_game_engine_caches {
+        categories.push(uncached_core::Category::UnityLibrary);
+        categories.push(uncached_core::Category::GodotCache);
+    }
+    if settings.detect_android_sdk {
+        categories.push(uncached_core::Category::AndroidSdk);
+    }
+    // Docker's image is reported and never removed, so this switch decides
+    // whether the weight is named at all rather than what may be touched.
+    if settings.detect_container_storage {
+        categories.push(uncached_core::Category::Docker);
+    }
     categories
 }
 
@@ -327,6 +342,10 @@ mod tests {
         assert!(all.contains(&C::AiToolCache));
         assert!(all.contains(&C::EditorCache));
         assert!(all.contains(&C::XcodeDerivedData));
+        assert!(all.contains(&C::UnityLibrary));
+        assert!(all.contains(&C::GodotCache));
+        assert!(all.contains(&C::AndroidSdk));
+        assert!(all.contains(&C::Docker));
 
         let reduced = super::discovery_categories(&AppSettings {
             detect_ai_tool_caches: false,
@@ -338,6 +357,16 @@ mod tests {
         // the editor caches switch and unaffected by it. Two of its entries can
         // only ever be reported, so that left rows nobody could act on or turn
         // off — the shape of thing this assertion exists to stop coming back.
+        // A catalogued location reaches the scan through its category, so an
+        // engine's global caches are only ever as switchable as the category
+        // they arrive under.
+        let no_engines = super::discovery_categories(&AppSettings {
+            detect_game_engine_caches: false,
+            ..Default::default()
+        });
+        assert!(!no_engines.contains(&C::UnityLibrary));
+        assert!(!no_engines.contains(&C::GodotCache));
+
         let no_xcode = super::discovery_categories(&AppSettings {
             detect_xcode_data: false,
             ..Default::default()
