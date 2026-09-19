@@ -27,6 +27,12 @@ export function listReportedOnly<T extends { cleanable?: boolean; sizePending: b
   targets: T[],
 ): T[];
 
+export function filterByAge<T extends { sizePending: boolean; lastUsedAt?: number | null }>(
+  targets: T[],
+  days: number,
+  now?: number,
+): T[];
+
 export type ConfidenceRankedTarget = {
   confidence?: { level?: string };
 };

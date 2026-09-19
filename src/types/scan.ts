@@ -36,6 +36,8 @@ export type ScanTarget = {
    */
   blockedBy?: string | null;
   sizeBytes: number;
+  /** Newest write inside, in seconds since the epoch. Null while unmeasured. */
+  lastUsedAt: number | null;
   sizeHasErrors: boolean;
   sizePending: boolean;
   formattedSize: string;
@@ -91,6 +93,7 @@ export type TargetSized = {
   scanId: string;
   targetId: string;
   sizeBytes: number;
+  lastUsedAt?: number | null;
   sizeHasErrors: boolean;
   sizePending: boolean;
   formattedSize: string;

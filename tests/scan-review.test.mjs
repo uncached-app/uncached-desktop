@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   canOpenReview,
   getCleanupReadyTargets,
+  filterByAge,
   holdsNothing,
   listReportedOnly,
   shouldOpenReview,
@@ -240,6 +241,27 @@ test("reported-only locations are listed apart, heaviest first, once measured", 
   assert.deepEqual(
     listReportedOnly(targets).map((target) => target.id),
     ["large", "small"],
+  );
+});
+
+test("the age filter keeps what is still being measured", () => {
+  const now = Date.UTC(2026, 0, 1);
+  const day = 24 * 60 * 60 * 1000;
+  const targets = [
+    { id: "old", sizePending: false, lastUsedAt: (now - 200 * day) / 1000 },
+    { id: "fresh", sizePending: false, lastUsedAt: (now - 2 * day) / 1000 },
+    { id: "unknown", sizePending: false, lastUsedAt: null },
+    { id: "measuring", sizePending: true, lastUsedAt: null },
+  ];
+
+  assert.deepEqual(
+    filterByAge(targets, 90, now).map((target) => target.id),
+    ["old", "measuring"],
+    "a row must not vanish and come back as its size settles",
+  );
+  assert.deepEqual(
+    filterByAge(targets, 0, now).map((target) => target.id),
+    ["old", "fresh", "unknown", "measuring"],
   );
 });
 

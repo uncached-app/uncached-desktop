@@ -84,6 +84,7 @@ export type RawTargetFound = {
     cleanable: boolean;
     reclaimWith?: string | null;
     sizeBytes: number;
+    lastUsedAt?: number | null;
     sizePending: boolean;
     sizeHasErrors: boolean;
     formattedSize: string;
@@ -94,6 +95,7 @@ export type RawTargetSized = {
   scanId: string;
   targetId: string;
   sizeBytes: number;
+  lastUsedAt?: number | null;
   sizePending: boolean;
   sizeHasErrors: boolean;
   formattedSize: string;
@@ -194,6 +196,11 @@ function targetName(path: string): string {
 
 function isFiniteNonNegativeNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+/** Seconds since the epoch, or nothing measured yet. Never a future guess. */
+function isEpochSecondsOrNull(value: unknown): value is number | null {
+  return value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -365,6 +372,9 @@ export function normalizeTargetFound(payload: RawTargetFound) {
   ) {
     throw new Error("Invalid target payload shape");
   }
+  if (hasOwn(target, "lastUsedAt") && !isEpochSecondsOrNull(target.lastUsedAt)) {
+    throw new Error("Invalid target payload shape");
+  }
   if (
     hasOwn(target, "reclaimWith") &&
     target.reclaimWith !== null &&
@@ -380,6 +390,7 @@ export function normalizeTargetFound(payload: RawTargetFound) {
       label: target.label ?? null,
       cleanable: target.cleanable ?? true,
       reclaimWith: target.reclaimWith ?? null,
+      lastUsedAt: target.lastUsedAt ?? null,
       formattedSize: target.sizePending ? "" : target.formattedSize,
     },
   };
@@ -397,8 +408,12 @@ export function normalizeTargetSized(payload: RawTargetSized): RawTargetSized {
   ) {
     throw new Error("Invalid target sized payload shape");
   }
+  if (hasOwn(payload, "lastUsedAt") && !isEpochSecondsOrNull(payload.lastUsedAt)) {
+    throw new Error("Invalid target sized payload shape");
+  }
   return {
     ...payload,
+    lastUsedAt: payload.lastUsedAt ?? null,
     formattedSize: payload.sizePending ? "" : payload.formattedSize,
   };
 }

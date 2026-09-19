@@ -13,6 +13,33 @@ const UNITS = [
  * same number here — so the two agreeing is not tidiness, it is the same
  * directory not reporting two different sizes.
  */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How long ago something was written, in the app's shorthand.
+ *
+ * `seconds` is a Unix timestamp, the unit every backend here reports times in.
+ * Nothing measured yet reads as null rather than as "today": a cache whose age
+ * is unknown is not a cache anybody should decide about.
+ */
+export function formatAge(seconds, now = Date.now()) {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds)) return null;
+  const days = Math.floor((now - seconds * 1000) / DAY_MS);
+  if (days < 0) return "today";
+  if (days < 1) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
+}
+
+/** Whether a timestamp is at least `days` old. Unknown ages are never old. */
+export function isOlderThan(seconds, days, now = Date.now()) {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds)) return false;
+  return now - seconds * 1000 >= days * DAY_MS;
+}
+
 export function formatBytes(bytes) {
   const whole = Math.trunc(bytes);
   for (const { unit, suffix } of UNITS) {

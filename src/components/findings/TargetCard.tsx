@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check, Copy, Eye, LoaderCircle, LockKeyhole, Radio, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
+import { formatAge } from "../../utils/format.mjs";
 import { categoryPresentation } from "./categoryPresentation";
 import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
 
@@ -132,6 +133,7 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
   const disabled =
     isCleaning || target.sizePending || target.sizeHasErrors || proLocked || reportOnly || inUse !== null;
   const category = categoryPresentation(target.category);
+  const age = formatAge(target.lastUsedAt);
   const CategoryIcon = category.icon;
 
   async function handleCopyPath(e: React.MouseEvent) {
@@ -216,6 +218,14 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
                 directory is called `store`, `_cacache` or `Cache`, which would
                 leave the user guessing which tool each row belongs to. */}
             <span className="text-xs font-medium text-mist-500">{target.label ?? target.name}</span>
+            {age && (
+              <span
+                title="The newest file inside it. A cache nothing has written to in months is one a rebuild can replace."
+                className="font-mono text-[11px] text-mist-500"
+              >
+                {age}
+              </span>
+            )}
             {inUse && (
               <span
                 title={`Uncached will not remove this while ${inUse} is running: the files it holds open would go with it.`}

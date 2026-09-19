@@ -6,7 +6,13 @@ import type { CleanMode } from "../../types/settings";
 import type { RunningProject } from "../../types/workspace";
 import { formatBytes } from "../../utils/format.mjs";
 import { isInside } from "../../utils/paths.mjs";
-import { getCleanupReadyTargets, holdsNothing, listReportedOnly, sortForListing } from "../../utils/scanReview.mjs";
+import {
+  filterByAge,
+  getCleanupReadyTargets,
+  holdsNothing,
+  listReportedOnly,
+  sortForListing,
+} from "../../utils/scanReview.mjs";
 import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { ReportedOnlyList } from "./ReportedOnlyList";
@@ -62,8 +68,15 @@ export function FindingsSection({
   running,
   error,
 }: FindingsSectionProps) {
+  // Least certain first, and everything regardless of age: both are what the
+  // screen opens on, and neither is remembered — a filter that outlives the
+  // visit is one somebody is left wondering about when the list looks short.
+  const [minAgeDays, setMinAgeDays] = useState(0);
   // Every count, total, selection and listing below derives from this set.
-  const targets = scannedTargets.filter((target) => !holdsNothing(target));
+  const targets = filterByAge(
+    scannedTargets.filter((target) => !holdsNothing(target)),
+    minAgeDays,
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   /** Targets the last cleanup asked for and did not get. */
   const [failed, setFailed] = useState<ScanTarget[]>([]);
@@ -308,9 +321,20 @@ export function FindingsSection({
             <p className="mt-1 text-sm text-mist-500">
               {scanning
                 ? "Targets appear as they are found."
-                : "Adjust which caches are detected in Settings, under Scanning."}
+                : minAgeDays > 0
+                  ? `Everything found here was written to in the last ${minAgeDays} days.`
+                  : "Adjust which caches are detected in Settings, under Scanning."}
             </p>
-            {!scanning && (
+            {!scanning && minAgeDays > 0 && (
+              <button
+                type="button"
+                onClick={() => setMinAgeDays(0)}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-medium text-mist-300 hover:bg-forest-850 hover:text-sage-300"
+              >
+                Show every age
+              </button>
+            )}
+            {!scanning && minAgeDays === 0 && (
               <button
                 type="button"
                 onClick={onBack}
@@ -421,6 +445,18 @@ export function FindingsSection({
                 {/* The order was the product's opinion and nothing said so,
                     which left the least certain target at the top for no
                     visible reason and the heaviest one unreachable. */}
+                <div className="pr-3">
+                  <ChoiceRow
+                    active={minAgeDays}
+                    onChange={setMinAgeDays}
+                    options={[
+                      [0, "Any age", "Everything the scan found"],
+                      [30, "30d+", "Nothing has written to these in a month"],
+                      [90, "90d+", "Nothing has written to these in three months"],
+                    ]}
+                  />
+                </div>
+
                 {targets.length > 1 && (
                   <div className="pr-3">
                     <ChoiceRow

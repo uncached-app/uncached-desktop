@@ -35,6 +35,7 @@ pub struct TargetSizeUpdate {
     pub scan_id: String,
     pub target_id: String,
     pub size_bytes: u64,
+    pub last_used_at: Option<i64>,
     pub size_has_errors: bool,
     pub size_pending: bool,
     pub formatted_size: String,
@@ -384,6 +385,7 @@ impl SizingController {
                     Ok(None) | Err(_) => crate::filesystem::size::DirSize {
                         bytes: 0,
                         errors: 1,
+                        newest_modified: None,
                     },
                 },
             );
@@ -958,10 +960,12 @@ impl ScanService {
         let mut registry = registry().lock().unwrap();
         let registered = registry.targets.get_mut(target_id)?;
         registered.target.set_size(report.bytes, report.errors > 0);
+        registered.target.last_used_at = report.newest_modified;
         Some(TargetSizeUpdate {
             scan_id: scan_id_from_target_id(target_id),
             target_id: target_id.to_string(),
             size_bytes: registered.target.size_bytes,
+            last_used_at: registered.target.last_used_at,
             size_has_errors: registered.target.size_has_errors,
             size_pending: registered.target.size_pending,
             formatted_size: registered.target.formatted_size.clone(),
@@ -1163,10 +1167,12 @@ fn apply_target_size_and_emit_for_session(
             }
         };
         registered.target.set_size(report.bytes, report.errors > 0);
+        registered.target.last_used_at = report.newest_modified;
         TargetSizeUpdate {
             scan_id: scan_id.to_string(),
             target_id: target_id.to_string(),
             size_bytes: registered.target.size_bytes,
+            last_used_at: registered.target.last_used_at,
             size_has_errors: registered.target.size_has_errors,
             size_pending: registered.target.size_pending,
             formatted_size: registered.target.formatted_size.clone(),
@@ -1195,10 +1201,12 @@ fn apply_target_size_for_session(
     }
     let registered = registry.targets.get_mut(target_id)?;
     registered.target.set_size(report.bytes, report.errors > 0);
+    registered.target.last_used_at = report.newest_modified;
     Some(TargetSizeUpdate {
         scan_id: scan_id.to_string(),
         target_id: target_id.to_string(),
         size_bytes: registered.target.size_bytes,
+        last_used_at: registered.target.last_used_at,
         size_has_errors: registered.target.size_has_errors,
         size_pending: registered.target.size_pending,
         formatted_size: registered.target.formatted_size.clone(),
@@ -1506,6 +1514,7 @@ mod tests {
                     "formattedSize",
                     "id",
                     "label",
+                    "lastUsedAt",
                     "name",
                     "path",
                     "plan",
@@ -1527,6 +1536,7 @@ mod tests {
             scan_id: "scan-1".into(),
             target_id: "target-1".into(),
             size_bytes: 42,
+            last_used_at: Some(1_700_000_000),
             size_has_errors: true,
             size_pending: false,
             formatted_size: "42 B".into(),
@@ -1649,6 +1659,7 @@ mod tests {
             scan_id: "scan-1".to_string(),
             target_id: "target-1".to_string(),
             size_bytes: 0,
+            last_used_at: None,
             size_has_errors: true,
             size_pending: false,
             formatted_size: "0 B".to_string(),
@@ -1694,7 +1705,8 @@ mod tests {
             &target_id,
             DirSize {
                 bytes: 1,
-                errors: 0
+                errors: 0,
+                newest_modified: None,
             },
         )
         .is_none());
@@ -1748,6 +1760,7 @@ mod tests {
             Arc::new(|_| DirSize {
                 bytes: 0,
                 errors: 0,
+                newest_modified: None,
             }),
             Arc::clone(&event_sink),
         );
@@ -1857,6 +1870,7 @@ mod tests {
             Arc::new(|_| DirSize {
                 bytes: 0,
                 errors: 0,
+                newest_modified: None,
             }),
             Arc::clone(&event_sink),
         );
@@ -1912,6 +1926,7 @@ mod tests {
             DirSize {
                 bytes: 0,
                 errors: 1,
+                newest_modified: None,
             },
         )
         .unwrap();
@@ -1939,7 +1954,8 @@ mod tests {
             &target_id,
             DirSize {
                 bytes: 1,
-                errors: 0
+                errors: 0,
+                newest_modified: None,
             },
         )
         .is_none());
@@ -2258,6 +2274,7 @@ mod tests {
             DirSize {
                 bytes: 0,
                 errors: 0,
+                newest_modified: None,
             }
         });
         let (_, sink) = event_sink();
@@ -2660,6 +2677,7 @@ mod tests {
             Arc::new(|_: &std::path::Path| DirSize {
                 bytes: 7,
                 errors: 0,
+                newest_modified: None,
             }),
             sink,
         );
@@ -2739,6 +2757,7 @@ mod tests {
             DirSize {
                 bytes: 1,
                 errors: 0,
+                newest_modified: None,
             }
         });
         let controller = SizingController::for_test(1, calculator, sink);
@@ -2813,6 +2832,7 @@ mod tests {
             Arc::new(|_: &std::path::Path| DirSize {
                 bytes: 3,
                 errors: 1,
+                newest_modified: None,
             }),
             sink,
         );
@@ -2879,6 +2899,7 @@ mod tests {
             DirSize {
                 bytes: 9,
                 errors: 0,
+                newest_modified: None,
             }
         });
         let events = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
@@ -2940,6 +2961,7 @@ mod tests {
             DirSize {
                 bytes: 9,
                 errors: 0,
+                newest_modified: None,
             }
         });
         let (publication_started_sender, publication_started_receiver) = mpsc::channel();
@@ -3020,6 +3042,7 @@ mod tests {
             Arc::new(|_: &std::path::Path| DirSize {
                 bytes: 9,
                 errors: 0,
+                newest_modified: None,
             }),
             sink,
             cancel_token,
@@ -3083,6 +3106,7 @@ mod tests {
             DirSize {
                 bytes: 9,
                 errors: 0,
+                newest_modified: None,
             }
         });
         let (events, sink) = event_sink();

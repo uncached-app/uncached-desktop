@@ -12,6 +12,7 @@ pub fn calculate_dir_size_report(path: &Path) -> DirSize {
     uncached_core::filesystem::directory_size_report(path).unwrap_or(DirSize {
         bytes: 0,
         errors: 1,
+        newest_modified: None,
     })
 }
 

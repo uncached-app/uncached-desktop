@@ -124,6 +124,7 @@ export function useScanWorkspace(
           ? {
               ...event.payload.target,
               sizeBytes: sizeUpdate.sizeBytes,
+              lastUsedAt: sizeUpdate.lastUsedAt ?? null,
               sizeHasErrors: sizeUpdate.sizeHasErrors,
               sizePending: sizeUpdate.sizePending,
               formattedSize: sizeUpdate.formattedSize,
@@ -142,6 +143,7 @@ export function useScanWorkspace(
             ? {
                 ...target,
                 sizeBytes: event.payload.sizeBytes,
+                lastUsedAt: event.payload.lastUsedAt ?? null,
                 sizeHasErrors: event.payload.sizeHasErrors,
                 sizePending: event.payload.sizePending,
                 formattedSize: event.payload.formattedSize,

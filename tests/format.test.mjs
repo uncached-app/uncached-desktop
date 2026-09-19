@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatBytes } from "../src/utils/format.mjs";
+import { formatAge, formatBytes, isOlderThan } from "../src/utils/format.mjs";
 
 const KB = 1024;
 const MB = KB * 1024;
@@ -47,4 +47,33 @@ test("a byte count past the exact range of a double still counts", () => {
 
 test("nothing under a kilobyte grows a decimal point", () => {
   assert.equal(formatBytes(512), "512 B");
+});
+
+const DAY = 24 * 60 * 60 * 1000;
+const NOW = Date.UTC(2026, 0, 1);
+const daysAgo = (days) => (NOW - days * DAY) / 1000;
+
+test("an age reads in the largest unit that still says something", () => {
+  assert.equal(formatAge(daysAgo(0), NOW), "today");
+  assert.equal(formatAge(daysAgo(1), NOW), "yesterday");
+  assert.equal(formatAge(daysAgo(9), NOW), "9d ago");
+  assert.equal(formatAge(daysAgo(70), NOW), "2mo ago");
+  assert.equal(formatAge(daysAgo(800), NOW), "2y ago");
+});
+
+test("an unmeasured age is nothing, not today", () => {
+  // A row that claims a cache was written to today, because nobody looked, is
+  // the one reading that would stop somebody reclaiming it.
+  assert.equal(formatAge(null, NOW), null);
+  assert.equal(formatAge(undefined, NOW), null);
+  assert.equal(isOlderThan(null, 30, NOW), false);
+});
+
+test("a clock that ran backwards does not age a cache into the future", () => {
+  assert.equal(formatAge((NOW + DAY) / 1000, NOW), "today");
+});
+
+test("older than counts from the day boundary it names", () => {
+  assert.equal(isOlderThan(daysAgo(30), 30, NOW), true);
+  assert.equal(isOlderThan(daysAgo(29), 30, NOW), false);
 });

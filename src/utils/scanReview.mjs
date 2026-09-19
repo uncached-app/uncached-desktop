@@ -1,4 +1,5 @@
 import { isFreeTarget } from "./entitlements.mjs";
+import { isOlderThan } from "./format.mjs";
 
 export function canOpenReview(scanFinished, targetCount, targets) {
   return (
@@ -92,6 +93,20 @@ export function listReportedOnly(targets) {
   return targets
     .filter((target) => target.cleanable === false && !target.sizePending && target.sizeBytes > 0)
     .sort((left, right) => right.sizeBytes - left.sizeBytes);
+}
+
+/**
+ * Narrows a listing to what nothing has written to in `days`.
+ *
+ * `0` means every age. A target whose size is still being measured has no age
+ * yet and is kept: it would otherwise vanish from the list mid-scan and come
+ * back when its size settled.
+ */
+export function filterByAge(targets, days, now = Date.now()) {
+  if (!days) return targets;
+  return targets.filter(
+    (target) => target.sizePending || isOlderThan(target.lastUsedAt, days, now),
+  );
 }
 
 export function sortForListing(targets, proEnabled, order = "confidence") {

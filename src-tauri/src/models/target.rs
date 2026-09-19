@@ -51,6 +51,11 @@ pub struct ScanTarget {
     #[serde(default)]
     pub blocked_by: Option<String>,
     pub size_bytes: u64,
+    /// Newest write anywhere inside, in seconds since the Unix epoch, from the
+    /// same walk that measured the size. `None` while the size is pending, and
+    /// for a tree holding no readable file.
+    #[serde(default)]
+    pub last_used_at: Option<i64>,
     pub size_has_errors: bool,
     pub size_pending: bool,
     pub formatted_size: String,
@@ -121,6 +126,7 @@ impl ScanTarget {
             reclaim_with: None,
             blocked_by: None,
             size_bytes,
+            last_used_at: None,
             size_has_errors,
             size_pending: false,
             formatted_size,
