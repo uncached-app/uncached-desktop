@@ -49,3 +49,12 @@ base64 = "0.22"
 # decides what a build without that sibling would resolve, and it is what the
 # drift warning compares against before a release.
 uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "3bdcb5fd8b44af162f2269f273a9adaeddc72cb8", package = "uncached-core" }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSArray", "NSDictionary", "NSError", "NSString", "NSURL", "NSValue"] }

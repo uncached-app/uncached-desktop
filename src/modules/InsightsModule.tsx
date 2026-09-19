@@ -9,6 +9,7 @@ import { EventLog } from "./insights/EventLog";
 import { FilterChips } from "./insights/FilterChips";
 import { Highlights } from "./insights/Highlights";
 import { Portrait } from "./insights/Portrait";
+import { Storage } from "./insights/Storage";
 import { Summary } from "./insights/Summary";
 import { Timeline } from "./insights/Timeline";
 import { EVENT_PAGE } from "./insights/labels";
@@ -150,6 +151,14 @@ export function InsightsModule({
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-5 pb-8 scrollbar-gutter-stable">
+        {/* First, and free: the disk's own figures are what every number
+            below is a fraction of, and the part of the volume this app cannot
+            read is not something a plan should decide whether you are told
+            about. */}
+        <div className="mb-4">
+          <Storage />
+        </div>
+
         {!proEnabled && <div className="mb-5"><ProPanel /></div>}
         {proEnabled && !loading && !hasHistory && <NoHistoryYet />}
 

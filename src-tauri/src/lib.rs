@@ -116,6 +116,8 @@ pub fn run() {
             record_workspace_visit,
             cleanup_history,
             available_launchers,
+            commands::storage::storage_report,
+            commands::storage::open_full_disk_access,
             reveal_project,
             open_project_with,
             restore_project,

@@ -9,6 +9,7 @@ pub mod locate;
 pub mod orphans;
 pub mod scan;
 pub mod settings;
+pub mod storage;
 pub mod theme;
 pub mod window;
 pub mod workspace;
