@@ -25,18 +25,16 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Build and sign, but publish nothing"
+        description: "Build, sign and upload the bundles, but do not announce the version"
         type: boolean
         default: true
-      reuse_run_id:
-        description: "Publish what this run already built, instead of building again"
-        type: string
-        default: ""
+      publish_only:
+        description: "Publish what is already on the CDN for this version, instead of building again"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
-  # Reading another run's artifacts, for a republish.
-  actions: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -58,7 +56,7 @@ jobs:
     # four platforms of Rust is the expensive half of a release, and a release
     # that failed after the build — on a version string, a notes file, a
     # credential — does not need any of it done twice.
-    if: github.event_name == 'push' || inputs.reuse_run_id == ''
+    if: github.event_name == 'push' || !inputs.publish_only
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -308,14 +306,40 @@ jobs:
             exit 1
           fi
 
-      - name: Upload for the publish job
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-${{ matrix.target }}
-          path: release/${{ matrix.target }}
-          if-no-files-found: error
+      # Straight to where the CDN serves it: nothing reads `releases/<version>/`
+      # until `latest.json` names that version, and the manifest goes up last.
+      # A version that is already live is refused. Its manifest carries the
+      # signatures of the bundles there and the edge caches them as immutable,
+      # so replacing them breaks every update to it.
+      - name: Upload to the CDN
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+          ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ vars.R2_BUCKET }}
+          SOURCE: ${{ github.workspace }}/release/${{ matrix.target }}
+          TRIPLE: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          live=$(curl -fsS https://cdn.uncached.app/latest.json \
+            | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+          if [ "$live" = "$version" ]; then
+            echo "$version is already live; its bundles are not replaced." >&2
+            exit 1
+          fi
+          # `--delete` so the prefix holds exactly this build: a leftover from an
+          # earlier attempt would give the manifest two bundles to choose from.
+          aws s3 sync "$SOURCE" "s3://$BUCKET/releases/$version/$TRIPLE/" \
+            --endpoint-url "$ENDPOINT" \
+            --cache-control "public, max-age=31536000, immutable" \
+            --delete \
+            --only-show-errors
 
-  # Runs on a dry run too, and stops before uploading anything.
+  # Runs on a dry run too, and stops before announcing anything.
   #
   # The manifest builder is the part of a release with the most ways to be
   # quietly wrong — it decides which of several signed bundles is the one that
@@ -336,20 +360,34 @@ jobs:
         with:
           path: uncached-desktop
 
-      - name: Download every platform
-        uses: actions/download-artifact@v4
-        with:
-          path: release
-          pattern: release-*
-          # This run's own artifacts unless a republish names another's. The
-          # token is what makes reading across runs possible at all.
-          run-id: ${{ inputs.reuse_run_id || github.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Configure Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      # Into `release/release-<triple>/`, the layout the manifest builder reads.
+      - name: Download every platform from the CDN
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: "true"
+          ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ vars.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          shopt -s nullglob
+          staged="$RUNNER_TEMP/cdn"
+          aws s3 sync "s3://$BUCKET/releases/$version/" "$staged" \
+            --endpoint-url "$ENDPOINT" \
+            --only-show-errors
+          mkdir -p "$GITHUB_WORKSPACE/release"
+          for directory in "$staged"/*/; do
+            mv "$directory" "$GITHUB_WORKSPACE/release/release-$(basename "$directory")"
+          done
+          ls -R "$GITHUB_WORKSPACE/release"
 
       # What a user reads about a release has to be about *this* release. A
       # notes file left at the previous version is worse than none: it is
@@ -383,47 +421,9 @@ jobs:
             --out "$GITHUB_WORKSPACE/release/latest.json"
           cat "$GITHUB_WORKSPACE/release/latest.json"
 
-      # R2 is spoken to over its S3 API rather than through wrangler.
-      #
-      # Wrangler's `r2 object put` goes through Cloudflare's REST API, and that
-      # route wants account-level R2 permission. The token that owns this bucket
-      # is scoped to objects in it — the least privilege the job actually needs —
-      # and every attempt came back `403 / code 10000` while wrangler happily
-      # reported being authenticated, because it was: authenticated for a route
-      # it was not entitled to. The S3 API is what an object-scoped token is
-      # for, and `aws` is already on the runner.
-      #
-      # Bundles first, manifest last, and never in one command: a manifest that
-      # lands before the file it names is a broken update for everyone whose app
-      # happens to check in that window.
-      - name: Upload the bundles
-        if: github.event_name == 'push' || !inputs.dry_run
-        shell: bash
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
-          AWS_EC2_METADATA_DISABLED: "true"
-          ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
-          BUCKET: ${{ vars.R2_BUCKET }}
-          VERSION: ${{ steps.manifest.outputs.version }}
-        run: |
-          set -euo pipefail
-          cd "$GITHUB_WORKSPACE/release"
-          for file in */*; do
-            # `release-<triple>/<name>` becomes `releases/<version>/<triple>/<name>`.
-            # The triple stays in the path because two of these bundles share a
-            # filename, and flattening them loses one.
-            triple=$(basename "$(dirname "$file")")
-            triple=${triple#release-}
-            name=$(basename "$file")
-            echo "→ $triple/$name"
-            aws s3 cp "$file" "s3://$BUCKET/releases/$VERSION/$triple/$name" \
-              --endpoint-url "$ENDPOINT" \
-              --cache-control "public, max-age=31536000, immutable" \
-              --only-show-errors
-          done
-
+      # R2 is spoken to over its S3 API, here and in the build: wrangler's
+      # `r2 object put` wants account-level R2 permission, and this bucket's
+      # token is scoped to its objects (403 / code 10000 otherwise).
       - name: Upload the manifest
         if: github.event_name == 'push' || !inputs.dry_run
         shell: bash
@@ -445,9 +445,9 @@ jobs:
             --cache-control "public, max-age=300" \
             --only-show-errors
 
-      - name: Say that nothing was published
+      - name: Say that the version was not announced
         if: github.event_name != 'push' && inputs.dry_run
-        run: echo "::notice::Dry run — the manifest above was built and validated, and nothing was uploaded."
+        run: echo "::notice::Dry run — the bundles are on the CDN and the manifest above was validated, but latest.json was not replaced."
 
       # Installers only. The updater bundles are not here on purpose: both macOS
       # builds emit a file called `Uncached.app.tar.gz`, and a GitHub release is
@@ -457,7 +457,7 @@ jobs:
       #
       # What belongs on this page is what a person clicks.
       - name: Attach the installers to the GitHub release
-        if: github.event_name == 'push' || (inputs.reuse_run_id != '' && !inputs.dry_run)
+        if: github.event_name == 'push' || !inputs.dry_run
         uses: softprops/action-gh-release@v2
         with:
           # Named rather than inferred: a republish is dispatched from a branch,
