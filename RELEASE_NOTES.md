@@ -1,30 +1,17 @@
-## 0.1.1-alpha.11
+## 0.1.1-alpha.12
 
-Three changes, and the first one is a fix worth reading.
+Uncached now speaks six languages: English, Português (Brasil), Español,
+Deutsch, 日本語 and العربية. It follows your system language, and Settings >
+General > Language picks another one without restarting.
 
-Unreal's `Saved` directory is no longer offered for removal. Epic's own
-documentation puts autosaves, a project's `.ini` configuration and crash logs
-in it, none of which a build brings back, and it had been listed beside
-`Intermediate` and `DerivedDataCache`, which do.
+Everything is translated, not only the screens: the macOS menu bar including
+Copy, Paste and Quit, the tray menu, the notifications a scheduled run sends,
+and the reasons a removal or a licence activation was refused. Sizes and dates
+are written the way your language writes them — "2,10 GB" in German and
+Portuguese, "há 3 meses" rather than "3 months ago".
 
-Uncached now says how old every cache is, and the list narrows to what nothing
-has written to in 30 or 90 days. The age is read during the same pass that
-measures the size, so it costs nothing, and it is usually the fact that settles
-the decision: last year's build output is an easy yes, yesterday's is not.
+In Arabic the whole interface reads right to left, and paths and sizes inside a
+sentence keep their own direction instead of being scrambled by it.
 
-Insights opens with the disk itself — capacity, what is used, what is free and,
-on a Mac, what the system is holding as purgeable and already counts as used.
-It is read from the filesystem rather than from anything this app recorded, and
-it is free on every plan, because a Mac reporting a hundred and fifty gigabytes
-used against a scan that found seventeen is not a broken scan. Where Full Disk
-Access is missing, the section says so and opens the pane that grants it.
-
-More of what fills a developer's disk is found, each path taken from the tool's
-own documentation: Unity's package and Asset Store caches, Godot's editor cache
-and export templates, Android's system images, Ollama's models, and nvm's and
-pyenv's caches and installed versions. Android's emulators and Docker Desktop's
-disk image are reported with the command their own tool reclaims them with, and
-never touched here — one Docker file holds every image, volume and container,
-including images built locally and pushed nowhere.
-
-Each group has its own switch under Settings, Scanning.
+The Spanish, German, Japanese and Arabic translations are new. If a sentence
+reads wrong in your language, tell us: uncached.app.
