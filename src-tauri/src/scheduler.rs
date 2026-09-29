@@ -296,15 +296,17 @@ fn announce(app: &AppHandle, projects: usize, freed: u64) {
     if freed == 0 {
         return;
     }
+    let strings = crate::native_strings::current();
+    let size = crate::native_strings::localized_size(freed, &strings);
     let _ = app
         .notification()
         .builder()
-        .title("Uncached maintenance")
-        .body(format!(
-            "{} reclaimed from {} idle {}. Everything went to the Trash.",
-            crate::models::target::format_size(freed),
-            projects,
-            if projects == 1 { "project" } else { "projects" }
+        .title(&strings.maintenance_title)
+        .body(crate::native_strings::render(
+            &strings.maintenance_body,
+            &strings.locale,
+            projects as u64,
+            &size,
         ))
         .show();
 }

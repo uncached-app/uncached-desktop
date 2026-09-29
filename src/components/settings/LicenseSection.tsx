@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { describeCommandError } from "../../i18n/errors";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import {
   AlertCircle,
@@ -33,12 +35,7 @@ type LicenseState = {
 const RENEWAL_NOTICE_DAYS = 14;
 
 /** What Pro adds. Free reclaims every artifact of every project, always. */
-const PRO_FEATURES = [
-  "Interactive 2D workspace map",
-  "Automated background cleanups",
-  "Cross-project duplicate insights",
-  "Lifetime reclaimed analytics",
-];
+const PRO_FEATURES = ["map", "schedule", "duplicates", "analytics"] as const;
 
 /**
  * A key is `<payload>.<signature>`, both base64url.
@@ -60,6 +57,7 @@ export function LicenseSection({
   onActivated: () => void;
   proEnabled?: boolean;
 }) {
+  const { t, i18n } = useTranslation();
   const [state, setState] = useState<LicenseState | null>(null);
   // Distinct from "no licence": they are the same empty state and different
   // facts, and rendering Free while the answer is still coming meant a paying
@@ -108,7 +106,7 @@ export function LicenseSection({
       setKey("");
       onActivated();
     } catch (activationError) {
-      setError(typeof activationError === "string" ? activationError : "Activation failed. Please check your key.");
+      setError(describeCommandError(activationError, "settings.license.errors", t("settings.license.form.failed")));
     } finally {
       setBusy(false);
     }
@@ -145,7 +143,7 @@ export function LicenseSection({
     return (
       <div className="flex items-center gap-2.5 text-xs text-mist-500" aria-live="polite">
         <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-        <span>Reading your licence...</span>
+        <span>{t("settings.license.reading")}</span>
       </div>
     );
   }
@@ -168,11 +166,11 @@ export function LicenseSection({
               </div>
               <div>
                 <h3 className="text-sm font-bold text-mist-100">Uncached Pro</h3>
-                <p className="text-xs text-mist-500">All features active on this machine</p>
+                <p className="text-xs text-mist-500">{t("settings.license.active.tagline")}</p>
               </div>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-sage-300/40 bg-forest-950 px-2.5 py-1 font-mono text-[10px] font-bold uppercase text-sage-300">
-              <Check size={11} strokeWidth={3} /> Active
+              <Check size={11} strokeWidth={3} /> {t("settings.license.active.badge")}
             </span>
           </div>
 
@@ -180,23 +178,29 @@ export function LicenseSection({
             <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-confidence-medium/40 bg-confidence-medium-surface p-3 text-xs leading-5 text-confidence-medium">
               <AlertCircle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
               <div>
-                <span className="font-semibold">Licence renews in {expiresInDays === 1 ? "1 day" : `${expiresInDays} days`}.</span>{" "}
-                Your receipt and updated key will arrive by email.
+                <span className="font-semibold">
+                  {t("settings.license.active.renews", { count: expiresInDays })}
+                </span>{" "}
+                {t("settings.license.active.renewalEmail")}
               </div>
             </div>
           )}
 
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Detail icon={User} label="Licensed to" value={license.holder} />
+            <Detail icon={User} label={t("settings.license.active.holder")} value={license.holder} />
             <Detail
               icon={Laptop}
-              label="Authorized seats"
-              value={license.seats === 1 ? "1 machine" : `${license.seats} machines`}
+              label={t("settings.license.active.seats")}
+              value={t("settings.license.active.machines", { count: license.seats })}
             />
             <Detail
               icon={Calendar}
-              label="Expiration"
-              value={license.expiresAt ? new Date(license.expiresAt).toLocaleDateString() : "Perpetual"}
+              label={t("settings.license.active.expiration")}
+              value={
+                license.expiresAt
+                  ? new Date(license.expiresAt).toLocaleDateString(i18n.language)
+                  : t("settings.license.active.perpetual")
+              }
             />
             {/* The order reference, and labelled as one.
 
@@ -208,11 +212,11 @@ export function LicenseSection({
                 that makes needing it urgent. */}
             <Detail
               icon={Hash}
-              label="Reference"
+              label={t("settings.license.active.reference")}
               value={license.id}
               mono
               action={{
-                title: "Copy reference, for a support request",
+                title: t("settings.license.active.copyReference"),
                 done: copied === "id",
                 onClick: () => copy(license.id, "id"),
               }}
@@ -224,10 +228,10 @@ export function LicenseSection({
         <div className="border-t border-forest-800 pt-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-mist-300">Moving to another machine?</p>
-              <p className="mt-0.5 text-xs text-mist-500">
-                Take your key with you before removing it here.
+              <p className="text-xs font-medium text-mist-300">
+                {t("settings.license.active.movingTitle")}
               </p>
+              <p className="mt-0.5 text-xs text-mist-500">{t("settings.license.active.movingHint")}</p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <button
@@ -238,12 +242,12 @@ export function LicenseSection({
                 {copied === "key" ? (
                   <>
                     <Check size={13} className="text-sage-300" aria-hidden="true" />
-                    <span>Copied</span>
+                    <span>{t("settings.license.active.copied")}</span>
                   </>
                 ) : (
                   <>
                     <KeyRound size={13} aria-hidden="true" />
-                    <span>Copy licence key</span>
+                    <span>{t("settings.license.active.copyKey")}</span>
                   </>
                 )}
               </button>
@@ -259,7 +263,7 @@ export function LicenseSection({
                     disabled={busy}
                     className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-coral-300/40 bg-coral-300/10 px-3.5 text-xs font-semibold text-coral-300 transition-colors hover:bg-coral-300/20 disabled:opacity-50"
                   >
-                    {busy ? "Removing..." : "Yes, remove it"}
+                    {busy ? t("settings.license.active.removing") : t("settings.license.active.confirmRemove")}
                   </button>
                   <button
                     type="button"
@@ -267,7 +271,7 @@ export function LicenseSection({
                     disabled={busy}
                     className="inline-flex h-9 cursor-pointer items-center rounded-xl px-2.5 text-xs font-medium text-mist-500 transition-colors hover:text-mist-100 disabled:opacity-50"
                   >
-                    Cancel
+                    {t("settings.cancel")}
                   </button>
                 </>
               ) : (
@@ -277,7 +281,7 @@ export function LicenseSection({
                   disabled={busy}
                   className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-forest-800 bg-forest-850 px-3.5 text-xs font-medium text-mist-300 transition-colors hover:border-coral-300/40 hover:bg-coral-300/10 hover:text-coral-300 disabled:opacity-50"
                 >
-                  Remove from this machine
+                  {t("settings.license.active.remove")}
                 </button>
               )}
             </div>
@@ -308,20 +312,23 @@ export function LicenseSection({
                 <AlertCircle size={15} aria-hidden="true" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-mist-100">Licence expired</h3>
+                <h3 className="text-sm font-bold text-mist-100">
+                  {t("settings.license.expired.title")}
+                </h3>
                 <p className="text-xs text-mist-500">
-                  {lapsed.license.holder} ·{" "}
-                  {new Date(lapsed.license.expiresAt ?? "").toLocaleDateString()}
+                  {t("settings.license.expired.holderAndDate", {
+                    holder: lapsed.license.holder,
+                    date: new Date(lapsed.license.expiresAt ?? "").toLocaleDateString(i18n.language),
+                  })}
                 </p>
               </div>
             </div>
             <span className="rounded-full border border-coral-300/40 bg-forest-950 px-2.5 py-1 font-mono text-[10px] font-bold uppercase text-coral-300">
-              Lapsed
+              {t("settings.license.expired.badge")}
             </span>
           </div>
           <p className="mt-4 text-xs leading-5 text-mist-300">
-            Pro features are locked until it is renewed. Everything Free does is untouched — no
-            project and nothing on disk is affected by this.
+            {t("settings.license.expired.body")}
           </p>
         </div>
       ) : (
@@ -332,12 +339,11 @@ export function LicenseSection({
               <h3 className="text-sm font-semibold text-mist-100">Uncached Free</h3>
             </div>
             <span className="rounded-md border border-forest-800 bg-forest-950 px-2 py-0.5 font-mono text-[10px] font-medium uppercase text-mist-500">
-              Current plan
+              {t("settings.license.free.badge")}
             </span>
           </div>
           <p className="mt-2 text-xs leading-5 text-mist-500">
-            Free reclaims every artifact of every project, with no limits. Pro adds the readings
-            that span the whole workspace:
+            {t("settings.license.free.body")}
           </p>
         </div>
       )}
@@ -349,7 +355,7 @@ export function LicenseSection({
             className="flex items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-950 px-3.5 py-2.5 text-xs text-mist-300"
           >
             <Check size={13} strokeWidth={3} className="shrink-0 text-sage-300" aria-hidden="true" />
-            <span>{feature}</span>
+            <span>{t(`settings.license.features.${feature}`)}</span>
           </div>
         ))}
       </div>
@@ -358,7 +364,7 @@ export function LicenseSection({
       <div className="space-y-3 border-t border-forest-800 pt-4">
         <label className="block">
           <span className="text-xs font-medium text-mist-300">
-            {lapsed ? "Renewed licence key" : "Licence key"}
+            {lapsed ? t("settings.license.form.renewedKeyLabel") : t("settings.license.form.keyLabel")}
           </span>
           {/* A field, not a line.
 
@@ -383,7 +389,7 @@ export function LicenseSection({
               void activate();
             }}
             rows={3}
-            placeholder="Paste the key from your receipt"
+            placeholder={t("settings.license.form.placeholder")}
             spellCheck={false}
             autoComplete="off"
             aria-invalid={error ? true : undefined}
@@ -404,7 +410,7 @@ export function LicenseSection({
             !looksLikeKey(key) && (
               <span className="flex items-start gap-2 text-mist-500">
                 <AlertCircle size={14} className="mt-px shrink-0" aria-hidden="true" />
-                <span>This looks like part of a key. Paste the whole line from your receipt.</span>
+                <span>{t("settings.license.form.partialKey")}</span>
               </span>
             )
           )}
@@ -422,7 +428,13 @@ export function LicenseSection({
             ) : (
               <Sparkles size={14} aria-hidden="true" />
             )}
-            <span>{busy ? "Validating..." : lapsed ? "Reactivate Pro" : "Activate Pro"}</span>
+            <span>
+              {busy
+                ? t("settings.license.form.validating")
+                : lapsed
+                  ? t("settings.license.form.reactivate")
+                  : t("settings.license.form.activate")}
+            </span>
           </button>
 
           <button
@@ -430,14 +442,15 @@ export function LicenseSection({
             onClick={() => openExternalUrl("https://uncached.app/pro")}
             className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-forest-800 bg-forest-850 px-4 text-xs font-medium text-mist-300 transition-colors hover:border-forest-750 hover:bg-forest-800 hover:text-mist-100"
           >
-            <span>{lapsed ? "Renew licence" : "Get a licence"}</span>
+            <span>
+              {lapsed ? t("settings.license.form.renewLicence") : t("settings.license.form.getLicence")}
+            </span>
             <ExternalLink size={12} className="text-mist-500" aria-hidden="true" />
           </button>
         </div>
 
         <p className="text-[11px] leading-5 text-mist-500">
-          Activation is offline. The key carries its own signature, so nothing is sent anywhere and
-          it keeps working without a connection.
+          {t("settings.license.form.offline")}
         </p>
       </div>
     </div>

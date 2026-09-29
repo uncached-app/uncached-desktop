@@ -1,4 +1,5 @@
 import { PanelRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { MenuRow } from "../../shared/MenuRow";
 import { ContextMenu } from "../../shared/ContextMenu";
 import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
@@ -34,15 +35,16 @@ export function ProjectContextMenu({
   onResult: (message: string | null) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   // One editor, and no more. Choosing between them is what the palette is
   // for; here it would be a run of identical pencils.
   const actions = withOneEditor(useProjectActions(anchor.project));
 
   return (
-    <ContextMenu at={anchor} label={`${anchor.project.name} actions`} onClose={onClose}>
+    <ContextMenu at={anchor} label={t("workspace.menu.label", { name: anchor.project.name })} onClose={onClose}>
       <MenuRow
         icon={PanelRight}
-        title="Open project page"
+        title={t("workspace.menu.openPage")}
         onSelect={() => {
           onOpenProject(anchor.project.path);
           onClose();
@@ -57,8 +59,11 @@ export function ProjectContextMenu({
           onSelect={() => {
             onClose();
             void action.perform().then(
-              () => onResult(action.leaves ? null : `${action.title.toLowerCase()} — done`),
-              (error) => onResult(typeof error === "string" ? error : "That did not work"),
+              () =>
+                onResult(
+                  action.leaves ? null : t("workspace.actions.done", { action: action.title.toLowerCase() }),
+                ),
+              (error) => onResult(typeof error === "string" ? error : t("workspace.actions.failed")),
             );
           }}
         />

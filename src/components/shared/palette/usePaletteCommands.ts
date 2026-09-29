@@ -1,5 +1,6 @@
 import { Compass, FolderOpen, FolderPlus, HardDrive, PanelsTopLeft, RefreshCw, Settings, type LucideIcon } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { usePurgeFlow } from "../../../hooks/usePurgeFlow";
 import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
 import { folderActions } from "../../../hooks/useFolderActions";
@@ -42,6 +43,7 @@ export function usePaletteCommands({
   onModuleChange: (module: AppModule) => void;
   onOpenSettings: () => void;
 }) {
+  const { t } = useTranslation();
   const flow = usePurgeFlow();
   const actions = useProjectActions(scope);
   const projects = flow.index.index?.projects ?? [];
@@ -55,7 +57,7 @@ export function usePaletteCommands({
       {
         id: "page",
         group: "actions",
-        title: "Open project page",
+        title: t("shell.palette.commands.projectPage"),
         keywords: ["details", "git", "artifacts", "everything"],
         icon: PanelsTopLeft,
         closes: true,
@@ -80,7 +82,7 @@ export function usePaletteCommands({
       {
         id: "focus",
         group: "actions",
-        title: "Show in workspace",
+        title: t("shell.palette.commands.showInWorkspace"),
         keywords: ["find", "list", "map", "locate", "scroll"],
         icon: Compass,
         closes: true,
@@ -96,7 +98,7 @@ export function usePaletteCommands({
       },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, actions]);
+  }, [t, scope, actions]);
 
   const rootCommands = useMemo<PaletteCommand[]>(() => {
     const items: PaletteCommand[] = projects.map((project) => ({
@@ -123,6 +125,7 @@ export function usePaletteCommands({
       const name = folderName(root);
       for (const action of withOneEditor(
         folderActions(
+          t,
           launchers ?? [],
           root,
           settings?.preferredEditor ?? null,
@@ -132,7 +135,7 @@ export function usePaletteCommands({
         items.push({
           id: `folder:${root}:${action.id}`,
           group: "folders",
-          title: `${action.title} — ${name}`,
+          title: t("shell.palette.folderAction", { action: action.title, name }),
           subtitle: root,
           keywords: [...action.keywords, name, "workspace", "root"],
           icon: action.icon,
@@ -146,7 +149,7 @@ export function usePaletteCommands({
       {
         id: "go-workspace",
         group: "commands",
-        title: "Go to Workspace",
+        title: t("shell.palette.commands.goWorkspace"),
         keywords: ["projects", "map"],
         icon: Compass,
         closes: true,
@@ -161,7 +164,7 @@ export function usePaletteCommands({
       {
         id: "go-reclaim",
         group: "commands",
-        title: "Reclaim disk",
+        title: t("shell.palette.commands.reclaim"),
         keywords: ["artifacts", "clean", "free", "remove", "targets"],
         icon: HardDrive,
         closes: true,
@@ -173,7 +176,7 @@ export function usePaletteCommands({
       {
         id: "go-insights",
         group: "commands",
-        title: "Go to Insights",
+        title: t("shell.palette.commands.goInsights"),
         keywords: ["history", "report", "reclaimed"],
         icon: Compass,
         closes: true,
@@ -182,7 +185,7 @@ export function usePaletteCommands({
       {
         id: "go-maintenance",
         group: "commands",
-        title: "Go to Maintenance",
+        title: t("shell.palette.commands.goMaintenance"),
         keywords: ["policy", "schedule", "automatic"],
         icon: Compass,
         closes: true,
@@ -191,7 +194,7 @@ export function usePaletteCommands({
       {
         id: "add-folder",
         group: "commands",
-        title: "Add folder",
+        title: t("shell.palette.commands.addFolder"),
         keywords: ["root", "workspace", "choose", "scan"],
         icon: FolderPlus,
         closes: true,
@@ -200,7 +203,7 @@ export function usePaletteCommands({
       {
         id: "rescan",
         group: "commands",
-        title: "Scan workspace",
+        title: t("shell.palette.commands.rescan"),
         keywords: ["refresh", "rescan", "read again"],
         icon: RefreshCw,
         closes: true,
@@ -209,7 +212,7 @@ export function usePaletteCommands({
       {
         id: "settings",
         group: "commands",
-        title: "Open settings",
+        title: t("shell.palette.commands.settings"),
         keywords: ["preferences", "ignore rules", "licence"],
         icon: Settings,
         closes: true,
@@ -219,7 +222,7 @@ export function usePaletteCommands({
 
     return items;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, flow.footprints, flow.verdicts, roots, launchers, settings]);
+  }, [t, projects, flow.footprints, flow.verdicts, roots, launchers, settings]);
 
   return { projectCommands, rootCommands };
 }

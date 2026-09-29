@@ -1,0 +1,22 @@
+{
+  "workspace": {
+    "name": "مساحة العمل",
+    "label": "مساحة عمل Uncached"
+  },
+  "reclaim": {
+    "name": "استعادة",
+    "label": "استعادة المساحة"
+  },
+  "maintenance": {
+    "name": "الصيانة",
+    "label": "صيانة Uncached",
+    "labelLocked": "صيانة Uncached (Pro)"
+  },
+  "insights": {
+    "name": "الإحصاءات",
+    "label": "إحصاءات Uncached",
+    "labelLocked": "إحصاءات Uncached (Pro)"
+  },
+  "openSettings": "فتح الإعدادات",
+  "bar": "وحدات Uncached"
+}

@@ -1,0 +1,174 @@
+{
+  "actionsFor": "{{name}} の操作",
+  "actions": {
+    "openIn": "{{app}} で開く",
+    "reveal": "ファイルマネージャで表示",
+    "copyPath": "パスをコピー",
+    "fetch": "リモートからフェッチ",
+    "openRepository": "リポジトリを開く",
+    "done": "{{action}} — 完了",
+    "failed": "失敗しました"
+  },
+  "folderMenu": {
+    "label": "{{name}} の操作"
+  },
+  "proLock": {
+    "label": "{{label}}。{{reason}}"
+  },
+  "rootPicker": {
+    "remove": "{{name}} を外す",
+    "empty": "フォルダが選択されていません",
+    "addAnother": "フォルダを追加",
+    "multiRootPro": "複数フォルダの同時スキャンは Pro の機能です",
+    "browseLabel": "フォルダを参照",
+    "browse": "参照"
+  },
+  "index": {
+    "noFolder": "先にフォルダのパスを選択するか貼り付けてください。"
+  },
+  "palette": {
+    "label": "コマンドパレット",
+    "close": "閉じる",
+    "back": "すべてに戻る",
+    "search": "プロジェクトとコマンドを検索",
+    "pickAction": "{{name}} — 操作を選択",
+    "emptyNoProjects": "フォルダを追加すると、プロジェクトがここに表示されます。",
+    "noMatches": "一致するものはありません。",
+    "indexed_other": "{{count}} 件のプロジェクトをインデックス済み",
+    "hint": {
+      "back": "選択 · esc 戻る",
+      "close": "選択 · esc 閉じる"
+    },
+    "groups": {
+      "actions": "操作",
+      "projects": "プロジェクト",
+      "folders": "フォルダ",
+      "commands": "コマンド"
+    },
+    "folderAction": "{{action}} — {{name}}",
+    "commands": {
+      "projectPage": "プロジェクトページを開く",
+      "showInWorkspace": "ワークスペースで表示",
+      "goWorkspace": "ワークスペースへ移動",
+      "reclaim": "ディスク容量を回収",
+      "goInsights": "インサイトへ移動",
+      "goMaintenance": "メンテナンスへ移動",
+      "addFolder": "フォルダを追加",
+      "rescan": "ワークスペースをスキャン",
+      "settings": "設定を開く"
+    }
+  },
+  "titlebar": {
+    "title": {
+      "insights": "Uncached インサイト",
+      "maintenance": "Uncached メンテナンス",
+      "workspace": "Uncached ワークスペース"
+    },
+    "pipeline": "進行状況",
+    "steps": {
+      "workspace": "ワークスペース",
+      "scan": "スキャン",
+      "review": "確認",
+      "done": "完了"
+    },
+    "openSettings": "設定を開く",
+    "closeWindow": "ウインドウを閉じる",
+    "minimizeWindow": "ウインドウを最小化",
+    "restoreWindow": "ウインドウを元に戻す",
+    "maximizeWindow": "ウインドウを最大化"
+  },
+  "update": {
+    "available": "Uncached {{version}} が利用可能です",
+    "downloadingTitle": "Uncached {{version}} をダウンロード中",
+    "unreachable": "アップデートにアクセスできませんでした",
+    "busy": "Uncached が処理中です。完了するまで待機します",
+    "percent": "{{percent}}%",
+    "later": "後で",
+    "badge": {
+      "readyTitle": "Uncached {{version}} をインストールしました。再起動すると使用できます",
+      "restart": "再起動",
+      "downloading": "ダウンロード中",
+      "update": "アップデート"
+    },
+    "dialog": {
+      "label": "ソフトウェアアップデート",
+      "checkingTitle": "アップデートを確認中",
+      "readyTitle": "再起動の準備完了",
+      "close": "閉じる",
+      "checkingBody": "アップデートサーバに最新のリリースを問い合わせています。",
+      "noNotes": "このリリースにはリリースノートがありません。",
+      "progressUnknown": "ダウンロード中 — サーバからサイズが通知されていません",
+      "progress": "{{percent}}% — 閉じてもダウンロードは続行します",
+      "readyBody": "Uncached {{version}} の準備ができました。再起動は数秒で終わり、ワークスペースには一切触れません。",
+      "notNow": "今はしない",
+      "checking": "確認中…",
+      "restartNow": "今すぐ再起動",
+      "downloading": "ダウンロード中…",
+      "tryAgain": "再試行",
+      "install": "ダウンロードしてインストール"
+    },
+    "toast": {
+      "body": "指示するまで、ダウンロードも置き換えも行いません。",
+      "whatsNew": "新機能",
+      "dismiss": "閉じる"
+    }
+  },
+  "menu": {
+    "file": "ファイル",
+    "edit": "編集",
+    "view": "表示",
+    "workspace": "ワークスペース",
+    "window": "ウインドウ",
+    "about": "Uncached について",
+    "services": "サービス",
+    "hide": "Uncached を非表示",
+    "hideOthers": "ほかを非表示",
+    "showAll": "すべてを表示",
+    "quit": "Uncached を終了",
+    "undo": "取り消す",
+    "redo": "やり直す",
+    "cut": "カット",
+    "copy": "コピー",
+    "paste": "ペースト",
+    "selectAll": "すべてを選択",
+    "minimize": "しまう",
+    "zoom": "拡大／縮小",
+    "closeWindow": "ウインドウを閉じる"
+  },
+  "native": {
+    "trayOpen": "Uncached を開く",
+    "trayScan": "ワークスペースをスキャン",
+    "trayQuit": "Uncached を終了",
+    "scanFinished_other": "{{count}} 件の対象を検出、{{size}} 回収可能。",
+    "maintenanceTitle": "Uncached メンテナンス",
+    "maintenanceBody_other": "アイドル状態の {{count}} 件のプロジェクトから {{size}} を回収しました。すべてゴミ箱に移動済みです。"
+  },
+  "errors": {
+    "invalid_workspace": "このフォルダはスキャンできません。",
+    "io": "ディスクが操作を拒否しました。",
+    "provider_unavailable": "この対象を認識するスキャナがなくなりました。もう一度スキャンしてください。",
+    "target_missing": "対象はもう存在しません。もう一度スキャンしてください。",
+    "target_not_directory": "対象はもうディレクトリではありません。もう一度スキャンしてください。",
+    "target_name_unsupported": "対象の名前をこのシステムでは読み取れません。",
+    "target_provider_mismatch": "対象がスキャン時の検出内容と一致しなくなりました。もう一度スキャンしてください。",
+    "target_context_invalid": "スキャン後に対象を含むプロジェクトが変更されました。もう一度スキャンしてください。",
+    "target_outside_workspace": "対象は選択したフォルダの外にあります。",
+    "target_ignored_by_rule": "対象は除外ルールに該当します。",
+    "target_identity_unavailable": "ディスク上で対象を特定できませんでした。もう一度スキャンしてください。",
+    "target_identity_changed": "スキャン後に対象が置き換えられました。もう一度スキャンしてください。",
+    "target_reparse_point": "対象またはその上位のフォルダがリンクです。Uncached は削除時にリンクをたどりません。",
+    "secure_operation_unsupported": "このシステムでは対象を安全に削除できません。",
+    "secure_target_open_failed": "削除のために対象を開けませんでした。",
+    "secure_target_too_large": "対象の項目数が 1 回の削除の上限を超えています。",
+    "secure_target_too_deep": "対象の階層の深さが 1 回の削除の上限を超えています。",
+    "secure_enumeration_failed": "対象の内容を読み取れませんでした。",
+    "secure_handle_query_failed": "対象内のファイルの情報をシステムが返しませんでした。",
+    "secure_deletion_failed": "システムが対象の削除を拒否しました。",
+    "secure_trash_unavailable": "このシステムではゴミ箱を使用できません。",
+    "secure_trash_initialization_failed": "ゴミ箱を開けませんでした。",
+    "secure_trash_operation_failed": "対象をゴミ箱に移動できませんでした。",
+    "secure_trash_aborted": "対象のゴミ箱への移動が中断されました。",
+    "secure_trash_postcondition_failed": "移動後、対象がゴミ箱にありませんでした。",
+    "target_in_use": "{{program}} が実行中です。終了してからもう一度スキャンしてください。今削除すると動作しなくなります。"
+  }
+}

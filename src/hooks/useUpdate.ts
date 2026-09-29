@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { isTauri } from "@tauri-apps/api/core";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
@@ -29,6 +30,9 @@ const RETRY = 45 * 1000;
  * window to come back, both of which are cheap and both of which are enough.
  */
 const RETRIES = 3;
+
+/** A message of our own is kept as a key so it follows a language change. */
+type Problem = { key: "shell.update.busy" | "shell.update.unreachable" } | { text: string };
 
 export type UpdateStage = "idle" | "checking" | "available" | "downloading" | "ready" | "failed";
 
@@ -66,11 +70,12 @@ export type UpdateState = {
  * would be a second, worse answer to a question already answered correctly.
  */
 export function useUpdate({ busy }: { busy: boolean }): UpdateState {
+  const { t } = useTranslation();
   const [stage, setStage] = useState<UpdateStage>("idle");
   const [version, setVersion] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
   const [asked, setAsked] = useState(false);
   // Held rather than stored: it carries a native handle, and re-rendering on it
   // would say nothing the stage does not already say.
@@ -118,7 +123,7 @@ export function useUpdate({ busy }: { busy: boolean }): UpdateState {
     const update = pending.current;
     if (!update) return;
     if (busyNow.current) {
-      setProblem("Uncached is working — this will wait until it has finished");
+      setProblem({ key: "shell.update.busy" });
       return;
     }
     setProblem(null);
@@ -189,7 +194,7 @@ export function useUpdate({ busy }: { busy: boolean }): UpdateState {
     version,
     notes,
     progress,
-    problem,
+    problem: problem === null ? null : "key" in problem ? t(problem.key) : problem.text,
     asked,
     check: run,
     install: async () => {
@@ -202,8 +207,8 @@ export function useUpdate({ busy }: { busy: boolean }): UpdateState {
   };
 }
 
-function describe(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (error instanceof Error) return error.message;
-  return "The update could not be reached";
+function describe(error: unknown): Problem {
+  if (typeof error === "string") return { text: error };
+  if (error instanceof Error) return { text: error.message };
+  return { key: "shell.update.unreachable" };
 }

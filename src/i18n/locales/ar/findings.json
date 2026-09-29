@@ -1,0 +1,248 @@
+{
+  "section": {
+    "label": "أهداف الفحص"
+  },
+  "breadcrumb": {
+    "workspace": "مساحة العمل",
+    "current": "أهداف الاستعادة"
+  },
+  "backToWorkspace": "العودة إلى مساحة العمل",
+  "header": {
+    "targets_zero": "{{count}} هدف",
+    "targets_one": "{{count}} هدف",
+    "targets_two": "{{count}} هدفان",
+    "targets_few": "{{count}} أهداف",
+    "targets_many": "{{count}} هدفًا",
+    "targets_other": "{{count}} هدف",
+    "reclaimable": "قابل للاستعادة",
+    "selected_zero": "المحدد ({{count}})",
+    "selected_one": "المحدد ({{count}})",
+    "selected_two": "المحدد ({{count}})",
+    "selected_few": "المحدد ({{count}})",
+    "selected_many": "المحدد ({{count}})",
+    "selected_other": "المحدد ({{count}})",
+    "inUse": "{{size}} قيد الاستخدام",
+    "inUseTarget": "{{name}} — {{tool}} قيد التشغيل",
+    "planFree": "Free {{size}}",
+    "planPro": "Pro {{size}}",
+    "reclaimableScope_zero": "عبر {{ready}} من أصل {{count}} هدف، والبقية لا تزال قيد القياس، أو فشل قياسها، أو يُبلَّغ عنها ولا تُزال أبدًا.",
+    "reclaimableScope_one": "عبر {{ready}} من أصل {{count}} هدف، والبقية لا تزال قيد القياس، أو فشل قياسها، أو يُبلَّغ عنها ولا تُزال أبدًا.",
+    "reclaimableScope_two": "عبر {{ready}} من أصل {{count}} هدفين، والبقية لا تزال قيد القياس، أو فشل قياسها، أو يُبلَّغ عنها ولا تُزال أبدًا.",
+    "reclaimableScope_few": "عبر {{ready}} من أصل {{count}} أهداف، والبقية لا تزال قيد القياس، أو فشل قياسها، أو يُبلَّغ عنها ولا تُزال أبدًا.",
+    "reclaimableScope_many": "عبر {{ready}} من أصل {{count}} هدفًا، والبقية لا تزال قيد القياس، أو فشل قياسها، أو يُبلَّغ عنها ولا تُزال أبدًا.",
+    "reclaimableScope_other": "عبر {{ready}} من أصل {{count}} هدف، والبقية لا تزال قيد القياس، أو فشل قياسها، أو يُبلَّغ عنها ولا تُزال أبدًا."
+  },
+  "delete": {
+    "button": "حذف",
+    "unsupported": "تعذّر على Uncached قراءة ما يسمح له هذا النظام بإزالته، لذا لا يُعرض شيء."
+  },
+  "notice": {
+    "permanent": "تُحذف الأهداف المحددة نهائيًا. لا يمكن استرجاعها.",
+    "recycle": "تُنقل الأهداف المحددة إلى سلة المهملات. يمكن استرجاعها من هناك عند الحاجة.",
+    "unreadable_zero": "حجب النظام {{count}} مجلد، لذا فالعدد والإجمالي أعلاه كلاهما حدّ أدنى.",
+    "unreadable_one": "حجب النظام {{count}} مجلد، لذا فالعدد والإجمالي أعلاه كلاهما حدّ أدنى.",
+    "unreadable_two": "حجب النظام {{count}} مجلدين، لذا فالعدد والإجمالي أعلاه كلاهما حدّ أدنى.",
+    "unreadable_few": "حجب النظام {{count}} مجلدات، لذا فالعدد والإجمالي أعلاه كلاهما حدّ أدنى.",
+    "unreadable_many": "حجب النظام {{count}} مجلدًا، لذا فالعدد والإجمالي أعلاه كلاهما حدّ أدنى.",
+    "unreadable_other": "حجب النظام {{count}} مجلد، لذا فالعدد والإجمالي أعلاه كلاهما حدّ أدنى.",
+    "unreadableHint": "امنح Uncached الوصول الكامل إلى القرص لقراءتها.",
+    "ignoreRules_zero": "{{count}} قاعدة استثناء سارية. استُبعدت المسارات المشمولة من هذا الفحص.",
+    "ignoreRules_one": "{{count}} قاعدة استثناء سارية. استُبعدت المسارات المشمولة من هذا الفحص.",
+    "ignoreRules_two": "{{count}} قاعدتا استثناء ساريتان. استُبعدت المسارات المشمولة من هذا الفحص.",
+    "ignoreRules_few": "{{count}} قواعد استثناء سارية. استُبعدت المسارات المشمولة من هذا الفحص.",
+    "ignoreRules_many": "{{count}} قاعدة استثناء سارية. استُبعدت المسارات المشمولة من هذا الفحص.",
+    "ignoreRules_other": "{{count}} قاعدة استثناء سارية. استُبعدت المسارات المشمولة من هذا الفحص."
+  },
+  "empty": {
+    "scanning": "الفحص جارٍ.",
+    "none": "لا توجد أهداف قابلة للاستعادة في مساحة العمل هذه.",
+    "scanningHint": "تظهر الأهداف فور العثور عليها.",
+    "tooRecent_zero": "كل ما عُثر عليه هنا كُتب فيه خلال آخر {{count}} يوم.",
+    "tooRecent_one": "كل ما عُثر عليه هنا كُتب فيه خلال آخر {{count}} يوم.",
+    "tooRecent_two": "كل ما عُثر عليه هنا كُتب فيه خلال آخر {{count}} يومين.",
+    "tooRecent_few": "كل ما عُثر عليه هنا كُتب فيه خلال آخر {{count}} أيام.",
+    "tooRecent_many": "كل ما عُثر عليه هنا كُتب فيه خلال آخر {{count}} يومًا.",
+    "tooRecent_other": "كل ما عُثر عليه هنا كُتب فيه خلال آخر {{count}} يوم.",
+    "settingsHint": "حدّد أنواع الكاش التي تُكتشف من الإعدادات، ضمن الفحص.",
+    "showEveryAge": "إظهار كل الأعمار"
+  },
+  "failed": {
+    "title_zero": "تعذّرت إزالة {{count}} هدف.",
+    "title_one": "تعذّرت إزالة هدف واحد.",
+    "title_two": "تعذّرت إزالة {{count}} هدفين.",
+    "title_few": "تعذّرت إزالة {{count}} أهداف.",
+    "title_many": "تعذّرت إزالة {{count}} هدفًا.",
+    "title_other": "تعذّرت إزالة {{count}} هدف.",
+    "refused": "رفض النظام الإزالة.",
+    "retry_zero": "لا تزال محددة، فالضغط مجددًا بعد زوال السبب يعيد محاولتها.",
+    "retry_one": "لا يزال محددًا، فالضغط مجددًا بعد زوال السبب يعيد محاولته.",
+    "retry_two": "لا يزالان محددين، فالضغط مجددًا بعد زوال السبب يعيد محاولتهما.",
+    "retry_few": "لا تزال محددة، فالضغط مجددًا بعد زوال السبب يعيد محاولتها.",
+    "retry_many": "لا تزال محددة، فالضغط مجددًا بعد زوال السبب يعيد محاولتها.",
+    "retry_other": "لا تزال محددة، فالضغط مجددًا بعد زوال السبب يعيد محاولتها."
+  },
+  "pro": {
+    "more": "{{size}} إضافية متاحة مع Pro",
+    "pitch": "افتح كل أدوات التنظيف ومساحة العمل والتحليل الذكي.",
+    "cta": "احصل على Uncached Pro"
+  },
+  "list": {
+    "selectAll": "تحديد الكل",
+    "deselectAll": "إلغاء تحديد الكل",
+    "selectedOf": "{{selected}} من {{total}}",
+    "heldByRunning_zero": "{{count}} في مشاريع قيد التشغيل، ولن تُزال",
+    "heldByRunning_one": "{{count}} في مشروع قيد التشغيل، ولن يُزال",
+    "heldByRunning_two": "{{count}} في مشاريع قيد التشغيل، ولن يُزالا",
+    "heldByRunning_few": "{{count}} في مشاريع قيد التشغيل، ولن تُزال",
+    "heldByRunning_many": "{{count}} في مشاريع قيد التشغيل، ولن تُزال",
+    "heldByRunning_other": "{{count}} في مشاريع قيد التشغيل، ولن تُزال"
+  },
+  "age": {
+    "any": "أي عمر",
+    "anyHint": "كل ما عثر عليه الفحص",
+    "olderThan": "{{days}}+ يومًا",
+    "monthHint": "لم يُكتب فيها شيء منذ شهر",
+    "threeMonthsHint": "لم يُكتب فيها شيء منذ ثلاثة أشهر"
+  },
+  "order": {
+    "confidence": {
+      "label": "الأقل يقينًا",
+      "hint": "الأهداف الأقل يقينًا لدى الفاحص تأتي أولًا",
+      "hintFree": "الأهداف الأقل يقينًا لدى الفاحص تأتي أولًا. في خطة Free، يتقدّم ما تستطيع خطتك تنظيفه في الحالتين."
+    },
+    "size": {
+      "label": "الأكبر",
+      "hint": "الأثقل على القرص أولًا",
+      "hintFree": "الأثقل على القرص أولًا. في خطة Free، يتقدّم ما تستطيع خطتك تنظيفه في الحالتين."
+    }
+  },
+  "confirm": {
+    "deleting": "جارٍ الحذف",
+    "moving": "جارٍ النقل إلى سلة المهملات",
+    "deletePermanently": "حذف نهائي",
+    "moveToRecycleBin": "نقل إلى سلة المهملات",
+    "deletingProgress_zero": "جارٍ حذف {{count}} هدف...",
+    "deletingProgress_one": "جارٍ حذف {{count}} هدف...",
+    "deletingProgress_two": "جارٍ حذف {{count}} هدفين...",
+    "deletingProgress_few": "جارٍ حذف {{count}} أهداف...",
+    "deletingProgress_many": "جارٍ حذف {{count}} هدفًا...",
+    "deletingProgress_other": "جارٍ حذف {{count}} هدف...",
+    "movingProgress_zero": "جارٍ نقل {{count}} هدف...",
+    "movingProgress_one": "جارٍ نقل {{count}} هدف...",
+    "movingProgress_two": "جارٍ نقل {{count}} هدفين...",
+    "movingProgress_few": "جارٍ نقل {{count}} أهداف...",
+    "movingProgress_many": "جارٍ نقل {{count}} هدفًا...",
+    "movingProgress_other": "جارٍ نقل {{count}} هدف...",
+    "permanentWarning_zero": "سيُحذف {{count}} هدف من القرص. لا يمكن الاسترجاع.",
+    "permanentWarning_one": "سيُحذف {{count}} هدف من القرص. لا يمكن الاسترجاع.",
+    "permanentWarning_two": "سيُحذف {{count}} هدفان من القرص. لا يمكن الاسترجاع.",
+    "permanentWarning_few": "ستُحذف {{count}} أهداف من القرص. لا يمكن الاسترجاع.",
+    "permanentWarning_many": "سيُحذف {{count}} هدفًا من القرص. لا يمكن الاسترجاع.",
+    "permanentWarning_other": "سيُحذف {{count}} هدف من القرص. لا يمكن الاسترجاع.",
+    "recycleWarning_zero": "سيُنقل {{count}} هدف إلى سلة المهملات. استرجعها من هناك إذا احتاجها بناء.",
+    "recycleWarning_one": "سيُنقل {{count}} هدف إلى سلة المهملات. استرجعه من هناك إذا احتاجه بناء.",
+    "recycleWarning_two": "سيُنقل {{count}} هدفان إلى سلة المهملات. استرجعهما من هناك إذا احتاجهما بناء.",
+    "recycleWarning_few": "ستُنقل {{count}} أهداف إلى سلة المهملات. استرجعها من هناك إذا احتاجها بناء.",
+    "recycleWarning_many": "سيُنقل {{count}} هدفًا إلى سلة المهملات. استرجعها من هناك إذا احتاجها بناء.",
+    "recycleWarning_other": "سيُنقل {{count}} هدف إلى سلة المهملات. استرجعها من هناك إذا احتاجها بناء.",
+    "close": "إغلاق التأكيد",
+    "reclaims": "يستعيد <strong>{{size}}</strong> (تقديريًا)",
+    "typeToConfirm": "اكتب <strong>{{word}}</strong> للتأكيد.",
+    "inputLabel": "تأكيد الحذف النهائي",
+    "cleaning": "جارٍ التنظيف...",
+    "cancel": "إلغاء"
+  },
+  "row": {
+    "select": "تحديد {{name}}",
+    "ageHint": "أحدث ملف بداخله. الكاش الذي لم يُكتب فيه شيء منذ أشهر يمكن لإعادة البناء أن تستبدله.",
+    "inUseHint": "لن يزيل Uncached هذا أثناء تشغيل {{tool}}: الملفات التي يُبقيها مفتوحة ستذهب معه.",
+    "inUse": "قيد الاستخدام",
+    "copied": "نُسخ",
+    "copy": "نسخ",
+    "reportedNotRemoved": "مُبلَّغ عنه، لا يُزال",
+    "loadingSize": "جارٍ تحميل الحجم",
+    "sizeUnavailable": "الحجم غير متاح",
+    "retryLabel": "فشل قياس حجم {{name}}. إعادة القياس",
+    "retry": "إعادة المحاولة",
+    "toolRunning": "{{tool}} قيد التشغيل",
+    "unlockToClean": "افتح القفل للتنظيف"
+  },
+  "confidence": {
+    "badgeLabel": "{{level}} لـ {{name}}. إظهار ما اكتُشف",
+    "levels": {
+      "high": "ثقة عالية",
+      "medium": "ثقة متوسطة",
+      "review": "مراجعة"
+    },
+    "reasons": {
+      "knownArtifact": "مُخرج بناء معروف",
+      "projectManifest": "يقع داخل مشروع له ملف manifest",
+      "lockfile": "للمشروع ملف قفل، والمحتوى قابل لإعادة الإنتاج",
+      "declaredDisposable": "مُصرَّح بأنه قابل للحذف في ملف ‎.gitignore الخاص بالمشروع",
+      "versionControlled": "متتبَّع في Git، لذا فهو ليس مُخرج بناء",
+      "versionManagerPath": "مجلد مدير إصدارات، يحوي حزمًا مثبتة على مستوى النظام",
+      "systemPath": "يتبع نظام التشغيل، لا مشروعًا",
+      "noProjectContext": "لم يُعثر على مشروع حوله",
+      "knownLocation": "موقع كاش معروف يتبع أداة محددة",
+      "sharedCache": "مشترك بين كل المشاريع: مسحه يُبطئ عمليات التثبيت اللاحقة",
+      "toolState": "يتبع أداة لا عملية بناء"
+    }
+  },
+  "reportedOnly": {
+    "title": "لا يزيلها Uncached",
+    "intro": "الأداة التي تملك هذه تستعيدها بأمان. شغّل أمرها في الطرفية.",
+    "copyCommand": "نسخ أمر {{name}}"
+  },
+  "categories": {
+    "packageCache": "كاش الحزم",
+    "aiToolCache": "كاش أدوات الذكاء الاصطناعي",
+    "editorCache": "كاش المحررات",
+    "androidSdk": "Android SDK"
+  },
+  "categoryBar": {
+    "summary": "{{label}}: {{segments}}",
+    "segment": "{{category}} {{size}}",
+    "smallerKinds_zero": "{{count}} نوع أصغر",
+    "smallerKinds_one": "{{count}} نوع أصغر",
+    "smallerKinds_two": "{{count}} نوعان أصغر",
+    "smallerKinds_few": "{{count}} أنواع أصغر",
+    "smallerKinds_many": "{{count}} نوعًا أصغر",
+    "smallerKinds_other": "{{count}} نوع أصغر"
+  },
+  "completion": {
+    "title": "اكتملت استعادة المساحة",
+    "result_zero": "استعدت {{size}} من {{count}} هدف.",
+    "result_one": "استعدت {{size}} من {{count}} هدف.",
+    "result_two": "استعدت {{size}} من {{count}} هدفين.",
+    "result_few": "استعدت {{size}} من {{count}} أهداف.",
+    "result_many": "استعدت {{size}} من {{count}} هدفًا.",
+    "result_other": "استعدت {{size}} من {{count}} هدف.",
+    "recoveryPermanent": "لا يمكن الاسترجاع. أعد بناء المخرجات لإعادتها.",
+    "recoveryRecycle": "استرجعها من سلة المهملات إذا احتاجها بناء.",
+    "targetsRemoved": "الأهداف المُزالة",
+    "spaceReclaimed": "المساحة المستعادة",
+    "scanAnother": "فحص مجلد آخر"
+  },
+  "scan": {
+    "measuring": "جارٍ قياس الأهداف",
+    "checkingCaches": "جارٍ فحص كاش أدواتك",
+    "scanningProjects": "جارٍ فحص مشاريعك",
+    "measuringHint": "حساب الحجم على القرص لكل هدف.",
+    "checkingCachesHint": "كاش مديري الحزم والذكاء الاصطناعي والمحررات في مجلد المنزل.",
+    "scanningProjectsHint": "تُقاس الأهداف فور العثور عليها.",
+    "scanningLabel": "جارٍ فحص مساحة العمل",
+    "directoriesChecked": "مجلدات مفحوصة",
+    "measured": "مُقاس",
+    "targetsFound_zero": "هدف عُثر عليه",
+    "targetsFound_one": "هدف عُثر عليه",
+    "targetsFound_two": "هدفان عُثر عليهما",
+    "targetsFound_few": "أهداف عُثر عليها",
+    "targetsFound_many": "هدفًا عُثر عليه",
+    "targetsFound_other": "هدف عُثر عليه",
+    "recentlyFound": "عُثر عليه مؤخرًا",
+    "cancelRefused": "انتهى الفحص قبل أن يمكن إلغاؤه.",
+    "startOver": "البدء من جديد",
+    "cancelling": "جارٍ الإلغاء...",
+    "cancel": "إلغاء الفحص"
+  }
+}

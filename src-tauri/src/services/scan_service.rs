@@ -225,24 +225,10 @@ pub fn platform() -> uncached_core::contract::v1::Platform {
 pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorInfo {
     let core_error = match error {
         NukeError::Core(info) => return info.clone(),
-        // The one desktop-local refusal whose message is the useful half.
-        //
-        // Everything else here is mapped to a stable core error precisely to
-        // keep its private text off the wire. This carries a process name and
-        // nothing else — no path, no internal state — and "close it and scan
-        // again" is the whole point of refusing. `TargetContextInvalid` is the
-        // declared code for exactly this: the target was vouched for, and the
-        // ground it was vouched on has changed since.
-        NukeError::InUse(owner) => {
-            return uncached_core::CoreErrorInfo {
-                code: uncached_core::CoreErrorCode::TargetContextInvalid,
-                message: format!(
-                "{owner} is running. Close it and scan again — removing this now would break it."
-            ),
-                path: None,
-                operation: None,
-            }
-        }
+        // Carries the program's name and nothing else about the target.
+        NukeError::InUse(owner) => uncached_core::CoreError::TargetInUse {
+            program: owner.clone(),
+        },
         NukeError::Io(error) => {
             uncached_core::CoreError::Io(std::io::Error::new(error.kind(), "desktop I/O error"))
         }
@@ -1468,6 +1454,17 @@ mod tests {
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::{mpsc, Arc, Barrier, Mutex};
     use std::thread;
+
+    /// The interface translates a refusal by its code, so the running
+    /// program has to arrive as data rather than inside an English sentence.
+    #[test]
+    fn a_target_held_by_a_running_program_is_refused_with_its_name() {
+        let info = super::public_error_info(&crate::errors::NukeError::InUse("Xcode".to_owned()));
+
+        assert_eq!(info.code, uncached_core::CoreErrorCode::TargetInUse);
+        assert_eq!(info.operation.as_deref(), Some("Xcode"));
+        assert_eq!(info.path, None);
+    }
 
     #[test]
     fn target_found_event_serializes_as_v1_without_identity() {

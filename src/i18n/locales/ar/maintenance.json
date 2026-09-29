@@ -1,0 +1,153 @@
+{
+  "header": {
+    "title": "الصيانة",
+    "badgePro": "القواعد والإجراءات",
+    "badgeFree": "معاينة السياسة",
+    "subtitle": "أتمتة النظافة على المشاريع الخاملة دون المخاطرة بعمل غير مُودَع أو محلي.",
+    "eligible_zero": "مشروع مؤهل",
+    "eligible_one": "مشروع مؤهل",
+    "eligible_two": "مشروعان مؤهلان",
+    "eligible_few": "مشاريع مؤهلة",
+    "eligible_many": "مشروعًا مؤهلًا",
+    "eligible_other": "مشروع مؤهل",
+    "reclaimable": "قابل للاستعادة"
+  },
+  "scheduleNote": "يعمل الجدول داخل Uncached، لذا فالإغلاق إلى شريط القوائم يُبقيه يعمل والإنهاء يوقفه. يستأنف أي تشغيل فاته عند فتح التطبيق في المرة التالية.",
+  "policy": {
+    "title": "سياسة التحديد التلقائي",
+    "summary": "> {{days}} يومًا · ≥ {{size}}",
+    "matches_zero": "{{count}} تطابق ({{size}})",
+    "matches_one": "{{count}} تطابق ({{size}})",
+    "matches_two": "{{count}} تطابقان ({{size}})",
+    "matches_few": "{{count}} تطابقات ({{size}})",
+    "matches_many": "{{count}} تطابقًا ({{size}})",
+    "matches_other": "{{count}} تطابق ({{size}})",
+    "idleLabel": "لم يُلمس لمدة لا تقل عن",
+    "idleChip": "{{days}} يومًا",
+    "sizeLabel": "حجم الكاش لا يقل عن",
+    "sizeChipTitle": "{{size}} على الأقل من الكاش القابل للحذف",
+    "guardSynced": "المستودعات المتزامنة كليًا مع المستودع البعيد وحدها مؤهلة",
+    "guardTrash": "النقل إلى سلة المهملات دائمًا (قابل للتراجع)",
+    "description_zero": "استعادة المشاريع التي لم تُلمس منذ أكثر من <strong>{{count}} يوم</strong> ولديها <strong>{{size}}</strong> على الأقل من الكاش القابل للحذف.",
+    "description_one": "استعادة المشاريع التي لم تُلمس منذ أكثر من <strong>{{count}} يوم</strong> ولديها <strong>{{size}}</strong> على الأقل من الكاش القابل للحذف.",
+    "description_two": "استعادة المشاريع التي لم تُلمس منذ أكثر من <strong>{{count}} يومين</strong> ولديها <strong>{{size}}</strong> على الأقل من الكاش القابل للحذف.",
+    "description_few": "استعادة المشاريع التي لم تُلمس منذ أكثر من <strong>{{count}} أيام</strong> ولديها <strong>{{size}}</strong> على الأقل من الكاش القابل للحذف.",
+    "description_many": "استعادة المشاريع التي لم تُلمس منذ أكثر من <strong>{{count}} يومًا</strong> ولديها <strong>{{size}}</strong> على الأقل من الكاش القابل للحذف.",
+    "description_other": "استعادة المشاريع التي لم تُلمس منذ أكثر من <strong>{{count}} يوم</strong> ولديها <strong>{{size}}</strong> على الأقل من الكاش القابل للحذف.",
+    "idleChipTitle_zero": "لم يُلمس لمدة {{count}} يوم على الأقل",
+    "idleChipTitle_one": "لم يُلمس لمدة {{count}} يوم على الأقل",
+    "idleChipTitle_two": "لم يُلمس لمدة {{count}} يومين على الأقل",
+    "idleChipTitle_few": "لم يُلمس لمدة {{count}} أيام على الأقل",
+    "idleChipTitle_many": "لم يُلمس لمدة {{count}} يومًا على الأقل",
+    "idleChipTitle_other": "لم يُلمس لمدة {{count}} يوم على الأقل"
+  },
+  "schedule": {
+    "title": "جدول غير مُراقَب",
+    "subtitle": "يشغّل السياسة أعلاه دونك، ويُعلمك بما أزاله.",
+    "toggle": "تشغيل الصيانة وفق جدول",
+    "runEvery": "التشغيل كل",
+    "intervals": {
+      "daily": "يوميًا",
+      "weekly": "أسبوعيًا",
+      "fortnightly": "كل أسبوعين",
+      "monthly": "شهريًا"
+    },
+    "held": {
+      "disabled": "مُعطّل. لا يُشغَّل شيء إلا إذا ضغطت «تشغيل الصيانة».",
+      "notLicensed": "التشغيلات غير المُراقَبة تتطلب ترخيصًا نشطًا.",
+      "noWorkspace": "لم تُختر مجلدات، لذا لا يوجد ما تجب صيانته.",
+      "scanInProgress": "في انتظار انتهاء الفحص المفتوح."
+    },
+    "when": "{{date}} · {{time}}",
+    "nextRun": "التشغيل التالي <strong>{{next}}</strong>",
+    "nextRunWithLast": "التشغيل التالي <strong>{{next}}</strong> · آخر تشغيل {{last}}",
+    "dueNow": "مستحق الآن. يبدأ خلال الدقائق القليلة القادمة.",
+    "safety": "يلتزم التشغيل المجدول بالسياسة نفسها وينقل إلى سلة المهملات. يُسجَّل في الإحصاءات باسم <strong>جدول زمني</strong>.",
+    "quitWarning": "إغلاق النافذة يُنهي Uncached، لذا لا يعمل هذا الجدول إلا والنافذة مفتوحة. فعّل <strong>الاستمرار في الخلفية</strong> في الإعدادات ليُغلق إلى شريط القوائم بدلًا من ذلك."
+  },
+  "selection": {
+    "emptyTitle": "لا مشاريع تطابق هذه القاعدة",
+    "readyTitle": "جاهز للصيانة ({{total}})",
+    "evaluating": "(جارٍ التقييم...)",
+    "emptyHint": "كل مشاريع مساحة العمل إما نشطة مؤخرًا، أو دون الحد الأدنى للحجم، أو محمية.",
+    "readyHint": "استعادة الأهداف تنقلها إلى سلة المهملات بشكل قابل للتراجع.",
+    "reclaimable": "{{size}} قابل للاستعادة",
+    "remoteSynced": "مرفوع بالكامل",
+    "clean": "مساحة عملك نظيفة. لا مشاريع خاملة تبلغ الحد.",
+    "filteredOut": "مُستبعد:",
+    "skipped": {
+      "verdict": "<strong>{{total}}</strong> غير آمن للأتمتة",
+      "unmeasured": "<strong>{{total}}</strong> لم يُقس بعد",
+      "unknownActivity": "<strong>{{total}}</strong> نشاطه غير مقروء",
+      "tooRecent": "<strong>{{total}}</strong> نشط مؤخرًا",
+      "tooSmall": "<strong>{{total}}</strong> دون الحد الأدنى للحجم"
+    },
+    "running": "جارٍ استعادة {{done}} من {{total}}...",
+    "run": "تشغيل الصيانة ({{total}})",
+    "runHint": "ينقل الأهداف المحددة إلى سلة المهملات.",
+    "scanToEnable": "افحص مساحة عملك لتفعيل الصيانة بنقرة واحدة على الأهداف المحددة.",
+    "done_zero": "✓ استُعيدت {{size}} من {{count}} هدف.",
+    "done_one": "✓ استُعيدت {{size}} من {{count}} هدف.",
+    "done_two": "✓ استُعيدت {{size}} من {{count}} هدفين.",
+    "done_few": "✓ استُعيدت {{size}} من {{count}} أهداف.",
+    "done_many": "✓ استُعيدت {{size}} من {{count}} هدفًا.",
+    "done_other": "✓ استُعيدت {{size}} من {{count}} هدف.",
+    "doneWithFailures_zero": "✓ استُعيدت {{size}} من {{count}} هدف (فشل {{failed}}).",
+    "doneWithFailures_one": "✓ استُعيدت {{size}} من {{count}} هدف (فشل {{failed}}).",
+    "doneWithFailures_two": "✓ استُعيدت {{size}} من {{count}} هدفين (فشل {{failed}}).",
+    "doneWithFailures_few": "✓ استُعيدت {{size}} من {{count}} أهداف (فشل {{failed}}).",
+    "doneWithFailures_many": "✓ استُعيدت {{size}} من {{count}} هدفًا (فشل {{failed}}).",
+    "doneWithFailures_other": "✓ استُعيدت {{size}} من {{count}} هدف (فشل {{failed}}).",
+    "protected_zero": "{{count}} مشروع تحوي عملًا غير مُودَع أو غير مرفوع على هذا القرص (محمية)",
+    "protected_one": "{{count}} مشروع يحوي عملًا غير مُودَع أو غير مرفوع على هذا القرص (محمي)",
+    "protected_two": "{{count}} مشروعان يحويان عملًا غير مُودَع أو غير مرفوع على هذا القرص (محميان)",
+    "protected_few": "{{count}} مشاريع تحوي عملًا غير مُودَع أو غير مرفوع على هذا القرص (محمية)",
+    "protected_many": "{{count}} مشروعًا تحوي عملًا غير مُودَع أو غير مرفوع على هذا القرص (محمية)",
+    "protected_other": "{{count}} مشروع تحوي عملًا غير مُودَع أو غير مرفوع على هذا القرص (محمية)",
+    "viewInWorkspace": "عرض في مساحة العمل ←",
+    "idle_zero": "خامل منذ {{count}} يوم",
+    "idle_one": "خامل منذ {{count}} يوم",
+    "idle_two": "خامل منذ {{count}} يومين",
+    "idle_few": "خامل منذ {{count}} أيام",
+    "idle_many": "خامل منذ {{count}} يومًا",
+    "idle_other": "خامل منذ {{count}} يوم"
+  },
+  "states": {
+    "noFolders": {
+      "title": "لم تُختر مجلدات بعد",
+      "body": "تُطبَّق السياسة على المشاريع في المجلدات التي تفحصها. لا يوجد أي منها بعد.",
+      "action": "اختيار مجلد"
+    },
+    "reading": {
+      "title": "جارٍ قراءة مجلداتك",
+      "body": "جارٍ اكتشاف المشاريع..."
+    },
+    "measuring": {
+      "body": "يظهر التحديد بعد أن يُعرف حجم كل مشروع.",
+      "title_zero": "جارٍ قياس {{measured}} من {{count}} مشروع",
+      "title_one": "جارٍ قياس {{measured}} من {{count}} مشروع",
+      "title_two": "جارٍ قياس {{measured}} من {{count}} مشروعين",
+      "title_few": "جارٍ قياس {{measured}} من {{count}} مشاريع",
+      "title_many": "جارٍ قياس {{measured}} من {{count}} مشروعًا",
+      "title_other": "جارٍ قياس {{measured}} من {{count}} مشروع"
+    },
+    "noProjects": {
+      "title_zero": "لا مشاريع في المجلدات الـ{{count}} التي اخترتها",
+      "title_one": "لا مشاريع في المجلد الذي اخترته",
+      "title_two": "لا مشاريع في المجلدين اللذين اخترتهما",
+      "title_few": "لا مشاريع في المجلدات الـ{{count}} التي اخترتها",
+      "title_many": "لا مشاريع في المجلدات الـ{{count}} التي اخترتها",
+      "title_other": "لا مشاريع في المجلدات الـ{{count}} التي اخترتها",
+      "body": "المشروع مجلد يحوي مستودعًا أو ملف manifest."
+    },
+    "indexFailed": {
+      "title": "تعذّرت قراءة مجلداتك"
+    },
+    "pro": {
+      "badge": "صيانة Pro",
+      "title": "Pro هو ما يشغّل هذه السياسة",
+      "body": "التحديد أدناه هو ما يعمل عليه التشغيل، وهو نفسه في كل الخطط. يُنفّذ Pro التشغيل، ويكرره وفق جدول دونك، ويسجّل ما أزاله كل تشغيل.",
+      "cta": "احصل على Uncached Pro"
+    }
+  }
+}

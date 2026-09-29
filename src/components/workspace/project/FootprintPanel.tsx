@@ -1,4 +1,5 @@
 import { PieChart } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { CategoryBar, CategoryLegend } from "../../CategoryBar";
 import { formatBytes } from "../../../utils/format.mjs";
 import type { Footprint } from "../../../types/workspace";
@@ -16,6 +17,7 @@ import type { Footprint } from "../../../types/workspace";
  * about.
  */
 export function FootprintPanel({ footprint }: { footprint: Footprint }) {
+  const { t } = useTranslation();
   const total = footprint.byCategory.reduce((sum, entry) => sum + entry.bytes, 0);
   if (total === 0) return null;
 
@@ -24,17 +26,16 @@ export function FootprintPanel({ footprint }: { footprint: Footprint }) {
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-forest-800 pb-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-mist-100">
           <PieChart size={14} className="text-mist-500" aria-hidden="true" />
-          Where the space went
+          {t("workspace.footprint.title")}
         </h2>
         <span className="font-mono text-xs text-mist-500">
-          {footprint.hasErrors && <span className="mr-0.5">&ge;</span>}
-          {formatBytes(total)} across {footprint.byCategory.length}{" "}
-          {footprint.byCategory.length === 1 ? "kind" : "kinds"}
+          {footprint.hasErrors && <span className="me-0.5">&ge;</span>}
+          {t("workspace.footprint.across", { size: formatBytes(total), count: footprint.byCategory.length })}
         </span>
       </div>
 
       <div className="mt-4">
-        <CategoryBar entries={footprint.byCategory} label="Reclaimable weight by artifact" />
+        <CategoryBar entries={footprint.byCategory} label={t("workspace.footprint.barLabel")} />
       </div>
 
       <div className="mt-4">

@@ -1,5 +1,6 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { Insight } from "../../utils/insights.d.mts";
 
 /**
@@ -18,6 +19,7 @@ export function Highlights({
   projectCount: number;
   onFollow: (insight: Insight) => void;
 }) {
+  const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
 
   return (
@@ -25,21 +27,21 @@ export function Highlights({
       <div className="flex items-center justify-between gap-3 border-b border-forest-800 pb-3">
         <div className="flex items-center gap-2">
           <Sparkles size={14} className="text-sage-300" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-mist-100">Findings from Last Scan</h2>
+          <h2 className="text-sm font-semibold text-mist-100">{t("insights.highlights.title")}</h2>
         </div>
 
         <span className="font-mono text-xs text-mist-500">
-          {projectCount} {projectCount === 1 ? "project" : "projects"} scanned
+          {t("insights.highlights.scanned", { count: projectCount })}
         </span>
       </div>
 
       {insights.length === 0 ? (
         <div className="py-8 text-center">
-          <p className="text-sm font-medium text-mist-100">Nothing stands out</p>
+          <p className="text-sm font-medium text-mist-100">{t("insights.highlights.emptyTitle")}</p>
           <p className="mt-1 text-xs text-mist-500 max-w-sm mx-auto">
             {projectCount === 0
-              ? "Scan a workspace to surface findings and recommendations."
-              : "No project is cold, oversized, duplicated, or out of step with its lockfile."}
+              ? t("insights.highlights.emptyNoScan")
+              : t("insights.highlights.emptyQuiet")}
           </p>
         </div>
       ) : (
@@ -55,23 +57,23 @@ export function Highlights({
                 <button
                   type="button"
                   onClick={() => onFollow(insight)}
-                  className="group flex w-full items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-forest-850/40 px-2 rounded-lg"
+                  className="group flex w-full items-center justify-between gap-4 py-3 text-start transition-colors hover:bg-forest-850/40 px-2 rounded-lg"
                 >
                   <span className="min-w-0 flex-1 text-xs leading-relaxed text-mist-100">
-                    {insight.text}
+                    {t(insight.message.key, insight.message.params)}
                   </span>
                   <div className="flex shrink-0 items-center gap-1 text-xs font-medium text-mist-500 group-hover:text-sage-300 transition-colors">
-                    <span className="font-mono text-[11px]">View in workspace</span>
+                    <span className="font-mono text-[11px]">{t("insights.highlights.view")}</span>
                     <ArrowRight
                       size={13}
-                      className="transition-transform group-hover:translate-x-0.5"
+                      className="rtl:-scale-x-100 transition-transform group-hover:translate-x-0.5"
                       aria-hidden="true"
                     />
                   </div>
                 </button>
               ) : (
                 <div className="py-3 px-2 text-xs leading-relaxed text-mist-300">
-                  {insight.text}
+                  {t(insight.message.key, insight.message.params)}
                 </div>
               )}
             </motion.li>

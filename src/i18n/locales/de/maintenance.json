@@ -1,0 +1,113 @@
+{
+  "header": {
+    "title": "Wartung",
+    "badgePro": "Regeln & Aktionen",
+    "badgeFree": "Richtlinien-Vorschau",
+    "subtitle": "Automatisiert veraltete Projekte bereinigen, ohne nicht committete oder lokale Arbeit zu gefährden.",
+    "eligible_one": "Projekt geeignet",
+    "eligible_other": "Projekte geeignet",
+    "reclaimable": "freigebbar"
+  },
+  "scheduleNote": "Der Zeitplan läuft in Uncached. Schließen in die Menüleiste lässt ihn weiterlaufen, Beenden stoppt ihn. Verpasste Läufe holt er beim nächsten Öffnen der App nach.",
+  "policy": {
+    "title": "Automatische Auswahlrichtlinie",
+    "summary": "> {{days}} Tg. · ≥ {{size}}",
+    "matches_one": "{{count}} Treffer ({{size}})",
+    "matches_other": "{{count}} Treffer ({{size}})",
+    "idleLabel": "Unberührt seit mindestens",
+    "idleChip": "{{days}} Tg.",
+    "sizeLabel": "Cache-Größe mindestens",
+    "sizeChipTitle": "Mindestens {{size}} verzichtbarer Cache",
+    "guardSynced": "Nur zu 100 % mit dem Remote synchronisierte Repositorys sind geeignet",
+    "guardTrash": "Verschiebt immer in den Papierkorb (umkehrbar)",
+    "description_one": "Projekte freigeben, die seit über <strong>{{count}} Tag</strong> unberührt sind und mindestens <strong>{{size}}</strong> verzichtbaren Cache haben.",
+    "description_other": "Projekte freigeben, die seit über <strong>{{count}} Tagen</strong> unberührt sind und mindestens <strong>{{size}}</strong> verzichtbaren Cache haben.",
+    "idleChipTitle_one": "Seit mindestens {{count}} Tag unberührt",
+    "idleChipTitle_other": "Seit mindestens {{count}} Tagen unberührt"
+  },
+  "schedule": {
+    "title": "Unbeaufsichtigter Zeitplan",
+    "subtitle": "Führt die obige Richtlinie ohne dich aus und meldet, was entfernt wurde.",
+    "toggle": "Wartung nach Zeitplan ausführen",
+    "runEvery": "Ausführen",
+    "intervals": {
+      "daily": "Täglich",
+      "weekly": "Wöchentlich",
+      "fortnightly": "Alle 2 Wochen",
+      "monthly": "Monatlich"
+    },
+    "held": {
+      "disabled": "Ausgeschaltet. Nichts läuft, solange du nicht „Wartung ausführen“ drückst.",
+      "notLicensed": "Unbeaufsichtigte Läufe brauchen eine aktive Lizenz.",
+      "noWorkspace": "Keine Ordner gewählt, daher gibt es nichts zu warten.",
+      "scanInProgress": "Wartet, bis der laufende Scan fertig ist."
+    },
+    "when": "{{date}} · {{time}}",
+    "nextRun": "Nächster Lauf <strong>{{next}}</strong>",
+    "nextRunWithLast": "Nächster Lauf <strong>{{next}}</strong> · zuletzt {{last}}",
+    "dueNow": "Jetzt fällig. Startet in den nächsten Minuten.",
+    "safety": "Ein geplanter Lauf folgt derselben Richtlinie und verschiebt in den Papierkorb. Er wird in Insights als <strong>Zeitplan</strong> erfasst.",
+    "quitWarning": "Das Schließen des Fensters beendet Uncached, daher läuft dieser Zeitplan nur bei geöffnetem Fenster. Aktiviere <strong>Im Hintergrund weiterlaufen</strong> in den Einstellungen, damit Uncached beim Schließen stattdessen in die Menüleiste wechselt."
+  },
+  "selection": {
+    "emptyTitle": "Keine Projekte entsprechen dieser Regel",
+    "readyTitle": "Bereit zur Wartung ({{total}})",
+    "evaluating": "(wird ausgewertet...)",
+    "emptyHint": "Alle Projekte im Workspace sind entweder kürzlich aktiv, unter der Mindestgröße oder geschützt.",
+    "readyHint": "Freigeben verschiebt Ziele umkehrbar in den Papierkorb.",
+    "reclaimable": "{{size}} freigebbar",
+    "remoteSynced": "Mit Remote synchron",
+    "clean": "Dein Workspace ist sauber. Kein ruhendes Projekt erreicht den Schwellenwert.",
+    "filteredOut": "Herausgefiltert:",
+    "skipped": {
+      "verdict": "<strong>{{total}}</strong> nicht sicher automatisierbar",
+      "unmeasured": "<strong>{{total}}</strong> noch nicht gemessen",
+      "unknownActivity": "<strong>{{total}}</strong> Aktivität nicht lesbar",
+      "tooRecent": "<strong>{{total}}</strong> kürzlich aktiv",
+      "tooSmall": "<strong>{{total}}</strong> unter Mindestgröße"
+    },
+    "running": "{{done}} von {{total}} wird freigegeben...",
+    "run": "Wartung ausführen ({{total}})",
+    "runHint": "Verschiebt ausgewählte Ziele in den Papierkorb.",
+    "scanToEnable": "Scanne deinen Workspace, um die Wartung mit einem Klick für erkannte Ziele zu aktivieren.",
+    "done_one": "✓ {{size}} aus {{count}} Ziel freigegeben.",
+    "done_other": "✓ {{size}} aus {{count}} Zielen freigegeben.",
+    "doneWithFailures_one": "✓ {{size}} aus {{count}} Ziel freigegeben ({{failed}} fehlgeschlagen).",
+    "doneWithFailures_other": "✓ {{size}} aus {{count}} Zielen freigegeben ({{failed}} fehlgeschlagen).",
+    "protected_one": "{{count}} Projekt enthält nicht committete/nicht gepushte Arbeit auf dieser Festplatte (geschützt)",
+    "protected_other": "{{count}} Projekte enthalten nicht committete/nicht gepushte Arbeit auf dieser Festplatte (geschützt)",
+    "viewInWorkspace": "Im Workspace ansehen →",
+    "idle_one": "{{count}} Tag inaktiv",
+    "idle_other": "{{count}} Tage inaktiv"
+  },
+  "states": {
+    "noFolders": {
+      "title": "Noch keine Ordner gewählt",
+      "body": "Eine Richtlinie gilt für die Projekte in den Ordnern, die du scannst. Noch gibt es keine.",
+      "action": "Ordner wählen"
+    },
+    "reading": {
+      "title": "Deine Ordner werden gelesen",
+      "body": "Projekte werden erkannt..."
+    },
+    "measuring": {
+      "body": "Die Auswahl erscheint, sobald jedes Projekt eine Größe hat.",
+      "title_one": "{{measured}} von {{count}} Projekt wird gemessen",
+      "title_other": "{{measured}} von {{count}} Projekten werden gemessen"
+    },
+    "noProjects": {
+      "title_one": "Keine Projekte im gewählten Ordner",
+      "title_other": "Keine Projekte in den {{count}} gewählten Ordnern",
+      "body": "Ein Projekt ist ein Verzeichnis mit einem Repository oder einem Manifest darin."
+    },
+    "indexFailed": {
+      "title": "Deine Ordner konnten nicht gelesen werden"
+    },
+    "pro": {
+      "badge": "Pro-Wartung",
+      "title": "Pro führt diese Richtlinie aus",
+      "body": "Die Auswahl unten ist die, auf die ein Lauf wirkt, und sie ist in jedem Plan gleich. Pro führt den Lauf aus, wiederholt ihn ohne dich nach Zeitplan und erfasst, was jeder Lauf entfernt hat.",
+      "cta": "Uncached Pro holen"
+    }
+  }
+}

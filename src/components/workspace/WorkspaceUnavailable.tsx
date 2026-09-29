@@ -1,4 +1,5 @@
 import { Loader2, TriangleAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 /**
  * What the workspace shows when discovery is running or failed.
@@ -15,9 +16,11 @@ export function WorkspaceUnavailable({
   onRetry: () => void;
   onChooseFolders: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <section
-      aria-label="Workspace"
+      aria-label={t("workspace.unavailable.label")}
       className="flex h-full w-full flex-1 items-center justify-center px-6"
     >
       {error ? (
@@ -27,15 +30,14 @@ export function WorkspaceUnavailable({
           </div>
 
           <h2 className="mt-4 text-sm font-semibold text-mist-100">
-            Your folders could not be read
+            {t("workspace.unavailable.errorTitle")}
           </h2>
 
           <p className="mx-auto mt-1.5 max-w-sm font-mono text-[11px] leading-5 break-words text-coral-300">
             {error}
           </p>
           <p className="mx-auto mt-2.5 max-w-sm text-xs leading-5 text-mist-500">
-            A folder the system refuses to open cannot be indexed. Granting the app access to the
-            disk, or choosing a folder inside it, is what makes it readable.
+            {t("workspace.unavailable.errorHint")}
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             <button
@@ -43,14 +45,14 @@ export function WorkspaceUnavailable({
               onClick={onRetry}
               className="rounded-xl bg-sage-400 px-3.5 py-2 text-xs font-semibold text-forest-950 shadow-xs transition-all hover:bg-sage-300 active:scale-[0.98] cursor-pointer"
             >
-              Try again
+              {t("workspace.unavailable.retry")}
             </button>
             <button
               type="button"
               onClick={onChooseFolders}
               className="rounded-xl border border-forest-800 bg-forest-850 px-3.5 py-2 text-xs font-medium text-mist-300 transition-all hover:bg-forest-800 hover:text-mist-100 cursor-pointer"
             >
-              Choose other folders
+              {t("workspace.unavailable.chooseFolders")}
             </button>
           </div>
         </div>
@@ -60,9 +62,9 @@ export function WorkspaceUnavailable({
             <Loader2 size={26} className="animate-spin text-sage-400" aria-hidden="true" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-mist-100">Reading your folders</p>
+            <p className="text-sm font-semibold text-mist-100">{t("workspace.unavailable.readingTitle")}</p>
             <p className="max-w-xs text-xs text-mist-500">
-              Discovering projects and analyzing workspace structure...
+              {t("workspace.unavailable.readingHint")}
             </p>
           </div>
         </div>

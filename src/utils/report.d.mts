@@ -14,12 +14,11 @@ export type Dimension = "category" | "workspace" | "trigger" | "mode";
 
 export type Filters = Partial<Record<Dimension, string | null>>;
 
+/** Also the last segment of its `insights.grains.*` i18n keys. */
+export type GrainId = "day" | "week" | "month" | "all";
+
 export type Grain = {
-  id: string;
-  /** The word the header underlines. */
-  label: string;
-  /** How much time the grain covers, spelled out. */
-  window: string;
+  id: GrainId;
   bucket: "day" | "week" | "month";
   /** How many bars, or null for everything since the first cleanup. */
   buckets: number | null;

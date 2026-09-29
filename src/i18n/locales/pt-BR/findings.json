@@ -1,0 +1,184 @@
+{
+  "section": {
+    "label": "Alvos da varredura"
+  },
+  "breadcrumb": {
+    "workspace": "Workspace",
+    "current": "Alvos a limpar"
+  },
+  "backToWorkspace": "Voltar ao Workspace",
+  "header": {
+    "targets_one": "{{count}} alvo",
+    "targets_other": "{{count}} alvos",
+    "reclaimable": "a liberar",
+    "selected_one": "selecionado ({{count}})",
+    "selected_other": "selecionados ({{count}})",
+    "inUse": "{{size}} em uso",
+    "inUseTarget": "{{name}} — {{tool}} em execução",
+    "planFree": "Free {{size}}",
+    "planPro": "Pro {{size}}",
+    "reclaimableScope_one": "Em {{ready}} de {{count}} alvo — o restante ainda está sendo medido, falhou na medição ou é apenas informado e nunca removido.",
+    "reclaimableScope_other": "Em {{ready}} dos {{count}} alvos — os demais ainda estão sendo medidos, falharam na medição ou são apenas informados e nunca removidos."
+  },
+  "delete": {
+    "button": "Apagar",
+    "unsupported": "O Uncached não conseguiu ler o que este sistema permite remover, então nada é oferecido."
+  },
+  "notice": {
+    "permanent": "Os alvos selecionados são apagados permanentemente. Irreversível.",
+    "recycle": "Os alvos selecionados vão para o Lixo. Restauráveis de lá se necessário.",
+    "unreadable_one": "{{count}} pasta foi bloqueada pelo sistema, então a contagem e o total acima são valores mínimos.",
+    "unreadable_other": "{{count}} pastas foram bloqueadas pelo sistema, então a contagem e o total acima são valores mínimos.",
+    "unreadableHint": "Conceda Acesso Total ao Disco ao Uncached para lê-las.",
+    "ignoreRules_one": "{{count}} regra de exclusão em vigor. Os caminhos cobertos ficaram fora desta varredura.",
+    "ignoreRules_other": "{{count}} regras de exclusão em vigor. Os caminhos cobertos ficaram fora desta varredura."
+  },
+  "empty": {
+    "scanning": "Varredura em andamento.",
+    "none": "Nenhum alvo a limpar neste workspace.",
+    "scanningHint": "Os alvos aparecem à medida que são encontrados.",
+    "tooRecent_one": "Tudo o que foi encontrado aqui foi modificado no último {{count}} dia.",
+    "tooRecent_other": "Tudo o que foi encontrado aqui foi modificado nos últimos {{count}} dias.",
+    "settingsHint": "Ajuste quais caches são detectados em Ajustes, na seção Varredura.",
+    "showEveryAge": "Mostrar todas as idades"
+  },
+  "failed": {
+    "title_one": "{{count}} alvo não foi removido.",
+    "title_other": "{{count}} alvos não foram removidos.",
+    "refused": "O sistema recusou a remoção.",
+    "retry_one": "Ele continua selecionado; pressionar de novo depois de resolvida a causa tenta outra vez.",
+    "retry_other": "Eles continuam selecionados; pressionar de novo depois de resolvida a causa tenta outra vez."
+  },
+  "pro": {
+    "more": "Mais {{size}} disponíveis com o Pro",
+    "pitch": "Desbloqueie todos os limpadores, o Workspace e a Inteligência.",
+    "cta": "Obter o Uncached Pro"
+  },
+  "list": {
+    "selectAll": "Selecionar todos",
+    "deselectAll": "Desmarcar todos",
+    "selectedOf": "{{selected}} de {{total}}",
+    "heldByRunning_one": "{{count}} em um projeto em execução — não será removido",
+    "heldByRunning_other": "{{count}} em projetos em execução — não serão removidos"
+  },
+  "age": {
+    "any": "Qualquer idade",
+    "anyHint": "Tudo o que a varredura encontrou",
+    "olderThan": "{{days}}d+",
+    "monthHint": "Nada grava neles há um mês",
+    "threeMonthsHint": "Nada grava neles há três meses"
+  },
+  "order": {
+    "confidence": {
+      "label": "Menos certos",
+      "hint": "Alvos de que a varredura tem menos certeza vêm primeiro",
+      "hintFree": "Alvos de que a varredura tem menos certeza vêm primeiro. No Free, o que seu plano pode limpar vem na frente de qualquer forma."
+    },
+    "size": {
+      "label": "Maiores",
+      "hint": "Mais pesados em disco primeiro",
+      "hintFree": "Mais pesados em disco primeiro. No Free, o que seu plano pode limpar vem na frente de qualquer forma."
+    }
+  },
+  "confirm": {
+    "deleting": "Apagando",
+    "moving": "Movendo para o Lixo",
+    "deletePermanently": "Apagar permanentemente",
+    "moveToRecycleBin": "Mover para o Lixo",
+    "deletingProgress_one": "Apagando {{count}} alvo...",
+    "deletingProgress_other": "Apagando {{count}} alvos...",
+    "movingProgress_one": "Movendo {{count}} alvo...",
+    "movingProgress_other": "Movendo {{count}} alvos...",
+    "permanentWarning_one": "{{count}} alvo será apagado do disco. Irreversível.",
+    "permanentWarning_other": "{{count}} alvos serão apagados do disco. Irreversível.",
+    "recycleWarning_one": "{{count}} alvo será movido para o Lixo. Restaure de lá se um build precisar dele.",
+    "recycleWarning_other": "{{count}} alvos serão movidos para o Lixo. Restaure de lá se um build precisar deles.",
+    "close": "Fechar confirmação",
+    "reclaims": "Libera <strong>{{size}}</strong> (estimado)",
+    "typeToConfirm": "Digite <strong>{{word}}</strong> para confirmar.",
+    "inputLabel": "Confirmação da remoção permanente",
+    "cleaning": "Limpando...",
+    "cancel": "Cancelar"
+  },
+  "row": {
+    "select": "Selecionar {{name}}",
+    "ageHint": "O arquivo mais recente dentro dele. Um cache em que nada grava há meses pode ser recriado por um rebuild.",
+    "inUseHint": "O Uncached não remove isto enquanto {{tool}} estiver em execução: os arquivos que ele mantém abertos iriam junto.",
+    "inUse": "Em uso",
+    "copied": "Copiado",
+    "copy": "Copiar",
+    "reportedNotRemoved": "informado, não removido",
+    "loadingSize": "Carregando tamanho",
+    "sizeUnavailable": "Tamanho indisponível",
+    "retryLabel": "Falha ao medir {{name}}. Medir de novo",
+    "retry": "Tentar de novo",
+    "toolRunning": "{{tool}} em execução",
+    "unlockToClean": "desbloqueie para limpar"
+  },
+  "confidence": {
+    "badgeLabel": "{{level}} para {{name}}. Mostrar o que foi detectado",
+    "levels": {
+      "high": "Confiança alta",
+      "medium": "Confiança média",
+      "review": "Revisar"
+    },
+    "reasons": {
+      "knownArtifact": "Artefato de build reconhecido",
+      "projectManifest": "Fica dentro de um projeto com manifesto",
+      "lockfile": "O projeto tem lockfile, o conteúdo é reproduzível",
+      "declaredDisposable": "Declarado descartável pelo .gitignore do projeto",
+      "versionControlled": "Rastreado pelo Git, portanto não é saída de build",
+      "versionManagerPath": "Diretório de gerenciador de versões, guarda pacotes instalados globalmente",
+      "systemPath": "Pertence ao sistema operacional, não a um projeto",
+      "noProjectContext": "Nenhum projeto encontrado ao redor",
+      "knownLocation": "Local de cache conhecido, de uma ferramenta específica",
+      "sharedCache": "Compartilhado por todos os projetos: limpá-lo deixa instalações futuras mais lentas",
+      "toolState": "Pertence a uma ferramenta, não a um build"
+    }
+  },
+  "reportedOnly": {
+    "title": "Não removido pelo Uncached",
+    "intro": "A ferramenta dona destes itens os limpa com segurança. Execute o comando dela em um terminal.",
+    "copyCommand": "Copiar comando de {{name}}"
+  },
+  "categories": {
+    "packageCache": "Cache de pacotes",
+    "aiToolCache": "Cache de IA",
+    "editorCache": "Cache de editor",
+    "androidSdk": "Android SDK"
+  },
+  "categoryBar": {
+    "summary": "{{label}}: {{segments}}",
+    "segment": "{{category}} {{size}}",
+    "smallerKinds_one": "{{count}} tipo menor",
+    "smallerKinds_other": "{{count}} tipos menores"
+  },
+  "completion": {
+    "title": "Workspace limpo",
+    "result_one": "Você liberou {{size}} de {{count}} alvo.",
+    "result_other": "Você liberou {{size}} de {{count}} alvos.",
+    "recoveryPermanent": "Irreversível. Refaça o build dos artefatos para restaurá-los.",
+    "recoveryRecycle": "Restaure do Lixo se um build precisar deles.",
+    "targetsRemoved": "Alvos removidos",
+    "spaceReclaimed": "Espaço liberado",
+    "scanAnother": "Varrer outra pasta"
+  },
+  "scan": {
+    "measuring": "Medindo alvos",
+    "checkingCaches": "Verificando os caches das suas ferramentas",
+    "scanningProjects": "Varrendo seus projetos",
+    "measuringHint": "Calculando o tamanho em disco de cada alvo.",
+    "checkingCachesHint": "Caches de gerenciadores de pacotes, IA e editores na sua pasta pessoal.",
+    "scanningProjectsHint": "Os alvos são medidos à medida que são encontrados.",
+    "scanningLabel": "Varrendo o workspace",
+    "directoriesChecked": "diretórios verificados",
+    "measured": "medidos",
+    "targetsFound_one": "alvo encontrado",
+    "targetsFound_other": "alvos encontrados",
+    "recentlyFound": "Encontrados recentemente",
+    "cancelRefused": "A varredura terminou antes de poder ser cancelada.",
+    "startOver": "Recomeçar",
+    "cancelling": "Cancelando...",
+    "cancel": "Cancelar varredura"
+  }
+}

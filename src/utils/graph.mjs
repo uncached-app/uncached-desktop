@@ -156,8 +156,8 @@ function placePackages(shared) {
       // with itself.
       detail:
         entry.of > entry.copies
-          ? `${entry.copies} of ${entry.of} copies here`
-          : `${entry.copies} copies`,
+          ? { key: "workspace.graph.copiesHere", params: { drawn: entry.copies, count: entry.of } }
+          : { key: "workspace.graph.copies", params: { count: entry.copies } },
       bytes: entry.wastedBytes,
       weight: entry.wastedBytes,
       angle,
@@ -391,7 +391,7 @@ function nodeFor(project, at, angle, unit) {
     kind: "project",
     path: project.path,
     label: project.name,
-    detail: project.kind,
+    detail: null,
     verdict: null,
     family: unit.family,
     unit: unit.id,
@@ -525,7 +525,9 @@ function familyLabels(families, placed) {
         /** The directory itself, so it can be opened rather than only named. */
         path: family.path,
         text: family.name,
-        detail: family.declaredBy ? `${family.declaredBy} workspace` : "one folder",
+        detail: family.declaredBy
+          ? { key: "workspace.graph.declared", params: { tool: family.declaredBy } }
+          : { key: "workspace.graph.oneFolder", params: {} },
         declared: Boolean(family.declaredBy),
         members: members.length,
         // Dead centre. Members sit on a ring with a hole in it, and the hole is

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { GRAINS, buildReport } from "../src/utils/report.mjs";
 
@@ -189,5 +190,20 @@ test("the timeline steps by calendar, across a daylight saving change", () => {
       GB,
       `${grain.id} dropped an event between buckets`,
     );
+  }
+});
+
+test("every offered grain has its words in the English catalogue", () => {
+  const { grains, summary } = JSON.parse(
+    readFileSync(new URL("../src/i18n/locales/en/insights.json", import.meta.url)),
+  );
+  for (const grain of GRAINS) {
+    assert.equal(typeof grains.word[grain.id], "string", `${grain.id} has no word`);
+    assert.equal(typeof grains.option[grain.id], "string", `${grain.id} has no option`);
+    if (grain.buckets === null) continue;
+    const spans = { window: grains.window, last: summary.last, versus: summary.versus };
+    for (const [name, group] of Object.entries(spans)) {
+      assert.equal(typeof group[`${grain.id}_other`], "string", `${grain.id} has no ${name}`);
+    }
   }
 });

@@ -76,6 +76,9 @@ pub struct AppSettings {
     #[serde(default)]
     pub workspace_roots: Vec<String>,
     pub appearance: Appearance,
+    /// The interface language, or the operating system's.
+    #[serde(default)]
+    pub language: Language,
     /// Which reading of the workspace opens: the list, or the map.
     ///
     /// A preference rather than a control in the header. The header toggle was
@@ -168,6 +171,26 @@ pub enum Appearance {
     System,
 }
 
+/// Serialized as the BCP 47 tag the interface uses for the same language.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub enum Language {
+    #[default]
+    #[serde(rename = "system")]
+    System,
+    #[serde(rename = "en")]
+    English,
+    #[serde(rename = "pt-BR")]
+    PortugueseBrazil,
+    #[serde(rename = "es")]
+    Spanish,
+    #[serde(rename = "de")]
+    German,
+    #[serde(rename = "ja")]
+    Japanese,
+    #[serde(rename = "ar")]
+    Arabic,
+}
+
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum WorkspaceView {
@@ -210,6 +233,7 @@ impl Default for AppSettings {
             // the answer was written down. Nobody asked for light; it was the
             // default that had never been reconsidered.
             appearance: Appearance::System,
+            language: Language::System,
             workspace_view: WorkspaceView::default(),
             workspace_sidebar_hidden: false,
             insights_grain: default_grain(),
@@ -384,7 +408,7 @@ pub fn record_maintenance_run(app: &AppHandle, at: i64) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_settings_from_path, AppSettings, Appearance, WorkspaceView};
+    use super::{load_settings_from_path, AppSettings, Appearance, Language, WorkspaceView};
     use crate::models::action::CleanMode;
 
     #[test]
@@ -419,6 +443,31 @@ mod tests {
     /// The upgrade path, and the regression this class of bug deserves: a file
     /// written before a field existed loads, keeps every value it stored, and
     /// takes the default only for what it predates.
+    /// The wire form is the tag the interface resolves against, so the two
+    /// sides cannot disagree about which language a stored value names.
+    #[test]
+    fn a_language_is_stored_as_its_interface_tag() {
+        for (language, tag) in [
+            (Language::System, "system"),
+            (Language::English, "en"),
+            (Language::PortugueseBrazil, "pt-BR"),
+            (Language::Spanish, "es"),
+            (Language::German, "de"),
+            (Language::Japanese, "ja"),
+            (Language::Arabic, "ar"),
+        ] {
+            assert_eq!(
+                serde_json::to_value(language).unwrap(),
+                serde_json::json!(tag)
+            );
+            assert_eq!(
+                serde_json::from_value::<Language>(serde_json::json!(tag)).unwrap(),
+                language
+            );
+        }
+        assert!(serde_json::from_value::<Language>(serde_json::json!("fr")).is_err());
+    }
+
     #[test]
     fn settings_from_an_older_version_still_load() {
         let path =
@@ -438,6 +487,11 @@ mod tests {
             "a stored value is never overwritten"
         );
         assert_eq!(settings.appearance, Appearance::Dark);
+        assert_eq!(
+            settings.language,
+            Language::System,
+            "a file written before languages existed follows the system"
+        );
         assert!(
             settings.keep_running_in_background,
             "a field the file predates arrives at its default"

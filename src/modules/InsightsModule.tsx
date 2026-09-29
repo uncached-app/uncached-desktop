@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Loader2, RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Breakdown } from "./insights/Breakdown";
 import { Duplicates } from "./insights/Duplicates";
 import { Orphans } from "./insights/Orphans";
@@ -27,11 +28,11 @@ import { formatBytes } from "../utils/format.mjs";
 import type { Verdict } from "../types/workspace";
 
 /** What each reading is doing, while it is the one running. */
-const STAGE_COPY: Record<NonNullable<AnalysisStage>, string> = {
-  orphans: "Looking for build folders whose project is gone...",
-  repositories: "Reading every repository for dead branches and stashes...",
-  duplicates: "Reading every node_modules for identical copies...",
-};
+const STAGE_KEYS = {
+  orphans: "insights.module.stage.orphans",
+  repositories: "insights.module.stage.repositories",
+  duplicates: "insights.module.stage.duplicates",
+} as const satisfies Record<NonNullable<AnalysisStage>, string>;
 
 /**
  * The cleanup history, and what the last scan says about the present.
@@ -62,6 +63,7 @@ export function InsightsModule({
   grain: string;
   onGrainChange: (grain: string) => void;
 }) {
+  const { t } = useTranslation();
   const flow = usePurgeFlow();
   const projects = flow.index.index?.projects ?? [];
   const { events, totals, loading } = useCleanupHistory();
@@ -132,25 +134,25 @@ export function InsightsModule({
   const hasHistory = events.length > 0;
 
   return (
-    <section aria-label="Insights" className="flex h-full w-full flex-1 flex-col overflow-hidden">
+    <section aria-label={t("insights.module.title")} className="flex h-full w-full flex-1 flex-col overflow-hidden">
       <header className="shrink-0 border-b border-forest-800 pb-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">Insights</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">{t("insights.module.title")}</h1>
             <span className="rounded-lg border border-forest-800 bg-forest-900 px-2.5 py-0.5 font-mono text-xs font-medium text-sage-300">
-              {proEnabled ? "Analytics & Trends" : "Scan Intelligence"}
+              {proEnabled ? t("insights.module.badge.pro") : t("insights.module.badge.free")}
             </span>
           </div>
         </div>
 
         <p className="mt-1.5 text-xs text-mist-500 max-w-2xl">
           {proEnabled
-            ? "Every recorded cleanup, disk recovery velocity, and what the last scan adds up to."
-            : "Live telemetry from your workspace. Upgrade to Pro to track lifetime recovery history and trends."}
+            ? t("insights.module.intro.pro")
+            : t("insights.module.intro.free")}
         </p>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-5 pb-8 scrollbar-gutter-stable">
+      <div className="min-h-0 flex-1 overflow-y-auto pe-2 pt-5 pb-8 scrollbar-gutter-stable">
         {/* First, and free: the disk's own figures are what every number
             below is a fraction of, and the part of the volume this app cannot
             read is not something a plan should decide whether you are told
@@ -211,16 +213,20 @@ export function InsightsModule({
             taken in that order, cheapest first, once the weights have settled. */}
         <div className="mt-8 mb-4 flex items-center justify-between gap-3 border-t border-forest-800 pt-6">
           <div>
-            <h2 className="text-sm font-semibold text-mist-100">A closer look</h2>
+            <h2 className="text-sm font-semibold text-mist-100">{t("insights.module.closerLook.title")}</h2>
             <p className="mt-0.5 text-xs text-mist-500">
-              {running ? STAGE_COPY[stage!] : "Read from your workspace when it settled."}
+              {running ? t(STAGE_KEYS[stage!]) : t("insights.module.closerLook.settled")}
             </p>
           </div>
           <button
             type="button"
             onClick={refresh}
             disabled={running || projects.length === 0}
-            aria-label={running ? "Reading workspace" : "Read workspace again"}
+            aria-label={
+              running
+                ? t("insights.module.closerLook.readingLabel")
+                : t("insights.module.closerLook.readAgainLabel")
+            }
             className="group inline-flex min-h-8.5 shrink-0 items-center gap-2 rounded-xl bg-sage-400 px-3.5 text-xs font-semibold text-forest-950 shadow-xs transition-all hover:bg-sage-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
             {running ? (
@@ -232,7 +238,9 @@ export function InsightsModule({
                 aria-hidden="true"
               />
             )}
-            <span>{running ? "Reading..." : "Read again"}</span>
+            <span>
+              {running ? t("insights.module.closerLook.reading") : t("insights.module.closerLook.readAgain")}
+            </span>
           </button>
         </div>
 

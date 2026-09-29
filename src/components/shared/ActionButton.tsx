@@ -51,7 +51,7 @@ export function ActionButton({
       <span
         role="tooltip"
         className={`pointer-events-none absolute top-full z-20 mt-2 scale-95 rounded-md border border-forest-800 bg-forest-950 px-2 py-1 text-[11px] font-medium text-mist-100 opacity-0 shadow-xl transition-all duration-200 group-hover/action:scale-100 group-hover/action:opacity-100 ${
-          align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"
+          align === "right" ? "end-0 origin-top-right" : "start-0 origin-top-left"
         }`}
       >
         <span className="block whitespace-nowrap">{label}</span>

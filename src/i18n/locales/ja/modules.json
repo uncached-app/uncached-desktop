@@ -1,0 +1,22 @@
+{
+  "workspace": {
+    "name": "ワークスペース",
+    "label": "Uncached ワークスペース"
+  },
+  "reclaim": {
+    "name": "容量回収",
+    "label": "ディスク容量を回収"
+  },
+  "maintenance": {
+    "name": "メンテナンス",
+    "label": "Uncached メンテナンス",
+    "labelLocked": "Uncached メンテナンス（Pro）"
+  },
+  "insights": {
+    "name": "インサイト",
+    "label": "Uncached インサイト",
+    "labelLocked": "Uncached インサイト（Pro）"
+  },
+  "openSettings": "設定を開く",
+  "bar": "Uncached モジュール"
+}

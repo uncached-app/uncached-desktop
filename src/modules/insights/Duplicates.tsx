@@ -1,4 +1,5 @@
 import { Copy, Layers, Link2, Loader2 } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import type { DuplicateReport } from "../../types/duplicates";
 import { formatBytes } from "../../utils/format.mjs";
 
@@ -28,6 +29,7 @@ export function Duplicates({
   error: string | null;
   proEnabled: boolean;
 }) {
+  const { t } = useTranslation();
   const rows = report ? (proEnabled ? report.packages : report.packages.slice(0, FREE_ROWS)) : [];
   const hidden = report && !proEnabled ? Math.max(0, report.packages.length - FREE_ROWS) : 0;
 
@@ -37,18 +39,18 @@ export function Duplicates({
         <div className="flex items-center gap-2">
           <Layers size={14} className="text-mist-500" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-mist-100">
-            Duplicate dependencies
+            {t("insights.duplicates.title")}
           </h2>
         </div>
 
         {running ? (
           <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-xs text-mist-500">
             <Loader2 size={12} className="animate-spin text-sage-300" aria-hidden="true" />
-            Reading
+            {t("insights.reading")}
           </span>
         ) : report ? (
           <span className="font-mono text-xs text-mist-500">
-            {report.distinctPackages} distinct {report.distinctPackages === 1 ? "package" : "packages"}
+            {t("insights.duplicates.distinct", { count: report.distinctPackages })}
           </span>
         ) : null}
       </div>
@@ -60,12 +62,13 @@ export function Duplicates({
           <div className="mt-4 flex items-center justify-between gap-3">
             <p className="text-xs text-mist-300">
               {report.wastedBytes > 0 ? (
-                <>
-                  <span className="font-mono font-semibold text-sage-300">{formatBytes(report.wastedBytes)}</span>{" "}
-                  held in identical copies across projects
-                </>
+                <Trans
+                  i18nKey="insights.duplicates.wasted"
+                  values={{ size: formatBytes(report.wastedBytes) }}
+                  components={{ size: <span className="font-mono font-semibold text-sage-300" /> }}
+                />
               ) : (
-                "Nothing is duplicated across your projects."
+                t("insights.duplicates.none")
               )}
             </p>
             {report.wastedBytes > 0 && (
@@ -90,8 +93,9 @@ export function Duplicates({
                         <span className="text-mist-500">@{entry.version}</span>
                       </span>
                       <span className="mt-0.5 block font-mono text-[10px] text-mist-500">
-                        {entry.copies} {entry.copies === 1 ? "project" : "projects"}
-                        {entry.bytesEach !== null && ` · ${formatBytes(entry.bytesEach)} each`}
+                        {t("insights.duplicates.copies", { count: entry.copies })}
+                        {entry.bytesEach !== null &&
+                          ` · ${t("insights.duplicates.each", { size: formatBytes(entry.bytesEach) })}`}
                       </span>
                     </div>
                   </div>
@@ -105,25 +109,20 @@ export function Duplicates({
 
           {hidden > 0 && (
             <p className="mt-3 border-t border-forest-800 pt-3 text-xs text-mist-500">
-              {hidden} more {hidden === 1 ? "package is" : "packages are"} duplicated. Pro lists them.
+              {t("insights.duplicates.hidden", { count: hidden })}
             </p>
           )}
 
           {report.sharedProjects > 0 && (
             <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-sage-300">
               <Link2 size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-              <span>
-                {report.sharedProjects}{" "}
-                {report.sharedProjects === 1 ? "project already links" : "projects already link"} their
-                packages into a shared store instead of copying them.
-              </span>
+              <span>{t("insights.duplicates.shared", { count: report.sharedProjects })}</span>
             </p>
           )}
 
           {report.packages.length > 0 && (
             <p className="mt-3 text-[11px] leading-relaxed text-mist-500">
-              One copy of each package is measured and the rest is arithmetic. Packages with native
-              compiled binaries may vary across projects.
+              {t("insights.duplicates.note")}
             </p>
           )}
         </>

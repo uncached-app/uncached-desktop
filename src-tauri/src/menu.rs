@@ -30,12 +30,46 @@ pub struct MenuAction {
     pub accelerator: String,
 }
 
+/// Every title in the bar that is not an action, in the interface language.
+///
+/// Required rather than defaulted: the platform's own defaults are English
+/// whatever the system language is, so a missing title would be a menu in two
+/// languages at once.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MenuLabels {
+    pub file: String,
+    pub edit: String,
+    pub view: String,
+    pub workspace: String,
+    pub window: String,
+    pub about: String,
+    pub services: String,
+    pub hide: String,
+    pub hide_others: String,
+    pub show_all: String,
+    pub quit: String,
+    pub undo: String,
+    pub redo: String,
+    pub cut: String,
+    pub copy: String,
+    pub paste: String,
+    pub select_all: String,
+    pub minimize: String,
+    pub zoom: String,
+    pub close_window: String,
+}
+
 /// Builds the bar and hangs it on the app.
 ///
 /// Rebuilt rather than patched when the bindings change: a menu is a tree of
 /// native objects with no notion of "the accelerator for this id", and the
 /// whole thing costs less than keeping a map of what was where.
-pub fn install<R: Runtime>(app: &AppHandle<R>, actions: &[MenuAction]) -> tauri::Result<()> {
+pub fn install<R: Runtime>(
+    app: &AppHandle<R>,
+    actions: &[MenuAction],
+    labels: &MenuLabels,
+) -> tauri::Result<()> {
     // macOS keeps the menu bar at the top of the screen, where it exists
     // whatever the window looks like. Windows and Linux hang it off the window
     // frame, and this window has none — `decorations: false`, because the app
@@ -46,9 +80,9 @@ pub fn install<R: Runtime>(app: &AppHandle<R>, actions: &[MenuAction]) -> tauri:
         return Ok(());
     }
 
-    let mut file = SubmenuBuilder::new(app, "File");
-    let mut view = SubmenuBuilder::new(app, "View");
-    let mut workspace = SubmenuBuilder::new(app, "Workspace");
+    let mut file = SubmenuBuilder::new(app, &labels.file);
+    let mut view = SubmenuBuilder::new(app, &labels.view);
+    let mut workspace = SubmenuBuilder::new(app, &labels.workspace);
 
     for action in actions {
         let mut item = MenuItemBuilder::with_id(action.id.clone(), &action.label);
@@ -67,15 +101,15 @@ pub fn install<R: Runtime>(app: &AppHandle<R>, actions: &[MenuAction]) -> tauri:
     // Quit, Hide, the window commands. Written by hand they are a worse copy of
     // something the platform already provides correctly.
     let application = SubmenuBuilder::new(app, "Uncached")
-        .about(Some(AboutMetadata::default()))
+        .about_with_text(&labels.about, Some(AboutMetadata::default()))
         .separator()
-        .services()
+        .services_with_text(&labels.services)
         .separator()
-        .hide()
-        .hide_others()
-        .show_all()
+        .hide_with_text(&labels.hide)
+        .hide_others_with_text(&labels.hide_others)
+        .show_all_with_text(&labels.show_all)
         .separator()
-        .quit()
+        .quit_with_text(&labels.quit)
         .build()?;
 
     // Not decoration, and not "the menus a Mac app is supposed to have".
@@ -89,21 +123,21 @@ pub fn install<R: Runtime>(app: &AppHandle<R>, actions: &[MenuAction]) -> tauri:
     //
     // The items are the system's own, so they act on whatever holds focus and
     // grey themselves out when nothing does.
-    let edit = SubmenuBuilder::new(app, "Edit")
-        .undo()
-        .redo()
+    let edit = SubmenuBuilder::new(app, &labels.edit)
+        .undo_with_text(&labels.undo)
+        .redo_with_text(&labels.redo)
         .separator()
-        .cut()
-        .copy()
-        .paste()
-        .select_all()
+        .cut_with_text(&labels.cut)
+        .copy_with_text(&labels.copy)
+        .paste_with_text(&labels.paste)
+        .select_all_with_text(&labels.select_all)
         .build()?;
 
-    let window = SubmenuBuilder::new(app, "Window")
-        .minimize()
-        .maximize()
+    let window = SubmenuBuilder::new(app, &labels.window)
+        .minimize_with_text(&labels.minimize)
+        .maximize_with_text(&labels.zoom)
         .separator()
-        .close_window()
+        .close_window_with_text(&labels.close_window)
         .build()?;
 
     let menu: Menu<R> = MenuBuilder::new(app)
@@ -141,6 +175,10 @@ pub fn on_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
 /// labels and the keys live in `src/actions.ts` — one list, and this is the
 /// road it takes to the native side rather than a second copy of it.
 #[tauri::command]
-pub fn install_menu(app: AppHandle, actions: Vec<MenuAction>) -> Result<(), String> {
-    install(&app, &actions).map_err(|error| error.to_string())
+pub fn install_menu(
+    app: AppHandle,
+    actions: Vec<MenuAction>,
+    labels: MenuLabels,
+) -> Result<(), String> {
+    install(&app, &actions, &labels).map_err(|error| error.to_string())
 }

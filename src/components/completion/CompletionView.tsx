@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import { formatBytes } from "../../utils/format.mjs";
@@ -21,16 +22,16 @@ interface CompletionViewProps {
 export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, backToWorkspace }: CompletionViewProps) {
   const reducedMotion = useReducedMotion();
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const noun = cleanupSummary.removed === 1 ? "target" : "targets";
-  const copy = cleanupMode === "Permanent"
-    ? {
-        result: `You reclaimed ${formatBytes(cleanupSummary.freedBytes)} from ${cleanupSummary.removed} ${noun}.`,
-        recovery: "Not recoverable. Rebuild the artifacts to restore them.",
-      }
-    : {
-        result: `You reclaimed ${formatBytes(cleanupSummary.freedBytes)} from ${cleanupSummary.removed} ${noun}.`,
-        recovery: "Restore from the Recycle Bin if a build needs them.",
-      };
+  const { t } = useTranslation();
+  const copy = {
+    result: t("findings.completion.result", {
+      count: cleanupSummary.removed,
+      size: formatBytes(cleanupSummary.freedBytes),
+    }),
+    recovery: cleanupMode === "Permanent"
+      ? t("findings.completion.recoveryPermanent")
+      : t("findings.completion.recoveryRecycle"),
+  };
 
   useEffect(() => {
     if (step !== 4) return;
@@ -88,7 +89,7 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, b
             tabIndex={-1}
             className="mt-6 text-4xl font-semibold tracking-tighter text-mist-100 outline-none focus-visible:ring-2 focus-visible:ring-sage-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-forest-950"
           >
-            Workspace reclaimed
+            {t("findings.completion.title")}
           </h1>
           <p aria-live="polite" className="mt-3 max-w-sm text-sm leading-6 text-mist-500">
             {copy.result}
@@ -98,12 +99,12 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, b
           </p>
 
           <div className="mt-8 flex gap-3">
-            <div className="rounded-2xl border border-forest-800 bg-forest-900 px-5 py-4 text-left">
-              <span className="block text-xs uppercase tracking-[0.14em] text-mist-500">Targets removed</span>
+            <div className="rounded-2xl border border-forest-800 bg-forest-900 px-5 py-4 text-start">
+              <span className="block text-xs uppercase tracking-[0.14em] text-mist-500">{t("findings.completion.targetsRemoved")}</span>
               <strong className="mt-1 block text-2xl text-mist-100">{cleanupSummary.removed}</strong>
             </div>
-            <div className="rounded-2xl border border-forest-800 bg-forest-900 px-5 py-4 text-left">
-              <span className="block text-xs uppercase tracking-[0.14em] text-mist-500">Space reclaimed</span>
+            <div className="rounded-2xl border border-forest-800 bg-forest-900 px-5 py-4 text-start">
+              <span className="block text-xs uppercase tracking-[0.14em] text-mist-500">{t("findings.completion.spaceReclaimed")}</span>
               <strong className="mt-1 block text-2xl text-sage-300">
                 {formatBytes(cleanupSummary.freedBytes)}
               </strong>
@@ -120,7 +121,7 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, b
                 onClick={backToWorkspace}
                 className="inline-flex min-h-11 items-center rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 hover:bg-sage-300"
               >
-                Back to Workspace
+                {t("findings.backToWorkspace")}
               </button>
             )}
             <button
@@ -132,7 +133,7 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, b
                   : "bg-sage-400 font-semibold text-forest-950 hover:bg-sage-300"
               }`}
             >
-              Scan another folder
+              {t("findings.completion.scanAnother")}
             </button>
           </div>
         </motion.section>

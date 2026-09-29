@@ -1,4 +1,5 @@
 import { Compass } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ActionButton } from "../../shared/ActionButton";
 import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
 import type { WorkspaceProject } from "../../../types/workspace";
@@ -20,6 +21,7 @@ export function ProjectActions({
   /** Told what happened, since most of these finish somewhere else entirely. */
   onResult: (message: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const actions = useProjectActions(project);
 
   const shown = withOneEditor(actions);
@@ -34,14 +36,16 @@ export function ProjectActions({
           detail={action.detail}
           onClick={() =>
             void action.perform().then(
-              () => onResult(action.leaves ? null : `${action.title.toLowerCase()} — done`),
-              (error) => onResult(typeof error === "string" ? error : "That did not work"),
+              () => onResult(
+                  action.leaves ? null : t("workspace.actions.done", { action: action.title.toLowerCase() }),
+                ),
+              (error) => onResult(typeof error === "string" ? error : t("workspace.actions.failed")),
             )
           }
         />
       ))}
 
-      <ActionButton icon={Compass} label="Show in workspace" onClick={onShowInList} />
+      <ActionButton icon={Compass} label={t("workspace.actions.showInWorkspace")} onClick={onShowInList} />
     </div>
   );
 }

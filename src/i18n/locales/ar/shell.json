@@ -1,0 +1,189 @@
+{
+  "actionsFor": "إجراءات {{name}}",
+  "actions": {
+    "openIn": "فتح في {{app}}",
+    "reveal": "إظهار في مدير الملفات",
+    "copyPath": "نسخ المسار",
+    "fetch": "جلب من المستودع البعيد",
+    "openRepository": "فتح المستودع",
+    "done": "{{action}} — تم",
+    "failed": "لم ينجح ذلك"
+  },
+  "folderMenu": {
+    "label": "إجراءات {{name}}"
+  },
+  "proLock": {
+    "label": "{{label}}. {{reason}}"
+  },
+  "rootPicker": {
+    "remove": "إزالة {{name}}",
+    "empty": "لم يُحدَّد أي مجلد بعد",
+    "addAnother": "إضافة مجلد آخر",
+    "multiRootPro": "فحص عدة مجلدات معًا جزء من Pro",
+    "browseLabel": "تصفّح بحثًا عن مجلد",
+    "browse": "تصفّح"
+  },
+  "index": {
+    "noFolder": "حدّد مسار مجلد أو الصقه أولًا."
+  },
+  "palette": {
+    "label": "لوحة الأوامر",
+    "close": "إغلاق",
+    "back": "العودة إلى الكل",
+    "search": "البحث في المشاريع والأوامر",
+    "pickAction": "{{name}} — اختر إجراءً",
+    "emptyNoProjects": "أضف مجلدًا لتظهر مشاريعك هنا.",
+    "noMatches": "لا شيء يطابق ذلك.",
+    "indexed_zero": "{{count}} مشروع مفهرس",
+    "indexed_one": "{{count}} مشروع مفهرس",
+    "indexed_two": "{{count}} مشروعان مفهرسان",
+    "indexed_few": "{{count}} مشاريع مفهرسة",
+    "indexed_many": "{{count}} مشروعًا مفهرسًا",
+    "indexed_other": "{{count}} مشروع مفهرس",
+    "hint": {
+      "back": "تحديد · esc للعودة",
+      "close": "تحديد · esc للإغلاق"
+    },
+    "groups": {
+      "actions": "الإجراءات",
+      "projects": "المشاريع",
+      "folders": "المجلدات",
+      "commands": "الأوامر"
+    },
+    "folderAction": "{{action}} — {{name}}",
+    "commands": {
+      "projectPage": "فتح صفحة المشروع",
+      "showInWorkspace": "إظهار في مساحة العمل",
+      "goWorkspace": "الانتقال إلى مساحة العمل",
+      "reclaim": "استعادة المساحة",
+      "goInsights": "الانتقال إلى الإحصاءات",
+      "goMaintenance": "الانتقال إلى الصيانة",
+      "addFolder": "إضافة مجلد",
+      "rescan": "فحص مساحة العمل",
+      "settings": "فتح الإعدادات"
+    }
+  },
+  "titlebar": {
+    "title": {
+      "insights": "إحصاءات Uncached",
+      "maintenance": "صيانة Uncached",
+      "workspace": "مساحة عمل Uncached"
+    },
+    "pipeline": "مسار التقدم",
+    "steps": {
+      "workspace": "مساحة العمل",
+      "scan": "الفحص",
+      "review": "المراجعة",
+      "done": "تم"
+    },
+    "openSettings": "فتح الإعدادات",
+    "closeWindow": "إغلاق النافذة",
+    "minimizeWindow": "تصغير النافذة",
+    "restoreWindow": "إرجاع حجم النافذة",
+    "maximizeWindow": "تكبير النافذة"
+  },
+  "update": {
+    "available": "Uncached {{version}} متاح",
+    "downloadingTitle": "جارٍ تنزيل Uncached {{version}}",
+    "unreachable": "تعذّر الوصول إلى التحديث",
+    "busy": "Uncached يعمل — سينتظر هذا حتى ينتهي",
+    "percent": "{{percent}}%",
+    "later": "لاحقًا",
+    "badge": {
+      "readyTitle": "Uncached {{version}} مثبت — أعد التشغيل لاستخدامه",
+      "restart": "إعادة التشغيل",
+      "downloading": "جارٍ التنزيل",
+      "update": "تحديث"
+    },
+    "dialog": {
+      "label": "تحديث البرنامج",
+      "checkingTitle": "جارٍ البحث عن تحديث",
+      "readyTitle": "جاهز لإعادة التشغيل",
+      "close": "إغلاق",
+      "checkingBody": "جارٍ سؤال خادم التحديث عن أحدث إصدار.",
+      "noNotes": "صدر هذا الإصدار دون ملاحظات.",
+      "progressUnknown": "جارٍ التنزيل — لم يحدد الخادم حجمه",
+      "progress": "{{percent}}% — يمكنك إغلاق هذا ويستمر التنزيل",
+      "readyBody": "Uncached {{version}} في مكانه. تستغرق إعادة التشغيل ثانية ولا يُمَس شيء في مساحة عملك.",
+      "notNow": "ليس الآن",
+      "checking": "جارٍ التحقق…",
+      "restartNow": "إعادة التشغيل الآن",
+      "downloading": "جارٍ التنزيل…",
+      "tryAgain": "إعادة المحاولة",
+      "install": "تنزيل وتثبيت"
+    },
+    "toast": {
+      "body": "لا يُنزَّل شيء ولا يُستبدل حتى تطلب ذلك.",
+      "whatsNew": "ما الجديد",
+      "dismiss": "تجاهل"
+    }
+  },
+  "menu": {
+    "file": "ملف",
+    "edit": "تحرير",
+    "view": "عرض",
+    "workspace": "مساحة العمل",
+    "window": "نافذة",
+    "about": "حول Uncached",
+    "services": "الخدمات",
+    "hide": "إخفاء Uncached",
+    "hideOthers": "إخفاء الآخرين",
+    "showAll": "إظهار الكل",
+    "quit": "إنهاء Uncached",
+    "undo": "تراجع",
+    "redo": "إعادة",
+    "cut": "قص",
+    "copy": "نسخ",
+    "paste": "لصق",
+    "selectAll": "تحديد الكل",
+    "minimize": "تصغير",
+    "zoom": "تكبير/تصغير",
+    "closeWindow": "إغلاق النافذة"
+  },
+  "native": {
+    "trayOpen": "فتح Uncached",
+    "trayScan": "فحص مساحة العمل",
+    "trayQuit": "إنهاء Uncached",
+    "scanFinished_zero": "عُثر على {{count}} هدف، {{size}} قابل للاستعادة.",
+    "scanFinished_one": "عُثر على {{count}} هدف، {{size}} قابل للاستعادة.",
+    "scanFinished_two": "عُثر على {{count}} هدفين، {{size}} قابل للاستعادة.",
+    "scanFinished_few": "عُثر على {{count}} أهداف، {{size}} قابل للاستعادة.",
+    "scanFinished_many": "عُثر على {{count}} هدفًا، {{size}} قابل للاستعادة.",
+    "scanFinished_other": "عُثر على {{count}} هدف، {{size}} قابل للاستعادة.",
+    "maintenanceTitle": "صيانة Uncached",
+    "maintenanceBody_zero": "استُعيد {{size}} من {{count}} مشروع خامل. نُقل كل شيء إلى سلة المهملات.",
+    "maintenanceBody_one": "استُعيد {{size}} من {{count}} مشروع خامل. نُقل كل شيء إلى سلة المهملات.",
+    "maintenanceBody_two": "استُعيد {{size}} من {{count}} مشروعين خاملين. نُقل كل شيء إلى سلة المهملات.",
+    "maintenanceBody_few": "استُعيد {{size}} من {{count}} مشاريع خاملة. نُقل كل شيء إلى سلة المهملات.",
+    "maintenanceBody_many": "استُعيد {{size}} من {{count}} مشروعًا خاملًا. نُقل كل شيء إلى سلة المهملات.",
+    "maintenanceBody_other": "استُعيد {{size}} من {{count}} مشروع خامل. نُقل كل شيء إلى سلة المهملات."
+  },
+  "errors": {
+    "invalid_workspace": "لا يمكن فحص هذا المجلد.",
+    "io": "رفض القرص العملية.",
+    "provider_unavailable": "لم يعد أي فاحص يتعرّف على هذا الهدف. أعد الفحص.",
+    "target_missing": "لم يعد الهدف موجودًا. أعد الفحص.",
+    "target_not_directory": "لم يعد الهدف مجلدًا. أعد الفحص.",
+    "target_name_unsupported": "تتعذّر قراءة اسم الهدف على هذا النظام.",
+    "target_provider_mismatch": "لم يعد الهدف يطابق ما وجده الفحص. أعد الفحص.",
+    "target_context_invalid": "تغيّر المشروع الذي يضم الهدف منذ الفحص. أعد الفحص.",
+    "target_outside_workspace": "الهدف خارج المجلدات المختارة.",
+    "target_ignored_by_rule": "الهدف مشمول بقاعدة استثناء.",
+    "target_identity_unavailable": "تعذّر تحديد هوية الهدف على القرص. أعد الفحص.",
+    "target_identity_changed": "استُبدل الهدف منذ الفحص. أعد الفحص.",
+    "target_reparse_point": "الهدف أو مجلد فوقه رابط. لا يتتبّع Uncached الروابط عند الحذف.",
+    "secure_operation_unsupported": "لا يستطيع هذا النظام إزالة الهدف بأمان.",
+    "secure_target_open_failed": "تعذّر فتح الهدف لإزالته.",
+    "secure_target_too_large": "يحوي الهدف عناصر أكثر مما تسمح به عملية إزالة واحدة.",
+    "secure_target_too_deep": "الهدف متداخل بعمق أكبر مما تسمح به عملية إزالة واحدة.",
+    "secure_enumeration_failed": "تعذّرت قراءة محتويات الهدف.",
+    "secure_handle_query_failed": "رفض النظام وصف ملف داخل الهدف.",
+    "secure_deletion_failed": "رفض النظام حذف الهدف.",
+    "secure_trash_unavailable": "سلة المهملات غير متاحة على هذا النظام.",
+    "secure_trash_initialization_failed": "تعذّر فتح سلة المهملات.",
+    "secure_trash_operation_failed": "تعذّر نقل الهدف إلى سلة المهملات.",
+    "secure_trash_aborted": "انقطع نقل الهدف إلى سلة المهملات.",
+    "secure_trash_postcondition_failed": "لم يكن الهدف في سلة المهملات بعد النقل.",
+    "target_in_use": "{{program}} قيد التشغيل. أغلقه وأعد الفحص، فإزالة هذا الآن ستعطّله."
+  }
+}

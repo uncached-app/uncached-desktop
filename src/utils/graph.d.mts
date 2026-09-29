@@ -4,11 +4,19 @@ import type { Family, Footprint, Verdict, WorkspaceProject } from "../types/work
 
 export declare const MAX_PACKAGES: number;
 
+/** A sentence for the caller to translate: an English catalogue key and its values. */
+export type GraphMessage =
+  | { key: "workspace.graph.copiesHere"; params: { drawn: number; count: number } }
+  | { key: "workspace.graph.copies"; params: { count: number } }
+  | { key: "workspace.graph.declared"; params: { tool: string } }
+  | { key: "workspace.graph.oneFolder"; params: Record<string, never> };
+
 export type GraphNode = {
   id: string;
   kind: "project" | "package";
   label: string;
-  detail: string;
+  /** Package nodes only; `null` on a project. */
+  detail: GraphMessage | null;
   /** What it weighs, as a figure to print. */
   bytes: number;
   /** What it weighs, for drawing. `null` when it has not been measured. */
@@ -38,7 +46,7 @@ export type GraphLabel = {
   /** The directory itself, so it can be opened rather than only named. */
   path: string;
   text: string;
-  detail: string;
+  detail: GraphMessage;
   declared: boolean;
   members: number;
   x: number;

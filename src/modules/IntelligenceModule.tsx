@@ -1,6 +1,7 @@
 import { CalendarClock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { StatCard } from "../components/shared/StatCard";
 import { formatBytes } from "../utils/format.mjs";
 import { PolicyCard } from "./maintenance/PolicyCard";
@@ -51,6 +52,7 @@ export function IntelligenceModule({
   onScheduleChange: (schedule: Schedule) => Promise<void>;
   onOpenWorkspace: () => void;
 }) {
+  const { t } = useTranslation();
   const flow = usePurgeFlow();
   const projects = flow.index.index?.projects ?? [];
   const [run, setRun] = useState<RunState>({ kind: "idle" });
@@ -123,18 +125,18 @@ export function IntelligenceModule({
   }
 
   return (
-    <section aria-label="Maintenance" className="flex h-full w-full flex-1 flex-col overflow-hidden">
+    <section aria-label={t("maintenance.header.title")} className="flex h-full w-full flex-1 flex-col overflow-hidden">
       <header className="shrink-0 border-b border-forest-800 pb-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">Maintenance</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">{t("maintenance.header.title")}</h1>
               <span className="rounded-lg border border-forest-800 bg-forest-900 px-2.5 py-0.5 font-mono text-xs font-semibold text-sage-300">
-                {proEnabled ? "Rules & Actions" : "Policy Preview"}
+                {proEnabled ? t("maintenance.header.badgePro") : t("maintenance.header.badgeFree")}
               </span>
             </div>
             <p className="mt-1 text-xs text-mist-500">
-              Automate hygiene on stale projects without risking uncommitted or local work.
+              {t("maintenance.header.subtitle")}
             </p>
           </div>
 
@@ -144,18 +146,18 @@ export function IntelligenceModule({
           <div className="flex flex-wrap items-center gap-2">
             <StatCard
               value={`${preview.selected.length}`}
-              label={preview.selected.length === 1 ? "project eligible" : "projects eligible"}
+              label={t("maintenance.header.eligible", { count: preview.selected.length })}
             />
             <StatCard
               value={formatBytes(preview.bytes)}
-              label="reclaimable"
+              label={t("maintenance.header.reclaimable")}
               accent={preview.bytes > 0}
             />
           </div>
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-5 pb-8 scrollbar-gutter-stable">
+      <div className="min-h-0 flex-1 overflow-y-auto pe-2 pt-5 pb-8 scrollbar-gutter-stable">
         <div className="grid gap-4">
           {!proEnabled && <ProPanel />}
 
@@ -211,8 +213,7 @@ export function IntelligenceModule({
               and says it louder when the two settings disagree. */}
           <p className="flex items-start gap-2 px-1 text-xs leading-5 text-mist-500">
             <CalendarClock size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-            The schedule runs inside Uncached, so closing to the menu bar keeps it going and Quit
-            stops it. It picks up any run it missed the next time the app opens.
+            {t("maintenance.scheduleNote")}
           </p>
         </div>
       </div>

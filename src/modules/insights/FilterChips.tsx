@@ -1,5 +1,6 @@
 import { Filter, X } from "lucide-react";
-import { DIMENSION_LABELS, labelFor } from "./labels";
+import { useTranslation } from "react-i18next";
+import { dimensionLabel, labelFor } from "./labels";
 import { DIMENSIONS } from "../../utils/report.mjs";
 import type { Dimension, Filters } from "../../utils/report.d.mts";
 
@@ -11,6 +12,7 @@ export function FilterChips({
   filters: Filters;
   onClear: (dimension: Dimension) => void;
 }) {
+  const { t } = useTranslation();
   const active = (DIMENSIONS as Dimension[]).filter((dimension) => filters[dimension] != null);
   if (active.length === 0) return null;
 
@@ -18,7 +20,7 @@ export function FilterChips({
     <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-forest-800 bg-forest-900 px-4 py-2.5">
       <div className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-mist-500">
         <Filter size={11} aria-hidden="true" />
-        <span>Filtered by</span>
+        <span>{t("insights.filterChips.label")}</span>
       </div>
 
       {active.map((dimension) => (
@@ -28,8 +30,8 @@ export function FilterChips({
           onClick={() => onClear(dimension)}
           className="group flex items-center gap-2 rounded-xl border border-sage-400/40 bg-forest-950 px-2.5 py-1 text-xs text-mist-100 shadow-xs transition-all hover:border-sage-400 hover:bg-forest-850"
         >
-          <span className="font-mono text-[10px] text-mist-500">{DIMENSION_LABELS[dimension]}:</span>
-          <span className="font-medium text-sage-300">{labelFor(dimension, filters[dimension] ?? null)}</span>
+          <span className="font-mono text-[10px] text-mist-500">{t("insights.filterChips.dimension", { dimension: dimensionLabel(t, dimension) })}</span>
+          <span className="font-medium text-sage-300">{labelFor(t, dimension, filters[dimension] ?? null)}</span>
           <span className="grid size-4 place-items-center rounded-full bg-forest-850 text-mist-500 group-hover:bg-sage-400 group-hover:text-forest-950 transition-colors">
             <X size={10} aria-hidden="true" />
           </span>
@@ -42,9 +44,9 @@ export function FilterChips({
           onClick={() => {
             for (const d of active) onClear(d);
           }}
-          className="font-mono text-[10px] text-mist-500 hover:text-mist-100 underline decoration-dotted transition-colors ml-1"
+          className="font-mono text-[10px] text-mist-500 hover:text-mist-100 underline decoration-dotted transition-colors ms-1"
         >
-          Clear all
+          {t("insights.filterChips.clearAll")}
         </button>
       )}
     </div>

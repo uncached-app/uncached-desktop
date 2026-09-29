@@ -1,0 +1,184 @@
+{
+  "section": {
+    "label": "Objetivos del análisis"
+  },
+  "breadcrumb": {
+    "workspace": "Workspace",
+    "current": "Objetivos a recuperar"
+  },
+  "backToWorkspace": "Volver a Workspace",
+  "header": {
+    "targets_one": "{{count}} objetivo",
+    "targets_other": "{{count}} objetivos",
+    "reclaimable": "recuperable",
+    "selected_one": "seleccionado ({{count}})",
+    "selected_other": "seleccionados ({{count}})",
+    "inUse": "{{size}} en uso",
+    "inUseTarget": "{{name}} — {{tool}} está en ejecución",
+    "planFree": "Free {{size}}",
+    "planPro": "Pro {{size}}",
+    "reclaimableScope_one": "En {{ready}} de {{count}} objetivo — el resto aún se está midiendo, no se pudo medir, o se informa y nunca se elimina.",
+    "reclaimableScope_other": "En {{ready}} de {{count}} objetivos — el resto aún se está midiendo, no se pudo medir, o se informa y nunca se elimina."
+  },
+  "delete": {
+    "button": "Eliminar",
+    "unsupported": "Uncached no pudo leer qué le permite eliminar este sistema, así que no se ofrece nada."
+  },
+  "notice": {
+    "permanent": "Los objetivos seleccionados se eliminan de forma permanente. No se puede deshacer.",
+    "recycle": "Los objetivos seleccionados se mueven a la Papelera. Se pueden restaurar desde ahí si hace falta.",
+    "unreadable_one": "El sistema denegó el acceso a {{count}} carpeta, así que el recuento y el total de arriba son un mínimo.",
+    "unreadable_other": "El sistema denegó el acceso a {{count}} carpetas, así que el recuento y el total de arriba son un mínimo.",
+    "unreadableHint": "Concede a Uncached Acceso total al disco para leerlas.",
+    "ignoreRules_one": "{{count}} regla de exclusión en vigor. Las rutas cubiertas se excluyeron de este análisis.",
+    "ignoreRules_other": "{{count}} reglas de exclusión en vigor. Las rutas cubiertas se excluyeron de este análisis."
+  },
+  "empty": {
+    "scanning": "Análisis en curso.",
+    "none": "No hay objetivos recuperables en este workspace.",
+    "scanningHint": "Los objetivos aparecen a medida que se encuentran.",
+    "tooRecent_one": "Todo lo encontrado aquí se modificó en el último día.",
+    "tooRecent_other": "Todo lo encontrado aquí se modificó en los últimos {{count}} días.",
+    "settingsHint": "Ajusta qué cachés se detectan en Ajustes, en Análisis.",
+    "showEveryAge": "Mostrar todos"
+  },
+  "failed": {
+    "title_one": "{{count}} objetivo no se eliminó.",
+    "title_other": "{{count}} objetivos no se eliminaron.",
+    "refused": "El sistema rechazó la eliminación.",
+    "retry_one": "Sigue seleccionado: repite la acción cuando la causa desaparezca para reintentarlo.",
+    "retry_other": "Siguen seleccionados: repite la acción cuando la causa desaparezca para reintentarlos."
+  },
+  "pro": {
+    "more": "{{size}} más disponibles con Pro",
+    "pitch": "Desbloquea todos los limpiadores, Workspace e Inteligencia.",
+    "cta": "Obtener Uncached Pro"
+  },
+  "list": {
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar todo",
+    "selectedOf": "{{selected}} de {{total}}",
+    "heldByRunning_one": "{{count}} en un proyecto en ejecución — no se eliminará",
+    "heldByRunning_other": "{{count}} en proyectos en ejecución — no se eliminarán"
+  },
+  "age": {
+    "any": "Todos",
+    "anyHint": "Todo lo que encontró el análisis",
+    "olderThan": "{{days}}d+",
+    "monthHint": "Nada ha escrito en ellos desde hace un mes",
+    "threeMonthsHint": "Nada ha escrito en ellos desde hace tres meses"
+  },
+  "order": {
+    "confidence": {
+      "label": "Menor certeza",
+      "hint": "Primero los objetivos de los que el analizador está menos seguro",
+      "hintFree": "Primero los objetivos de los que el analizador está menos seguro. En Free, lo que tu plan puede limpiar va primero de todos modos."
+    },
+    "size": {
+      "label": "Más grandes",
+      "hint": "Primero los que más ocupan en disco",
+      "hintFree": "Primero los que más ocupan en disco. En Free, lo que tu plan puede limpiar va primero de todos modos."
+    }
+  },
+  "confirm": {
+    "deleting": "Eliminando",
+    "moving": "Moviendo a la Papelera",
+    "deletePermanently": "Eliminar permanentemente",
+    "moveToRecycleBin": "Mover a la Papelera",
+    "deletingProgress_one": "Eliminando {{count}} objetivo...",
+    "deletingProgress_other": "Eliminando {{count}} objetivos...",
+    "movingProgress_one": "Moviendo {{count}} objetivo...",
+    "movingProgress_other": "Moviendo {{count}} objetivos...",
+    "permanentWarning_one": "{{count}} objetivo se eliminará del disco. No se puede deshacer.",
+    "permanentWarning_other": "{{count}} objetivos se eliminarán del disco. No se puede deshacer.",
+    "recycleWarning_one": "{{count}} objetivo se moverá a la Papelera. Restáuralo desde ahí si un build lo necesita.",
+    "recycleWarning_other": "{{count}} objetivos se moverán a la Papelera. Restáuralos desde ahí si un build los necesita.",
+    "close": "Cerrar confirmación",
+    "reclaims": "Recupera <strong>{{size}}</strong> (estimado)",
+    "typeToConfirm": "Escribe <strong>{{word}}</strong> para confirmar.",
+    "inputLabel": "Confirmación de eliminación permanente",
+    "cleaning": "Limpiando...",
+    "cancel": "Cancelar"
+  },
+  "row": {
+    "select": "Seleccionar {{name}}",
+    "ageHint": "El archivo más reciente que contiene. Si nada ha escrito en una caché en meses, un nuevo build puede reemplazarla.",
+    "inUseHint": "Uncached no eliminará esto mientras {{tool}} esté en ejecución: los archivos que mantiene abiertos se perderían con ello.",
+    "inUse": "En uso",
+    "copied": "Copiado",
+    "copy": "Copiar",
+    "reportedNotRemoved": "informado, no eliminado",
+    "loadingSize": "Cargando tamaño",
+    "sizeUnavailable": "Tamaño no disponible",
+    "retryLabel": "Falló el tamaño de {{name}}. Reintentar la medición",
+    "retry": "Reintentar",
+    "toolRunning": "{{tool}} está en ejecución",
+    "unlockToClean": "desbloquear para limpiar"
+  },
+  "confidence": {
+    "badgeLabel": "{{level}} para {{name}}. Mostrar lo detectado",
+    "levels": {
+      "high": "Confianza alta",
+      "medium": "Confianza media",
+      "review": "Revisar"
+    },
+    "reasons": {
+      "knownArtifact": "Artefacto de build reconocido",
+      "projectManifest": "Está dentro de un proyecto con manifiesto",
+      "lockfile": "El proyecto tiene lockfile; el contenido es reproducible",
+      "declaredDisposable": "Declarado desechable en el .gitignore del proyecto",
+      "versionControlled": "Rastreado por Git, así que no es una salida de build",
+      "versionManagerPath": "Directorio de un gestor de versiones; contiene paquetes instalados globalmente",
+      "systemPath": "Pertenece al sistema operativo, no a un proyecto",
+      "noProjectContext": "No hay ningún proyecto a su alrededor",
+      "knownLocation": "Ubicación de caché conocida de una herramienta concreta",
+      "sharedCache": "Compartida por todos los proyectos: borrarla hace más lentas las instalaciones futuras",
+      "toolState": "Pertenece a una herramienta, no a un build"
+    }
+  },
+  "reportedOnly": {
+    "title": "Uncached no los elimina",
+    "intro": "La herramienta a la que pertenecen los recupera de forma segura. Ejecuta su comando en una terminal.",
+    "copyCommand": "Copiar el comando de {{name}}"
+  },
+  "categories": {
+    "packageCache": "Caché de paquetes",
+    "aiToolCache": "Caché de IA",
+    "editorCache": "Caché del editor",
+    "androidSdk": "Android SDK"
+  },
+  "categoryBar": {
+    "summary": "{{label}}: {{segments}}",
+    "segment": "{{category}} {{size}}",
+    "smallerKinds_one": "{{count}} tipo menor",
+    "smallerKinds_other": "{{count}} tipos menores"
+  },
+  "completion": {
+    "title": "Workspace recuperado",
+    "result_one": "{{size}} recuperados de {{count}} objetivo.",
+    "result_other": "{{size}} recuperados de {{count}} objetivos.",
+    "recoveryPermanent": "No se puede deshacer. Vuelve a generar los artefactos para restaurarlos.",
+    "recoveryRecycle": "Restáuralos desde la Papelera si un build los necesita.",
+    "targetsRemoved": "Objetivos eliminados",
+    "spaceReclaimed": "Espacio recuperado",
+    "scanAnother": "Analizar otra carpeta"
+  },
+  "scan": {
+    "measuring": "Midiendo objetivos",
+    "checkingCaches": "Revisando las cachés de tus herramientas",
+    "scanningProjects": "Analizando tus proyectos",
+    "measuringHint": "Calculando el tamaño en disco de cada objetivo.",
+    "checkingCachesHint": "Cachés de gestores de paquetes, IA y editores en tu carpeta de inicio.",
+    "scanningProjectsHint": "Los objetivos se miden a medida que se encuentran.",
+    "scanningLabel": "Analizando workspace",
+    "directoriesChecked": "directorios revisados",
+    "measured": "medidos",
+    "targetsFound_one": "objetivo encontrado",
+    "targetsFound_other": "objetivos encontrados",
+    "recentlyFound": "Encontrados recientemente",
+    "cancelRefused": "El análisis terminó antes de poder cancelarse.",
+    "startOver": "Empezar de nuevo",
+    "cancelling": "Cancelando...",
+    "cancel": "Cancelar análisis"
+  }
+}

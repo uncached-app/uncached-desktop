@@ -1,5 +1,6 @@
 import { FolderOpen } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ProjectContextMenu, type MenuAnchor } from "./map/ProjectContextMenu";
 import { FolderMenu, type FolderAnchor } from "../shared/FolderMenu";
 import { useFlash } from "../../hooks/useFlash";
@@ -10,7 +11,7 @@ import { WorkspaceHeader } from "./map/WorkspaceHeader";
 import { WorkspaceSidebar } from "./map/WorkspaceSidebar";
 import { useFocusedProject } from "./map/useFocusedProject";
 import { rootName } from "./map/naming";
-import { VERDICT_ORDER, VERDICT_PRESENTATION } from "./verdictPresentation";
+import { VERDICT_ORDER } from "./verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
 import { workspaceGraph } from "../../utils/graph.mjs";
 import { WorkspaceCanvas } from "./map/WorkspaceCanvas";
@@ -137,6 +138,7 @@ export function WorkspaceMap({
   shortcuts,
   onRescan,
 }: WorkspaceMapProps) {
+  const { t } = useTranslation();
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
 
   /**
@@ -361,7 +363,9 @@ export function WorkspaceMap({
       .map((family) => ({
         id: family.path,
         name: family.name,
-        detail: family.declaredBy ? `${family.declaredBy} workspace` : "One folder, several projects",
+        detail: family.declaredBy
+          ? t("workspace.family.declared", { tool: family.declaredBy })
+          : t("workspace.family.oneFolderSeveral"),
         declared: Boolean(family.declaredBy),
         projects: family.members
           .map((member) => shown.get(member))
@@ -375,9 +379,18 @@ export function WorkspaceMap({
     const alone = visible.filter((project) => !grouped.has(project.path)).sort(heaviest);
 
     return alone.length > 0
-      ? [...groups, { id: "alone", name: "On their own", detail: "In no directory with another project", declared: false, projects: alone }]
+      ? [
+          ...groups,
+          {
+            id: "alone",
+            name: t("workspace.family.alone"),
+            detail: t("workspace.family.aloneDetail"),
+            declared: false,
+            projects: alone,
+          },
+        ]
       : groups;
-  }, [families, visible, footprints]);
+  }, [families, visible, footprints, t]);
 
   const grouped = useMemo(() => {
     const groups = new Map<Verdict, WorkspaceProject[]>();
@@ -429,12 +442,12 @@ export function WorkspaceMap({
       chips.push({ id: "root", label: rootName(activeRoot), onClear: () => setActiveRoot(null) });
     }
     if (normalizedQuery) {
-      chips.push({ id: "query", label: `"${query.trim()}"`, onClear: () => onQueryChange("") });
+      chips.push({ id: "query", label: t("workspace.filters.query", { query: query.trim() }), onClear: () => onQueryChange("") });
     }
     if (activeVerdict) {
       chips.push({
         id: "verdict",
-        label: VERDICT_PRESENTATION[activeVerdict].label,
+        label: t(`workspace.verdicts.${activeVerdict}.label`),
         onClear: () => setActiveVerdict(null),
       });
     }
@@ -442,7 +455,7 @@ export function WorkspaceMap({
       chips.push({ id: "category", label: activeCategory, onClear: () => setActiveCategory(null) });
     }
     if (clonesOnly) {
-      chips.push({ id: "clones", label: "Copies of a repo", onClear: () => setClonesOnly(false) });
+      chips.push({ id: "clones", label: t("workspace.filters.clones"), onClear: () => setClonesOnly(false) });
     }
     return chips;
   }, [
@@ -456,6 +469,7 @@ export function WorkspaceMap({
     setActiveCategory,
     clonesOnly,
     setClonesOnly,
+    t,
   ]);
 
   const filtering =
@@ -469,7 +483,7 @@ export function WorkspaceMap({
     <div className="flex min-h-0 w-full flex-1 gap-5 overflow-hidden">
       <div
         className={`shrink-0 transition-all duration-200 ease-in-out overflow-hidden ${
-          sidebarHidden ? "w-0 -mr-5 opacity-0 pointer-events-none" : "w-52 sm:w-60 opacity-100"
+          sidebarHidden ? "w-0 -me-5 opacity-0 pointer-events-none" : "w-52 sm:w-60 opacity-100"
         }`}
       >
         <WorkspaceSidebar
@@ -529,7 +543,7 @@ export function WorkspaceMap({
             question about the workspace, and switching view is not answering a
             different one. */}
         {drawable && graph && (
-          <div ref={drawing} className="min-h-0 flex-1 overflow-hidden pt-3.5 pr-2 pb-2">
+          <div ref={drawing} className="min-h-0 flex-1 overflow-hidden pt-3.5 pe-2 pb-2">
             <WorkspaceCanvas
               graph={graph}
               projects={visible}
@@ -557,10 +571,10 @@ export function WorkspaceMap({
               fell back and a setting that appears not to have been saved. */}
           {onMap && !drawable && (
             <p className="mb-3 shrink-0 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 text-xs leading-5 text-mist-500">
-              Nothing matches the filters, so there is no picture to draw.
+              {t("workspace.map.nothingToDraw")}
             </p>
           )}
-          <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-2 pb-6 scrollbar-gutter-stable">
+          <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pe-2 pb-6 scrollbar-gutter-stable">
             {order === "folder" &&
               byFamily.map((group) => (
                 <FamilyGroup
@@ -586,22 +600,22 @@ export function WorkspaceMap({
               ))}
 
             {order === "size" && visible.length > 0 && (
-              <section aria-label="Projects ranked by size" className="pb-5">
+              <section aria-label={t("workspace.list.rankedLabel")} className="pb-5">
                 <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-x-2.5 rounded-t-none rounded-b-xl bg-forest-950/90 px-2.5 py-2 backdrop-blur-md">
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="size-2 shrink-0 rounded-full bg-sage-400" aria-hidden="true" />
                     <h2 className="shrink-0 text-xs font-semibold text-mist-100">
-                      Ranked by Disk Size
+                      {t("workspace.list.rankedTitle")}
                     </h2>
                     <span className="shrink-0 rounded-md bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-mist-300">
                       {ranked.length}
                     </span>
-                    <span className="hidden sm:inline-block truncate text-xs text-mist-500">· Heaviest projects first</span>
+                    <span className="hidden sm:inline-block truncate text-xs text-mist-500">· {t("workspace.list.rankedHint")}</span>
                   </div>
 
                   {totals.reclaimableBytes > 0 && (
                     <span className="shrink-0 rounded-md bg-forest-900 border border-forest-800 px-2 py-0.5 font-mono text-[11px] font-medium text-sage-300">
-                      {formatBytes(totals.reclaimableBytes)} reclaimable
+                      {t("workspace.list.reclaimable", { size: formatBytes(totals.reclaimableBytes) })}
                     </span>
                   )}
                 </div>
@@ -650,11 +664,13 @@ export function WorkspaceMap({
                   <FolderOpen size={24} strokeWidth={1.5} aria-hidden="true" />
                 </div>
                 <p className="mt-4 text-sm font-semibold text-mist-100">
-                  {filtering ? "No projects match this filter" : "No projects in this folder"}
+                  {filtering ? t("workspace.list.noMatch") : t("workspace.list.noProjects")}
                 </p>
                 <p className="mt-1 text-xs text-mist-500 max-w-sm leading-relaxed">
-                  {index.projects.length} projects were indexed across{" "}
-                  {index.roots.length === 1 ? "1 folder" : `${index.roots.length} folders`}.
+                  {t("workspace.list.indexed", {
+                    count: index.roots.length,
+                    projects: index.projects.length,
+                  })}
                 </p>
                 {filtering && (
                   <button
@@ -662,7 +678,7 @@ export function WorkspaceMap({
                     onClick={clearEveryFilter}
                     className="mt-4 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2 text-xs font-medium text-sage-300 transition-all hover:bg-forest-850 hover:border-sage-400/60"
                   >
-                    Clear all filters
+                    {t("workspace.filters.clearAll")}
                   </button>
                 )}
               </div>

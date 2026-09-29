@@ -1,0 +1,277 @@
+{
+  "title": "Ajustes",
+  "close": "Fechar ajustes",
+  "cancel": "Cancelar",
+  "loading": "Carregando ajustes...",
+  "saving": "Salvando...",
+  "saved": "Salvo automaticamente",
+  "sectionPicker": "Seção dos ajustes",
+  "sectionNav": "Seções dos ajustes",
+  "sections": {
+    "general": "Geral",
+    "opening": "Abrir com",
+    "scanning": "Varredura",
+    "ignoreRules": "Regras de exclusão",
+    "deletion": "Remoção",
+    "shortcuts": "Atalhos",
+    "appearance": "Aparência",
+    "licence": "Licença",
+    "about": "Sobre"
+  },
+  "general": {
+    "intro": "Inicialização do app, execução em segundo plano e atualizações automáticas.",
+    "openAtStartup": {
+      "label": "Abrir ao iniciar a sessão",
+      "hint": "Inicia o Uncached quando você entra no computador."
+    },
+    "keepRunning": {
+      "label": "Continuar em segundo plano",
+      "hint": "Fechar a janela deixa o Uncached na barra de menus em vez de encerrá-lo. A manutenção agendada roda de lá; Encerrar a interrompe até você abrir o app de novo."
+    },
+    "rememberWorkspace": {
+      "label": "Lembrar o último workspace",
+      "hint": "Reabre as pastas e a análise da última sessão ao iniciar."
+    },
+    "checkUpdates": {
+      "label": "Procurar atualizações",
+      "hint": "Verifica periodicamente se há versões novas e correções de segurança."
+    }
+  },
+  "language": {
+    "label": "Idioma",
+    "hint": "A interface, a barra de menus e as notificações.",
+    "system": "Sistema ({{name}})"
+  },
+  "permanentConfirm": {
+    "title": "Ativar a remoção permanente?",
+    "body": "Os alvos são apagados direto do disco em vez de ir para o Lixo. Irreversível. Cada limpeza vai exigir digitar <strong>{{word}}</strong> para confirmar.",
+    "confirm": "Ativar a remoção permanente"
+  },
+  "opening": {
+    "intro": "Escolha qual aplicativo instalado abre um projeto ou um terminal.",
+    "editor": {
+      "label": "Editor",
+      "hint": "No automático, o editor feito para a linguagem do projeto vem primeiro, depois qualquer um de uso geral.",
+      "empty": "Nenhum editor encontrado na sua pasta Aplicativos."
+    },
+    "terminal": {
+      "label": "Terminal",
+      "hint": "Nenhuma plataforma expõe um terminal padrão que um app possa ler ao abrir um diretório, então o automático é o primeiro encontrado.",
+      "empty": "Nenhum terminal encontrado."
+    },
+    "automatic": "Automático",
+    "notInstalled": "Não instalado",
+    "detecting": "Lendo o que esta máquina tem instalado...",
+    "uninstalled": "O escolhido não está mais instalado, então a abertura volta à detecção."
+  },
+  "scanning": {
+    "intro": "Artefatos de build dentro das suas pastas são sempre detectados. Estes são os caches que ficam em outros lugares, gravados por ferramentas e não por um projeto.",
+    "packageManagers": {
+      "label": "Caches de gerenciadores de pacotes",
+      "hint": "Inclui os caches globais de pacotes do npm, pnpm, yarn, cargo, pip e uv."
+    },
+    "aiTools": {
+      "label": "Caches de ferramentas de IA",
+      "hint": "Inclui os caches do Claude Code, do app Claude, do Codex e do opencode."
+    },
+    "editors": {
+      "label": "Caches de editores",
+      "hint": "Inclui os caches de metadados de workspace do VS Code e da JetBrains."
+    },
+    "gameEngines": {
+      "label": "Caches de engines de jogos",
+      "hint": "Inclui os pacotes e downloads da Asset Store do Unity, e o cache do editor e os templates de exportação do Godot."
+    },
+    "androidSdk": {
+      "label": "Android SDK",
+      "hint": "Inclui as imagens de sistema baixadas e os emuladores criados a partir delas."
+    },
+    "containerStorage": {
+      "label": "Armazenamento de contêineres",
+      "hint": "Informa o tamanho da imagem de disco do Docker Desktop. O Uncached nunca a remove."
+    },
+    "xcode": {
+      "label": "Dados de desenvolvedor do Xcode",
+      "hint": "Inclui DerivedData, suporte a dispositivos, simuladores e runtimes de simulador."
+    },
+    "footer": "Para deixar algo dentro de um workspace intocado, adicione-o em Regras de exclusão — uma regra ali cobre todo tipo de artefato e vale também para execuções agendadas."
+  },
+  "ignoreRules": {
+    "intro": "Caminhos listados aqui nunca são varridos nem apagados, seja o que for que o app encontre ali. Uma regra por linha, na sintaxe <mono>{{syntax}}</mono> — um nome solto corresponde em qualquer lugar, um caminho completo corresponde a esse caminho e a tudo abaixo dele, e <mono>{{negation}}</mono> cria uma exceção.",
+    "problem": "A <bold>linha {{line}}</bold> não pôde ser lida, então não protege nada: <rule/> — <reason/>",
+    "empty": "Nenhuma regra ainda. Tudo o que a varredura encontra é oferecido.",
+    "inForce_one": "{{count}} regra em vigor.",
+    "inForce_other": "{{count}} regras em vigor."
+  },
+  "deletion": {
+    "intro": "Escolha como artefatos de build e caches são removidos do disco durante a limpeza.",
+    "trash": {
+      "label": "Mover para o Lixo",
+      "hint": "Os artefatos vão para o Lixo do sistema, então as limpezas podem ser desfeitas."
+    },
+    "permanent": {
+      "label": "Apagar permanentemente",
+      "hint": "Os alvos são apagados direto do disco, liberando espaço na hora. Cada execução exige confirmação."
+    }
+  },
+  "appearance": {
+    "intro": "Escolha o tema da interface.",
+    "lockedToLight": "{{name}} é um tema claro — não traz cores para o modo escuro, então o modo segue o tema.",
+    "lockedToDark": "{{name}} é um tema escuro — não traz cores para o modo claro, então o modo segue o tema.",
+    "lacksDark": "{{name}} não traz cores escuras.",
+    "lacksLight": "{{name}} não traz cores claras.",
+    "dark": {
+      "label": "Escuro",
+      "hint": "Tema escuro otimizado para ambientes de desenvolvimento com pouca luz."
+    },
+    "light": {
+      "label": "Claro",
+      "hint": "Tema claro de alto contraste."
+    },
+    "system": {
+      "label": "Sistema",
+      "hint": "Segue a preferência de aparência do sistema operacional."
+    },
+    "themesIntro": "Um arquivo de tema redefine algumas cores do app e mantém as demais, então um tema escrito hoje continua funcionando depois que uma versão adiciona uma superfície.",
+    "theme": {
+      "label": "Tema",
+      "both": "Traz claro e escuro.",
+      "yours_one": "{{count}} destes é seu.",
+      "yours_other": "{{count}} destes são seus.",
+      "custom": "{{name}} (personalizado)"
+    },
+    "files": {
+      "label": "Seus ajustes e temas",
+      "hint": "<mono>{{file}}</mono> e uma pasta <mono>{{folder}}</mono>, na sua própria Biblioteca. Edite qualquer um e volte — os dois são relidos quando a janela recebe o foco.",
+      "open": "Abrir pasta"
+    }
+  },
+  "about": {
+    "tagline": "Libere o espaço em disco ocupado por artefatos de build.",
+    "version": "Versão {{version}}",
+    "eula": "Contrato de Licença de Usuário Final (EULA)",
+    "update": {
+      "available": "Uncached {{version}} disponível",
+      "downloading": "Baixando {{version}}",
+      "downloadingProgress": "Baixando {{version}} — {{percent}}%",
+      "ready": "Uncached {{version}} instalado — reinicie para usar",
+      "checking": "Verificando…",
+      "showProgress": "Mostrar progresso",
+      "whatsNew": "Ver novidades",
+      "restart": "Reiniciar agora",
+      "check": "Procurar atualizações"
+    }
+  },
+  "license": {
+    "reading": "Lendo sua licença...",
+    "active": {
+      "tagline": "Todos os recursos ativos nesta máquina",
+      "badge": "Ativa",
+      "renews_one": "A licença renova em {{count}} dia.",
+      "renews_other": "A licença renova em {{count}} dias.",
+      "renewalEmail": "O recibo e a chave atualizada chegarão por e-mail.",
+      "holder": "Licenciado para",
+      "seats": "Assentos autorizados",
+      "machines_one": "{{count}} máquina",
+      "machines_other": "{{count}} máquinas",
+      "expiration": "Validade",
+      "perpetual": "Perpétua",
+      "reference": "Referência",
+      "copyReference": "Copiar referência para um pedido de suporte",
+      "movingTitle": "Vai mudar de máquina?",
+      "movingHint": "Guarde sua chave antes de removê-la daqui.",
+      "copied": "Copiado",
+      "copyKey": "Copiar chave de licença",
+      "removing": "Removendo...",
+      "confirmRemove": "Sim, remover",
+      "remove": "Remover desta máquina"
+    },
+    "expired": {
+      "title": "Licença expirada",
+      "holderAndDate": "{{holder}} · {{date}}",
+      "badge": "Vencida",
+      "body": "Os recursos Pro ficam bloqueados até a renovação. Tudo o que o Free faz continua igual — nenhum projeto e nada no disco é afetado por isso."
+    },
+    "free": {
+      "badge": "Plano atual",
+      "body": "O Free limpa todos os artefatos de todos os projetos, sem limites. O Pro adiciona as leituras que abrangem o workspace inteiro:"
+    },
+    "features": {
+      "map": "Mapa 2D interativo do workspace",
+      "schedule": "Limpezas automáticas em segundo plano",
+      "duplicates": "Análise de duplicatas entre projetos",
+      "analytics": "Histórico completo do espaço liberado"
+    },
+    "form": {
+      "keyLabel": "Chave de licença",
+      "renewedKeyLabel": "Chave de licença renovada",
+      "placeholder": "Cole a chave do seu recibo",
+      "partialKey": "Isto parece ser parte de uma chave. Cole a linha inteira do seu recibo.",
+      "failed": "Falha na ativação. Verifique sua chave.",
+      "validating": "Validando...",
+      "activate": "Ativar o Pro",
+      "reactivate": "Reativar o Pro",
+      "getLicence": "Obter uma licença",
+      "renewLicence": "Renovar licença",
+      "offline": "A ativação é offline. A chave traz a própria assinatura, então nada é enviado e ela funciona sem conexão."
+    },
+    "errors": {
+      "licence_malformed": "Isto não é uma chave de licença. Cole a linha inteira do seu recibo.",
+      "licence_bad_signature": "Esta chave não foi emitida pelo Uncached ou foi alterada no caminho.",
+      "licence_unsupported_version": "Esta chave precisa de uma versão mais nova do Uncached para ser lida (formato {{version}}).",
+      "licence_expired": "Esta licença expirou em {{date}}.",
+      "licence_not_pro": "Esta chave libera \"{{plan}}\", mas este build não tem nada que esse plano libere.",
+      "licence_no_public_key": "Este build não consegue verificar licenças. Ele foi compilado sem uma chave de assinatura."
+    }
+  },
+  "shortcuts": {
+    "intro": "Clique em uma tecla para gravar uma nova. Os atalhos ficam em <mono>{{file}}</mono> pelo nome da ação, então só o que você mudou é guardado, e um padrão que muda em uma atualização muda para você também.",
+    "clash": "Dois comandos usam a mesma tecla. Este app não decide qual deles responde a ela — mude um.",
+    "resetTitle": "Voltar para {{binding}}",
+    "resetLabel": "Redefinir {{action}}",
+    "pressKey": "Pressione uma tecla",
+    "footer": "Uma tecla sem modificador só dispara quando nada está sendo digitado e nunca aparece na barra de menus — o sistema a tomaria para si e ela deixaria de chegar ao destino.",
+    "actions": {
+      "palette": {
+        "label": "Paleta de comandos",
+        "detail": "Todos os projetos e módulos, por nome."
+      },
+      "rescan": {
+        "label": "Varrer workspace",
+        "detail": "Lê as pastas escolhidas de novo."
+      },
+      "quickClean": {
+        "label": "Liberar espaço",
+        "detail": "Abre os artefatos encontrados na última varredura, prontos para revisão."
+      },
+      "settings": {
+        "label": "Ajustes",
+        "detail": "O painel. O macOS coloca este no próprio menu do app."
+      },
+      "toggleMap": {
+        "label": "Mapa",
+        "detail": "Alterna entre a lista e o mapa, e volta."
+      },
+      "toggleSidebar": {
+        "label": "Filtros",
+        "detail": "Recolhe e expande a coluna de filtros."
+      },
+      "focusFilter": {
+        "label": "Filtrar projetos",
+        "detail": "Vai para o campo de filtro de qualquer ponto da tela."
+      },
+      "workspace": {
+        "label": "Workspace",
+        "detail": "Os projetos e quanto pesam."
+      },
+      "maintenance": {
+        "label": "Manutenção",
+        "detail": "A política e o que ela selecionaria."
+      },
+      "insights": {
+        "label": "Insights",
+        "detail": "O workspace em uma única imagem e o que já foi liberado."
+      }
+    }
+  }
+}

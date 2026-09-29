@@ -1,46 +1,49 @@
 import { useState } from "react";
 import { Check, Copy, Eye, LoaderCircle, LockKeyhole, Radio, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
-import { formatAge } from "../../utils/format.mjs";
-import { categoryPresentation } from "./categoryPresentation";
+import { useTranslation } from "react-i18next";
+import { formatAge, formatBytes } from "../../utils/format.mjs";
+import { translatedCategoryPresentation } from "./categoryPresentation";
 import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
 
-// The level is decided in Rust and arrives as a reason code. The wording is
-// presentation, so it lives here; an unknown code renders as itself rather
+// Reason codes as Rust sends them. An unknown code renders as itself rather
 // than disappearing.
-const CONFIDENCE_REASONS: Record<string, string> = {
-  knownArtifact: "Recognized build artifact",
-  projectManifest: "Sits inside a project with a manifest",
-  lockfile: "The project has a lockfile, contents are reproducible",
-  declaredDisposable: "Declared disposable by the project's .gitignore",
-  versionControlled: "Tracked by Git, so it is not a build output",
-  versionManagerPath: "Version manager directory, holds globally installed packages",
-  systemPath: "Belongs to the operating system, not to a project",
-  noProjectContext: "No project found around it",
-  knownLocation: "Known cache location belonging to a specific tool",
-  sharedCache: "Shared by every project: clearing it makes future installs slower",
-  toolState: "Belongs to a tool rather than to a build",
-};
+const CONFIDENCE_REASONS = [
+  "knownArtifact",
+  "projectManifest",
+  "lockfile",
+  "declaredDisposable",
+  "versionControlled",
+  "versionManagerPath",
+  "systemPath",
+  "noProjectContext",
+  "knownLocation",
+  "sharedCache",
+  "toolState",
+] as const;
+
+type ConfidenceReason = (typeof CONFIDENCE_REASONS)[number];
+
+function isKnownReason(signal: string): signal is ConfidenceReason {
+  return (CONFIDENCE_REASONS as readonly string[]).includes(signal);
+}
 
 const CONFIDENCE_PRESENTATION: Record<
   ConfidenceLevel,
-  { label: string; className: string; textClassName: string; arrowClassName: string; icon: typeof ShieldCheck }
+  { className: string; textClassName: string; arrowClassName: string; icon: typeof ShieldCheck }
 > = {
   high: {
-    label: "High confidence",
     className: "border-confidence-high/25 bg-confidence-high-surface text-confidence-high",
     textClassName: "text-confidence-high",
     arrowClassName: "border-t-confidence-high-surface",
     icon: ShieldCheck,
   },
   medium: {
-    label: "Medium confidence",
     className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
     textClassName: "text-confidence-medium",
     arrowClassName: "border-t-confidence-medium-surface",
     icon: TriangleAlert,
   },
   review: {
-    label: "Review",
     className: "border-confidence-review/25 bg-confidence-review-surface text-confidence-review",
     textClassName: "text-confidence-review",
     arrowClassName: "border-t-confidence-review-surface",
@@ -59,12 +62,10 @@ interface TargetCardProps {
   proEnabled: boolean;
 }
 
-function confidenceReasons(target: ScanTarget): string[] {
-  return target.confidence.signals.map((signal) => CONFIDENCE_REASONS[signal] ?? signal);
-}
-
 function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; expanded: boolean; onToggle: () => void }) {
+  const { t } = useTranslation();
   const presentation = CONFIDENCE_PRESENTATION[target.confidence.level];
+  const levelLabel = t(`findings.confidence.levels.${target.confidence.level}`);
   const Icon = presentation.icon;
 
   return (
@@ -77,7 +78,7 @@ function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; e
         }}
         aria-expanded={expanded}
         // Icon only, so the name has to carry what the shape means.
-        aria-label={`${presentation.label} for ${target.name}. Show what was detected`}
+        aria-label={t("findings.confidence.badgeLabel", { level: levelLabel, name: target.name })}
         className={`grid size-6 place-items-center rounded-md border leading-none transition-colors hover:border-sage-400/50 ${presentation.className}`}
       >
         <Icon size={13} aria-hidden="true" />
@@ -88,11 +89,11 @@ function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; e
           keyboard reaches what the mouse gets. */}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute -top-8 right-0 z-10 flex scale-95 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium opacity-0 shadow-xl transition-all duration-200 group-hover/confidence:scale-100 group-hover/confidence:opacity-100 ${presentation.className}`}
+        className={`pointer-events-none absolute -top-8 end-0 z-10 flex scale-95 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 font-sans text-[11px] font-medium opacity-0 shadow-xl transition-all duration-200 group-hover/confidence:scale-100 group-hover/confidence:opacity-100 ${presentation.className}`}
       >
         <Icon size={11} aria-hidden="true" />
-        {presentation.label}
-        <span className={`absolute -bottom-1 right-2.5 border-x-4 border-t-4 border-x-transparent ${presentation.arrowClassName}`} />
+        {levelLabel}
+        <span className={`absolute -bottom-1 end-2.5 border-x-4 border-t-4 border-x-transparent ${presentation.arrowClassName}`} />
       </span>
     </div>
   );
@@ -101,13 +102,19 @@ function ConfidenceBadge({ target, expanded, onToggle }: { target: ScanTarget; e
 // Rendered across the whole card rather than inside the column holding the
 // badge: the reasons are sentences, and the size column is too narrow for them.
 function ConfidenceReasons({ target }: { target: ScanTarget }) {
+  const { t } = useTranslation();
   const presentation = CONFIDENCE_PRESENTATION[target.confidence.level];
+  const reasons = target.confidence.signals.map((signal) =>
+    isKnownReason(signal) ? t(`findings.confidence.reasons.${signal}`) : signal,
+  );
 
   return (
     <div className="border-t border-forest-800 pt-2.5 sm:col-span-2">
-      <p className={`text-[11px] font-medium ${presentation.textClassName}`}>{presentation.label}</p>
+      <p className={`text-[11px] font-medium ${presentation.textClassName}`}>
+        {t(`findings.confidence.levels.${target.confidence.level}`)}
+      </p>
       <ul className="mt-1.5 space-y-1">
-        {confidenceReasons(target).map((reason) => (
+        {reasons.map((reason) => (
           <li key={reason} className="flex items-start gap-2 text-[11px] leading-5 text-mist-500">
             <span aria-hidden="true" className="mt-1.5 size-1 shrink-0 rounded-full bg-mist-500" />
             {reason}
@@ -119,6 +126,7 @@ function ConfidenceReasons({ target }: { target: ScanTarget }) {
 }
 
 export function TargetCard({ target, first, isCleaning, selected, onToggle, onRefreshSize, proEnabled }: TargetCardProps) {
+  const { t } = useTranslation();
   const [copiedPath, setCopiedPath] = useState(false);
   const [confidenceOpen, setConfidenceOpen] = useState(false);
   const proLocked = target.plan === "pro" && !proEnabled;
@@ -132,7 +140,7 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
   const inUse = target.blockedBy ?? null;
   const disabled =
     isCleaning || target.sizePending || target.sizeHasErrors || proLocked || reportOnly || inUse !== null;
-  const category = categoryPresentation(target.category);
+  const category = translatedCategoryPresentation(target.category, t);
   const age = formatAge(target.lastUsedAt);
   const CategoryIcon = category.icon;
 
@@ -161,11 +169,11 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
         first ? "" : "border-t border-forest-800"
       } ${
         proLocked
-          ? "cursor-not-allowed bg-forest-950 text-mist-500 shadow-[inset_3px_0_0_0_var(--color-pro-200)]"
+          ? "cursor-not-allowed bg-forest-950 text-mist-500 shadow-[inset_3px_0_0_0_var(--color-pro-200)] rtl:shadow-[inset_-3px_0_0_0_var(--color-pro-200)]"
           : disabled
             ? "cursor-not-allowed text-mist-500"
             : selected
-              ? "cursor-pointer bg-forest-850 shadow-[inset_3px_0_0_0_var(--color-sage-400)]"
+              ? "cursor-pointer bg-forest-850 shadow-[inset_3px_0_0_0_var(--color-sage-400)] rtl:shadow-[inset_-3px_0_0_0_var(--color-sage-400)]"
               : "cursor-pointer hover:bg-forest-850/60"
       }`}
     >
@@ -189,7 +197,7 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
             role="checkbox"
             aria-checked={selected}
             aria-disabled={disabled}
-            aria-label={`Select ${target.name}`}
+            aria-label={t("findings.row.select", { name: target.name })}
             tabIndex={disabled ? -1 : 0}
             onKeyDown={(e) => {
               if ((e.key === " " || e.key === "Enter") && !disabled) {
@@ -220,7 +228,7 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
             <span className="text-xs font-medium text-mist-500">{target.label ?? target.name}</span>
             {age && (
               <span
-                title="The newest file inside it. A cache nothing has written to in months is one a rebuild can replace."
+                title={t("findings.row.ageHint")}
                 className="font-mono text-[11px] text-mist-500"
               >
                 {age}
@@ -228,10 +236,10 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
             )}
             {inUse && (
               <span
-                title={`Uncached will not remove this while ${inUse} is running: the files it holds open would go with it.`}
+                title={t("findings.row.inUseHint", { tool: inUse })}
                 className="inline-flex items-center gap-1 rounded-md border border-coral-300/40 bg-coral-surface px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-coral-300"
               >
-                <Radio size={10} aria-hidden="true" /> In use
+                <Radio size={10} aria-hidden="true" /> {t("findings.row.inUse")}
               </span>
             )}
             {proLocked && (
@@ -262,12 +270,12 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
                 {copiedPath ? (
                   <>
                     <Check size={11} className="text-sage-300" strokeWidth={2.5} aria-hidden="true" />
-                    <span>Copied</span>
+                    <span>{t("findings.row.copied")}</span>
                   </>
                 ) : (
                   <>
                     <Copy size={11} className="text-mist-500" aria-hidden="true" />
-                    <span>Copy</span>
+                    <span>{t("findings.row.copy")}</span>
                   </>
                 )}
                 <span className="absolute -top-1 left-1/2 -translate-x-1/2 border-x-4 border-b-4 border-x-transparent border-b-forest-800" />
@@ -277,20 +285,20 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3 pl-8 sm:gap-4 sm:pl-0">
-        <div className="text-right">
+      <div className="flex items-center justify-end gap-3 ps-8 sm:gap-4 sm:ps-0">
+        <div className="text-end">
           {reportOnly ? (
             <div className="flex flex-col items-end gap-0.5">
-              <strong className="block text-lg font-semibold text-mist-300">{target.formattedSize}</strong>
-              <span className="text-[10px] font-medium text-mist-500">reported, not removed</span>
+              <strong className="block text-lg font-semibold text-mist-300">{formatBytes(target.sizeBytes)}</strong>
+              <span className="text-[10px] font-medium text-mist-500">{t("findings.row.reportedNotRemoved")}</span>
             </div>
           ) : target.sizePending ? (
             <span className="inline-flex items-center gap-2 text-sm text-mist-500">
-              <LoaderCircle size={16} className="animate-spin text-sage-400" aria-hidden="true" /> Loading size
+              <LoaderCircle size={16} className="animate-spin text-sage-400" aria-hidden="true" /> {t("findings.row.loadingSize")}
             </span>
           ) : target.sizeHasErrors ? (
             <div className="flex flex-col items-end gap-1">
-              <span className="text-xs font-medium text-confidence-medium">Size unavailable</span>
+              <span className="text-xs font-medium text-confidence-medium">{t("findings.row.sizeUnavailable")}</span>
               <button
                 type="button"
                 onClick={(e) => {
@@ -298,18 +306,18 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
                   onRefreshSize(target.id);
                 }}
                 className="inline-flex items-center gap-2 rounded-lg bg-forest-800 px-2.5 py-1 text-xs font-medium text-confidence-medium hover:bg-forest-850"
-                aria-label={`Size failed for ${target.name}. Retry measurement`}
+                aria-label={t("findings.row.retryLabel", { name: target.name })}
               >
-                <RefreshCw size={13} aria-hidden="true" /> Retry
+                <RefreshCw size={13} aria-hidden="true" /> {t("findings.row.retry")}
               </button>
             </div>
           ) : inUse ? (
             <div className="flex flex-col items-end gap-0.5">
               <strong className="block text-lg font-semibold text-mist-300">
-                {target.formattedSize}
+                {formatBytes(target.sizeBytes)}
               </strong>
               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-coral-300">
-                <Radio size={10} aria-hidden="true" /> {inUse} is running
+                <Radio size={10} aria-hidden="true" /> {t("findings.row.toolRunning", { tool: inUse })}
               </span>
             </div>
           ) : proLocked ? (
@@ -329,15 +337,15 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
                recognise. */
             <div className="flex flex-col items-end gap-0.5">
               <strong className="block text-lg font-semibold text-mist-300">
-                {target.formattedSize}
+                {formatBytes(target.sizeBytes)}
               </strong>
               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-pro-100">
-                <LockKeyhole size={10} aria-hidden="true" /> unlock to clean
+                <LockKeyhole size={10} aria-hidden="true" /> {t("findings.row.unlockToClean")}
               </span>
             </div>
           ) : (
             <strong className={`block text-lg font-semibold ${selected ? "text-mist-100" : "text-mist-300"}`}>
-              {target.formattedSize}
+              {formatBytes(target.sizeBytes)}
             </strong>
           )}
         </div>

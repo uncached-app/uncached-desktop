@@ -1,10 +1,11 @@
+import type { TFunction } from "i18next";
 import type { Activity, Footprint, Recoverability, Verdict, WorkspaceProject } from "../../types/workspace";
 import { formatBytes } from "../../utils/format.mjs";
 
 type VerdictPresentation = {
-  label: string;
+  labelKey: `workspace.verdicts.${Verdict}.label`;
   /** What the group means, in the user's terms. */
-  summary: string;
+  summaryKey: `workspace.verdicts.${Verdict}.summary`;
   className: string;
   dotClassName: string;
   /**
@@ -31,50 +32,50 @@ export const VERDICT_ORDER: Verdict[] = [
 
 export const VERDICT_PRESENTATION: Record<Verdict, VerdictPresentation> = {
   protect: {
-    label: "Protect",
-    summary: "Holds work that exists only on this disk.",
+    labelKey: "workspace.verdicts.protect.label",
+    summaryKey: "workspace.verdicts.protect.summary",
     className: "border-coral-300/30 bg-coral-300/10 text-coral-300",
     dotClassName: "bg-coral-300",
     mapClassName: "fill-coral-300/15 stroke-coral-300",
   },
   broken: {
-    label: "Needs install",
-    summary: "A lockfile with nothing installed behind it.",
+    labelKey: "workspace.verdicts.broken.label",
+    summaryKey: "workspace.verdicts.broken.summary",
     className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
     dotClassName: "bg-confidence-medium",
     mapClassName: "fill-confidence-medium-surface stroke-confidence-medium",
   },
   staleDeps: {
-    label: "Stale install",
-    summary: "The lockfile changed after the last install.",
+    labelKey: "workspace.verdicts.staleDeps.label",
+    summaryKey: "workspace.verdicts.staleDeps.summary",
     className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
     dotClassName: "bg-confidence-medium",
     mapClassName: "fill-confidence-medium-surface stroke-confidence-medium",
   },
   tradeOff: {
-    label: "In use",
-    summary: "Reclaimable, but you will pay to reinstall.",
+    labelKey: "workspace.verdicts.tradeOff.label",
+    summaryKey: "workspace.verdicts.tradeOff.summary",
     className: "border-confidence-review/30 bg-confidence-review-surface text-confidence-review",
     dotClassName: "bg-confidence-review",
     mapClassName: "fill-confidence-review-surface stroke-confidence-review",
   },
   safe: {
-    label: "Safe to reclaim",
-    summary: "Everything is on a remote and nobody has touched it in months.",
+    labelKey: "workspace.verdicts.safe.label",
+    summaryKey: "workspace.verdicts.safe.summary",
     className: "border-confidence-high/30 bg-confidence-high-surface text-confidence-high",
     dotClassName: "bg-confidence-high",
     mapClassName: "fill-confidence-high-surface stroke-confidence-high",
   },
   archivable: {
-    label: "Fully on remote",
-    summary: "Nothing left to reclaim. The local copy is yours to keep or drop.",
+    labelKey: "workspace.verdicts.archivable.label",
+    summaryKey: "workspace.verdicts.archivable.summary",
     className: "border-forest-800 bg-forest-850 text-mist-300",
     dotClassName: "bg-mist-500",
     mapClassName: "fill-forest-850 stroke-mist-500",
   },
   unknown: {
-    label: "Not established",
-    summary: "Not enough was readable to judge. Never touched automatically.",
+    labelKey: "workspace.verdicts.unknown.label",
+    summaryKey: "workspace.verdicts.unknown.summary",
     className: "border-forest-800 bg-forest-850 text-mist-500",
     dotClassName: "bg-mist-500",
     mapClassName: "fill-forest-850 stroke-mist-500",
@@ -86,44 +87,51 @@ export function projectEvidence(
   project: WorkspaceProject,
   verdict: Verdict,
   footprint: Footprint | null,
+  t: TFunction,
 ): string {
-  if (verdict === "protect") return atRisk(project.git.recoverability) ?? "Work that is not on any remote.";
-  if (verdict === "broken") return "Install it before anything here can be judged.";
-  if (verdict === "staleDeps") return "The installed dependencies no longer match the lockfile.";
-  if (verdict === "unknown") return project.git.remote ? "Git could not be read." : "Not a repository.";
+  if (verdict === "protect") {
+    return atRisk(project.git.recoverability, t) ?? t("workspace.evidence.notOnRemote");
+  }
+  if (verdict === "broken") return t("workspace.evidence.broken");
+  if (verdict === "staleDeps") return t("workspace.evidence.staleDeps");
+  if (verdict === "unknown") {
+    return project.git.remote ? t("workspace.evidence.gitUnreadable") : t("workspace.evidence.notRepository");
+  }
 
-  const idle = idleFor(project.activity);
+  const idle = idleFor(project.activity, t);
   const reclaimable = footprint && footprint.reclaimableBytes > 0 ? formatBytes(footprint.reclaimableBytes) : null;
 
   if (verdict === "archivable") {
-    return idle ? `${idle}, and every commit is on the remote.` : "Every commit is on the remote.";
+    return idle ? t("workspace.evidence.archivableIdle", { idle }) : t("workspace.evidence.archivable");
   }
   if (verdict === "safe") {
-    return [idle, reclaimable && `${reclaimable} to reclaim`].filter(Boolean).join(" · ");
+    return [idle, reclaimable && t("workspace.evidence.toReclaim", { size: reclaimable })]
+      .filter(Boolean)
+      .join(" · ");
   }
-  return [idle, reclaimable && `${reclaimable} would need reinstalling`].filter(Boolean).join(" · ");
+  return [idle, reclaimable && t("workspace.evidence.toReinstall", { size: reclaimable })]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** Names what exists nowhere else, most alarming first. */
-function atRisk(recoverability: Recoverability): string | null {
-  const parts = [
-    count(recoverability.unpushedCommits, "commit", "not pushed"),
-    count(recoverability.stashEntries, "stash", "saved"),
-    count(recoverability.branchesWithoutUpstream, "branch", "with no remote"),
-    count(recoverability.untrackedFiles, "file", "never committed"),
-  ].filter(Boolean);
-  return parts.length > 0 ? parts.join(", ") : null;
+function atRisk(recoverability: Recoverability, t: TFunction): string | null {
+  const parts = (
+    [
+      [recoverability.unpushedCommits, "unpushedCommits"],
+      [recoverability.stashEntries, "stashEntries"],
+      [recoverability.branchesWithoutUpstream, "branchesWithoutUpstream"],
+      [recoverability.untrackedFiles, "untrackedFiles"],
+    ] as const
+  )
+    .filter(([count]) => count > 0)
+    .map(([count, kind]) => t(`workspace.evidence.risk.${kind}`, { count }));
+  return parts.length > 0 ? parts.join(t("workspace.evidence.risk.separator")) : null;
 }
 
-function count(value: number, noun: string, suffix: string): string | null {
-  if (value === 0) return null;
-  return `${value} ${value === 1 ? noun : `${noun}s`} ${suffix}`;
-}
-
-function idleFor(activity: Activity): string | null {
+function idleFor(activity: Activity, t: TFunction): string | null {
   if (activity.idleDays === null) return null;
-  if (activity.idleDays < 1) return "Touched today";
-  if (activity.idleDays < 60) return `Idle ${activity.idleDays} days`;
-  const months = Math.round(activity.idleDays / 30);
-  return `Untouched for ${months} months`;
+  if (activity.idleDays < 1) return t("workspace.evidence.touchedToday");
+  if (activity.idleDays < 60) return t("workspace.evidence.idleDays", { count: activity.idleDays });
+  return t("workspace.evidence.untouchedMonths", { count: Math.round(activity.idleDays / 30) });
 }

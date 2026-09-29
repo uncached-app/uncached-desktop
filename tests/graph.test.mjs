@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import i18next from "i18next";
 import { nodeRadius, workspaceGraph } from "../src/utils/graph.mjs";
 
 const GB = 1024 * 1024 * 1024;
@@ -26,6 +28,28 @@ function family(name, members, declaredBy = null) {
 
 function graph({ projects = [], footprints = {}, verdicts = {}, packages = [], families = [], aspect } = {}) {
   return workspaceGraph({ projects, footprints, verdicts, packages, families, aspect });
+}
+
+const english = i18next.createInstance();
+await english.init({
+  lng: "en",
+  resources: {
+    en: {
+      translation: {
+        workspace: JSON.parse(
+          readFileSync(new URL("../src/i18n/locales/en/workspace.json", import.meta.url)),
+        ),
+      },
+    },
+  },
+  interpolation: { escapeValue: false },
+});
+
+/** The text as the English interface shows it. Throws on a key the catalogue lacks. */
+function render(message) {
+  const { key, params } = message;
+  assert.ok(english.exists(key, params), `${key} is not in the English catalogue`);
+  return english.t(key, params);
 }
 
 test("an empty workspace is an empty picture rather than a crash", () => {
@@ -90,7 +114,8 @@ test("a package says how many of its copies are actually drawn", () => {
   });
 
   const react = result.nodes.find((node) => node.kind === "package");
-  assert.equal(react.detail, "2 of 3 copies here");
+  assert.deepEqual(react.detail, { key: "workspace.graph.copiesHere", params: { drawn: 2, count: 3 } });
+  assert.equal(render(react.detail), "2 of 3 copies here");
   assert.equal(result.edges.filter((edge) => edge.kind === "copy").length, 2);
 });
 
@@ -281,11 +306,13 @@ test("a family's name sits in the middle of its own cluster", () => {
 test("a family label says whether a tool declared it or somebody just filed it there", () => {
   const projects = ["a", "b"].map((name) => ({ ...project(name), path: `/w/mono/${name}` }));
 
-  assert.equal(graph({ projects, families: [family("mono", ["a", "b"])] }).labels[0].detail, "one folder");
-  assert.equal(
-    graph({ projects, families: [family("mono", ["a", "b"], "pnpm")] }).labels[0].detail,
-    "pnpm workspace",
-  );
+  const filed = graph({ projects, families: [family("mono", ["a", "b"])] }).labels[0].detail;
+  const declared = graph({ projects, families: [family("mono", ["a", "b"], "pnpm")] }).labels[0].detail;
+
+  assert.equal(filed.key, "workspace.graph.oneFolder");
+  assert.equal(render(filed), "one folder");
+  assert.deepEqual(declared, { key: "workspace.graph.declared", params: { tool: "pnpm" } });
+  assert.equal(render(declared), "pnpm workspace");
 });
 
 test("a workspace sharing nothing says so rather than drawing an empty middle", () => {

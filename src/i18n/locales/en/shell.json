@@ -1,0 +1,177 @@
+{
+  "actionsFor": "Actions for {{name}}",
+  "actions": {
+    "openIn": "Open in {{app}}",
+    "reveal": "Reveal in file manager",
+    "copyPath": "Copy path",
+    "fetch": "Fetch from remote",
+    "openRepository": "Open repository",
+    "done": "{{action}} — done",
+    "failed": "That did not work"
+  },
+  "folderMenu": {
+    "label": "{{name}} actions"
+  },
+  "proLock": {
+    "label": "{{label}}. {{reason}}"
+  },
+  "rootPicker": {
+    "remove": "Remove {{name}}",
+    "empty": "No folder selected yet",
+    "addAnother": "Add another folder",
+    "multiRootPro": "Scanning several folders at once is part of Pro",
+    "browseLabel": "Browse for a folder",
+    "browse": "Browse"
+  },
+  "index": {
+    "noFolder": "Select or paste a folder path first."
+  },
+  "palette": {
+    "label": "Command palette",
+    "close": "Close",
+    "back": "Back to everything",
+    "search": "Search projects and commands",
+    "pickAction": "{{name}} — pick an action",
+    "emptyNoProjects": "Add a folder and your projects show up here.",
+    "noMatches": "Nothing matches that.",
+    "indexed_one": "{{count}} project indexed",
+    "indexed_other": "{{count}} projects indexed",
+    "hint": {
+      "back": "select · esc back",
+      "close": "select · esc close"
+    },
+    "groups": {
+      "actions": "Actions",
+      "projects": "Projects",
+      "folders": "Folders",
+      "commands": "Commands"
+    },
+    "folderAction": "{{action}} — {{name}}",
+    "commands": {
+      "projectPage": "Open project page",
+      "showInWorkspace": "Show in workspace",
+      "goWorkspace": "Go to Workspace",
+      "reclaim": "Reclaim disk",
+      "goInsights": "Go to Insights",
+      "goMaintenance": "Go to Maintenance",
+      "addFolder": "Add folder",
+      "rescan": "Scan workspace",
+      "settings": "Open settings"
+    }
+  },
+  "titlebar": {
+    "title": {
+      "insights": "Uncached Insights",
+      "maintenance": "Uncached Maintenance",
+      "workspace": "Uncached Workspace"
+    },
+    "pipeline": "Progress pipeline",
+    "steps": {
+      "workspace": "Workspace",
+      "scan": "Scan",
+      "review": "Review",
+      "done": "Done"
+    },
+    "openSettings": "Open settings",
+    "closeWindow": "Close window",
+    "minimizeWindow": "Minimize window",
+    "restoreWindow": "Restore window",
+    "maximizeWindow": "Maximize window"
+  },
+  "update": {
+    "available": "Uncached {{version}} is available",
+    "downloadingTitle": "Downloading Uncached {{version}}",
+    "unreachable": "The update could not be reached",
+    "busy": "Uncached is working — this will wait until it has finished",
+    "percent": "{{percent}}%",
+    "later": "Later",
+    "badge": {
+      "readyTitle": "Uncached {{version}} is installed — restart to use it",
+      "restart": "Restart",
+      "downloading": "Downloading",
+      "update": "Update"
+    },
+    "dialog": {
+      "label": "Software update",
+      "checkingTitle": "Looking for an update",
+      "readyTitle": "Ready to restart",
+      "close": "Close",
+      "checkingBody": "Asking the update server what the newest release is.",
+      "noNotes": "This release came without notes.",
+      "progressUnknown": "Downloading — the server did not say how large this is",
+      "progress": "{{percent}}% — you can close this and it keeps going",
+      "readyBody": "Uncached {{version}} is in place. Restarting takes a second and nothing in your workspace is touched.",
+      "notNow": "Not now",
+      "checking": "Checking…",
+      "restartNow": "Restart now",
+      "downloading": "Downloading…",
+      "tryAgain": "Try again",
+      "install": "Download and install"
+    },
+    "toast": {
+      "body": "Nothing is downloaded or replaced until you ask.",
+      "whatsNew": "What's new",
+      "dismiss": "Dismiss"
+    }
+  },
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "workspace": "Workspace",
+    "window": "Window",
+    "about": "About Uncached",
+    "services": "Services",
+    "hide": "Hide Uncached",
+    "hideOthers": "Hide Others",
+    "showAll": "Show All",
+    "quit": "Quit Uncached",
+    "undo": "Undo",
+    "redo": "Redo",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "selectAll": "Select All",
+    "minimize": "Minimize",
+    "zoom": "Zoom",
+    "closeWindow": "Close Window"
+  },
+  "native": {
+    "trayOpen": "Open Uncached",
+    "trayScan": "Scan workspace",
+    "trayQuit": "Quit Uncached",
+    "scanFinished_one": "{{count}} target found, {{size}} reclaimable.",
+    "scanFinished_other": "{{count}} targets found, {{size}} reclaimable.",
+    "maintenanceTitle": "Uncached maintenance",
+    "maintenanceBody_one": "{{size}} reclaimed from {{count}} idle project. Everything went to the Trash.",
+    "maintenanceBody_other": "{{size}} reclaimed from {{count}} idle projects. Everything went to the Trash."
+  },
+  "errors": {
+    "invalid_workspace": "This folder cannot be scanned.",
+    "io": "The disk refused the operation.",
+    "provider_unavailable": "No scanner recognises this target any more. Scan again.",
+    "target_missing": "The target no longer exists. Scan again.",
+    "target_not_directory": "The target is no longer a directory. Scan again.",
+    "target_name_unsupported": "The target's name cannot be read on this system.",
+    "target_provider_mismatch": "The target no longer matches what the scan found. Scan again.",
+    "target_context_invalid": "The project around the target changed since the scan. Scan again.",
+    "target_outside_workspace": "The target is outside the chosen folders.",
+    "target_ignored_by_rule": "An ignore rule covers the target.",
+    "target_identity_unavailable": "The target could not be identified on disk. Scan again.",
+    "target_identity_changed": "The target was replaced since the scan. Scan again.",
+    "target_reparse_point": "The target or a folder above it is a link. Uncached does not follow links when deleting.",
+    "secure_operation_unsupported": "This system cannot remove the target safely.",
+    "secure_target_open_failed": "The target could not be opened for removal.",
+    "secure_target_too_large": "The target holds more entries than one removal allows.",
+    "secure_target_too_deep": "The target is nested deeper than one removal allows.",
+    "secure_enumeration_failed": "The target's contents could not be read.",
+    "secure_handle_query_failed": "The system would not describe a file inside the target.",
+    "secure_deletion_failed": "The system refused to delete the target.",
+    "secure_trash_unavailable": "The Recycle Bin is not available on this system.",
+    "secure_trash_initialization_failed": "The Recycle Bin could not be opened.",
+    "secure_trash_operation_failed": "The target could not be moved to the Recycle Bin.",
+    "secure_trash_aborted": "Moving the target to the Recycle Bin was interrupted.",
+    "secure_trash_postcondition_failed": "The target was not in the Recycle Bin after the move.",
+    "target_in_use": "{{program}} is running. Close it and scan again — removing this now would break it."
+  }
+}

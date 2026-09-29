@@ -1,0 +1,235 @@
+{
+  "module": {
+    "title": "Insights",
+    "badge": {
+      "pro": "Analytics & Trends",
+      "free": "Scan Intelligence"
+    },
+    "intro": {
+      "pro": "Every recorded cleanup, disk recovery velocity, and what the last scan adds up to.",
+      "free": "Live telemetry from your workspace. Upgrade to Pro to track lifetime recovery history and trends."
+    },
+    "stage": {
+      "orphans": "Looking for build folders whose project is gone...",
+      "repositories": "Reading every repository for dead branches and stashes...",
+      "duplicates": "Reading every node_modules for identical copies..."
+    },
+    "closerLook": {
+      "title": "A closer look",
+      "settled": "Read from your workspace when it settled.",
+      "readingLabel": "Reading workspace",
+      "readAgainLabel": "Read workspace again",
+      "reading": "Reading...",
+      "readAgain": "Read again"
+    }
+  },
+  "reading": "Reading",
+  "storage": {
+    "noAnswer": "This volume did not answer.",
+    "title": "This disk",
+    "readAgain": "Read the volume again",
+    "usedOf": "{{used}} used of {{total}}",
+    "capacity": "Capacity",
+    "used": "Used",
+    "free": "Free",
+    "purgeable": "Purgeable",
+    "purgeableHint": "Counted as used, and released the moment something needs the room. Snapshots, and anything the system can fetch again.",
+    "withheld": "The system withholds whole directories from Uncached, so every total a scan produces is a floor rather than an answer.",
+    "openFullDiskAccess": "Open Full Disk Access"
+  },
+  "pro": {
+    "badge": "Pro Analytics",
+    "title": "Cleanup History & Intelligence is an Uncached Pro feature",
+    "body": "Free reads the machine fresh each time. Pro records every single cleanup — including automated scheduled runs — providing timeline charts, ecosystem breakdowns, and disk trends across workspaces.",
+    "cta": "Get Uncached Pro"
+  },
+  "noHistory": {
+    "title": "No cleanups recorded yet",
+    "body": "Your history and breakdown analytics will populate automatically as you clean caches and build artifacts."
+  },
+  "filterChips": {
+    "label": "Filtered by",
+    "dimension": "{{dimension}}:",
+    "clearAll": "Clear all"
+  },
+  "dimensions": {
+    "category": "Artifact",
+    "workspace": "Workspace",
+    "trigger": "Started by",
+    "mode": "Removed to"
+  },
+  "values": {
+    "unrecorded": "Unrecorded",
+    "trash": "Recycle Bin",
+    "permanent": "Permanently",
+    "scheduled": "A schedule",
+    "manual": "You"
+  },
+  "grains": {
+    "word": {
+      "day": "day",
+      "week": "week",
+      "month": "month",
+      "all": "all time"
+    },
+    "option": {
+      "day": "By day",
+      "week": "By week",
+      "month": "By month",
+      "all": "All time"
+    },
+    "window": {
+      "day_one": "{{count}} day",
+      "day_other": "{{count}} days",
+      "week_one": "{{count}} week",
+      "week_other": "{{count}} weeks",
+      "month_one": "{{count}} month",
+      "month_other": "{{count}} months"
+    }
+  },
+  "summary": {
+    "reclaimed": "Reclaimed Disk",
+    "allRecorded": "All recorded time",
+    "last": {
+      "day_one": "Last {{count}} day",
+      "day_other": "Last {{count}} days",
+      "week_one": "Last {{count}} week",
+      "week_other": "Last {{count}} weeks",
+      "month_one": "Last {{count}} month",
+      "month_other": "Last {{count}} months"
+    },
+    "versus": {
+      "day_one": "vs prev {{count}} day",
+      "day_other": "vs prev {{count}} days",
+      "week_one": "vs prev {{count}} week",
+      "week_other": "vs prev {{count}} weeks",
+      "month_one": "vs prev {{count}} month",
+      "month_other": "vs prev {{count}} months"
+    },
+    "trend": "{{percent}}%",
+    "cleanups": "Cleanups",
+    "activeDays_one": "across {{count}} active day",
+    "activeDays_other": "across {{count}} active days",
+    "largest": "Largest Cleanup",
+    "largestNote": "single largest artifact",
+    "average": "Average Cleanup",
+    "averageNote": "reclaimed per cleanup"
+  },
+  "timeline": {
+    "titleByGrain": "<word>Reclaimed</word><word>by</word><picker></picker>",
+    "titleAllTime": "<word>Reclaimed</word><picker></picker>",
+    "bucket": "{{date}}:",
+    "bucketCleanups_one": "({{count}} cleanup)",
+    "bucketCleanups_other": "({{count}} cleanups)",
+    "peak": "peak:",
+    "chartLabel": "Reclaimed disk over time"
+  },
+  "breakdown": {
+    "filtered": "filtered",
+    "empty": "Nothing recorded in this window.",
+    "cleanups_one": "{{count}} cleanup",
+    "cleanups_other": "{{count}} cleanups",
+    "share": "{{percent}}% share"
+  },
+  "eventLog": {
+    "title": "Cleanup Event Log",
+    "pickedOf_one": "<picker>{{shown}}</picker> of {{count}} event",
+    "pickedOf_other": "<picker>{{shown}}</picker> of {{count}} events",
+    "shownOf_one": "{{shown}} of {{count}} event",
+    "shownOf_other": "{{shown}} of {{count}} events",
+    "all": "All ({{count}})",
+    "empty": "No cleanup recorded in this window.",
+    "pathNotRecorded": "Path not recorded",
+    "copyPath": "Copy path",
+    "schedule": "schedule",
+    "nuke": "nuke",
+    "trash": "trash",
+    "showMore_one": "Show {{count}} more event",
+    "showMore_other": "Show {{count}} more events"
+  },
+  "portrait": {
+    "title": "This workspace",
+    "projects_one": "{{count}} project",
+    "projects_other": "{{count}} projects",
+    "pending_one": "{{count}} still being measured",
+    "pending_other": "{{count}} still being measured",
+    "onDisk": "on disk",
+    "reclaimable": "reclaimable",
+    "yourWork": "your work",
+    "barLabel": "Reclaimable weight across the workspace, by artifact"
+  },
+  "highlights": {
+    "title": "Findings from Last Scan",
+    "scanned_one": "{{count}} project scanned",
+    "scanned_other": "{{count}} projects scanned",
+    "emptyTitle": "Nothing stands out",
+    "emptyNoScan": "Scan a workspace to surface findings and recommendations.",
+    "emptyQuiet": "No project is cold, oversized, duplicated, or out of step with its lockfile.",
+    "view": "View in workspace",
+    "findings": {
+      "cold_one": "{{count}} project has been untouched for over {{days}} days, holding {{size}} of regenerable output.",
+      "cold_other": "{{count}} projects have been untouched for over {{days}} days, holding {{size}} of regenerable output.",
+      "heaviest": "{{name}} alone holds {{size}} that a build can regenerate.",
+      "concentration": "{{percent}}% of what you can reclaim is {{category}}, at {{size}}.",
+      "duplicates_one": "{{count}} project is a second copy of a repository you already have elsewhere.",
+      "duplicates_other": "{{count}} projects are copies of a repository you already have elsewhere.",
+      "stale_one": "{{count}} project has dependencies that no longer match its lockfile.",
+      "stale_other": "{{count}} projects have dependencies that no longer match their lockfiles.",
+      "protect_one": "{{count}} project holds work that exists only on this disk.",
+      "protect_other": "{{count}} projects hold work that exists only on this disk.",
+      "reclaimed_one": "You have reclaimed {{size}} with Uncached across {{count}} cleanup.",
+      "reclaimed_other": "You have reclaimed {{size}} with Uncached across {{count}} cleanups."
+    }
+  },
+  "duplicates": {
+    "title": "Duplicate dependencies",
+    "distinct_one": "{{count}} distinct package",
+    "distinct_other": "{{count}} distinct packages",
+    "wasted": "<size>{{size}}</size> held in identical copies across projects",
+    "none": "Nothing is duplicated across your projects.",
+    "copies_one": "{{count}} project",
+    "copies_other": "{{count}} projects",
+    "each": "{{size}} each",
+    "hidden_one": "{{count}} more package is duplicated. Pro lists them.",
+    "hidden_other": "{{count}} more packages are duplicated. Pro lists them.",
+    "shared_one": "{{count}} project already links their packages into a shared store instead of copying them.",
+    "shared_other": "{{count}} projects already link their packages into a shared store instead of copying them.",
+    "note": "One copy of each package is measured and the rest is arithmetic. Packages with native compiled binaries may vary across projects."
+  },
+  "repositories": {
+    "title": "Repository hygiene",
+    "examined_one": "{{count}} repository",
+    "examined_other": "{{count}} repositories",
+    "carrying_one": "<count>{{count}}</count> repository is carrying unmerged items",
+    "carrying_other": "<count>{{count}}</count> repositories are carrying unmerged items",
+    "clean": "Every repository here is clean.",
+    "prunable_one": "{{count}} prunable",
+    "prunable_other": "{{count}} prunable",
+    "deadTitle_one": "{{count}} dead branch",
+    "deadTitle_other": "{{count}} dead branches",
+    "dead_one": "{{count}} dead",
+    "dead_other": "{{count}} dead",
+    "stashesTitle_one": "{{count}} stash",
+    "stashesTitle_other": "{{count}} stashes",
+    "stashed_one": "{{count}} stashed",
+    "stashed_other": "{{count}} stashed",
+    "worktrees_one": "{{count}} worktree",
+    "worktrees_other": "{{count}} worktrees",
+    "prunableNote_one": "<strong>{{prunable}} of {{count}}</strong> dead branch could be deleted; the rest hold commits reachable from nowhere else. Open a repository to prune it.",
+    "prunableNote_other": "<strong>{{prunable}} of {{count}}</strong> dead branches could be deleted; the rest hold commits reachable from nowhere else. Open a repository to prune it.",
+    "noneSafe": "None of these branches can be deleted safely: their commits are reachable from nowhere else. Stashes and worktrees are reported and never acted on."
+  },
+  "orphans": {
+    "title": "Left behind",
+    "looking": "Looking",
+    "examined_one": "{{count}} folder examined",
+    "examined_other": "{{count}} folders examined",
+    "found": "<size>{{size}}</size> belongs to no project",
+    "none": "Every build folder here belongs to a project.",
+    "reveal": "Show {{path}} in the file manager",
+    "cannotRebuild": "cannot be rebuilt",
+    "unreadable": "unreadable",
+    "note": "Uncached will not remove these. A build folder is only ever a target when the project file that owns it sits beside it. Open one to decide for yourself.",
+    "exception": "The environments above are the exception: without the project's dependency file, no command can rebuild one."
+  }
+}

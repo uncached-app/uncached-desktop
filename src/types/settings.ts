@@ -1,3 +1,4 @@
+import type { LanguagePreference } from "../i18n/locales.d.mts";
 import type { MaintenancePolicy, Schedule } from "./maintenance";
 
 export type CleanMode = "Trash" | "Permanent";
@@ -28,6 +29,8 @@ export type AppSettings = {
   /** Folders the user last chose to scan. */
   workspaceRoots: string[];
   appearance: Appearance;
+  /** A supported BCP 47 tag, or follow the operating system. */
+  language: LanguagePreference;
   workspaceView: WorkspaceView;
   /** Whether the workspace's filter column is folded away. */
   workspaceSidebarHidden: boolean;

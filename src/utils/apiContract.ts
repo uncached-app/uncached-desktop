@@ -40,6 +40,7 @@ export const CORE_ERROR_CODES = [
   "secure_trash_operation_failed",
   "secure_trash_aborted",
   "secure_trash_postcondition_failed",
+  "target_in_use",
 ] as const;
 
 export type CoreErrorCode = (typeof CORE_ERROR_CODES)[number];
@@ -102,11 +103,6 @@ export type RawTargetSized = {
 };
 
 export type RawScanFailed = ScanFailed;
-
-export type UiError = {
-  code: string;
-  message: string;
-};
 
 export class ApiContractError extends Error {
   readonly info: CoreErrorInfo;
@@ -420,10 +416,6 @@ export function normalizeTargetSized(payload: RawTargetSized): RawTargetSized {
 
 export function validateRetryTargetSizeResult(value: unknown): TargetSized {
   return normalizeTargetSized(value as RawTargetSized);
-}
-
-export function toUiError(error: CoreErrorInfo): UiError {
-  return { code: error.code, message: error.message };
 }
 
 export function canUseCleanupMode(capabilities: CleanupCapabilities | null, mode: "Trash" | "Permanent") {

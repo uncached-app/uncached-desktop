@@ -1,5 +1,6 @@
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMapGestures } from "./useMapGestures";
 import {
   nodeRadius,
@@ -145,6 +146,7 @@ export function WorkspaceCanvas({
   onFolderMenu,
   focusPath,
 }: WorkspaceCanvasProps) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -282,7 +284,10 @@ export function WorkspaceCanvas({
         viewBox={`0 0 ${graph.width * SIDE} ${SIDE}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label={`${projects.length} projects and ${graph.nodes.length - projects.length} shared packages. The list reads the same workspace.`}
+        aria-label={t("workspace.canvas.label", {
+          count: projects.length,
+          packages: graph.nodes.length - projects.length,
+        })}
         className={`min-h-0 w-full flex-1 touch-none ${map.dragging ? "cursor-grabbing" : "cursor-grab"}`}
         {...map.handlers}
       >
@@ -357,32 +362,36 @@ export function WorkspaceCanvas({
               <span className="truncate font-semibold text-mist-100">{activeFamily.text}</span>
             </div>
             <span className="shrink-0 rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-300">
-              {activeFamily.declared ? "workspace" : "folder"}
+              {activeFamily.declared ? t("workspace.canvas.workspaceTag") : t("workspace.canvas.folderTag")}
             </span>
           </div>
 
           <div className="flex flex-col gap-1 border-t border-forest-800 pt-1.5 text-[11px]">
             <div className="flex items-center justify-between gap-4">
-              <span className="text-mist-500">Projects:</span>
+              <span className="text-mist-500">{t("workspace.canvas.projects")}</span>
               <span className="font-mono font-medium text-mist-100">{activeFamily.members}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-mist-500">On disk:</span>
+              <span className="text-mist-500">{t("workspace.canvas.onDisk")}</span>
               <span className="font-mono font-semibold text-mist-100">
-                {familyWeight.pending > 0 ? `at least ${formatBytes(familyWeight.total)}` : formatBytes(familyWeight.total)}
+                {familyWeight.pending > 0
+                  ? t("workspace.canvas.atLeast", { size: formatBytes(familyWeight.total) })
+                  : formatBytes(familyWeight.total)}
               </span>
             </div>
             {familyWeight.reclaimable > 0 && (
               <div className="flex items-center justify-between gap-4">
-                <span className="text-mist-500">Reclaimable:</span>
+                <span className="text-mist-500">{t("workspace.canvas.reclaimable")}</span>
                 <span className="font-mono font-semibold text-sage-300">
                   {formatBytes(familyWeight.reclaimable)}
                 </span>
               </div>
             )}
             <div className="flex items-center justify-between gap-4">
-              <span className="text-mist-500">Held together by:</span>
-              <span className="font-medium text-mist-100">{activeFamily.detail}</span>
+              <span className="text-mist-500">{t("workspace.canvas.heldBy")}</span>
+              <span className="font-medium text-mist-100">
+                {t(activeFamily.detail.key, activeFamily.detail.params)}
+              </span>
             </div>
           </div>
         </div>
@@ -403,7 +412,7 @@ export function WorkspaceCanvas({
               <span className="truncate font-semibold text-mist-100">{active.label}</span>
             </div>
             <span className="shrink-0 rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-300">
-              {active.kind === "package" ? "package" : (activeProject?.kind ?? "project")}
+              {active.kind === "package" ? t("workspace.canvas.packageTag") : (activeProject?.kind ?? t("workspace.canvas.projectTag"))}
             </span>
           </div>
 
@@ -411,28 +420,30 @@ export function WorkspaceCanvas({
           <div className="flex flex-col gap-1 border-t border-forest-800 pt-1.5 text-[11px]">
             {active.kind === "package" ? (
               <div className="flex items-center justify-between gap-4">
-                <span className="text-mist-500">Shared across:</span>
-                <span className="font-mono font-medium text-mist-100">{active.detail}</span>
+                <span className="text-mist-500">{t("workspace.canvas.sharedAcross")}</span>
+                <span className="font-mono font-medium text-mist-100">
+                  {active.detail && t(active.detail.key, active.detail.params)}
+                </span>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-4">
-                <span className="text-mist-500">Status:</span>
+                <span className="text-mist-500">{t("workspace.canvas.status")}</span>
                 <span className="font-medium text-mist-100">
-                  {VERDICT_PRESENTATION[verdicts[active.path ?? ""] ?? active.verdict ?? "unknown"].label}
+                  {t(VERDICT_PRESENTATION[verdicts[active.path ?? ""] ?? active.verdict ?? "unknown"].labelKey)}
                 </span>
               </div>
             )}
 
             <div className="flex items-center justify-between gap-4">
-              <span className="text-mist-500">Disk footprint:</span>
+              <span className="text-mist-500">{t("workspace.canvas.footprint")}</span>
               <span className="font-mono font-semibold text-mist-100">
-                {active.weight === null ? "measuring..." : formatBytes(active.bytes)}
+                {active.weight === null ? t("workspace.canvas.measuring") : formatBytes(active.bytes)}
               </span>
             </div>
 
             {activeFootprint && activeFootprint.reclaimableBytes > 0 && (
               <div className="flex items-center justify-between gap-4">
-                <span className="text-mist-500">Reclaimable:</span>
+                <span className="text-mist-500">{t("workspace.canvas.reclaimable")}</span>
                 <span className="font-mono font-semibold text-sage-300">
                   {formatBytes(activeFootprint.reclaimableBytes)}
                 </span>
@@ -442,8 +453,8 @@ export function WorkspaceCanvas({
 
           {active.kind === "project" && (
             <div className="border-t border-forest-800 pt-1 text-[10px] text-mist-500 flex justify-between gap-2">
-              <span>Click to open</span>
-              <span>Right-click for options</span>
+              <span>{t("workspace.canvas.clickToOpen")}</span>
+              <span>{t("workspace.canvas.rightClick")}</span>
             </div>
           )}
         </div>
@@ -461,7 +472,10 @@ export function WorkspaceCanvas({
 
               {active.kind === "package" ? (
                 <span className="rounded-md bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-pro-100 shrink-0">
-                  {active.detail} · {formatBytes(active.bytes)} shared
+                  {t("workspace.canvas.packageStatus", {
+                    detail: active.detail ? t(active.detail.key, active.detail.params) : "",
+                    size: formatBytes(active.bytes),
+                  })}
                 </span>
               ) : (
                 <>
@@ -476,31 +490,31 @@ export function WorkspaceCanvas({
                           VERDICT_PRESENTATION[verdicts[activeProject.path] ?? active.verdict ?? "unknown"].dotClassName
                         }`}
                       />
-                      {VERDICT_PRESENTATION[verdicts[activeProject.path] ?? active.verdict ?? "unknown"].label}
+                      {t(VERDICT_PRESENTATION[verdicts[activeProject.path] ?? active.verdict ?? "unknown"].labelKey)}
                     </span>
                   )}
 
                   <span className="font-mono text-[11px] text-mist-300 shrink-0">
-                    {active.weight === null ? "measuring..." : formatBytes(active.bytes)}
+                    {active.weight === null ? t("workspace.canvas.measuring") : formatBytes(active.bytes)}
                   </span>
 
                   {activeFootprint && activeFootprint.reclaimableBytes > 0 && (
                     <span className="rounded-md bg-forest-900 border border-forest-800 px-1.5 py-0.2 font-mono text-[10px] font-medium text-sage-300 shrink-0">
-                      {formatBytes(activeFootprint.reclaimableBytes)} reclaimable
+                      {t("workspace.list.reclaimable", { size: formatBytes(activeFootprint.reclaimableBytes) })}
                     </span>
                   )}
                 </>
               )}
             </div>
           ) : (
-            <span className="truncate text-mist-500">Drag to move, scroll to zoom</span>
+            <span className="truncate text-mist-500">{t("workspace.canvas.hint")}</span>
           )}
         </div>
 
         <div className="flex shrink-0 items-center gap-3 text-mist-500 text-[11px]">
-          {measuring && <span className="text-sage-300 font-mono">Weighing...</span>}
-          {analysing && <span className="text-mist-400 font-mono">Reading packages...</span>}
-          {graph.packagesOmitted > 0 && <span>{graph.packagesOmitted} lighter packages omitted</span>}
+          {measuring && <span className="text-sage-300 font-mono">{t("workspace.canvas.weighing")}</span>}
+          {analysing && <span className="text-mist-400 font-mono">{t("workspace.canvas.readingPackages")}</span>}
+          {graph.packagesOmitted > 0 && <span>{t("workspace.canvas.omitted", { count: graph.packagesOmitted })}</span>}
         </div>
       </div>
       </div>
@@ -522,27 +536,28 @@ export function WorkspaceCanvas({
  * because there is nothing in the picture a key would help with.
  */
 function Legend({ graph }: { graph: WorkspaceGraph }) {
+  const { t } = useTranslation();
   const marks = [
     !graph.sharesNothing && {
       key: "package",
       swatch: (
         <circle cx="8" cy="8" r="5.5" fill="var(--color-pro-surface)" stroke="var(--color-pro-200)" strokeWidth="1.5" />
       ),
-      text: "a package more than one project keeps its own copy of",
+      text: t("workspace.canvas.legend.package"),
     },
     graph.labels.length > 0 && {
       key: "folder",
       swatch: (
         <rect x="1.5" y="2.5" width="13" height="11" rx="4" className="fill-sage-400/15 stroke-sage-400/70" strokeWidth="1.5" />
       ),
-      text: "one directory holding several projects",
+      text: t("workspace.canvas.legend.folder"),
     },
     graph.edges.some((edge) => edge.kind === "clone") && {
       key: "clone",
       swatch: (
         <line x1="1" y1="8" x2="15" y2="8" stroke="var(--color-coral-300)" strokeWidth="1.5" strokeDasharray="4 3" />
       ),
-      text: "one repository checked out twice",
+      text: t("workspace.canvas.legend.clone"),
     },
   ].filter(Boolean) as Array<{ key: string; swatch: React.ReactNode; text: string }>;
 
@@ -566,6 +581,7 @@ function Legend({ graph }: { graph: WorkspaceGraph }) {
  * Zoom in, out, and back to the whole thing.
  */
 function MapControls({ map }: { map: ReturnType<typeof useMapGestures> }) {
+  const { t, i18n } = useTranslation();
   const step = (factor: number) => () => {
     const element = map.ref.current;
     if (!element) return;
@@ -576,26 +592,28 @@ function MapControls({ map }: { map: ReturnType<typeof useMapGestures> }) {
     });
   };
 
-  const zoomPercent = Math.round(map.view.scale * 100);
+  const zoomPercent = new Intl.NumberFormat(i18n.language, { style: "percent", useGrouping: false }).format(
+    Math.round(map.view.scale * 100) / 100,
+  );
 
   return (
-    <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-forest-800 bg-forest-900/90 p-1 shadow-xs backdrop-blur-sm">
-      <Control label="Zoom in" onClick={step(1.35)}>
+    <div className="absolute end-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-forest-800 bg-forest-900/90 p-1 shadow-xs backdrop-blur-sm">
+      <Control label={t("workspace.canvas.zoomIn")} onClick={step(1.35)}>
         <Plus size={14} aria-hidden="true" />
       </Control>
 
       <span className="px-1.5 font-mono text-[10px] font-medium text-mist-400 select-none">
-        {zoomPercent}%
+        {zoomPercent}
       </span>
 
-      <Control label="Zoom out" onClick={step(1 / 1.35)}>
+      <Control label={t("workspace.canvas.zoomOut")} onClick={step(1 / 1.35)}>
         <Minus size={14} aria-hidden="true" />
       </Control>
 
       {(map.moved || map.overflows) && (
         <>
           <div className="h-3.5 w-px bg-forest-800 mx-0.5" />
-          <Control label="Fit whole workspace" onClick={map.fit}>
+          <Control label={t("workspace.canvas.fit")} onClick={map.fit}>
             <Maximize2 size={13} aria-hidden="true" />
           </Control>
         </>

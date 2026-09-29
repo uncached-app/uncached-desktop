@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { applyLanguage } from "./i18n";
 import { AppLayout } from "./layouts/AppLayout";
 import { InsightsModule } from "./modules/InsightsModule";
 import { IntelligenceModule } from "./modules/IntelligenceModule";
@@ -25,6 +26,10 @@ function App() {
   const { themes } = useThemeFiles();
   const theme = themes.find((entry) => entry.id === settings.settings?.theme) ?? null;
   useTheme(settings.settings?.appearance, theme);
+  const language = settings.settings?.language;
+  useEffect(() => {
+    if (language) applyLanguage(language);
+  }, [language]);
 
   return (
     <PurgeFlowProvider

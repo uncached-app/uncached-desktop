@@ -1,4 +1,5 @@
 import { ArrowUpCircle, Loader2, RotateCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { UpdateState } from "../../hooks/useUpdate";
 
 /**
@@ -18,6 +19,7 @@ import type { UpdateState } from "../../hooks/useUpdate";
  * before they have seen what is in the release.
  */
 export function UpdateBadge({ update, onOpen }: { update: UpdateState; onOpen: () => void }) {
+  const { t } = useTranslation();
   if (update.stage === "idle" || update.stage === "checking" || update.stage === "failed") {
     return null;
   }
@@ -32,10 +34,10 @@ export function UpdateBadge({ update, onOpen }: { update: UpdateState; onOpen: (
       onClick={onOpen}
       title={
         ready
-          ? `Uncached ${update.version} is installed — restart to use it`
+          ? t("shell.update.badge.readyTitle", { version: update.version })
           : downloading
-            ? `Downloading Uncached ${update.version}`
-            : `Uncached ${update.version} is available`
+            ? t("shell.update.downloadingTitle", { version: update.version })
+            : t("shell.update.available", { version: update.version })
       }
       // Clickable while downloading too: that is when somebody most wants to
       // see how far along it is, and the dialog is where the progress is.
@@ -51,7 +53,11 @@ export function UpdateBadge({ update, onOpen }: { update: UpdateState; onOpen: (
         <ArrowUpCircle size={13} aria-hidden="true" />
       )}
       <span>
-        {ready ? "Restart" : downloading ? (percent === null ? "Downloading" : `${percent}%`) : "Update"}
+        {ready
+          ? t("shell.update.badge.restart")
+          : downloading
+            ? (percent === null ? t("shell.update.badge.downloading") : t("shell.update.percent", { percent }))
+            : t("shell.update.badge.update")}
       </span>
     </button>
   );

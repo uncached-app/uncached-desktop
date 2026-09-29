@@ -1,0 +1,113 @@
+{
+  "header": {
+    "title": "Maintenance",
+    "badgePro": "Rules & Actions",
+    "badgeFree": "Policy Preview",
+    "subtitle": "Automate hygiene on stale projects without risking uncommitted or local work.",
+    "eligible_one": "project eligible",
+    "eligible_other": "projects eligible",
+    "reclaimable": "reclaimable"
+  },
+  "scheduleNote": "The schedule runs inside Uncached, so closing to the menu bar keeps it going and Quit stops it. It picks up any run it missed the next time the app opens.",
+  "policy": {
+    "title": "Automated Selection Policy",
+    "summary": "> {{days}}d · ≥ {{size}}",
+    "matches_one": "{{count}} match ({{size}})",
+    "matches_other": "{{count}} matches ({{size}})",
+    "idleLabel": "Untouched for at least",
+    "idleChip": "{{days}}d",
+    "sizeLabel": "Cache size at least",
+    "sizeChipTitle": "At least {{size}} of disposable cache",
+    "guardSynced": "Only 100% remote-synced repositories are eligible",
+    "guardTrash": "Always moves to Recycle Bin (reversible)",
+    "description_one": "Reclaim projects untouched for over <strong>{{count}} day</strong> with at least <strong>{{size}}</strong> of disposable cache.",
+    "description_other": "Reclaim projects untouched for over <strong>{{count}} days</strong> with at least <strong>{{size}}</strong> of disposable cache.",
+    "idleChipTitle_one": "Untouched for at least {{count}} day",
+    "idleChipTitle_other": "Untouched for at least {{count}} days"
+  },
+  "schedule": {
+    "title": "Unattended Schedule",
+    "subtitle": "Runs the policy above without you, and tells you what it removed.",
+    "toggle": "Run maintenance on a schedule",
+    "runEvery": "Run every",
+    "intervals": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "fortnightly": "Fortnightly",
+      "monthly": "Monthly"
+    },
+    "held": {
+      "disabled": "Turned off. Nothing runs unless you press Run Maintenance.",
+      "notLicensed": "Unattended runs need an active licence.",
+      "noWorkspace": "No folders chosen, so there is nothing to maintain.",
+      "scanInProgress": "Waiting for the scan that is open to finish."
+    },
+    "when": "{{date}} · {{time}}",
+    "nextRun": "Next run <strong>{{next}}</strong>",
+    "nextRunWithLast": "Next run <strong>{{next}}</strong> · last ran {{last}}",
+    "dueNow": "Due now. It starts within the next few minutes.",
+    "safety": "A scheduled run obeys the same policy and moves to the Recycle Bin. It is recorded in Insights as <strong>A schedule</strong>.",
+    "quitWarning": "Closing the window quits Uncached, so this schedule only runs while the window is open. Turn on <strong>Keep running in the background</strong> in Settings to let it close to the menu bar instead."
+  },
+  "selection": {
+    "emptyTitle": "No Projects Match This Rule",
+    "readyTitle": "Ready for Maintenance ({{total}})",
+    "evaluating": "(evaluating...)",
+    "emptyHint": "All workspace projects are either recently active, below the size floor, or protected.",
+    "readyHint": "Reclaiming targets moves them reversibly to the Recycle Bin.",
+    "reclaimable": "{{size}} reclaimable",
+    "remoteSynced": "Remote synced",
+    "clean": "Your workspace is clean. No dormant projects meet the threshold.",
+    "filteredOut": "Filtered out:",
+    "skipped": {
+      "verdict": "<strong>{{total}}</strong> not safe to automate",
+      "unmeasured": "<strong>{{total}}</strong> not measured yet",
+      "unknownActivity": "<strong>{{total}}</strong> activity unreadable",
+      "tooRecent": "<strong>{{total}}</strong> recently active",
+      "tooSmall": "<strong>{{total}}</strong> below size floor"
+    },
+    "running": "Reclaiming {{done}} of {{total}}...",
+    "run": "Run Maintenance ({{total}})",
+    "runHint": "Moves selected targets to the Recycle Bin.",
+    "scanToEnable": "Scan your workspace to enable one-click maintenance on identified targets.",
+    "done_one": "✓ Reclaimed {{size}} from {{count}} target.",
+    "done_other": "✓ Reclaimed {{size}} from {{count}} targets.",
+    "doneWithFailures_one": "✓ Reclaimed {{size}} from {{count}} target ({{failed}} failed).",
+    "doneWithFailures_other": "✓ Reclaimed {{size}} from {{count}} targets ({{failed}} failed).",
+    "protected_one": "{{count}} project holds uncommitted/unpushed work on this disk (Protected)",
+    "protected_other": "{{count}} projects hold uncommitted/unpushed work on this disk (Protected)",
+    "viewInWorkspace": "View in workspace →",
+    "idle_one": "idle {{count}} day",
+    "idle_other": "idle {{count}} days"
+  },
+  "states": {
+    "noFolders": {
+      "title": "No folders chosen yet",
+      "body": "A policy is applied to the projects in the folders you scan. There are none yet.",
+      "action": "Choose a folder"
+    },
+    "reading": {
+      "title": "Reading your folders",
+      "body": "Projects are being discovered..."
+    },
+    "measuring": {
+      "body": "The selection appears once every project has a weight.",
+      "title_one": "Measuring {{measured}} of {{count}} project",
+      "title_other": "Measuring {{measured}} of {{count}} projects"
+    },
+    "noProjects": {
+      "title_one": "No projects in the folder you chose",
+      "title_other": "No projects in the {{count}} folders you chose",
+      "body": "A project is a directory with a repository or a manifest in it."
+    },
+    "indexFailed": {
+      "title": "Your folders could not be read"
+    },
+    "pro": {
+      "badge": "Pro Maintenance",
+      "title": "Pro is what runs this policy",
+      "body": "The selection below is the one a run acts on, and it is the same on every plan. Pro performs the run, repeats it on a schedule without you, and records what each one removed.",
+      "cta": "Get Uncached Pro"
+    }
+  }
+}

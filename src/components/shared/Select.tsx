@@ -208,7 +208,7 @@ export function Select({
            sage border it wears while open, which is exactly when arrowing
            happens. Keyboard focus on the closed control keeps it too, so
            tabbing here still shows where you are. */
-        className={`flex items-center justify-between gap-2 rounded-xl border text-left outline-none transition-colors cursor-pointer disabled:opacity-60 ${
+        className={`flex items-center justify-between gap-2 rounded-xl border text-start outline-none transition-colors cursor-pointer disabled:opacity-60 ${
           size === "sm" ? "h-9 px-3 text-xs" : "px-3 py-2 text-sm"
         } ${
           open
@@ -250,7 +250,7 @@ export function Select({
                 /* `MenuRow`'s tokens, deliberately: a menu row is a verb with
                    an icon and an option is a value with a state, so they are
                    not the same component, and they are the same line. */
-                className={`flex w-full items-center gap-3 px-4 py-2 text-left outline-none transition-colors ${
+                className={`flex w-full items-center gap-3 px-4 py-2 text-start outline-none transition-colors ${
                   at === active ? "bg-forest-800" : ""
                 }`}
               >

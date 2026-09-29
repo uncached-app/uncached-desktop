@@ -1,4 +1,5 @@
 import { Info, Package } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Panel } from "./panels";
 import { formatBytes } from "../../../utils/format.mjs";
 import type { DuplicatePackage } from "../../../types/duplicates";
@@ -17,10 +18,12 @@ export function SharedPanel({
   /** The reading has not finished, so an empty list means nothing yet. */
   running: boolean;
 }) {
+  const { t } = useTranslation();
+
   if (packages.length === 0) {
     return running ? (
-      <Panel title="Shared With Other Projects">
-        <p className="text-xs text-mist-500">Reading what other projects have installed...</p>
+      <Panel title={t("workspace.shared.title")}>
+        <p className="text-xs text-mist-500">{t("workspace.shared.reading")}</p>
       </Panel>
     ) : null;
   }
@@ -29,18 +32,18 @@ export function SharedPanel({
 
   return (
     <Panel
-      title={`Shared With Other Projects (${packages.length})`}
+      title={t("workspace.shared.titleCount", { count: packages.length })}
       action={
         wasted > 0 ? (
           <span className="font-mono text-xs font-semibold text-sage-300">
-            {formatBytes(wasted)} duplicate
+            {t("workspace.shared.duplicate", { size: formatBytes(wasted) })}
           </span>
         ) : null
       }
     >
       <div className="space-y-3">
         <p className="text-xs leading-5 text-mist-500">
-          Installed here and in other projects, each keeping its own copy.
+          {t("workspace.shared.intro")}
         </p>
 
         {/* Clean, unified list container */}
@@ -69,10 +72,10 @@ export function SharedPanel({
 
                 <div className="flex shrink-0 items-center gap-3">
                   <span className="font-mono text-[11px] text-mist-400">
-                    in {entry.copies} {entry.copies === 1 ? "project" : "projects"}
+                    {t("workspace.shared.inProjects", { count: entry.copies })}
                   </span>
                   {entry.bytesEach !== null && (
-                    <span className="min-w-14 text-right font-mono text-xs font-semibold text-mist-100">
+                    <span className="min-w-14 text-end font-mono text-xs font-semibold text-mist-100">
                       {formatBytes(entry.bytesEach)}
                     </span>
                   )}
@@ -85,8 +88,7 @@ export function SharedPanel({
         <div className="flex items-center gap-2 text-[11px] leading-5 text-mist-500">
           <Info size={12} className="shrink-0 text-mist-500" aria-hidden="true" />
           <p>
-            Packages cannot be removed individually without breaking installs. Clean the parent directory in
-            the Artifacts list below to reclaim space.
+            {t("workspace.shared.hint")}
           </p>
         </div>
       </div>

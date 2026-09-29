@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { WorkspaceIndex } from "../types/workspace";
 
@@ -13,6 +14,7 @@ function indexFailure(error: unknown): string {
 
 /** Indexes the roots it is given. Free on every plan; Rust caps how many apply. */
 export function useWorkspaceIndex() {
+  const { t } = useTranslation();
   const [index, setIndex] = useState<WorkspaceIndex | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function useWorkspaceIndex() {
 
   async function scanRoots(paths: string[]) {
     if (paths.length === 0) {
-      setError("Select or paste a folder path first.");
+      setError(t("shell.index.noFolder"));
       return;
     }
     if (!isTauri()) {

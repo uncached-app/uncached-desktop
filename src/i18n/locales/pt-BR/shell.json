@@ -1,0 +1,177 @@
+{
+  "actionsFor": "Ações para {{name}}",
+  "actions": {
+    "openIn": "Abrir em {{app}}",
+    "reveal": "Mostrar no gerenciador de arquivos",
+    "copyPath": "Copiar caminho",
+    "fetch": "Fazer fetch do remoto",
+    "openRepository": "Abrir repositório",
+    "done": "{{action}} — feito",
+    "failed": "Não funcionou"
+  },
+  "folderMenu": {
+    "label": "Ações de {{name}}"
+  },
+  "proLock": {
+    "label": "{{label}}. {{reason}}"
+  },
+  "rootPicker": {
+    "remove": "Remover {{name}}",
+    "empty": "Nenhuma pasta selecionada ainda",
+    "addAnother": "Adicionar outra pasta",
+    "multiRootPro": "Varrer várias pastas ao mesmo tempo faz parte do Pro",
+    "browseLabel": "Procurar uma pasta",
+    "browse": "Procurar"
+  },
+  "index": {
+    "noFolder": "Selecione ou cole o caminho de uma pasta primeiro."
+  },
+  "palette": {
+    "label": "Paleta de comandos",
+    "close": "Fechar",
+    "back": "Voltar para tudo",
+    "search": "Buscar projetos e comandos",
+    "pickAction": "{{name}} — escolha uma ação",
+    "emptyNoProjects": "Adicione uma pasta e seus projetos aparecem aqui.",
+    "noMatches": "Nada corresponde.",
+    "indexed_one": "{{count}} projeto indexado",
+    "indexed_other": "{{count}} projetos indexados",
+    "hint": {
+      "back": "selecionar · esc voltar",
+      "close": "selecionar · esc fechar"
+    },
+    "groups": {
+      "actions": "Ações",
+      "projects": "Projetos",
+      "folders": "Pastas",
+      "commands": "Comandos"
+    },
+    "folderAction": "{{action}} — {{name}}",
+    "commands": {
+      "projectPage": "Abrir página do projeto",
+      "showInWorkspace": "Mostrar no workspace",
+      "goWorkspace": "Ir para o Workspace",
+      "reclaim": "Liberar espaço",
+      "goInsights": "Ir para Insights",
+      "goMaintenance": "Ir para Manutenção",
+      "addFolder": "Adicionar pasta",
+      "rescan": "Varrer workspace",
+      "settings": "Abrir ajustes"
+    }
+  },
+  "titlebar": {
+    "title": {
+      "insights": "Insights do Uncached",
+      "maintenance": "Manutenção do Uncached",
+      "workspace": "Workspace do Uncached"
+    },
+    "pipeline": "Etapas do processo",
+    "steps": {
+      "workspace": "Workspace",
+      "scan": "Varredura",
+      "review": "Revisão",
+      "done": "Concluído"
+    },
+    "openSettings": "Abrir ajustes",
+    "closeWindow": "Fechar janela",
+    "minimizeWindow": "Minimizar janela",
+    "restoreWindow": "Restaurar janela",
+    "maximizeWindow": "Maximizar janela"
+  },
+  "update": {
+    "available": "Uncached {{version}} disponível",
+    "downloadingTitle": "Baixando o Uncached {{version}}",
+    "unreachable": "Não foi possível acessar a atualização",
+    "busy": "O Uncached está trabalhando — isto aguarda até ele terminar",
+    "percent": "{{percent}}%",
+    "later": "Depois",
+    "badge": {
+      "readyTitle": "Uncached {{version}} instalado — reinicie para usar",
+      "restart": "Reiniciar",
+      "downloading": "Baixando",
+      "update": "Atualizar"
+    },
+    "dialog": {
+      "label": "Atualização de software",
+      "checkingTitle": "Procurando atualização",
+      "readyTitle": "Pronto para reiniciar",
+      "close": "Fechar",
+      "checkingBody": "Consultando o servidor de atualizações sobre a versão mais recente.",
+      "noNotes": "Esta versão veio sem notas.",
+      "progressUnknown": "Baixando — o servidor não informou o tamanho",
+      "progress": "{{percent}}% — você pode fechar isto e o download continua",
+      "readyBody": "O Uncached {{version}} está pronto. Reiniciar leva um segundo e nada no seu workspace é alterado.",
+      "notNow": "Agora não",
+      "checking": "Verificando…",
+      "restartNow": "Reiniciar agora",
+      "downloading": "Baixando…",
+      "tryAgain": "Tentar de novo",
+      "install": "Baixar e instalar"
+    },
+    "toast": {
+      "body": "Nada é baixado ou substituído até você pedir.",
+      "whatsNew": "Novidades",
+      "dismiss": "Dispensar"
+    }
+  },
+  "menu": {
+    "file": "Arquivo",
+    "edit": "Editar",
+    "view": "Visualizar",
+    "workspace": "Workspace",
+    "window": "Janela",
+    "about": "Sobre o Uncached",
+    "services": "Serviços",
+    "hide": "Ocultar Uncached",
+    "hideOthers": "Ocultar Outros",
+    "showAll": "Mostrar Tudo",
+    "quit": "Encerrar Uncached",
+    "undo": "Desfazer",
+    "redo": "Refazer",
+    "cut": "Recortar",
+    "copy": "Copiar",
+    "paste": "Colar",
+    "selectAll": "Selecionar Tudo",
+    "minimize": "Minimizar",
+    "zoom": "Zoom",
+    "closeWindow": "Fechar Janela"
+  },
+  "native": {
+    "trayOpen": "Abrir o Uncached",
+    "trayScan": "Varrer workspace",
+    "trayQuit": "Encerrar Uncached",
+    "scanFinished_one": "{{count}} alvo encontrado, {{size}} a liberar.",
+    "scanFinished_other": "{{count}} alvos encontrados, {{size}} a liberar.",
+    "maintenanceTitle": "Manutenção do Uncached",
+    "maintenanceBody_one": "{{size}} liberados de {{count}} projeto ocioso. Tudo foi para o Lixo.",
+    "maintenanceBody_other": "{{size}} liberados de {{count}} projetos ociosos. Tudo foi para o Lixo."
+  },
+  "errors": {
+    "invalid_workspace": "Esta pasta não pode ser varrida.",
+    "io": "O disco recusou a operação.",
+    "provider_unavailable": "Nenhum scanner reconhece mais este alvo. Varra de novo.",
+    "target_missing": "O alvo não existe mais. Varra de novo.",
+    "target_not_directory": "O alvo não é mais um diretório. Varra de novo.",
+    "target_name_unsupported": "O nome do alvo não pode ser lido neste sistema.",
+    "target_provider_mismatch": "O alvo não corresponde mais ao que a varredura encontrou. Varra de novo.",
+    "target_context_invalid": "O projeto que contém o alvo mudou desde a varredura. Varra de novo.",
+    "target_outside_workspace": "O alvo está fora das pastas escolhidas.",
+    "target_ignored_by_rule": "Uma regra de exclusão cobre o alvo.",
+    "target_identity_unavailable": "Não foi possível identificar o alvo no disco. Varra de novo.",
+    "target_identity_changed": "O alvo foi substituído desde a varredura. Varra de novo.",
+    "target_reparse_point": "O alvo ou uma pasta acima dele é um link. O Uncached não segue links ao apagar.",
+    "secure_operation_unsupported": "Este sistema não consegue remover o alvo com segurança.",
+    "secure_target_open_failed": "Não foi possível abrir o alvo para remoção.",
+    "secure_target_too_large": "O alvo tem mais entradas do que uma remoção permite.",
+    "secure_target_too_deep": "O alvo tem mais níveis aninhados do que uma remoção permite.",
+    "secure_enumeration_failed": "Não foi possível ler o conteúdo do alvo.",
+    "secure_handle_query_failed": "O sistema se recusou a descrever um arquivo dentro do alvo.",
+    "secure_deletion_failed": "O sistema se recusou a apagar o alvo.",
+    "secure_trash_unavailable": "O Lixo não está disponível neste sistema.",
+    "secure_trash_initialization_failed": "Não foi possível abrir o Lixo.",
+    "secure_trash_operation_failed": "Não foi possível mover o alvo para o Lixo.",
+    "secure_trash_aborted": "A movimentação do alvo para o Lixo foi interrompida.",
+    "secure_trash_postcondition_failed": "O alvo não estava no Lixo depois da movimentação.",
+    "target_in_use": "{{program}} está em execução. Feche-o e varra de novo — remover isto agora o quebraria."
+  }
+}

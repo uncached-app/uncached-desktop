@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { editorsFor, preferred, useLaunchers } from "./useLaunchers";
 import { useSettings } from "./useSettings";
 import { remoteLabel, remoteToUrl } from "../utils/remoteUrl.mjs";
@@ -57,6 +58,7 @@ export function withOneEditor(actions: ProjectAction[]): ProjectAction[] {
  * checks the path against the folders the user chose.
  */
 export function useProjectActions(project: WorkspaceProject | null): ProjectAction[] {
+  const { t } = useTranslation();
   const detected = useLaunchers();
   const { settings } = useSettings();
   const preferredEditor = settings?.preferredEditor ?? null;
@@ -76,7 +78,7 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
     for (const launcher of editors) {
       actions.push({
         id: `open-${launcher.id}`,
-        title: `Open in ${launcher.name}`,
+        title: t("shell.actions.openIn", { app: launcher.name }),
         keywords: ["edit", "editor", launcher.name],
         icon: SquarePen,
         leaves: true,
@@ -94,7 +96,7 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
     if (terminal) {
       actions.push({
         id: "open-terminal",
-        title: `Open in ${terminal.name}`,
+        title: t("shell.actions.openIn", { app: terminal.name }),
         keywords: ["shell", "terminal", "cd"],
         icon: SquareTerminal,
         leaves: true,
@@ -104,7 +106,7 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
 
     actions.push({
       id: "reveal",
-      title: "Reveal in file manager",
+      title: t("shell.actions.reveal"),
       keywords: ["finder", "explorer", "folder", "show"],
       icon: FolderOpen,
       leaves: true,
@@ -113,7 +115,7 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
 
     actions.push({
       id: "copy",
-      title: "Copy path",
+      title: t("shell.actions.copyPath"),
       detail: project.path,
       keywords: ["clipboard", "path"],
       icon: Clipboard,
@@ -130,7 +132,7 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
     if (project.git.remote) {
       actions.push({
         id: "fetch",
-        title: "Fetch from remote",
+        title: t("shell.actions.fetch"),
         detail: remoteLabel(project.git.remote) ?? undefined,
         keywords: ["git", "fetch", "prune", "remote", "behind", "sync"],
         // The result is the repository knowing more, which this window shows
@@ -147,7 +149,7 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
     if (url) {
       actions.push({
         id: "remote",
-        title: "Open repository",
+        title: t("shell.actions.openRepository"),
         detail: remoteLabel(project.git.remote) ?? undefined,
         keywords: ["github", "git", "remote", "browser"],
         icon: Globe,
@@ -157,5 +159,5 @@ export function useProjectActions(project: WorkspaceProject | null): ProjectActi
     }
 
     return actions;
-  }, [project, detected, preferredEditor, preferredTerminal]);
+  }, [t, project, detected, preferredEditor, preferredTerminal]);
 }

@@ -28,7 +28,6 @@ import {
   type RawTargetFound,
   type RawTargetSized,
   type RawCommandResult,
-  toUiError,
   unwrapV1,
   validateCancelResult,
   validateCapabilities,
@@ -42,6 +41,7 @@ import {
   validateScanStarted,
   shouldIgnoreScanFailure,
 } from "../utils/apiContract";
+import { describeError } from "../i18n/errors";
 import { shouldOpenReview } from "../utils/scanReview.mjs";
 
 export function useScanWorkspace(
@@ -175,7 +175,7 @@ export function useScanWorkspace(
       setNotice({ kind: "cancelled", targetsFound: event.payload.totalTargets });
       setStep(1);
     } else {
-      failScan(event.payload.error.message);
+      failScan(describeError(event.payload.error));
     }
   }
 
@@ -189,7 +189,7 @@ export function useScanWorkspace(
        handleScanEvent({ kind, payload } as PendingScanEvent);
     } catch (contractError) {
       const message = contractError instanceof ApiContractError
-        ? toUiError(contractError.info).message
+        ? describeError(contractError.info)
         : `IPC contract error: ${contractError instanceof Error ? contractError.message : String(contractError)}`;
       failScan(message);
     }
@@ -210,7 +210,7 @@ export function useScanWorkspace(
           if (acceptsScanEvent(started.scanId)) setNotice(null);
         } catch (contractError) {
           const message = contractError instanceof ApiContractError
-            ? toUiError(contractError.info).message
+            ? describeError(contractError.info)
             : `IPC contract error: ${contractError instanceof Error ? contractError.message : String(contractError)}`;
           failScan(message);
         }
@@ -266,7 +266,7 @@ export function useScanWorkspace(
       .catch((capabilityError) => {
         if (disposed) return;
         const message = capabilityError instanceof ApiContractError
-          ? toUiError(capabilityError.info).message
+          ? describeError(capabilityError.info)
           : "IPC contract error";
         setError(message);
       });
@@ -480,7 +480,7 @@ export function useScanWorkspace(
       if (targets.length === 1) setStep(4);
       return result;
     } catch (cleanError) {
-      setError(cleanError instanceof ApiContractError ? toUiError(cleanError.info).message : "IPC contract error");
+      setError(cleanError instanceof ApiContractError ? describeError(cleanError.info) : "IPC contract error");
       return null;
     } finally {
       setCleaningTargetIds((current) => {

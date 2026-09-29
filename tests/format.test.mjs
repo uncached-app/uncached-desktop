@@ -45,6 +45,14 @@ test("a byte count past the exact range of a double still counts", () => {
   assert.equal(formatBytes(100 * 1024 * GB), "102400.00 GB");
 });
 
+test("only the number changes with the language, never the unit", () => {
+  assert.equal(formatBytes(GB * 2 + GB / 10, "pt-BR"), "2,10 GB");
+  assert.equal(formatBytes(GB * 2 + GB / 10, "de"), "2,10 GB");
+  assert.equal(formatBytes(GB * 2 + GB / 10, "ja"), "2.10 GB");
+  // No grouping: "1.024,00 KB" would read as one kilobyte to half the world.
+  assert.equal(formatBytes(MB - 1, "pt-BR"), "1024,00 KB");
+});
+
 test("nothing under a kilobyte grows a decimal point", () => {
   assert.equal(formatBytes(512), "512 B");
 });
@@ -56,9 +64,17 @@ const daysAgo = (days) => (NOW - days * DAY) / 1000;
 test("an age reads in the largest unit that still says something", () => {
   assert.equal(formatAge(daysAgo(0), NOW), "today");
   assert.equal(formatAge(daysAgo(1), NOW), "yesterday");
-  assert.equal(formatAge(daysAgo(9), NOW), "9d ago");
-  assert.equal(formatAge(daysAgo(70), NOW), "2mo ago");
-  assert.equal(formatAge(daysAgo(800), NOW), "2y ago");
+  assert.equal(formatAge(daysAgo(9), NOW), "9 days ago");
+  assert.equal(formatAge(daysAgo(70), NOW), "2 months ago");
+  assert.equal(formatAge(daysAgo(800), NOW), "2 years ago");
+});
+
+test("an age is written in the reader's language", () => {
+  assert.equal(formatAge(daysAgo(70), NOW, "pt-BR"), "há 2 meses");
+  assert.equal(formatAge(daysAgo(70), NOW, "de"), "vor 2 Monaten");
+  assert.equal(formatAge(daysAgo(1), NOW, "es"), "ayer");
+  // CLDR's short form reads as the future in Arabic; the long one does not.
+  assert.equal(formatAge(daysAgo(90), NOW, "ar"), "قبل 3 أشهر");
 });
 
 test("an unmeasured age is nothing, not today", () => {

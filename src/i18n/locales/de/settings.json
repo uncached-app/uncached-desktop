@@ -1,0 +1,277 @@
+{
+  "title": "Einstellungen",
+  "close": "Einstellungen schließen",
+  "cancel": "Abbrechen",
+  "loading": "Einstellungen werden geladen...",
+  "saving": "Wird gespeichert...",
+  "saved": "Automatisch gespeichert",
+  "sectionPicker": "Bereich der Einstellungen",
+  "sectionNav": "Bereiche der Einstellungen",
+  "sections": {
+    "general": "Allgemein",
+    "opening": "Öffnen mit",
+    "scanning": "Scannen",
+    "ignoreRules": "Ausschlussregeln",
+    "deletion": "Löschen",
+    "shortcuts": "Tastenkürzel",
+    "appearance": "Darstellung",
+    "licence": "Lizenz",
+    "about": "Über"
+  },
+  "general": {
+    "intro": "Start der App, Betrieb im Hintergrund und automatische Updates.",
+    "openAtStartup": {
+      "label": "Bei der Anmeldung öffnen",
+      "hint": "Startet Uncached, wenn du dich am Computer anmeldest."
+    },
+    "keepRunning": {
+      "label": "Im Hintergrund weiterlaufen",
+      "hint": "Das Schließen des Fensters legt Uncached in die Menüleiste, statt es zu beenden. Geplante Wartung läuft von dort; Beenden stoppt sie, bis du die App wieder öffnest."
+    },
+    "rememberWorkspace": {
+      "label": "Letzten Workspace merken",
+      "hint": "Stellt beim Start die zuletzt geöffneten Ordner und die Analyse wieder her."
+    },
+    "checkUpdates": {
+      "label": "Nach Updates suchen",
+      "hint": "Prüft regelmäßig auf neue Versionen und Sicherheitsverbesserungen."
+    }
+  },
+  "language": {
+    "label": "Sprache",
+    "hint": "Oberfläche, Menüleiste und Mitteilungen.",
+    "system": "System ({{name}})"
+  },
+  "permanentConfirm": {
+    "title": "Endgültiges Löschen aktivieren?",
+    "body": "Ziele werden direkt von der Festplatte gelöscht, statt in den Papierkorb verschoben zu werden. Nicht wiederherstellbar. Jede Bereinigung verlangt zur Bestätigung die Eingabe von <strong>{{word}}</strong>.",
+    "confirm": "Endgültiges Löschen aktivieren"
+  },
+  "opening": {
+    "intro": "Wähle, welche installierte App beim Öffnen eines Projekts oder Terminals startet.",
+    "editor": {
+      "label": "Editor",
+      "hint": "Bei Automatisch hat der Editor für die Sprache des Projekts Vorrang, danach jeder allgemeine.",
+      "empty": "In deinem Programme-Ordner wurde kein Editor gefunden."
+    },
+    "terminal": {
+      "label": "Terminal",
+      "hint": "Kein System stellt ein Standard-Terminal bereit, das eine App beim Öffnen eines Verzeichnisses auslesen könnte, daher ist Automatisch das zuerst gefundene.",
+      "empty": "Kein Terminal gefunden."
+    },
+    "automatic": "Automatisch",
+    "notInstalled": "Nicht installiert",
+    "detecting": "Installierte Apps auf diesem Rechner werden gelesen...",
+    "uninstalled": "Die gewählte App ist nicht mehr installiert, daher greift beim Öffnen die Erkennung."
+  },
+  "scanning": {
+    "intro": "Build-Artefakte in deinen Ordnern werden immer erkannt. Dies sind die Caches, die anderswo liegen und von Tools statt von einem Projekt geschrieben werden.",
+    "packageManagers": {
+      "label": "Paketmanager-Caches",
+      "hint": "Globale Paket-Caches von npm, pnpm, yarn, cargo, pip und uv einbeziehen."
+    },
+    "aiTools": {
+      "label": "KI-Tool-Caches",
+      "hint": "Caches von Claude Code, der Claude-App, Codex und opencode einbeziehen."
+    },
+    "editors": {
+      "label": "Editor-Caches",
+      "hint": "Workspace-Metadaten-Caches von VS Code und JetBrains einbeziehen."
+    },
+    "gameEngines": {
+      "label": "Game-Engine-Caches",
+      "hint": "Paket- und Asset-Store-Downloads von Unity sowie Editor-Cache und Export-Vorlagen von Godot einbeziehen."
+    },
+    "androidSdk": {
+      "label": "Android SDK",
+      "hint": "Heruntergeladene System-Images und die daraus erstellten Emulatoren einbeziehen."
+    },
+    "containerStorage": {
+      "label": "Container-Speicher",
+      "hint": "Größe des Disk-Images von Docker Desktop melden. Uncached entfernt es nie."
+    },
+    "xcode": {
+      "label": "Xcode-Entwicklerdaten",
+      "hint": "DerivedData, Gerätesupport, Simulatoren und Simulator-Runtimes einbeziehen."
+    },
+    "footer": "Um etwas in einem Workspace unangetastet zu lassen, füge es unter Ausschlussregeln hinzu — eine Regel dort gilt für jede Art von Artefakt und auch für geplante Läufe."
+  },
+  "ignoreRules": {
+    "intro": "Hier aufgeführte Pfade werden nie gescannt und nie gelöscht, egal was die App dort findet. Eine Regel pro Zeile, in <mono>{{syntax}}</mono>-Syntax — ein reiner Name gilt überall, ein vollständiger Pfad gilt für diesen Pfad und alles darunter, und <mono>{{negation}}</mono> macht eine Ausnahme.",
+    "problem": "<bold>Zeile {{line}}</bold> konnte nicht gelesen werden und schützt daher nichts: <rule/> — <reason/>",
+    "empty": "Noch keine Regeln. Alles, was der Scan findet, wird angeboten.",
+    "inForce_one": "{{count}} Regel ist aktiv.",
+    "inForce_other": "{{count}} Regeln sind aktiv."
+  },
+  "deletion": {
+    "intro": "Wähle, wie Build-Artefakte und Caches bei der Bereinigung von der Festplatte entfernt werden.",
+    "trash": {
+      "label": "In den Papierkorb",
+      "hint": "Freigebbare Artefakte werden in den Papierkorb des Systems verschoben, Bereinigungen lassen sich also rückgängig machen."
+    },
+    "permanent": {
+      "label": "Endgültig löschen",
+      "hint": "Ziele werden direkt von der Festplatte gelöscht und geben den Speicher sofort frei. Jeder Lauf verlangt eine Bestätigung."
+    }
+  },
+  "appearance": {
+    "intro": "Wähle das Design der Oberfläche.",
+    "lockedToLight": "{{name}} ist ein helles Design — es hat keine Farben für das andere, daher folgt diese Einstellung ihm.",
+    "lockedToDark": "{{name}} ist ein dunkles Design — es hat keine Farben für das andere, daher folgt diese Einstellung ihm.",
+    "lacksDark": "{{name}} hat keine dunklen Farben.",
+    "lacksLight": "{{name}} hat keine hellen Farben.",
+    "dark": {
+      "label": "Dunkel",
+      "hint": "Dunkles Design für Entwicklungsumgebungen mit wenig Licht."
+    },
+    "light": {
+      "label": "Hell",
+      "hint": "Helles Design mit hohem Kontrast."
+    },
+    "system": {
+      "label": "System",
+      "hint": "Folgt automatisch der Darstellung deines Betriebssystems."
+    },
+    "themesIntro": "Eine Design-Datei benennt einige Farben der App neu und lässt den Rest unverändert, daher funktioniert eine heute geschriebene Datei auch noch, wenn eine neue Version eine Fläche hinzufügt.",
+    "theme": {
+      "label": "Design",
+      "both": "Enthält Hell und Dunkel.",
+      "yours_one": "{{count}} davon ist deins.",
+      "yours_other": "{{count}} davon sind deine.",
+      "custom": "{{name}} (eigenes)"
+    },
+    "files": {
+      "label": "Deine Einstellungen und Designs",
+      "hint": "<mono>{{file}}</mono> und ein Ordner <mono>{{folder}}</mono> in deiner eigenen Library. Bearbeite eines davon und komm zurück — beide werden neu gelesen, sobald das Fenster wieder aktiv ist.",
+      "open": "Ordner öffnen"
+    }
+  },
+  "about": {
+    "tagline": "Speicher von Build-Artefakten freigeben.",
+    "version": "Version {{version}}",
+    "eula": "Endbenutzer-Lizenzvertrag (EULA)",
+    "update": {
+      "available": "Uncached {{version}} ist verfügbar",
+      "downloading": "{{version}} wird geladen",
+      "downloadingProgress": "{{version}} wird geladen — {{percent}} %",
+      "ready": "Uncached {{version}} ist installiert — zum Verwenden neu starten",
+      "checking": "Wird geprüft…",
+      "showProgress": "Fortschritt zeigen",
+      "whatsNew": "Neuerungen ansehen",
+      "restart": "Jetzt neu starten",
+      "check": "Nach Updates suchen"
+    }
+  },
+  "license": {
+    "reading": "Deine Lizenz wird gelesen...",
+    "active": {
+      "tagline": "Alle Funktionen auf diesem Rechner aktiv",
+      "badge": "Aktiv",
+      "renews_one": "Lizenz verlängert sich in {{count}} Tag.",
+      "renews_other": "Lizenz verlängert sich in {{count}} Tagen.",
+      "renewalEmail": "Beleg und aktualisierter Schlüssel kommen per E-Mail.",
+      "holder": "Lizenziert für",
+      "seats": "Lizenzierte Rechner",
+      "machines_one": "{{count}} Rechner",
+      "machines_other": "{{count}} Rechner",
+      "expiration": "Ablauf",
+      "perpetual": "Unbefristet",
+      "reference": "Referenz",
+      "copyReference": "Referenz für eine Supportanfrage kopieren",
+      "movingTitle": "Wechsel auf einen anderen Rechner?",
+      "movingHint": "Nimm deinen Schlüssel mit, bevor du ihn hier entfernst.",
+      "copied": "Kopiert",
+      "copyKey": "Lizenzschlüssel kopieren",
+      "removing": "Wird entfernt...",
+      "confirmRemove": "Ja, entfernen",
+      "remove": "Von diesem Rechner entfernen"
+    },
+    "expired": {
+      "title": "Lizenz abgelaufen",
+      "holderAndDate": "{{holder}} · {{date}}",
+      "badge": "Abgelaufen",
+      "body": "Pro-Funktionen sind bis zur Verlängerung gesperrt. Alles, was Free kann, bleibt unverändert — kein Projekt und nichts auf der Festplatte ist davon betroffen."
+    },
+    "free": {
+      "badge": "Aktueller Plan",
+      "body": "Free gibt jedes Artefakt jedes Projekts frei, ohne Limits. Pro ergänzt die Auswertungen über den ganzen Workspace:"
+    },
+    "features": {
+      "map": "Interaktive 2D-Karte des Workspace",
+      "schedule": "Automatische Bereinigung im Hintergrund",
+      "duplicates": "Duplikate über Projekte hinweg",
+      "analytics": "Gesamtstatistik des freigegebenen Speichers"
+    },
+    "form": {
+      "keyLabel": "Lizenzschlüssel",
+      "renewedKeyLabel": "Verlängerter Lizenzschlüssel",
+      "placeholder": "Schlüssel aus deinem Beleg einfügen",
+      "partialKey": "Das sieht nach einem Teil eines Schlüssels aus. Füge die ganze Zeile aus deinem Beleg ein.",
+      "failed": "Aktivierung fehlgeschlagen. Prüfe deinen Schlüssel.",
+      "validating": "Wird geprüft...",
+      "activate": "Pro aktivieren",
+      "reactivate": "Pro reaktivieren",
+      "getLicence": "Lizenz kaufen",
+      "renewLicence": "Lizenz verlängern",
+      "offline": "Die Aktivierung erfolgt offline. Der Schlüssel trägt seine eigene Signatur, daher wird nichts gesendet und er funktioniert auch ohne Verbindung."
+    },
+    "errors": {
+      "licence_malformed": "Das ist kein Lizenzschlüssel. Füge die ganze Zeile aus deinem Beleg ein.",
+      "licence_bad_signature": "Dieser Schlüssel wurde nicht von Uncached ausgestellt oder unterwegs verändert.",
+      "licence_unsupported_version": "Dieser Schlüssel braucht eine neuere Version von Uncached, um gelesen zu werden (Format {{version}}).",
+      "licence_expired": "Diese Lizenz ist am {{date}} abgelaufen.",
+      "licence_not_pro": "Dieser Schlüssel schaltet „{{plan}}“ frei, doch dieser Build enthält nichts, was dieser Plan freischaltet.",
+      "licence_no_public_key": "Dieser Build kann keine Lizenzen prüfen. Er wurde ohne Signaturschlüssel kompiliert."
+    }
+  },
+  "shortcuts": {
+    "intro": "Klicke auf eine Taste, um eine neue aufzunehmen. Sie werden in <mono>{{file}}</mono> nach Aktionsname gespeichert, daher wird nur gespeichert, was du geändert hast, und ein Standard, der sich mit einem Update ändert, ändert sich auch für dich.",
+    "clash": "Zwei Befehle teilen sich eine Taste. Welcher darauf reagiert, entscheidet nicht diese App — ändere einen.",
+    "resetTitle": "Zurück zu {{binding}}",
+    "resetLabel": "{{action}} zurücksetzen",
+    "pressKey": "Taste drücken",
+    "footer": "Eine Taste ohne Modifikator löst nur aus, wenn nirgends getippt wird, und erscheint nie in der Menüleiste — das System würde sie beanspruchen, und sie käme nicht mehr bei der Aktion an, für die sie gedacht ist.",
+    "actions": {
+      "palette": {
+        "label": "Befehlspalette",
+        "detail": "Jedes Projekt und jedes Modul, nach Name."
+      },
+      "rescan": {
+        "label": "Workspace scannen",
+        "detail": "Liest die gewählten Ordner erneut."
+      },
+      "quickClean": {
+        "label": "Speicher freigeben",
+        "detail": "Öffnet die Artefakte des letzten Scans zur Prüfung."
+      },
+      "settings": {
+        "label": "Einstellungen",
+        "detail": "Das Panel. macOS legt es direkt ins App-Menü."
+      },
+      "toggleMap": {
+        "label": "Karte",
+        "detail": "Wechselt zwischen Liste und Bild, und zurück."
+      },
+      "toggleSidebar": {
+        "label": "Filter",
+        "detail": "Klappt die Filterspalte ein und wieder aus."
+      },
+      "focusFilter": {
+        "label": "Projekte filtern",
+        "detail": "Springt von überall auf dem Bildschirm ins Filterfeld."
+      },
+      "workspace": {
+        "label": "Workspace",
+        "detail": "Die Projekte und was sie belegen."
+      },
+      "maintenance": {
+        "label": "Wartung",
+        "detail": "Die Richtlinie und was sie auswählen würde."
+      },
+      "insights": {
+        "label": "Insights",
+        "detail": "Der Workspace auf einen Blick und was freigegeben wurde."
+      }
+    }
+  }
+}

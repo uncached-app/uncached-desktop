@@ -1,0 +1,22 @@
+{
+  "workspace": {
+    "name": "Workspace",
+    "label": "Uncached Workspace"
+  },
+  "reclaim": {
+    "name": "Freigeben",
+    "label": "Speicher freigeben"
+  },
+  "maintenance": {
+    "name": "Wartung",
+    "label": "Uncached Wartung",
+    "labelLocked": "Uncached Wartung (Pro)"
+  },
+  "insights": {
+    "name": "Insights",
+    "label": "Uncached Insights",
+    "labelLocked": "Uncached Insights (Pro)"
+  },
+  "openSettings": "Einstellungen öffnen",
+  "bar": "Uncached Module"
+}

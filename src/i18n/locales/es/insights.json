@@ -1,0 +1,235 @@
+{
+  "module": {
+    "title": "Insights",
+    "badge": {
+      "pro": "Analítica y tendencias",
+      "free": "Inteligencia del análisis"
+    },
+    "intro": {
+      "pro": "Cada limpieza registrada, la velocidad de recuperación de disco y el resumen del último análisis.",
+      "free": "Telemetría en vivo de tu workspace. Actualiza a Pro para ver el historial y las tendencias de recuperación."
+    },
+    "stage": {
+      "orphans": "Buscando carpetas de build cuyo proyecto ya no existe...",
+      "repositories": "Leyendo cada repositorio en busca de ramas muertas y stashes...",
+      "duplicates": "Leyendo cada node_modules en busca de copias idénticas..."
+    },
+    "closerLook": {
+      "title": "En detalle",
+      "settled": "Leído de tu workspace cuando se estabilizó.",
+      "readingLabel": "Leyendo workspace",
+      "readAgainLabel": "Volver a leer el workspace",
+      "reading": "Leyendo...",
+      "readAgain": "Volver a leer"
+    }
+  },
+  "reading": "Leyendo",
+  "storage": {
+    "noAnswer": "Este volumen no respondió.",
+    "title": "Este disco",
+    "readAgain": "Volver a leer el volumen",
+    "usedOf": "{{used}} usados de {{total}}",
+    "capacity": "Capacidad",
+    "used": "Usado",
+    "free": "Libre",
+    "purgeable": "Purgable",
+    "purgeableHint": "Cuenta como usado y se libera en cuanto algo necesita el espacio. Instantáneas y todo lo que el sistema puede volver a descargar.",
+    "withheld": "El sistema oculta directorios enteros a Uncached, así que cada total de un análisis es un mínimo, no una respuesta.",
+    "openFullDiskAccess": "Abrir Acceso total al disco"
+  },
+  "pro": {
+    "badge": "Analítica Pro",
+    "title": "El historial de limpiezas y la inteligencia son una función de Uncached Pro",
+    "body": "Free lee el equipo desde cero cada vez. Pro registra cada limpieza — incluidas las ejecuciones programadas — con gráficos de línea de tiempo, desglose por ecosistema y tendencias de disco entre workspaces.",
+    "cta": "Obtener Uncached Pro"
+  },
+  "noHistory": {
+    "title": "Aún no hay limpiezas registradas",
+    "body": "El historial y el desglose se completan automáticamente a medida que limpias cachés y artefactos de build."
+  },
+  "filterChips": {
+    "label": "Filtrado por",
+    "dimension": "{{dimension}}:",
+    "clearAll": "Quitar todos"
+  },
+  "dimensions": {
+    "category": "Artefacto",
+    "workspace": "Workspace",
+    "trigger": "Iniciado por",
+    "mode": "Destino"
+  },
+  "values": {
+    "unrecorded": "Sin registrar",
+    "trash": "Papelera",
+    "permanent": "Permanente",
+    "scheduled": "Programación",
+    "manual": "Tú"
+  },
+  "grains": {
+    "word": {
+      "day": "día",
+      "week": "semana",
+      "month": "mes",
+      "all": "en total"
+    },
+    "option": {
+      "day": "Por día",
+      "week": "Por semana",
+      "month": "Por mes",
+      "all": "Todo el periodo"
+    },
+    "window": {
+      "day_one": "{{count}} día",
+      "day_other": "{{count}} días",
+      "week_one": "{{count}} semana",
+      "week_other": "{{count}} semanas",
+      "month_one": "{{count}} mes",
+      "month_other": "{{count}} meses"
+    }
+  },
+  "summary": {
+    "reclaimed": "Espacio recuperado",
+    "allRecorded": "Todo el tiempo registrado",
+    "last": {
+      "day_one": "Último día",
+      "day_other": "Últimos {{count}} días",
+      "week_one": "Última semana",
+      "week_other": "Últimas {{count}} semanas",
+      "month_one": "Último mes",
+      "month_other": "Últimos {{count}} meses"
+    },
+    "versus": {
+      "day_one": "vs. día anterior",
+      "day_other": "vs. {{count}} días anteriores",
+      "week_one": "vs. semana anterior",
+      "week_other": "vs. {{count}} semanas anteriores",
+      "month_one": "vs. mes anterior",
+      "month_other": "vs. {{count}} meses anteriores"
+    },
+    "trend": "{{percent}}%",
+    "cleanups": "Limpiezas",
+    "activeDays_one": "en {{count}} día activo",
+    "activeDays_other": "en {{count}} días activos",
+    "largest": "Mayor limpieza",
+    "largestNote": "el mayor artefacto individual",
+    "average": "Limpieza media",
+    "averageNote": "recuperado por limpieza"
+  },
+  "timeline": {
+    "titleByGrain": "<word>Recuperado</word><word>por</word><picker></picker>",
+    "titleAllTime": "<word>Recuperado</word><picker></picker>",
+    "bucket": "{{date}}:",
+    "bucketCleanups_one": "({{count}} limpieza)",
+    "bucketCleanups_other": "({{count}} limpiezas)",
+    "peak": "pico:",
+    "chartLabel": "Espacio recuperado a lo largo del tiempo"
+  },
+  "breakdown": {
+    "filtered": "filtrado",
+    "empty": "Nada registrado en este periodo.",
+    "cleanups_one": "{{count}} limpieza",
+    "cleanups_other": "{{count}} limpiezas",
+    "share": "{{percent}}% del total"
+  },
+  "eventLog": {
+    "title": "Registro de limpiezas",
+    "pickedOf_one": "<picker>{{shown}}</picker> de {{count}} evento",
+    "pickedOf_other": "<picker>{{shown}}</picker> de {{count}} eventos",
+    "shownOf_one": "{{shown}} de {{count}} evento",
+    "shownOf_other": "{{shown}} de {{count}} eventos",
+    "all": "Todos ({{count}})",
+    "empty": "No hay limpiezas registradas en este periodo.",
+    "pathNotRecorded": "Ruta no registrada",
+    "copyPath": "Copiar ruta",
+    "schedule": "programada",
+    "nuke": "permanente",
+    "trash": "papelera",
+    "showMore_one": "Mostrar {{count}} evento más",
+    "showMore_other": "Mostrar {{count}} eventos más"
+  },
+  "portrait": {
+    "title": "Este workspace",
+    "projects_one": "{{count}} proyecto",
+    "projects_other": "{{count}} proyectos",
+    "pending_one": "{{count}} aún en medición",
+    "pending_other": "{{count}} aún en medición",
+    "onDisk": "en disco",
+    "reclaimable": "recuperable",
+    "yourWork": "tu trabajo",
+    "barLabel": "Peso recuperable en el workspace, por artefacto"
+  },
+  "highlights": {
+    "title": "Hallazgos del último análisis",
+    "scanned_one": "{{count}} proyecto analizado",
+    "scanned_other": "{{count}} proyectos analizados",
+    "emptyTitle": "Nada destacable",
+    "emptyNoScan": "Analiza un workspace para ver hallazgos y recomendaciones.",
+    "emptyQuiet": "Ningún proyecto está frío, sobredimensionado, duplicado ni desfasado respecto a su lockfile.",
+    "view": "Ver en el workspace",
+    "findings": {
+      "cold_one": "{{count}} proyecto lleva más de {{days}} días sin tocarse y ocupa {{size}} de salida regenerable.",
+      "cold_other": "{{count}} proyectos llevan más de {{days}} días sin tocarse y ocupan {{size}} de salida regenerable.",
+      "heaviest": "Solo {{name}} ocupa {{size}} que un build puede regenerar.",
+      "concentration": "El {{percent}}% de lo que puedes recuperar es {{category}}, con {{size}}.",
+      "duplicates_one": "{{count}} proyecto es una segunda copia de un repositorio que ya tienes en otro lugar.",
+      "duplicates_other": "{{count}} proyectos son copias de un repositorio que ya tienes en otro lugar.",
+      "stale_one": "{{count}} proyecto tiene dependencias que ya no coinciden con su lockfile.",
+      "stale_other": "{{count}} proyectos tienen dependencias que ya no coinciden con sus lockfiles.",
+      "protect_one": "{{count}} proyecto contiene trabajo que solo existe en este disco.",
+      "protect_other": "{{count}} proyectos contienen trabajo que solo existe en este disco.",
+      "reclaimed_one": "{{size}} recuperados con Uncached en {{count}} limpieza.",
+      "reclaimed_other": "{{size}} recuperados con Uncached en {{count}} limpiezas."
+    }
+  },
+  "duplicates": {
+    "title": "Dependencias duplicadas",
+    "distinct_one": "{{count}} paquete distinto",
+    "distinct_other": "{{count}} paquetes distintos",
+    "wasted": "<size>{{size}}</size> en copias idénticas entre proyectos",
+    "none": "Nada está duplicado entre tus proyectos.",
+    "copies_one": "{{count}} proyecto",
+    "copies_other": "{{count}} proyectos",
+    "each": "{{size}} cada uno",
+    "hidden_one": "{{count}} paquete más está duplicado. Pro lo muestra.",
+    "hidden_other": "{{count}} paquetes más están duplicados. Pro los muestra.",
+    "shared_one": "{{count}} proyecto ya enlaza sus paquetes a un almacén compartido en lugar de copiarlos.",
+    "shared_other": "{{count}} proyectos ya enlazan sus paquetes a un almacén compartido en lugar de copiarlos.",
+    "note": "Se mide una copia de cada paquete y el resto es aritmética. Los paquetes con binarios nativos compilados pueden variar entre proyectos."
+  },
+  "repositories": {
+    "title": "Higiene de repositorios",
+    "examined_one": "{{count}} repositorio",
+    "examined_other": "{{count}} repositorios",
+    "carrying_one": "<count>{{count}}</count> repositorio tiene elementos sin fusionar",
+    "carrying_other": "<count>{{count}}</count> repositorios tienen elementos sin fusionar",
+    "clean": "Todos los repositorios están limpios.",
+    "prunable_one": "{{count}} eliminable",
+    "prunable_other": "{{count}} eliminables",
+    "deadTitle_one": "{{count}} rama muerta",
+    "deadTitle_other": "{{count}} ramas muertas",
+    "dead_one": "{{count}} muerta",
+    "dead_other": "{{count}} muertas",
+    "stashesTitle_one": "{{count}} stash",
+    "stashesTitle_other": "{{count}} stashes",
+    "stashed_one": "{{count}} en stash",
+    "stashed_other": "{{count}} en stash",
+    "worktrees_one": "{{count}} worktree",
+    "worktrees_other": "{{count}} worktrees",
+    "prunableNote_one": "<strong>{{prunable}} de {{count}}</strong> rama muerta se podría eliminar; el resto contiene commits inaccesibles desde cualquier otro lugar. Abre un repositorio para limpiarlo.",
+    "prunableNote_other": "<strong>{{prunable}} de {{count}}</strong> ramas muertas se podrían eliminar; el resto contiene commits inaccesibles desde cualquier otro lugar. Abre un repositorio para limpiarlo.",
+    "noneSafe": "Ninguna de estas ramas se puede eliminar de forma segura: sus commits son inaccesibles desde cualquier otro lugar. Los stashes y worktrees se informan y nunca se tocan."
+  },
+  "orphans": {
+    "title": "Abandonados",
+    "looking": "Buscando",
+    "examined_one": "{{count}} carpeta examinada",
+    "examined_other": "{{count}} carpetas examinadas",
+    "found": "<size>{{size}}</size> no pertenecen a ningún proyecto",
+    "none": "Todas las carpetas de build pertenecen a un proyecto.",
+    "reveal": "Mostrar {{path}} en el gestor de archivos",
+    "cannotRebuild": "no se puede regenerar",
+    "unreadable": "ilegible",
+    "note": "Uncached no los eliminará. Una carpeta de build solo es un objetivo cuando el archivo del proyecto al que pertenece está a su lado. Abre una para decidir tú.",
+    "exception": "Los entornos de arriba son la excepción: sin el archivo de dependencias del proyecto, ningún comando puede regenerarlos."
+  }
+}

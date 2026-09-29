@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowRight, ArrowUpDown, List, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sparkles, Waypoints, X } from "lucide-react";
 import type { RefObject } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { formatBytes } from "../../../utils/format.mjs";
 import { Select } from "../../shared/Select";
 import { StatCard } from "../../shared/StatCard";
@@ -82,10 +83,12 @@ export function WorkspaceHeader({
   onFolderResult: (message: string | null) => void;
   onRescan: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
-    // `pr-2` matches the scrollbar gutter the list below reserves, so the
+    // `pe-2` matches the scrollbar gutter the list below reserves, so the
     // search field and the cards end on the same edge.
-    <header className="shrink-0 border-b border-forest-800 pb-4 pr-2">
+    <header className="shrink-0 border-b border-forest-800 pb-4 pe-2">
       {/* Row 1: sidebar toggle, what this screen is, and how to reach the
           folder it is about */}
       <div className="flex items-center gap-2 mb-3">
@@ -99,31 +102,31 @@ export function WorkspaceHeader({
           <button
             type="button"
             onClick={onToggleSidebar}
-            title={sidebarCollapsed ? "Show filters" : "Hide filters"}
-            aria-label={sidebarCollapsed ? "Show filters" : "Hide filters"}
+            title={sidebarCollapsed ? t("workspace.header.showFilters") : t("workspace.header.hideFilters")}
+            aria-label={sidebarCollapsed ? t("workspace.header.showFilters") : t("workspace.header.hideFilters")}
             aria-pressed={!sidebarCollapsed}
-            className="-ml-1 grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
+            className="-ms-1 grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
           >
             {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </button>
         )}
 
         <h1 id="workspace-title" className="text-xl font-bold tracking-tight text-mist-100 sm:text-2xl">
-          {projectCount} {projectCount === 1 ? "project" : "projects"}
+          {t("workspace.header.projects", { count: projectCount })}
         </h1>
 
         {/* Above the reclaim button rather than beside it. These leave the app
             and cost nothing; that one empties directories. Ranking them by
             where the eye lands keeps the heavier of the two at the bottom of
             the header, next to the number it is about. */}
-        <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
+        <div className="ms-auto flex shrink-0 flex-wrap items-center gap-1.5">
           {/* Reading the folders again, on demand. The app already does this
               when its window comes back and when the watcher sees the disk
               change; this is for the times you know something happened and
               would rather not wonder whether it was noticed. */}
           <ActionButton
             icon={RefreshCw}
-            label="Read the workspace again"
+            label={t("workspace.header.rescan")}
             onClick={onRescan}
             align="right"
           />
@@ -134,24 +137,24 @@ export function WorkspaceHeader({
       {/* Row 2: what the workspace measures, and the one button that changes it */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <StatCard value={formatBytes(totalBytes)} label="on disk" />
+          <StatCard value={formatBytes(totalBytes)} label={t("workspace.header.onDisk")} />
 
           {reclaimableBytes > 0 && (
             <StatCard
               value={formatBytes(reclaimableBytes)}
-              label="reclaimable"
+              label={t("workspace.header.reclaimable")}
               accent
             />
           )}
 
           {atRisk > 0 && (
             <div
-              title={`${atRisk} ${atRisk === 1 ? "project holds" : "projects hold"} unpushed or uncommitted work`}
+              title={t("workspace.header.atRiskTitle", { count: atRisk })}
               className="inline-flex items-baseline gap-1.5 rounded-xl border border-coral-300/30 bg-coral-300/10 px-3 py-1.5 text-coral-300"
             >
               <AlertTriangle size={13} className="self-center shrink-0" aria-hidden="true" />
               <span className="font-mono text-sm font-semibold tracking-tight">{atRisk}</span>
-              <span className="text-[11px] font-medium uppercase tracking-wider text-coral-300/80">at risk</span>
+              <span className="text-[11px] font-medium uppercase tracking-wider text-coral-300/80">{t("workspace.header.atRisk")}</span>
             </div>
           )}
 
@@ -167,7 +170,7 @@ export function WorkspaceHeader({
             onClick={onReclaim}
             className="group inline-flex min-h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sage-400 px-4 text-xs font-semibold text-forest-950 shadow-sm transition-all hover:bg-sage-300 active:scale-[0.99]"
           >
-            <span>Reclaim disk</span>
+            <span>{t("workspace.header.reclaim")}</span>
             {/* Inverted, not tinted. A translucent wash of the label colour
                 moves the chip towards the number written on it, which is the
                 one direction that costs contrast — and it widens with the
@@ -177,7 +180,7 @@ export function WorkspaceHeader({
                 {targetCount}
               </span>
             )}
-            <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            <ArrowRight size={13} className="rtl:-scale-x-100 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </button>
         )}
       </div>
@@ -188,7 +191,7 @@ export function WorkspaceHeader({
       <div className="mt-3.5 flex items-center gap-2.5">
         <label className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 shadow-2xs transition-all focus-within:border-sage-400/60 focus-within:ring-1 focus-within:ring-sage-400/30">
           <Search size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
-          <span className="sr-only">Filter projects by name, path, kind or branch</span>
+          <span className="sr-only">{t("workspace.header.filterLabel")}</span>
           <input
             ref={searchRef}
             value={query}
@@ -199,14 +202,14 @@ export function WorkspaceHeader({
                 event.currentTarget.blur();
               }
             }}
-            placeholder="Filter by name, path, ecosystem or branch"
+            placeholder={t("workspace.header.filterPlaceholder")}
             className="min-w-0 flex-1 bg-transparent text-xs text-mist-100 outline-none placeholder:text-mist-500"
           />
           {query ? (
             <button
               type="button"
               onClick={() => onQueryChange("")}
-              aria-label="Clear the text filter"
+              aria-label={t("workspace.header.clearText")}
               className="grid size-5 shrink-0 place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-800 hover:text-mist-100 cursor-pointer"
             >
               <X size={13} aria-hidden="true" />
@@ -221,15 +224,15 @@ export function WorkspaceHeader({
         {/* Order Dropdown */}
         {view === "list" && (
           <Select
-            label="Order projects"
+            label={t("workspace.header.order")}
             size="sm"
             icon={<ArrowUpDown size={13} />}
             value={order}
             onChange={(value) => onOrderChange(value as "verdict" | "size" | "folder")}
             options={[
-              { value: "verdict", label: "By verdict" },
-              { value: "size", label: "By size" },
-              ...(hasFamilies ? [{ value: "folder", label: "By folder" }] : []),
+              { value: "verdict", label: t("workspace.header.byVerdict") },
+              { value: "size", label: t("workspace.header.bySize") },
+              ...(hasFamilies ? [{ value: "folder", label: t("workspace.header.byFolder") }] : []),
             ]}
             className="w-36 shrink-0 shadow-2xs"
           />
@@ -241,7 +244,7 @@ export function WorkspaceHeader({
             <button
               type="button"
               onClick={() => onViewChange("list")}
-              title="List view — readable by keyboard"
+              title={t("workspace.header.listTitle")}
               className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all cursor-pointer ${
                 view === "list"
                   ? "bg-forest-850 text-mist-100"
@@ -253,12 +256,12 @@ export function WorkspaceHeader({
                 className={view === "list" ? "text-sage-300" : "text-mist-500"}
                 aria-hidden="true"
               />
-              <span>List</span>
+              <span>{t("workspace.header.list")}</span>
             </button>
             <button
               type="button"
               onClick={() => onViewChange("map")}
-              title="Map view — interactive workspace graph"
+              title={t("workspace.header.mapTitle")}
               className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all cursor-pointer ${
                 view === "map"
                   ? "bg-forest-850 text-mist-100"
@@ -270,7 +273,7 @@ export function WorkspaceHeader({
                 className={view === "map" ? "text-sage-300" : "text-mist-500"}
                 aria-hidden="true"
               />
-              <span>Map</span>
+              <span>{t("workspace.header.map")}</span>
             </button>
           </div>
         )}
@@ -280,17 +283,17 @@ export function WorkspaceHeader({
       {/* Only when something is on, so an untouched screen carries no row for a
           state it is not in. */}
       {active.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pr-2">
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pe-2">
           <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-mist-500">
-            Showing
+            {t("workspace.header.showing")}
           </span>
           {active.map((filter) => (
             <button
               key={filter.id}
               type="button"
               onClick={filter.onClear}
-              title={`Stop filtering by ${filter.label}`}
-              className="group inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-forest-800 bg-forest-900 py-1 pl-2.5 pr-1.5 text-[11px] text-mist-300 transition-colors hover:border-sage-400/50 hover:text-mist-100"
+              title={t("workspace.header.stopFiltering", { label: filter.label })}
+              className="group inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-forest-800 bg-forest-900 py-1 ps-2.5 pe-1.5 text-[11px] text-mist-300 transition-colors hover:border-sage-400/50 hover:text-mist-100"
             >
               {filter.label}
               <X size={11} className="text-mist-500 group-hover:text-mist-100" aria-hidden="true" />
@@ -302,7 +305,7 @@ export function WorkspaceHeader({
               onClick={onClearAll}
               className="cursor-pointer rounded-lg px-2 py-1 text-[11px] font-medium text-mist-500 transition-colors hover:text-mist-100"
             >
-              Clear all
+              {t("workspace.header.clearAll")}
             </button>
           )}
         </div>
@@ -323,6 +326,7 @@ function HistoryLine({
   change: WorkspaceChange | null;
   reclaimed: CleanupTotals | null;
 }) {
+  const { t } = useTranslation();
   const lifetime = reclaimed && reclaimed.allTimeBytes > 0 ? reclaimed : null;
   if (!change && !lifetime) return null;
 
@@ -334,19 +338,21 @@ function HistoryLine({
       {change && (
         <span className="inline-flex items-center gap-1.5">
           {moved ? (
-            <>
-              <span className={`font-mono font-medium ${grew ? "text-mist-100" : "text-sage-300"}`}>
-                {grew ? "+" : "−"}
-                {formatBytes(Math.abs(change.totalDelta))}
-              </span>{" "}
-              <span>since your last visit</span>
-            </>
+            <span>
+              <Trans
+                i18nKey="workspace.history.moved"
+                values={{ sign: grew ? "+" : "−", size: formatBytes(Math.abs(change.totalDelta)) }}
+                components={{
+                  delta: <span className={`font-mono font-medium ${grew ? "text-mist-100" : "text-sage-300"}`} />,
+                }}
+              />
+            </span>
           ) : (
-            <span>Unchanged since your last visit</span>
+            <span>{t("workspace.history.unchanged")}</span>
           )}
           {change.projectsAdded > 0 && (
             <span className="rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-300">
-              +{change.projectsAdded} new
+              {t("workspace.history.added", { count: change.projectsAdded })}
             </span>
           )}
         </span>
@@ -354,8 +360,13 @@ function HistoryLine({
       {lifetime && (
         <span className="inline-flex items-center gap-1.5">
           <Sparkles size={11} className="text-sage-300" aria-hidden="true" />
-          <span className="font-mono font-medium text-sage-300">{formatBytes(lifetime.allTimeBytes)}</span>
-          <span>reclaimed with Uncached</span>
+          <span>
+            <Trans
+              i18nKey="workspace.history.lifetime"
+              values={{ size: formatBytes(lifetime.allTimeBytes) }}
+              components={{ size: <span className="font-mono font-medium text-sage-300" /> }}
+            />
+          </span>
         </span>
       )}
     </div>
@@ -379,6 +390,7 @@ function FolderShortcuts({
   folder: string | null;
   onResult: (message: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const actions = withOneEditor(useFolderActions(folder));
   if (actions.length === 0) return null;
 
@@ -393,8 +405,11 @@ function FolderShortcuts({
           align="right"
           onClick={() =>
             void action.perform().then(
-              () => onResult(action.leaves ? null : `${action.title.toLowerCase()} — done`),
-              (error) => onResult(typeof error === "string" ? error : "That did not work"),
+              () =>
+                onResult(
+                  action.leaves ? null : t("workspace.actions.done", { action: action.title.toLowerCase() }),
+                ),
+              (error) => onResult(typeof error === "string" ? error : t("workspace.actions.failed")),
             )
           }
         />

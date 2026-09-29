@@ -1,18 +1,14 @@
 import { useState } from "react";
+import type { TFunction } from "i18next";
 import { Archive, GitBranch, Loader2, RefreshCw, ShieldAlert, Trees } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import { Panel } from "./panels";
+import { formatAge } from "../../../utils/format.mjs";
 import { isEmpty, type DeadBranch, type Hygiene } from "../../../types/hygiene";
 
 /** Epoch seconds to something a person reads. */
 function timeAgo(seconds: number | null): string | null {
-  if (!seconds) return null;
-  const days = Math.round((Date.now() - seconds * 1000) / (1000 * 60 * 60 * 24));
-  if (days < 1) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 30) return `${days}d ago`;
-  const months = Math.round(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.round(months / 12)}y ago`;
+  return seconds ? formatAge(seconds) : null;
 }
 
 function Row({
@@ -42,13 +38,13 @@ function Row({
   );
 }
 
-function branchDetail(branch: DeadBranch): string {
+function branchDetail(branch: DeadBranch, t: TFunction): string {
   const age = timeAgo(branch.lastCommitAt);
   const state =
     branch.state === "prunable"
-      ? "its remote branch is gone, and its commits are on this branch too"
-      : "its remote branch is gone, and it still holds commits nothing else has";
-  return age ? `${state} · last commit ${age}` : state;
+      ? t("workspace.hygiene.branch.prunable")
+      : t("workspace.hygiene.branch.holdsWork");
+  return age ? t("workspace.hygiene.branch.withAge", { state, age }) : state;
 }
 
 /**
@@ -85,6 +81,7 @@ export function HygienePanel({
   onFetch: () => void;
   onPrune: (branches: string[]) => Promise<{ deleted: string[]; refused: { name: string; reason: string }[] } | null>;
 }) {
+  const { t } = useTranslation();
   const [outcome, setOutcome] = useState<string | null>(null);
   const prunable = hygiene.deadBranches.filter((branch) => branch.state === "prunable");
   const checked = fetchedAt ?? lastFetchAt;
@@ -94,21 +91,21 @@ export function HygienePanel({
     if (!result) return;
     const parts = [
       result.deleted.length > 0 &&
-        `${result.deleted.length} ${result.deleted.length === 1 ? "branch" : "branches"} deleted`,
-      result.refused.length > 0 && `${result.refused.length} refused by Git`,
+        t("workspace.hygiene.outcome.deleted", { count: result.deleted.length }),
+      result.refused.length > 0 && t("workspace.hygiene.outcome.refused", { count: result.refused.length }),
     ].filter(Boolean);
-    setOutcome(parts.length > 0 ? parts.join(" · ") : "Nothing left to delete");
+    setOutcome(parts.length > 0 ? parts.join(" · ") : t("workspace.hygiene.outcome.nothing"));
   }
 
   return (
     <Panel
-      title="Repository hygiene"
+      title={t("workspace.hygiene.title")}
       action={
         <button
           type="button"
           onClick={onFetch}
           disabled={working || loading}
-          aria-label="Fetch repository from remote"
+          aria-label={t("workspace.hygiene.fetchLabel")}
           className="group inline-flex items-center gap-1.5 rounded-xl bg-sage-400 px-3 py-1.5 text-xs font-semibold text-forest-950 shadow-xs transition-all hover:bg-sage-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
         >
           {working ? (
@@ -120,7 +117,7 @@ export function HygienePanel({
               aria-hidden="true"
             />
           )}
-          <span>Fetch remote</span>
+          <span>{t("workspace.hygiene.fetch")}</span>
         </button>
       }
     >
@@ -129,17 +126,17 @@ export function HygienePanel({
           difference between a finding and a guess. */}
       <p className="text-[11px] leading-5 text-mist-500">
         {checked
-          ? `Remote last checked ${timeAgo(checked)}. A branch only reads as dead once a fetch has pruned what the remote deleted.`
-          : "This repository has never been fetched, so nothing here knows what the remote has done."}
+          ? t("workspace.hygiene.checked", { when: timeAgo(checked) })
+          : t("workspace.hygiene.neverFetched")}
       </p>
 
       {error && <p className="mt-2 font-mono text-[11px] leading-5 text-coral-300">{error}</p>}
 
       {loading ? (
-        <p className="mt-3 text-xs text-mist-500">Reading branches, stashes and worktrees.</p>
+        <p className="mt-3 text-xs text-mist-500">{t("workspace.hygiene.loading")}</p>
       ) : isEmpty(hygiene) ? (
         <p className="mt-3 text-xs text-mist-300">
-          No dead branches, no stashes, no extra worktrees.
+          {t("workspace.hygiene.empty")}
         </p>
       ) : (
         <div className="mt-1 divide-y divide-forest-800">
@@ -150,12 +147,12 @@ export function HygienePanel({
                   key={branch.name}
                   icon={<GitBranch size={14} aria-hidden="true" />}
                   name={branch.name}
-                  detail={branchDetail(branch)}
+                  detail={branchDetail(branch, t)}
                   trailing={
                     branch.state === "holdsWork" ? (
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-coral-300/30 bg-coral-300/10 px-1.5 py-0.5 text-[10px] font-semibold text-coral-300">
                         <ShieldAlert size={10} aria-hidden="true" />
-                        keep
+                        {t("workspace.hygiene.keep")}
                       </span>
                     ) : null
                   }
@@ -186,7 +183,7 @@ export function HygienePanel({
                   name={worktree.branch ?? worktree.path}
                   detail={
                     worktree.missing
-                      ? `${worktree.path} — the directory is gone and the registration is not`
+                      ? t("workspace.hygiene.worktreeMissing", { path: worktree.path })
                       : worktree.path
                   }
                 />
@@ -204,11 +201,10 @@ export function HygienePanel({
             disabled={working}
             className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-coral-300/40 bg-coral-300/15 px-3 text-xs font-semibold text-coral-300 shadow-xs transition-all hover:bg-coral-300/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
-            Delete {prunable.length} merged {prunable.length === 1 ? "branch" : "branches"}
+            {t("workspace.hygiene.deleteMerged", { count: prunable.length })}
           </button>
           <span className="text-[11px] text-mist-500">
-            Uses <span className="font-mono">git branch -d</span>, which refuses anything whose
-            commits are not somewhere else.
+            <Trans i18nKey="workspace.hygiene.deleteHint" components={{ mono: <span className="font-mono" /> }} />
           </span>
         </div>
       )}

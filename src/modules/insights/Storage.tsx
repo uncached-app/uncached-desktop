@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { formatBytes } from "../../utils/format.mjs";
 import type { StorageReport } from "../../types/storage";
 
@@ -18,6 +19,7 @@ import type { StorageReport } from "../../types/storage";
  * would be charging for the question rather than for an answer.
  */
 export function Storage() {
+  const { t } = useTranslation();
   const [report, setReport] = useState<StorageReport | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +41,7 @@ export function Storage() {
   if (report === null) {
     return loading ? null : (
       <section className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs">
-        <p className="text-sm text-mist-500">This volume did not answer.</p>
+        <p className="text-sm text-mist-500">{t("insights.storage.noAnswer")}</p>
       </section>
     );
   }
@@ -60,7 +62,7 @@ export function Storage() {
       <div className="flex items-center justify-between gap-3 border-b border-forest-800 pb-3">
         <div>
           <h2 id="storage-title" className="text-sm font-semibold text-mist-100">
-            This disk
+            {t("insights.storage.title")}
           </h2>
           <p className="mt-0.5 font-mono text-[11px] text-mist-500">{report.path}</p>
         </div>
@@ -68,7 +70,7 @@ export function Storage() {
           type="button"
           onClick={() => void read()}
           disabled={loading}
-          aria-label="Read the volume again"
+          aria-label={t("insights.storage.readAgain")}
           className="grid size-7 place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? (
@@ -85,7 +87,10 @@ export function Storage() {
       <div
         className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-mist-500/40"
         role="img"
-        aria-label={`${formatBytes(report.usedBytes)} used of ${formatBytes(report.totalBytes)}`}
+        aria-label={t("insights.storage.usedOf", {
+          used: formatBytes(report.usedBytes),
+          total: formatBytes(report.totalBytes),
+        })}
       >
         <span className="h-full grow bg-transparent" />
         <span className="h-full bg-confidence-medium" style={{ width: `${purgeableShare}%` }} />
@@ -93,14 +98,14 @@ export function Storage() {
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Figure term="Capacity" value={formatBytes(report.totalBytes)} />
-        <Figure term="Used" value={formatBytes(report.usedBytes)} />
-        <Figure term="Free" value={formatBytes(report.freeBytes)} />
+        <Figure term={t("insights.storage.capacity")} value={formatBytes(report.totalBytes)} />
+        <Figure term={t("insights.storage.used")} value={formatBytes(report.usedBytes)} />
+        <Figure term={t("insights.storage.free")} value={formatBytes(report.freeBytes)} />
         {purgeable !== null && (
           <Figure
-            term="Purgeable"
+            term={t("insights.storage.purgeable")}
             value={formatBytes(purgeable)}
-            hint="Counted as used, and released the moment something needs the room. Snapshots, and anything the system can fetch again."
+            hint={t("insights.storage.purgeableHint")}
           />
         )}
       </dl>
@@ -113,16 +118,13 @@ export function Storage() {
             aria-hidden="true"
           />
           <div className="min-w-0">
-            <p className="text-xs leading-5 text-mist-300">
-              The system withholds whole directories from Uncached, so every total a scan produces
-              is a floor rather than an answer.
-            </p>
+            <p className="text-xs leading-5 text-mist-300">{t("insights.storage.withheld")}</p>
             <button
               type="button"
               onClick={() => void invoke("open_full_disk_access")}
               className="mt-2 inline-flex items-center rounded-lg bg-forest-800 px-2.5 py-1.5 text-xs font-medium text-mist-300 hover:bg-forest-850 hover:text-sage-300"
             >
-              Open Full Disk Access
+              {t("insights.storage.openFullDiskAccess")}
             </button>
           </div>
         </div>

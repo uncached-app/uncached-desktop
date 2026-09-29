@@ -1,0 +1,235 @@
+{
+  "module": {
+    "title": "Insights",
+    "badge": {
+      "pro": "Analysen & Trends",
+      "free": "Scan-Intelligence"
+    },
+    "intro": {
+      "pro": "Jede erfasste Bereinigung, die Rate der Speicherfreigabe und was der letzte Scan ergibt.",
+      "free": "Live-Daten aus deinem Workspace. Mit Pro verfolgst du den gesamten Freigabeverlauf und Trends."
+    },
+    "stage": {
+      "orphans": "Suche nach Build-Ordnern, deren Projekt fehlt...",
+      "repositories": "Alle Repositorys werden auf tote Branches und Stashes gelesen...",
+      "duplicates": "Alle node_modules werden auf identische Kopien gelesen..."
+    },
+    "closerLook": {
+      "title": "Genauer betrachtet",
+      "settled": "Aus deinem Workspace gelesen, als er fertig war.",
+      "readingLabel": "Workspace wird gelesen",
+      "readAgainLabel": "Workspace erneut lesen",
+      "reading": "Wird gelesen...",
+      "readAgain": "Erneut lesen"
+    }
+  },
+  "reading": "Wird gelesen",
+  "storage": {
+    "noAnswer": "Dieses Volume hat nicht geantwortet.",
+    "title": "Diese Festplatte",
+    "readAgain": "Volume erneut lesen",
+    "usedOf": "{{used}} von {{total}} belegt",
+    "capacity": "Kapazität",
+    "used": "Belegt",
+    "free": "Frei",
+    "purgeable": "Löschbar",
+    "purgeableHint": "Als belegt gezählt und freigegeben, sobald etwas den Platz braucht. Snapshots und alles, was das System erneut laden kann.",
+    "withheld": "Das System verweigert Uncached den Zugriff auf ganze Verzeichnisse, daher ist jede Summe eines Scans eine Untergrenze, kein exakter Wert.",
+    "openFullDiskAccess": "Festplattenvollzugriff öffnen"
+  },
+  "pro": {
+    "badge": "Pro-Analysen",
+    "title": "Bereinigungsverlauf & Intelligence ist eine Funktion von Uncached Pro",
+    "body": "Free liest den Rechner jedes Mal neu. Pro erfasst jede einzelne Bereinigung — auch automatische, geplante Läufe — mit Zeitverlaufsdiagrammen, Aufschlüsselung nach Ökosystem und Speichertrends über Workspaces hinweg.",
+    "cta": "Uncached Pro holen"
+  },
+  "noHistory": {
+    "title": "Noch keine Bereinigungen erfasst",
+    "body": "Verlauf und Aufschlüsselung füllen sich automatisch, wenn du Caches und Build-Artefakte bereinigst."
+  },
+  "filterChips": {
+    "label": "Gefiltert nach",
+    "dimension": "{{dimension}}:",
+    "clearAll": "Alle entfernen"
+  },
+  "dimensions": {
+    "category": "Artefakt",
+    "workspace": "Workspace",
+    "trigger": "Ausgelöst von",
+    "mode": "Löschart"
+  },
+  "values": {
+    "unrecorded": "Nicht erfasst",
+    "trash": "Papierkorb",
+    "permanent": "Endgültig",
+    "scheduled": "Zeitplan",
+    "manual": "Du"
+  },
+  "grains": {
+    "word": {
+      "day": "Tag",
+      "week": "Woche",
+      "month": "Monat",
+      "all": "gesamt"
+    },
+    "option": {
+      "day": "Pro Tag",
+      "week": "Pro Woche",
+      "month": "Pro Monat",
+      "all": "Gesamter Zeitraum"
+    },
+    "window": {
+      "day_one": "{{count}} Tag",
+      "day_other": "{{count}} Tage",
+      "week_one": "{{count}} Woche",
+      "week_other": "{{count}} Wochen",
+      "month_one": "{{count}} Monat",
+      "month_other": "{{count}} Monate"
+    }
+  },
+  "summary": {
+    "reclaimed": "Freigegebener Speicher",
+    "allRecorded": "Gesamter erfasster Zeitraum",
+    "last": {
+      "day_one": "Letzter {{count}} Tag",
+      "day_other": "Letzte {{count}} Tage",
+      "week_one": "Letzte {{count}} Woche",
+      "week_other": "Letzte {{count}} Wochen",
+      "month_one": "Letzter {{count}} Monat",
+      "month_other": "Letzte {{count}} Monate"
+    },
+    "versus": {
+      "day_one": "ggü. vorigem {{count}} Tag",
+      "day_other": "ggü. vorigen {{count}} Tagen",
+      "week_one": "ggü. voriger {{count}} Woche",
+      "week_other": "ggü. vorigen {{count}} Wochen",
+      "month_one": "ggü. vorigem {{count}} Monat",
+      "month_other": "ggü. vorigen {{count}} Monaten"
+    },
+    "trend": "{{percent}} %",
+    "cleanups": "Bereinigungen",
+    "activeDays_one": "an {{count}} aktiven Tag",
+    "activeDays_other": "an {{count}} aktiven Tagen",
+    "largest": "Größte Bereinigung",
+    "largestNote": "größtes einzelnes Artefakt",
+    "average": "Ø Bereinigung",
+    "averageNote": "freigegeben pro Bereinigung"
+  },
+  "timeline": {
+    "titleByGrain": "<word>Freigegeben</word><word>pro</word><picker></picker>",
+    "titleAllTime": "<word>Freigegeben</word><picker></picker>",
+    "bucket": "{{date}}:",
+    "bucketCleanups_one": "({{count}} Bereinigung)",
+    "bucketCleanups_other": "({{count}} Bereinigungen)",
+    "peak": "Spitze:",
+    "chartLabel": "Freigegebener Speicher im Zeitverlauf"
+  },
+  "breakdown": {
+    "filtered": "gefiltert",
+    "empty": "In diesem Zeitraum nichts erfasst.",
+    "cleanups_one": "{{count}} Bereinigung",
+    "cleanups_other": "{{count}} Bereinigungen",
+    "share": "{{percent}} % Anteil"
+  },
+  "eventLog": {
+    "title": "Bereinigungsprotokoll",
+    "pickedOf_one": "<picker>{{shown}}</picker> von {{count}} Ereignis",
+    "pickedOf_other": "<picker>{{shown}}</picker> von {{count}} Ereignissen",
+    "shownOf_one": "{{shown}} von {{count}} Ereignis",
+    "shownOf_other": "{{shown}} von {{count}} Ereignissen",
+    "all": "Alle ({{count}})",
+    "empty": "In diesem Zeitraum keine Bereinigung erfasst.",
+    "pathNotRecorded": "Pfad nicht erfasst",
+    "copyPath": "Pfad kopieren",
+    "schedule": "Zeitplan",
+    "nuke": "endgültig",
+    "trash": "Papierkorb",
+    "showMore_one": "{{count}} weiteres Ereignis zeigen",
+    "showMore_other": "{{count}} weitere Ereignisse zeigen"
+  },
+  "portrait": {
+    "title": "Dieser Workspace",
+    "projects_one": "{{count}} Projekt",
+    "projects_other": "{{count}} Projekte",
+    "pending_one": "{{count}} wird noch gemessen",
+    "pending_other": "{{count}} werden noch gemessen",
+    "onDisk": "belegt",
+    "reclaimable": "freigebbar",
+    "yourWork": "deine Arbeit",
+    "barLabel": "Freigebbarer Speicher im Workspace, nach Artefakt"
+  },
+  "highlights": {
+    "title": "Erkenntnisse aus dem letzten Scan",
+    "scanned_one": "{{count}} Projekt gescannt",
+    "scanned_other": "{{count}} Projekte gescannt",
+    "emptyTitle": "Nichts Auffälliges",
+    "emptyNoScan": "Scanne einen Workspace, um Erkenntnisse und Empfehlungen zu erhalten.",
+    "emptyQuiet": "Kein Projekt ist kalt, übergroß, doppelt oder weicht von seinem Lockfile ab.",
+    "view": "Im Workspace ansehen",
+    "findings": {
+      "cold_one": "{{count}} Projekt ist seit über {{days}} Tagen unberührt und belegt {{size}} mit neu erzeugbarer Ausgabe.",
+      "cold_other": "{{count}} Projekte sind seit über {{days}} Tagen unberührt und belegen {{size}} mit neu erzeugbarer Ausgabe.",
+      "heaviest": "{{name}} allein belegt {{size}}, die ein Build neu erzeugen kann.",
+      "concentration": "{{percent}} % dessen, was du freigeben kannst, entfällt auf {{category}}: {{size}}.",
+      "duplicates_one": "{{count}} Projekt ist eine zweite Kopie eines Repositorys, das du bereits anderswo hast.",
+      "duplicates_other": "{{count}} Projekte sind Kopien eines Repositorys, das du bereits anderswo hast.",
+      "stale_one": "{{count}} Projekt hat Abhängigkeiten, die nicht mehr zu seinem Lockfile passen.",
+      "stale_other": "{{count}} Projekte haben Abhängigkeiten, die nicht mehr zu ihren Lockfiles passen.",
+      "protect_one": "{{count}} Projekt enthält Arbeit, die nur auf dieser Festplatte existiert.",
+      "protect_other": "{{count}} Projekte enthalten Arbeit, die nur auf dieser Festplatte existiert.",
+      "reclaimed_one": "Du hast mit Uncached {{size}} in {{count}} Bereinigung freigegeben.",
+      "reclaimed_other": "Du hast mit Uncached {{size}} in {{count}} Bereinigungen freigegeben."
+    }
+  },
+  "duplicates": {
+    "title": "Doppelte Abhängigkeiten",
+    "distinct_one": "{{count}} Paket",
+    "distinct_other": "{{count}} verschiedene Pakete",
+    "wasted": "<size>{{size}}</size> in identischen Kopien über Projekte hinweg",
+    "none": "In deinen Projekten ist nichts doppelt vorhanden.",
+    "copies_one": "{{count}} Projekt",
+    "copies_other": "{{count}} Projekte",
+    "each": "je {{size}}",
+    "hidden_one": "{{count}} weiteres Paket ist doppelt. Pro listet es auf.",
+    "hidden_other": "{{count}} weitere Pakete sind doppelt. Pro listet sie auf.",
+    "shared_one": "{{count}} Projekt verlinkt seine Pakete bereits in einen gemeinsamen Store, statt sie zu kopieren.",
+    "shared_other": "{{count}} Projekte verlinken ihre Pakete bereits in einen gemeinsamen Store, statt sie zu kopieren.",
+    "note": "Eine Kopie jedes Pakets wird gemessen, der Rest wird hochgerechnet. Pakete mit nativ kompilierten Binärdateien können zwischen Projekten abweichen."
+  },
+  "repositories": {
+    "title": "Repository-Hygiene",
+    "examined_one": "{{count}} Repository",
+    "examined_other": "{{count}} Repositorys",
+    "carrying_one": "<count>{{count}}</count> Repository enthält nicht gemergte Elemente",
+    "carrying_other": "<count>{{count}}</count> Repositorys enthalten nicht gemergte Elemente",
+    "clean": "Jedes Repository hier ist sauber.",
+    "prunable_one": "{{count}} bereinigbar",
+    "prunable_other": "{{count}} bereinigbar",
+    "deadTitle_one": "{{count}} toter Branch",
+    "deadTitle_other": "{{count}} tote Branches",
+    "dead_one": "{{count}} tot",
+    "dead_other": "{{count}} tot",
+    "stashesTitle_one": "{{count}} Stash",
+    "stashesTitle_other": "{{count}} Stashes",
+    "stashed_one": "{{count}} gestasht",
+    "stashed_other": "{{count}} gestasht",
+    "worktrees_one": "{{count}} Worktree",
+    "worktrees_other": "{{count}} Worktrees",
+    "prunableNote_one": "<strong>{{prunable}} von {{count}}</strong> totem Branch könnte gelöscht werden; die übrigen enthalten Commits, die von nirgendwo sonst erreichbar sind. Öffne ein Repository, um es zu bereinigen.",
+    "prunableNote_other": "<strong>{{prunable}} von {{count}}</strong> toten Branches könnten gelöscht werden; die übrigen enthalten Commits, die von nirgendwo sonst erreichbar sind. Öffne ein Repository, um es zu bereinigen.",
+    "noneSafe": "Keiner dieser Branches kann sicher gelöscht werden: Ihre Commits sind von nirgendwo sonst erreichbar. Stashes und Worktrees werden gemeldet, aber nie angetastet."
+  },
+  "orphans": {
+    "title": "Zurückgelassen",
+    "looking": "Suche läuft",
+    "examined_one": "{{count}} Ordner untersucht",
+    "examined_other": "{{count}} Ordner untersucht",
+    "found": "<size>{{size}}</size> gehört zu keinem Projekt",
+    "none": "Jeder Build-Ordner hier gehört zu einem Projekt.",
+    "reveal": "{{path}} im Dateimanager zeigen",
+    "cannotRebuild": "nicht neu erzeugbar",
+    "unreadable": "nicht lesbar",
+    "note": "Uncached entfernt diese nicht. Ein Build-Ordner ist nur dann ein Ziel, wenn die zugehörige Projektdatei daneben liegt. Öffne einen, um selbst zu entscheiden.",
+    "exception": "Die Umgebungen oben sind die Ausnahme: Ohne die Abhängigkeitsdatei des Projekts kann kein Befehl sie neu erzeugen."
+  }
+}

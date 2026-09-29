@@ -22,6 +22,11 @@ const COLD_DAYS = 90;
 /** How dominant one artifact kind must be before naming it says anything. */
 const CONCENTRATION = 0.6;
 
+/** `key` is an i18n key; plural messages carry `count` in `params`. */
+function message(finding, params) {
+  return { key: `insights.highlights.findings.${finding}`, params };
+}
+
 function sumReclaimable(paths, footprints) {
   return paths.reduce((total, path) => total + (footprints[path]?.reclaimableBytes ?? 0), 0);
 }
@@ -72,7 +77,7 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
     insights.push({
       id: "cold",
       bytes: coldBytes,
-      text: `${cold.length} ${cold.length === 1 ? "project has" : "projects have"} been untouched for over ${COLD_DAYS} days, holding ${formatBytes(coldBytes)} of regenerable output.`,
+      message: message("cold", { count: cold.length, days: COLD_DAYS, size: formatBytes(coldBytes) }),
       action: { kind: "verdict", verdict: "safe" },
     });
   }
@@ -88,7 +93,7 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
     insights.push({
       id: "heaviest",
       bytes: heaviestBytes,
-      text: `${heaviest.name} alone holds ${formatBytes(heaviestBytes)} that a build can regenerate.`,
+      message: message("heaviest", { name: heaviest.name, size: formatBytes(heaviestBytes) }),
       action: { kind: "project", path: heaviest.path },
     });
   }
@@ -107,7 +112,11 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
     insights.push({
       id: "concentration",
       bytes: topBytes,
-      text: `${Math.round((topBytes / totalCategorised) * 100)}% of what you can reclaim is ${topCategory}, at ${formatBytes(topBytes)}.`,
+      message: message("concentration", {
+        percent: Math.round((topBytes / totalCategorised) * 100),
+        category: topCategory,
+        size: formatBytes(topBytes),
+      }),
       action: { kind: "category", category: topCategory },
     });
   }
@@ -123,7 +132,7 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
     insights.push({
       id: "duplicates",
       bytes: duplicateBytes,
-      text: `${duplicated.length} ${duplicated.length === 1 ? "project is a second copy" : "projects are copies"} of a repository you already have elsewhere.`,
+      message: message("duplicates", { count: duplicated.length }),
       action: { kind: "duplicates" },
     });
   }
@@ -135,7 +144,7 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
     insights.push({
       id: "stale",
       bytes: sumReclaimable(stale.map((project) => project.path), footprints),
-      text: `${stale.length} ${stale.length === 1 ? "project has dependencies that no longer match its lockfile" : "projects have dependencies that no longer match their lockfiles"}.`,
+      message: message("stale", { count: stale.length }),
       action: { kind: "verdict", verdict: "staleDeps" },
     });
   }
@@ -149,7 +158,7 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
       id: "protect",
       bytes: 0,
       pinned: true,
-      text: `${atRisk.length} ${atRisk.length === 1 ? "project holds work" : "projects hold work"} that exists only on this disk.`,
+      message: message("protect", { count: atRisk.length }),
       action: { kind: "verdict", verdict: "protect" },
     });
   }
@@ -165,7 +174,7 @@ export function buildInsights({ projects, footprints, verdicts, totals, formatBy
     history.push({
       id: "reclaimed",
       bytes: 0,
-      text: `You have reclaimed ${formatBytes(totals.allTimeBytes)} with Uncached across ${totals.cleanups} ${totals.cleanups === 1 ? "cleanup" : "cleanups"}.`,
+      message: message("reclaimed", { count: totals.cleanups, size: formatBytes(totals.allTimeBytes) }),
     });
   }
 

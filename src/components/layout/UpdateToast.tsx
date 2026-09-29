@@ -1,6 +1,7 @@
 import { ArrowUpCircle, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { UpdateState } from "../../hooks/useUpdate";
 
 /** What was already mentioned, so it is not mentioned again. */
@@ -34,6 +35,7 @@ export function UpdateToast({
   /** Opens the dialog, which is where the notes are read and the download starts. */
   onOpenUpdate: () => void;
 }) {
+  const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
   const [dismissed, setDismissed] = useState(false);
   // What had been announced when this window opened, and only that. Read into a
@@ -74,14 +76,14 @@ export function UpdateToast({
           animate={{ opacity: 1, y: 0 }}
           exit={reducedMotion ? undefined : { opacity: 0, y: 12 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed bottom-6 right-6 z-50 flex max-w-sm items-start gap-3 rounded-2xl border border-forest-800 bg-forest-900 py-3 pl-3.5 pr-2.5 shadow-2xl"
+          className="fixed bottom-6 end-6 z-50 flex max-w-sm items-start gap-3 rounded-2xl border border-forest-800 bg-forest-900 py-3 ps-3.5 pe-2.5 shadow-2xl"
         >
           <ArrowUpCircle size={16} className="mt-0.5 shrink-0 text-sage-300" aria-hidden="true" />
 
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-mist-100">Uncached {version} is available</p>
+            <p className="text-xs font-semibold text-mist-100">{t("shell.update.available", { version })}</p>
             <p className="mt-0.5 text-[11px] leading-5 text-mist-500">
-              Nothing is downloaded or replaced until you ask.
+              {t("shell.update.toast.body")}
             </p>
 
             <div className="mt-2 flex items-center gap-2">
@@ -93,14 +95,14 @@ export function UpdateToast({
                 }}
                 className="cursor-pointer rounded-lg bg-sage-400 px-2.5 py-1 text-[11px] font-semibold text-forest-950 transition-colors hover:bg-sage-300"
               >
-                What's new
+                {t("shell.update.toast.whatsNew")}
               </button>
               <button
                 type="button"
                 onClick={() => setDismissed(true)}
                 className="cursor-pointer rounded-lg px-2 py-1 text-[11px] font-medium text-mist-500 transition-colors hover:text-mist-100"
               >
-                Later
+                {t("shell.update.later")}
               </button>
             </div>
           </div>
@@ -110,7 +112,7 @@ export function UpdateToast({
           <button
             type="button"
             onClick={() => setDismissed(true)}
-            aria-label="Dismiss"
+            aria-label={t("shell.update.toast.dismiss")}
             className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
           >
             <X size={13} aria-hidden="true" />

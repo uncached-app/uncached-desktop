@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowLeft, Check, FolderSearch, LoaderCircle, Radio, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Trans, useTranslation } from "react-i18next";
 import type { CleanResult, ScanTarget, Step } from "../../types/scan";
 import type { CleanMode } from "../../types/settings";
 import type { RunningProject } from "../../types/workspace";
@@ -51,6 +52,9 @@ interface FindingsSectionProps {
   onBack: () => void;
 }
 
+/** Typed verbatim to confirm a permanent delete, in every language. */
+const CONFIRMATION_WORD = "Nuke";
+
 export function FindingsSection({
   step,
   scanning,
@@ -98,9 +102,8 @@ export function FindingsSection({
   const deleteDisabled = scanning || confirming || deleting || selectedTargets.length === 0 || !cleanupModeSupported;
   const reducedMotion = useReducedMotion();
   const permanent = cleanMode === "Permanent";
-  const confirmationReady = !permanent || confirmation === "Nuke";
-
-  const selectedNoun = selectedTargets.length === 1 ? "target" : "targets";
+  const confirmationReady = !permanent || confirmation === CONFIRMATION_WORD;
+  const { t } = useTranslation();
   // Catalogued caches whose tool is running. Counted from the whole list, not
   // from the ready set — they are excluded from that by definition, which is
   // exactly why the number has to be said somewhere.
@@ -180,7 +183,7 @@ export function FindingsSection({
       animate={{ opacity: 1, y: 0 }}
       exit={reducedMotion ? undefined : { opacity: 0, y: -8 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      aria-label="Scan targets"
+      aria-label={t("findings.section.label")}
       className="flex h-full w-full flex-col overflow-hidden"
     >
       <header className="shrink-0 border-b border-forest-800 pb-4">
@@ -192,11 +195,11 @@ export function FindingsSection({
             disabled={scanning}
             className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-mist-500 transition-colors hover:bg-forest-900 hover:text-mist-100 disabled:cursor-not-allowed disabled:opacity-30"
           >
-            <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-0.5" aria-hidden="true" />
-            <span>Workspace</span>
+            <ArrowLeft size={13} className="rtl:-scale-x-100 transition-transform group-hover:-translate-x-0.5" aria-hidden="true" />
+            <span>{t("findings.breadcrumb.workspace")}</span>
           </button>
           <span className="opacity-40">/</span>
-          <span className="truncate font-mono text-[11px] text-mist-300">Reclaim Targets</span>
+          <span className="truncate font-mono text-[11px] text-mist-300">{t("findings.breadcrumb.current")}</span>
         </div>
 
         {/* Laid out like the workspace header, because they are the same kind
@@ -207,22 +210,22 @@ export function FindingsSection({
             box of its own — a card inside a card. */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
-            <h1 className="mr-1 shrink-0 text-xl font-bold tracking-tight text-mist-100 sm:text-2xl">
-              {targets.length} {targets.length === 1 ? "target" : "targets"}
+            <h1 className="me-1 shrink-0 text-xl font-bold tracking-tight text-mist-100 sm:text-2xl">
+              {t("findings.header.targets", { count: targets.length })}
             </h1>
 
             {readyTargets.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 <StatCard
                   value={formatBytes(totalBytesFound)}
-                  label="reclaimable"
+                  label={t("findings.header.reclaimable")}
                   /* The heading counts every target; this covers only the ones
                      a reclaim could take. Side by side with nothing between
                      them the two numbers describe different sets and read as
                      one claim. */
                   title={
                     readyTargets.length < targets.length
-                      ? `Across ${readyTargets.length} of the ${targets.length} targets — the rest are still being measured, failed to measure, or are reported and never removed.`
+                      ? t("findings.header.reclaimableScope", { ready: readyTargets.length, count: targets.length })
                       : undefined
                   }
                 />
@@ -230,7 +233,7 @@ export function FindingsSection({
                 {selectedTargets.length > 0 && (
                   <StatCard
                     value={formatBytes(selectedBytes)}
-                    label={`selected (${selectedTargets.length})`}
+                    label={t("findings.header.selected", { count: selectedTargets.length })}
                     accent
                   />
                 )}
@@ -238,19 +241,28 @@ export function FindingsSection({
                 {inUse.length > 0 && (
                   <span
                     title={inUse
-                      .map((target) => `${target.label ?? target.name} — ${target.blockedBy} is running`)
+                      .map((target) =>
+                        t("findings.header.inUseTarget", {
+                          name: target.label ?? target.name,
+                          tool: target.blockedBy,
+                        }),
+                      )
                       .join("\n")}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-coral-300/40 bg-coral-surface px-3 py-1.5 font-mono text-[11px] text-coral-300"
                   >
                     <Radio size={11} aria-hidden="true" />
-                    {formatBytes(inUse.reduce((sum, target) => sum + target.sizeBytes, 0))} in use
+                    {t("findings.header.inUse", {
+                      size: formatBytes(inUse.reduce((sum, target) => sum + target.sizeBytes, 0)),
+                    })}
                   </span>
                 )}
 
                 {!proEnabled && (
                   <span className="rounded-xl border border-forest-800 bg-forest-900 px-3 py-1.5 font-mono text-[11px] text-mist-500">
-                    Free {formatBytes(freeBytes)}
-                    {proBytes > 0 && <span className="text-pro-100"> · Pro {formatBytes(proBytes)}</span>}
+                    {t("findings.header.planFree", { size: formatBytes(freeBytes) })}
+                    {proBytes > 0 && (
+                      <span className="text-pro-100"> · {t("findings.header.planPro", { size: formatBytes(proBytes) })}</span>
+                    )}
                   </span>
                 )}
               </div>
@@ -265,7 +277,7 @@ export function FindingsSection({
               title={
                 cleanupModeSupported
                   ? undefined
-                  : "Uncached could not read what this system allows it to remove, so nothing is offered."
+                  : t("findings.delete.unsupported")
               }
               className="group inline-flex min-h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-coral-300 px-4 text-xs font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -274,7 +286,7 @@ export function FindingsSection({
               ) : (
                 <Trash2 size={14} aria-hidden="true" />
               )}
-              <span>Delete</span>
+              <span>{t("findings.delete.button")}</span>
               <span className="grid size-4.5 place-items-center rounded bg-forest-950/20 font-mono text-[11px] font-bold text-forest-950">
                 {selectedTargets.length}
               </span>
@@ -287,26 +299,20 @@ export function FindingsSection({
         <div className="mt-2 grid gap-1 text-xs text-mist-500">
           <p>
             {permanent ? (
-              <span className="font-medium text-coral-300">
-                Selected targets are deleted permanently. Not recoverable.
-              </span>
+              <span className="font-medium text-coral-300">{t("findings.notice.permanent")}</span>
             ) : (
-              <span>Selected targets move to the Recycle Bin. Restorable from there if needed.</span>
+              <span>{t("findings.notice.recycle")}</span>
             )}
           </p>
 
           {unreadable > 0 && (
-            <p className="text-confidence-medium" title="Grant Uncached Full Disk Access to read them.">
-              {unreadable} {unreadable === 1 ? "folder was" : "folders were"} withheld by the system,
-              so the count and the total above are both a floor.
+            <p className="text-confidence-medium" title={t("findings.notice.unreadableHint")}>
+              {t("findings.notice.unreadable", { count: unreadable })}
             </p>
           )}
 
           {activeIgnoreRules > 0 && (
-            <p>
-              {activeIgnoreRules === 1 ? "1 ignore rule is" : `${activeIgnoreRules} ignore rules are`} in
-              force. Covered paths were excluded from this scan.
-            </p>
+            <p>{t("findings.notice.ignoreRules", { count: activeIgnoreRules })}</p>
           )}
         </div>
       </header>
@@ -316,14 +322,14 @@ export function FindingsSection({
           <div>
             <FolderSearch size={32} className="mx-auto text-mist-500" strokeWidth={1.5} aria-hidden="true" />
             <p className="mt-4 text-sm font-medium text-mist-300">
-              {scanning ? "Scan in progress." : "No reclaimable targets in this workspace."}
+              {scanning ? t("findings.empty.scanning") : t("findings.empty.none")}
             </p>
             <p className="mt-1 text-sm text-mist-500">
               {scanning
-                ? "Targets appear as they are found."
+                ? t("findings.empty.scanningHint")
                 : minAgeDays > 0
-                  ? `Everything found here was written to in the last ${minAgeDays} days.`
-                  : "Adjust which caches are detected in Settings, under Scanning."}
+                  ? t("findings.empty.tooRecent", { count: minAgeDays })
+                  : t("findings.empty.settingsHint")}
             </p>
             {!scanning && minAgeDays > 0 && (
               <button
@@ -331,7 +337,7 @@ export function FindingsSection({
                 onClick={() => setMinAgeDays(0)}
                 className="mt-5 inline-flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-medium text-mist-300 hover:bg-forest-850 hover:text-sage-300"
               >
-                Show every age
+                {t("findings.empty.showEveryAge")}
               </button>
             )}
             {!scanning && minAgeDays === 0 && (
@@ -340,8 +346,8 @@ export function FindingsSection({
                 onClick={onBack}
                 className="mt-5 inline-flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-medium text-mist-300 hover:bg-forest-850 hover:text-sage-300"
               >
-                <ArrowLeft size={15} aria-hidden="true" />
-                Back to Workspace
+                <ArrowLeft className="rtl:-scale-x-100" size={15} aria-hidden="true" />
+                {t("findings.backToWorkspace")}
               </button>
             )}
           </div>
@@ -359,7 +365,7 @@ export function FindingsSection({
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-linear-to-t from-forest-950 to-transparent"
           />
-          <div className="h-full overflow-y-auto pr-1.5 pt-5 pb-8">
+          <div className="h-full overflow-y-auto pe-1.5 pt-5 pb-8">
             {failed.length > 0 && (
               <div
                 role="alert"
@@ -368,14 +374,11 @@ export function FindingsSection({
                 <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
                 <div className="min-w-0 select-text">
                   <p className="font-semibold">
-                    {failed.length === 1
-                      ? "One target was not removed."
-                      : `${failed.length} targets were not removed.`}{" "}
-                    {error ?? "The system refused the removal."}
+                    {t("findings.failed.title", { count: failed.length })}{" "}
+                    {error ?? t("findings.failed.refused")}
                   </p>
                   <p className="mt-1 text-coral-300/80">
-                    {failed.length === 1 ? "It is" : "They are"} still selected, so pressing again
-                    once the reason is gone retries {failed.length === 1 ? "it" : "them"}.
+                    {t("findings.failed.retry", { count: failed.length })}
                   </p>
                 </div>
               </div>
@@ -383,15 +386,17 @@ export function FindingsSection({
             {!proEnabled && proBytes > 0 && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pro-200/30 bg-pro-surface px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold text-mist-100">{formatBytes(proBytes)} more available with Pro</p>
-                  <p className="mt-1 text-xs text-mist-500">Unlock every cleaner, Workspace and Intelligence.</p>
+                  <p className="text-sm font-semibold text-mist-100">
+                    {t("findings.pro.more", { size: formatBytes(proBytes) })}
+                  </p>
+                  <p className="mt-1 text-xs text-mist-500">{t("findings.pro.pitch")}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => openExternalUrl("https://uncached.app/pro")}
                   className="rounded-xl bg-pro-200 px-3 py-2 text-xs font-semibold text-forest-950 transition-colors hover:bg-pro-100"
                 >
-                  Get Uncached Pro
+                  {t("findings.pro.cta")}
                 </button>
               </div>
             )}
@@ -409,7 +414,7 @@ export function FindingsSection({
                   type="button"
                   onClick={toggleAll}
                   disabled={scanning || freeTargets.length === 0}
-                  className="group/all flex min-w-0 items-center gap-3.5 px-4 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  className="group/all flex min-w-0 items-center gap-3.5 px-4 py-2.5 text-start transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <span
                     className={`grid size-5 shrink-0 place-items-center rounded-md border transition-all ${
@@ -421,10 +426,13 @@ export function FindingsSection({
                     <Check size={11} strokeWidth={3} aria-hidden="true" />
                   </span>
                   <span className="truncate text-xs font-medium text-mist-300">
-                    {allSelected ? "Deselect all" : "Select all"}
+                    {allSelected ? t("findings.list.deselectAll") : t("findings.list.selectAll")}
                     {selectedTargets.length > 0 && (
-                      <span className="ml-1.5 font-mono text-[11px] text-mist-500">
-                        {selectedTargets.length} of {freeTargets.length}
+                      <span className="ms-1.5 font-mono text-[11px] text-mist-500">
+                        {t("findings.list.selectedOf", {
+                          selected: selectedTargets.length,
+                          total: freeTargets.length,
+                        })}
                       </span>
                     )}
                   </span>
@@ -433,10 +441,10 @@ export function FindingsSection({
                 {heldSelection.length > 0 && (
                   <span
                     title={heldSelection.map((target) => target.path).join("\n")}
-                    className="ml-3 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-coral-300/40 bg-coral-surface px-2 py-1 font-mono text-[10px] text-coral-300"
+                    className="ms-3 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-coral-300/40 bg-coral-surface px-2 py-1 font-mono text-[10px] text-coral-300"
                   >
                     <Radio size={10} aria-hidden="true" />
-                    {heldSelection.length} in {heldSelection.length === 1 ? "a project" : "projects"} that {heldSelection.length === 1 ? "is" : "are"} running — {heldSelection.length === 1 ? "it will" : "they will"} not be removed
+                    {t("findings.list.heldByRunning", { count: heldSelection.length })}
                   </span>
                 )}
 
@@ -445,37 +453,37 @@ export function FindingsSection({
                 {/* The order was the product's opinion and nothing said so,
                     which left the least certain target at the top for no
                     visible reason and the heaviest one unreachable. */}
-                <div className="pr-3">
+                <div className="pe-3">
                   <ChoiceRow
                     active={minAgeDays}
                     onChange={setMinAgeDays}
                     options={[
-                      [0, "Any age", "Everything the scan found"],
-                      [30, "30d+", "Nothing has written to these in a month"],
-                      [90, "90d+", "Nothing has written to these in three months"],
+                      [0, t("findings.age.any"), t("findings.age.anyHint")],
+                      [30, t("findings.age.olderThan", { days: 30 }), t("findings.age.monthHint")],
+                      [90, t("findings.age.olderThan", { days: 90 }), t("findings.age.threeMonthsHint")],
                     ]}
                   />
                 </div>
 
                 {targets.length > 1 && (
-                  <div className="pr-3">
+                  <div className="pe-3">
                     <ChoiceRow
                       active={order}
                       onChange={setOrder}
                       options={[
                         [
                           "confidence",
-                          "Least certain",
+                          t("findings.order.confidence.label"),
                           proEnabled
-                            ? "Targets the scanner is least sure about come first"
-                            : "Targets the scanner is least sure about come first. On Free, what your plan can clean leads either way.",
+                            ? t("findings.order.confidence.hint")
+                            : t("findings.order.confidence.hintFree"),
                         ],
                         [
                           "size",
-                          "Largest",
+                          t("findings.order.size.label"),
                           proEnabled
-                            ? "Heaviest on disk first"
-                            : "Heaviest on disk first. On Free, what your plan can clean leads either way.",
+                            ? t("findings.order.size.hint")
+                            : t("findings.order.size.hintFree"),
                         ],
                       ]}
                     />
@@ -519,16 +527,22 @@ export function FindingsSection({
                     {deleting ? <LoaderCircle size={18} className="animate-spin" aria-hidden="true" /> : <AlertTriangle size={18} aria-hidden="true" />}
                   </div>
                   <h2 id="delete-confirm-title" className="text-xl font-semibold text-mist-100">
-                    {deleting ? (permanent ? "Deleting" : "Moving to Recycle Bin") : permanent ? "Delete permanently" : "Move to Recycle Bin"}
+                    {deleting
+                      ? permanent
+                        ? t("findings.confirm.deleting")
+                        : t("findings.confirm.moving")
+                      : permanent
+                        ? t("findings.confirm.deletePermanently")
+                        : t("findings.confirm.moveToRecycleBin")}
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-mist-500">
                     {deleting
                       ? permanent
-                        ? `Deleting ${selectedTargets.length} ${selectedNoun}...`
-                        : `Moving ${selectedTargets.length} ${selectedNoun}...`
+                        ? t("findings.confirm.deletingProgress", { count: selectedTargets.length })
+                        : t("findings.confirm.movingProgress", { count: selectedTargets.length })
                       : permanent
-                        ? `${selectedTargets.length} ${selectedNoun} will be deleted from disk. Not recoverable.`
-                        : `${selectedTargets.length} ${selectedNoun} will be moved to the Recycle Bin. Restore from there if a build needs them.`}
+                        ? t("findings.confirm.permanentWarning", { count: selectedTargets.length })
+                        : t("findings.confirm.recycleWarning", { count: selectedTargets.length })}
                   </p>
                 </div>
                 <button
@@ -536,37 +550,45 @@ export function FindingsSection({
                   onClick={() => setConfirming(false)}
                   disabled={deleting}
                   className="grid size-8 place-items-center rounded-lg text-mist-500 hover:bg-forest-800 hover:text-mist-100 disabled:cursor-not-allowed disabled:opacity-30"
-                  aria-label="Close confirmation"
+                  aria-label={t("findings.confirm.close")}
                 >
                   <X size={17} aria-hidden="true" />
                 </button>
               </div>
               {!deleting && <>
                 <p className="mt-5 rounded-xl border border-forest-800 bg-forest-950 px-4 py-3 text-sm text-mist-300">
-                  Reclaims <strong className="text-mist-100">{formatBytes(selectedBytes)}</strong> (estimated)
+                  <Trans
+                    i18nKey="findings.confirm.reclaims"
+                    values={{ size: formatBytes(selectedBytes) }}
+                    components={{ strong: <strong className="text-mist-100" /> }}
+                  />
                 </p>
                 {permanent && (
-                  <label className="mt-4 block text-left text-sm text-mist-300">
-                    Type <strong className="font-mono text-coral-300">Nuke</strong> to confirm.
+                  <label className="mt-4 block text-start text-sm text-mist-300">
+                    <Trans
+                      i18nKey="findings.confirm.typeToConfirm"
+                      values={{ word: CONFIRMATION_WORD }}
+                      components={{ strong: <strong className="font-mono text-coral-300" /> }}
+                    />
                     <input
                       value={confirmation}
                       onChange={(event) => setConfirmation(event.target.value)}
                       className="mt-2 w-full rounded-xl border bg-forest-950 px-3 py-2.5 font-mono text-sm text-mist-100 outline-none focus:border-coral-300"
                       autoComplete="off"
                       spellCheck={false}
-                      aria-label="Permanent deletion confirmation"
+                      aria-label={t("findings.confirm.inputLabel")}
                     />
                   </label>
                 )}
               </>}
               <div className="mt-6 flex justify-end gap-3">
-                {deleting ? <button type="button" disabled className="inline-flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-medium text-mist-300"><LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> Cleaning...</button> : <>
+                {deleting ? <button type="button" disabled className="inline-flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-medium text-mist-300"><LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> {t("findings.confirm.cleaning")}</button> : <>
                   <button
                     type="button"
                     onClick={() => setConfirming(false)}
                     className="rounded-xl bg-forest-800 px-4 py-2.5 text-sm text-mist-300 hover:bg-forest-850"
                   >
-                    Cancel
+                    {t("findings.confirm.cancel")}
                   </button>
                   <button
                     type="button"
@@ -574,7 +596,7 @@ export function FindingsSection({
                     disabled={!confirmationReady || selectedTargets.length === 0 || !cleanupModeSupported}
                     className="rounded-xl bg-coral-300 px-4 py-2.5 text-sm font-semibold text-forest-950 hover:opacity-90 disabled:cursor-not-allowed"
                   >
-                    {permanent ? "Delete permanently" : "Move to Recycle Bin"}
+                    {permanent ? t("findings.confirm.deletePermanently") : t("findings.confirm.moveToRecycleBin")}
                   </button>
                 </>}
               </div>

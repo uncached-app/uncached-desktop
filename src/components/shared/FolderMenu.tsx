@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { MenuRow } from "./MenuRow";
 import { ContextMenu } from "./ContextMenu";
 import { useFolderActions } from "../../hooks/useFolderActions";
@@ -22,10 +23,11 @@ export function FolderMenu({
   onResult: (message: string | null) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const actions = withOneEditor(useFolderActions(anchor.path));
 
   return (
-    <ContextMenu at={anchor} label={`${anchor.name} actions`} onClose={onClose}>
+    <ContextMenu at={anchor} label={t("shell.folderMenu.label", { name: anchor.name })} onClose={onClose}>
       {actions.map((action) => (
         <MenuRow
           key={action.id}
@@ -34,8 +36,8 @@ export function FolderMenu({
           onSelect={() => {
             onClose();
             void action.perform().then(
-              () => onResult(action.leaves ? null : `${action.title.toLowerCase()} — done`),
-              (error) => onResult(typeof error === "string" ? error : "That did not work"),
+              () => onResult(action.leaves ? null : t("shell.actions.done", { action: action.title.toLowerCase() })),
+              (error) => onResult(typeof error === "string" ? error : t("shell.actions.failed")),
             );
           }}
         />

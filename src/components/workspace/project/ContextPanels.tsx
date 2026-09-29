@@ -1,22 +1,18 @@
 import { GitBranch } from "lucide-react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { Field, Panel } from "./panels";
+import { formatAge } from "../../../utils/format.mjs";
 import { remoteLabel } from "../../../utils/remoteUrl.mjs";
 import type { Activity, GitContext } from "../../../types/workspace";
 
 /** Seconds since the epoch, as Git and the index both report them. */
-function asDate(seconds: number | null): string {
-  return seconds ? new Date(seconds * 1000).toLocaleDateString() : "unknown";
+function asDate(seconds: number | null, locale: string): string | null {
+  return seconds ? new Date(seconds * 1000).toLocaleDateString(locale) : null;
 }
 
 function timeAgo(seconds: number | null): string | null {
-  if (!seconds) return null;
-  const days = Math.round((Date.now() - seconds * 1000) / (1000 * 60 * 60 * 24));
-  if (days < 1) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 30) return `${days}d ago`;
-  const months = Math.round(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.round(months / 12)}y ago`;
+  return seconds ? formatAge(seconds) : null;
 }
 
 /**
@@ -28,19 +24,21 @@ function timeAgo(seconds: number | null): string | null {
  * agreement, so the age of the fetch is part of the same sentence — and with no
  * fetch at all there is no number to print.
  */
-function freshness(git: GitContext): string {
+function freshness(git: GitContext, t: TFunction): string {
   const checked = timeAgo(git.lastFetchAt);
-  if (!checked) return "Never fetched, so nothing is known about the remote";
-  if (git.behind === null) return `Checked ${checked}. This branch tracks nothing`;
-  if (git.behind === 0) return `Up to date as of ${checked}`;
-  return `${git.behind} ${git.behind === 1 ? "commit" : "commits"} behind as of ${checked}`;
+  if (!checked) return t("workspace.git.neverFetched");
+  if (git.behind === null) return t("workspace.git.checkedUntracked", { when: checked });
+  if (git.behind === 0) return t("workspace.git.upToDate", { when: checked });
+  return t("workspace.git.behind", { count: git.behind, when: checked });
 }
 
 /** What the repository says about itself. */
 export function GitPanel({ git }: { git: GitContext }) {
+  const { t, i18n } = useTranslation();
+
   return (
     <Panel
-      title="Git Context"
+      title={t("workspace.git.title")}
       action={
         git.branch ? (
           <span className="inline-flex items-center gap-1 font-mono text-[11px] text-mist-500">
@@ -52,22 +50,22 @@ export function GitPanel({ git }: { git: GitContext }) {
     >
       {git.branch ? (
         <dl className="grid gap-1 text-xs">
-          <Field label="Branch">
+          <Field label={t("workspace.git.branch")}>
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono font-medium text-mist-100">{git.branch}</span>
               {git.dirty ? (
                 <span className="rounded-md border border-confidence-review/40 bg-confidence-review-surface px-1.5 py-0.5 text-[10px] font-semibold text-confidence-review">
-                  uncommitted changes
+                  {t("workspace.git.dirty")}
                 </span>
               ) : (
                 <span className="rounded-md border border-forest-800 bg-forest-850 px-1.5 py-0.5 text-[10px] font-medium text-mist-500">
-                  clean working tree
+                  {t("workspace.git.clean")}
                 </span>
               )}
             </div>
           </Field>
 
-          <Field label="Remote">
+          <Field label={t("workspace.git.remote")}>
             {git.remote ? (
               <div className="min-w-0">
                 <span className="block truncate font-mono text-mist-300" title={git.remote}>
@@ -75,25 +73,25 @@ export function GitPanel({ git }: { git: GitContext }) {
                 </span>
                 {git.remoteIsLocal && (
                   <span className="mt-0.5 block text-[10px] font-medium text-coral-300">
-                    local directory on this drive
+                    {t("workspace.git.localRemote")}
                   </span>
                 )}
-                <span className="mt-0.5 block text-[10px] text-mist-500">{freshness(git)}</span>
+                <span className="mt-0.5 block text-[10px] text-mist-500">{freshness(git, t)}</span>
               </div>
             ) : (
-              <span className="text-mist-500">No remote configured</span>
+              <span className="text-mist-500">{t("workspace.git.noRemote")}</span>
             )}
           </Field>
 
           {git.lastCommitSummary && (
-            <Field label="Last commit">
+            <Field label={t("workspace.git.lastCommit")}>
               <div className="min-w-0">
                 <p className="truncate font-medium text-mist-100" title={git.lastCommitSummary}>
                   {git.lastCommitSummary}
                 </p>
                 {git.lastCommitAt && (
                   <div className="mt-0.5 flex items-center gap-2 text-[10px] text-mist-500">
-                    <span className="font-mono">{asDate(git.lastCommitAt)}</span>
+                    <span className="font-mono">{asDate(git.lastCommitAt, i18n.language) ?? t("workspace.git.unknownDate")}</span>
                     <span>·</span>
                     <span>{timeAgo(git.lastCommitAt)}</span>
                   </div>
@@ -103,7 +101,7 @@ export function GitPanel({ git }: { git: GitContext }) {
           )}
         </dl>
       ) : (
-        <p className="text-xs text-mist-500">Not a git repository. No remote backup tracking available.</p>
+        <p className="text-xs text-mist-500">{t("workspace.git.notRepository")}</p>
       )}
     </Panel>
   );
@@ -111,11 +109,12 @@ export function GitPanel({ git }: { git: GitContext }) {
 
 /** How long ago somebody cared about this. */
 export function ActivityPanel({ activity }: { activity: Activity }) {
+  const { t, i18n } = useTranslation();
   const isIdle = activity.idleDays !== null && activity.idleDays > 30;
 
   return (
     <Panel
-      title="Activity"
+      title={t("workspace.activity.title")}
       action={
         <span
           className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
@@ -124,14 +123,14 @@ export function ActivityPanel({ activity }: { activity: Activity }) {
               : "border-sage-400/40 bg-sage-400/10 text-sage-300"
           }`}
         >
-          {activity.state}
+          {t(`workspace.activity.states.${activity.state}`)}
         </span>
       }
     >
       <dl className="grid gap-1 text-xs">
-        <Field label="Last touched">
+        <Field label={t("workspace.activity.lastTouched")}>
           <div className="flex items-center gap-2">
-            <span className="font-mono font-medium text-mist-100">{asDate(activity.lastActivityAt)}</span>
+            <span className="font-mono font-medium text-mist-100">{asDate(activity.lastActivityAt, i18n.language) ?? t("workspace.git.unknownDate")}</span>
             {activity.lastActivityAt && (
               <span className="text-[10px] text-mist-500 font-mono">
                 ({timeAgo(activity.lastActivityAt)})
@@ -141,12 +140,12 @@ export function ActivityPanel({ activity }: { activity: Activity }) {
         </Field>
 
         {activity.idleDays !== null && (
-          <Field label="Idle time">
+          <Field label={t("workspace.activity.idleTime")}>
             <div className="flex items-center gap-2">
-              <span className="font-mono font-medium text-mist-300">{activity.idleDays} days</span>
+              <span className="font-mono font-medium text-mist-300">{t("workspace.activity.idleDays", { count: activity.idleDays })}</span>
               {activity.idleDays > 90 && (
                 <span className="rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
-                  cold project
+                  {t("workspace.activity.cold")}
                 </span>
               )}
             </div>

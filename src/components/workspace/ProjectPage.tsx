@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { CheckCircle2, Radio } from "lucide-react";
+import { Trans } from "react-i18next";
 import { ArtifactList } from "./project/ArtifactList";
 import { ActivityPanel, GitPanel } from "./project/ContextPanels";
 import { DuplicatePanel } from "./project/DuplicatePanel";
@@ -74,7 +75,7 @@ export function ProjectPage({
     <section aria-label={project.name} className="flex h-full w-full flex-1 flex-col overflow-hidden">
       <ProjectHeader project={project} verdict={verdict} footprint={footprint} onBack={onBack} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2 pt-4 pb-8 scrollbar-gutter-stable">
+      <div className="min-h-0 flex-1 overflow-y-auto pe-2 pt-4 pb-8 scrollbar-gutter-stable">
         {/* Horizontal Action Bar & Feedback Toast */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ProjectActions project={project} onShowInList={onShowInList} onResult={handleResult} />
@@ -111,11 +112,20 @@ export function ProjectPage({
             >
               <Radio size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
               <p>
-                <span className="font-semibold">This project is running.</span>{" "}
-                {running.processes > 1
-                  ? `${running.processes} processes are working inside it, one of them ${running.command}.`
-                  : `${running.command} is working inside it.`}{" "}
-                Its artifacts are not measured and cannot be reclaimed until it stops.
+                {running.processes > 1 ? (
+                  <Trans
+                    i18nKey="workspace.project.running.several"
+                    count={running.processes}
+                    values={{ command: running.command }}
+                    components={{ strong: <span className="font-semibold" /> }}
+                  />
+                ) : (
+                  <Trans
+                    i18nKey="workspace.project.running.single"
+                    values={{ command: running.command }}
+                    components={{ strong: <span className="font-semibold" /> }}
+                  />
+                )}
               </p>
             </div>
           )}

@@ -1,5 +1,7 @@
 import { HardDrive, Info, RotateCcw } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import type { TFunction } from "i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { Panel } from "./panels";
 import { VERDICT_PRESENTATION, projectEvidence } from "../verdictPresentation";
 import { preferred, useLaunchers } from "../../../hooks/useLaunchers";
@@ -26,30 +28,31 @@ export function VerdictPanel({
   /** Told what happened, since the restore finishes in another window. */
   onResult: (message: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const presentation = VERDICT_PRESENTATION[verdict];
-  const atRisk = riskLines(project.git.recoverability);
+  const atRisk = riskLines(project.git.recoverability, t);
 
   return (
     <Panel
-      title="Verdict Analysis"
+      title={t("workspace.verdict.title")}
       action={
         <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-semibold ${presentation.className}`}>
           <span className={`size-1.5 rounded-full ${presentation.dotClassName}`} aria-hidden="true" />
-          {presentation.label}
+          {t(presentation.labelKey)}
         </span>
       }
     >
       <div className="space-y-3">
         <div>
-          <p className="text-sm font-medium text-mist-100">{presentation.summary}</p>
-          <p className="mt-0.5 text-xs text-mist-500">{projectEvidence(project, verdict, footprint)}</p>
+          <p className="text-sm font-medium text-mist-100">{t(presentation.summaryKey)}</p>
+          <p className="mt-0.5 text-xs text-mist-500">{projectEvidence(project, verdict, footprint, t)}</p>
         </div>
 
         {/* Risk & Safety status */}
         {atRisk.length > 0 && (
           <div className="border-t border-forest-800 pt-3">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-coral-300">
-              Uncommitted or unpushed local work
+              {t("workspace.verdict.localWork")}
             </p>
             <ul className="mt-1.5 space-y-1">
               {atRisk.map((line) => (
@@ -67,7 +70,7 @@ export function VerdictPanel({
           <div className="flex items-start gap-2 border-t border-forest-800 pt-2.5 text-xs text-coral-300">
             <HardDrive size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
             <p className="leading-relaxed">
-              <strong>Local backup:</strong> The git remote is a local folder on this machine rather than a remote server.
+              <Trans i18nKey="workspace.verdict.localBackup" components={{ strong: <strong /> }} />
             </p>
           </div>
         )}
@@ -78,8 +81,8 @@ export function VerdictPanel({
             <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
             <p className="leading-relaxed">
               {project.installMissing
-                ? "Lockfile present with missing dependencies. Run package manager install before testing."
-                : "Lockfile changed after last install. Installed dependencies may be stale."}
+                ? t("workspace.verdict.installMissing")
+                : t("workspace.verdict.installStale")}
             </p>
           </div>
         )}
@@ -114,6 +117,7 @@ function RestoreLine({
   path: string;
   onResult: (message: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const pinned = restore.pinnedBy !== null;
   const launchers = useLaunchers();
   const { settings } = useSettings();
@@ -143,7 +147,7 @@ function RestoreLine({
       // restore; it only costs the fallback.
     }
     if (!terminal) {
-      onResult("no terminal found on this machine — the command is copied");
+      onResult(t("workspace.restore.noTerminal"));
       return;
     }
     try {
@@ -151,9 +155,9 @@ function RestoreLine({
         path,
         program: terminal.program,
       });
-      onResult(`${started} — running in ${terminal.name}`);
+      onResult(t("workspace.restore.running", { started, terminal: terminal.name }));
     } catch (error) {
-      onResult(typeof error === "string" ? error : "That terminal did not open");
+      onResult(typeof error === "string" ? error : t("workspace.restore.failed"));
     }
   }
 
@@ -166,21 +170,17 @@ function RestoreLine({
       <div className="flex min-w-0 items-start gap-2">
         <RotateCcw size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
         <p className="leading-relaxed">
-          <strong className="text-mist-300">Restoring:</strong>{" "}
-          <code className="rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[11px] text-mist-100">
-            {restore.command}
-          </code>{" "}
-          {pinned ? (
-            <>
-              — <span className="font-mono">{restore.pinnedBy}</span> fixes which versions come
-              back.
-            </>
-          ) : (
-            <>
-              — nothing here pins the versions, so a reinstall resolves current ones. The space
-              returns; this exact set of dependencies does not.
-            </>
-          )}
+          <Trans
+            i18nKey={pinned ? "workspace.restore.pinned" : "workspace.restore.unpinned"}
+            values={{ command: restore.command, pinnedBy: restore.pinnedBy }}
+            components={{
+              strong: <strong className="text-mist-300" />,
+              code: (
+                <code className="rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[11px] text-mist-100" />
+              ),
+              mono: <span className="font-mono" />,
+            }}
+          />
         </p>
       </div>
 
@@ -191,7 +191,9 @@ function RestoreLine({
         type="button"
         onClick={() => void restoreNow()}
         title={
-          terminal ? `Run ${restore.command} in ${terminal.name}, here` : `Copy ${restore.command}`
+          terminal
+            ? t("workspace.restore.runTitle", { command: restore.command, terminal: terminal.name })
+            : t("workspace.restore.copyTitle", { command: restore.command })
         }
         className="group/restore inline-flex shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-lg border border-transparent px-2 py-1 text-[11px] font-medium text-mist-300 transition-all hover:border-sage-400/50 hover:bg-forest-850 hover:text-sage-300"
       >
@@ -200,21 +202,21 @@ function RestoreLine({
           className="shrink-0 text-mist-500 transition-transform duration-300 group-hover/restore:-rotate-180 group-hover/restore:text-sage-300"
           aria-hidden="true"
         />
-        Restore now
+        {t("workspace.restore.action")}
       </button>
     </div>
   );
 }
 
 /** Everything that exists nowhere else, named individually. */
-function riskLines(recoverability: Recoverability): string[] {
-  const lines: Array<[number, string, string]> = [
-    [recoverability.unpushedCommits, "commit", "never pushed"],
-    [recoverability.stashEntries, "stash", "saved and unapplied"],
-    [recoverability.branchesWithoutUpstream, "branch", "without remote upstream"],
-    [recoverability.untrackedFiles, "file", "never committed"],
-  ];
+function riskLines(recoverability: Recoverability, t: TFunction): string[] {
+  const lines = [
+    [recoverability.unpushedCommits, "unpushedCommits"],
+    [recoverability.stashEntries, "stashEntries"],
+    [recoverability.branchesWithoutUpstream, "branchesWithoutUpstream"],
+    [recoverability.untrackedFiles, "untrackedFiles"],
+  ] as const;
   return lines
     .filter(([count]) => count > 0)
-    .map(([count, noun, suffix]) => `${count} ${count === 1 ? noun : `${noun}s`} ${suffix}`);
+    .map(([count, kind]) => t(`workspace.verdict.risk.${kind}`, { count }));
 }

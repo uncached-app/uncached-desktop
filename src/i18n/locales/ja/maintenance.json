@@ -1,0 +1,103 @@
+{
+  "header": {
+    "title": "メンテナンス",
+    "badgePro": "ルールと操作",
+    "badgeFree": "ポリシーのプレビュー",
+    "subtitle": "未コミットやローカルのみの作業に触れずに、放置されたプロジェクトの整理を自動化します。",
+    "eligible_other": "件のプロジェクトが該当",
+    "reclaimable": "回収可能"
+  },
+  "scheduleNote": "スケジュールは Uncached の中で実行されるため、メニューバーに閉じても継続し、「終了」すると停止します。実行されなかった回は、次にアプリを開いたときに実行します。",
+  "policy": {
+    "title": "自動選択ポリシー",
+    "summary": "> {{days}} 日 · ≥ {{size}}",
+    "matches_other": "{{count}} 件が一致（{{size}}）",
+    "idleLabel": "未更新期間の下限",
+    "idleChip": "{{days}} 日",
+    "sizeLabel": "キャッシュサイズの下限",
+    "sizeChipTitle": "破棄可能なキャッシュが {{size}} 以上",
+    "guardSynced": "リモートと完全に同期したリポジトリのみが対象",
+    "guardTrash": "常にゴミ箱に移動（復元可能）",
+    "description_other": "<strong>{{count}} 日</strong>以上更新がなく、破棄可能なキャッシュが <strong>{{size}}</strong> 以上あるプロジェクトを回収します。",
+    "idleChipTitle_other": "{{count}} 日以上更新なし"
+  },
+  "schedule": {
+    "title": "自動実行スケジュール",
+    "subtitle": "上のポリシーを自動で実行し、削除した内容を通知します。",
+    "toggle": "スケジュールでメンテナンスを実行",
+    "runEvery": "実行間隔",
+    "intervals": {
+      "daily": "毎日",
+      "weekly": "毎週",
+      "fortnightly": "2 週間ごと",
+      "monthly": "毎月"
+    },
+    "held": {
+      "disabled": "オフです。「メンテナンスを実行」を押さない限り何も実行されません。",
+      "notLicensed": "自動実行には有効なライセンスが必要です。",
+      "noWorkspace": "フォルダが選択されていないため、メンテナンスの対象がありません。",
+      "scanInProgress": "実行中のスキャンの完了を待っています。"
+    },
+    "when": "{{date}} · {{time}}",
+    "nextRun": "次回の実行 <strong>{{next}}</strong>",
+    "nextRunWithLast": "次回の実行 <strong>{{next}}</strong> · 前回 {{last}}",
+    "dueNow": "実行予定時刻です。数分以内に開始します。",
+    "safety": "スケジュール実行も同じポリシーに従い、ゴミ箱に移動します。インサイトには<strong>スケジュール</strong>として記録されます。",
+    "quitWarning": "ウインドウを閉じると Uncached が終了するため、このスケジュールはウインドウが開いている間のみ実行されます。メニューバーに閉じるには、「設定」で<strong>バックグラウンドで実行を続ける</strong>をオンにしてください。"
+  },
+  "selection": {
+    "emptyTitle": "このルールに一致するプロジェクトはありません",
+    "readyTitle": "メンテナンス可能（{{total}}）",
+    "evaluating": "（評価中…）",
+    "emptyHint": "ワークスペースのプロジェクトはすべて、最近更新されたか、サイズの下限未満か、保護されています。",
+    "readyHint": "回収した対象はゴミ箱に移動するため、元に戻せます。",
+    "reclaimable": "{{size}} 回収可能",
+    "remoteSynced": "リモートと同期済み",
+    "clean": "ワークスペースはクリーンです。しきい値を満たす休眠プロジェクトはありません。",
+    "filteredOut": "除外：",
+    "skipped": {
+      "verdict": "<strong>{{total}}</strong> 件は自動化が安全でない",
+      "unmeasured": "<strong>{{total}}</strong> 件は未計測",
+      "unknownActivity": "<strong>{{total}}</strong> 件はアクティビティを読み取れない",
+      "tooRecent": "<strong>{{total}}</strong> 件は最近更新された",
+      "tooSmall": "<strong>{{total}}</strong> 件はサイズの下限未満"
+    },
+    "running": "{{total}} 件中 {{done}} 件を回収中…",
+    "run": "メンテナンスを実行（{{total}}）",
+    "runHint": "選択した対象をゴミ箱に移動します。",
+    "scanToEnable": "ワークスペースをスキャンすると、検出した対象をワンクリックでメンテナンスできます。",
+    "done_other": "✓ {{count}} 件の対象から {{size}} を回収しました。",
+    "doneWithFailures_other": "✓ {{count}} 件の対象から {{size}} を回収しました（{{failed}} 件失敗）。",
+    "protected_other": "{{count}} 件のプロジェクトがこのディスク上に未コミットまたは未プッシュの作業を保持しています（保護）",
+    "viewInWorkspace": "ワークスペースで表示 →",
+    "idle_other": "{{count}} 日間更新なし"
+  },
+  "states": {
+    "noFolders": {
+      "title": "フォルダが選択されていません",
+      "body": "ポリシーはスキャンしたフォルダ内のプロジェクトに適用されます。まだありません。",
+      "action": "フォルダを選択"
+    },
+    "reading": {
+      "title": "フォルダを読み取り中",
+      "body": "プロジェクトを検出しています…"
+    },
+    "measuring": {
+      "body": "すべてのプロジェクトのサイズが確定すると、選択内容が表示されます。",
+      "title_other": "{{count}} 件中 {{measured}} 件のプロジェクトを計測中"
+    },
+    "noProjects": {
+      "title_other": "選択した {{count}} 個のフォルダにプロジェクトがありません",
+      "body": "プロジェクトとは、リポジトリまたはマニフェストを含むディレクトリです。"
+    },
+    "indexFailed": {
+      "title": "フォルダを読み取れませんでした"
+    },
+    "pro": {
+      "badge": "Pro メンテナンス",
+      "title": "このポリシーを実行するには Pro が必要です",
+      "body": "下の選択内容は実行時の対象そのもので、どのプランでも同じです。Pro は実行を行い、スケジュールに従って自動で繰り返し、各回で削除した内容を記録します。",
+      "cta": "Uncached Pro を入手"
+    }
+  }
+}

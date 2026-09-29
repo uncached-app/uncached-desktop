@@ -3,6 +3,7 @@ import { AlertTriangle, Ban, ScanSearch } from "lucide-react";
 import { RootPicker } from "../shared/RootPicker";
 import { SearchPanel } from "../shared/SearchPanel";
 import { motion, useReducedMotion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { ScanNotice, Step } from "../../types/scan";
 import type { LastCleanup } from "../../types/settings";
 import { formatBytes } from "../../utils/format.mjs";
@@ -35,6 +36,7 @@ export function WorkspaceForm({
   lastCleanup,
   error,
 }: WorkspaceFormProps) {
+  const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
 
   const lastRun = cleanupSummary.removed > 0 ? cleanupSummary : lastCleanup;
@@ -44,10 +46,10 @@ export function WorkspaceForm({
   const cancelled = notice?.kind === "cancelled" ? notice : null;
   const statusLine = cancelled
     ? cancelled.targetsFound
-      ? `Scan cancelled · ${cancelled.targetsFound} ${cancelled.targetsFound === 1 ? "target" : "targets"} found before stopping`
-      : "Scan cancelled"
+      ? t("workspace.form.cancelledFound", { count: cancelled.targetsFound })
+      : t("workspace.form.cancelled")
     : lastRun
-      ? `Last run: ${lastRun.removed} ${lastRun.removed === 1 ? "target" : "targets"} removed, ${formatBytes(lastRun.freedBytes)} reclaimed`
+      ? t("workspace.form.lastRun", { count: lastRun.removed, size: formatBytes(lastRun.freedBytes) })
       : null;
 
   if (step !== 1) return null;
@@ -60,8 +62,8 @@ export function WorkspaceForm({
       className="flex h-full w-full flex-col justify-center"
     >
       <SearchPanel
-        title="Reclaim disk from build artifacts."
-        subtitle="Finds dependency, build, and cache directories your toolchains can regenerate."
+        title={t("workspace.form.title")}
+        subtitle={t("workspace.form.subtitle")}
       >
         <form onSubmit={openWorkspace} className="w-full">
           <RootPicker
@@ -78,7 +80,7 @@ export function WorkspaceForm({
               className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-sage-400 px-5 text-sm font-semibold text-forest-950 transition-colors hover:bg-sage-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ScanSearch size={17} aria-hidden="true" />
-              <span>Open workspace</span>
+              <span>{t("workspace.form.open")}</span>
             </button>
           </div>
 
@@ -90,7 +92,7 @@ export function WorkspaceForm({
 
         {error && (
           <div
-            className="select-text mt-6 flex w-full items-start gap-3 rounded-2xl border border-coral-300/40 bg-forest-900 p-4 text-left text-sm text-coral-300"
+            className="select-text mt-6 flex w-full items-start gap-3 rounded-2xl border border-coral-300/40 bg-forest-900 p-4 text-start text-sm text-coral-300"
             role="alert"
           >
             <AlertTriangle size={17} className="mt-0.5 shrink-0" aria-hidden="true" />

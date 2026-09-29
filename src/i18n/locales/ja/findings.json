@@ -1,0 +1,168 @@
+{
+  "section": {
+    "label": "スキャン対象"
+  },
+  "breadcrumb": {
+    "workspace": "ワークスペース",
+    "current": "回収対象"
+  },
+  "backToWorkspace": "ワークスペースに戻る",
+  "header": {
+    "targets_other": "{{count}} 件の対象",
+    "reclaimable": "回収可能",
+    "selected_other": "選択中（{{count}}）",
+    "inUse": "{{size}} 使用中",
+    "inUseTarget": "{{name}} — {{tool}} が実行中",
+    "planFree": "Free {{size}}",
+    "planPro": "Pro {{size}}",
+    "reclaimableScope_other": "{{count}} 件中 {{ready}} 件の対象の合計です。残りは計測中、計測失敗、または報告のみで削除しない対象です。"
+  },
+  "delete": {
+    "button": "削除",
+    "unsupported": "このシステムで削除できる範囲を読み取れなかったため、何も提示しません。"
+  },
+  "notice": {
+    "permanent": "選択した対象は完全に削除されます。復元できません。",
+    "recycle": "選択した対象はゴミ箱に移動します。必要ならそこから復元できます。",
+    "unreadable_other": "{{count}} 個のフォルダがシステムにより読み取りを拒否されたため、上の件数と合計はどちらも下限値です。",
+    "unreadableHint": "読み取るには Uncached にフルディスクアクセスを許可してください。",
+    "ignoreRules_other": "{{count}} 件の除外ルールが有効です。該当するパスはこのスキャンから除外されました。"
+  },
+  "empty": {
+    "scanning": "スキャン中です。",
+    "none": "このワークスペースに回収可能な対象はありません。",
+    "scanningHint": "対象は見つかった順に表示されます。",
+    "tooRecent_other": "ここで見つかったものはすべて過去 {{count}} 日以内に書き込まれています。",
+    "settingsHint": "検出するキャッシュは「設定」の「スキャン」で変更できます。",
+    "showEveryAge": "すべての期間を表示"
+  },
+  "failed": {
+    "title_other": "{{count}} 件の対象を削除できませんでした。",
+    "refused": "システムが削除を拒否しました。",
+    "retry_other": "選択は維持されています。原因が解消したら再度押すと再試行します。"
+  },
+  "pro": {
+    "more": "Pro でさらに {{size}} を回収可能",
+    "pitch": "すべてのクリーナー、ワークスペース、インテリジェンスを利用できます。",
+    "cta": "Uncached Pro を入手"
+  },
+  "list": {
+    "selectAll": "すべて選択",
+    "deselectAll": "すべて選択解除",
+    "selectedOf": "{{total}} 件中 {{selected}} 件",
+    "heldByRunning_other": "{{count}} 件は実行中のプロジェクト内にあるため削除しません"
+  },
+  "age": {
+    "any": "すべての期間",
+    "anyHint": "スキャンで見つかったものすべて",
+    "olderThan": "{{days}} 日以上",
+    "monthHint": "1 か月間書き込みのないもの",
+    "threeMonthsHint": "3 か月間書き込みのないもの"
+  },
+  "order": {
+    "confidence": {
+      "label": "確度の低い順",
+      "hint": "スキャナの確度が最も低い対象を先頭に表示",
+      "hintFree": "スキャナの確度が最も低い対象を先頭に表示。Free では、どちらの順でもプランで削除できる対象が先頭になります。"
+    },
+    "size": {
+      "label": "サイズの大きい順",
+      "hint": "ディスク使用量の大きい順",
+      "hintFree": "ディスク使用量の大きい順。Free では、どちらの順でもプランで削除できる対象が先頭になります。"
+    }
+  },
+  "confirm": {
+    "deleting": "削除中",
+    "moving": "ゴミ箱に移動中",
+    "deletePermanently": "完全に削除",
+    "moveToRecycleBin": "ゴミ箱に移動",
+    "deletingProgress_other": "{{count}} 件の対象を削除中…",
+    "movingProgress_other": "{{count}} 件の対象を移動中…",
+    "permanentWarning_other": "{{count}} 件の対象をディスクから削除します。復元できません。",
+    "recycleWarning_other": "{{count}} 件の対象をゴミ箱に移動します。ビルドで必要になった場合はそこから復元してください。",
+    "close": "確認を閉じる",
+    "reclaims": "<strong>{{size}}</strong> を回収（推定）",
+    "typeToConfirm": "確認のため <strong>{{word}}</strong> と入力してください。",
+    "inputLabel": "完全削除の確認",
+    "cleaning": "クリーンアップ中…",
+    "cancel": "キャンセル"
+  },
+  "row": {
+    "select": "{{name}} を選択",
+    "ageHint": "内部で最も新しいファイルの日時です。数か月間書き込みのないキャッシュは、再ビルドで置き換えられます。",
+    "inUseHint": "{{tool}} の実行中は削除しません。開かれているファイルも一緒に消えるためです。",
+    "inUse": "使用中",
+    "copied": "コピー済み",
+    "copy": "コピー",
+    "reportedNotRemoved": "報告のみ・削除なし",
+    "loadingSize": "サイズを読み込み中",
+    "sizeUnavailable": "サイズ不明",
+    "retryLabel": "{{name}} のサイズ計測に失敗。再計測",
+    "retry": "再試行",
+    "toolRunning": "{{tool}} が実行中",
+    "unlockToClean": "ロック解除で削除可能"
+  },
+  "confidence": {
+    "badgeLabel": "{{name}}：{{level}}。検出内容を表示",
+    "levels": {
+      "high": "確度：高",
+      "medium": "確度：中",
+      "review": "要確認"
+    },
+    "reasons": {
+      "knownArtifact": "既知のビルド成果物",
+      "projectManifest": "マニフェストのあるプロジェクト内にある",
+      "lockfile": "プロジェクトにロックファイルがあり、内容を再現可能",
+      "declaredDisposable": "プロジェクトの .gitignore で破棄可能と宣言されている",
+      "versionControlled": "Git で追跡されているため、ビルド出力ではない",
+      "versionManagerPath": "バージョンマネージャのディレクトリで、グローバルにインストールされたパッケージを保持",
+      "systemPath": "プロジェクトではなくオペレーティングシステムに属する",
+      "noProjectContext": "周囲にプロジェクトが見つからない",
+      "knownLocation": "特定のツールに属する既知のキャッシュの場所",
+      "sharedCache": "全プロジェクトで共有。削除すると今後のインストールが遅くなる",
+      "toolState": "ビルドではなくツールに属する"
+    }
+  },
+  "reportedOnly": {
+    "title": "Uncached では削除しない対象",
+    "intro": "これらは所有するツールで安全に回収できます。ターミナルでそのツールのコマンドを実行してください。",
+    "copyCommand": "{{name}} のコマンドをコピー"
+  },
+  "categories": {
+    "packageCache": "パッケージキャッシュ",
+    "aiToolCache": "AI ツールキャッシュ",
+    "editorCache": "エディタキャッシュ",
+    "androidSdk": "Android SDK"
+  },
+  "categoryBar": {
+    "summary": "{{label}}：{{segments}}",
+    "segment": "{{category}} {{size}}",
+    "smallerKinds_other": "ほか {{count}} 種類"
+  },
+  "completion": {
+    "title": "ワークスペースの容量を回収しました",
+    "result_other": "{{count}} 件の対象から {{size}} を回収しました。",
+    "recoveryPermanent": "復元できません。成果物を再ビルドすれば戻ります。",
+    "recoveryRecycle": "ビルドで必要になった場合はゴミ箱から復元してください。",
+    "targetsRemoved": "削除した対象",
+    "spaceReclaimed": "回収した容量",
+    "scanAnother": "別のフォルダをスキャン"
+  },
+  "scan": {
+    "measuring": "対象を計測中",
+    "checkingCaches": "ツールのキャッシュを確認中",
+    "scanningProjects": "プロジェクトをスキャン中",
+    "measuringHint": "各対象のディスク使用量を計算しています。",
+    "checkingCachesHint": "ホームフォルダ内のパッケージマネージャ、AI、エディタのキャッシュ。",
+    "scanningProjectsHint": "対象は見つかった順に計測されます。",
+    "scanningLabel": "ワークスペースをスキャン中",
+    "directoriesChecked": "ディレクトリを確認済み",
+    "measured": "計測済み",
+    "targetsFound_other": "件の対象を検出",
+    "recentlyFound": "最近の検出",
+    "cancelRefused": "キャンセルする前にスキャンが完了しました。",
+    "startOver": "最初からやり直す",
+    "cancelling": "キャンセル中…",
+    "cancel": "スキャンをキャンセル"
+  }
+}

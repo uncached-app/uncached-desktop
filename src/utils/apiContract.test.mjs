@@ -7,7 +7,6 @@ import {
   normalizeTargetFound,
   normalizeTargetSized,
   shouldIgnoreScanFailure,
-  toUiError,
   unwrapV1,
   validateCapabilities,
   validateScanFailed,
@@ -355,13 +354,6 @@ test("normalizes settled target size without rendering measured zero as pending"
   assert.equal(update.targetId, "scan-1-target-1");
   assert.equal(update.formattedSize, "0 B");
   assert.equal(update.sizePending, false);
-});
-
-test("converts core errors into explicit UI errors", () => {
-  assert.deepEqual(
-    toUiError({ code: "io", message: "Access denied", path: null, operation: "scan" }),
-    { code: "io", message: "Access denied" },
-  );
 });
 
 test("gates cleanup actions from capability booleans", () => {

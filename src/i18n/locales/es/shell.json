@@ -1,0 +1,177 @@
+{
+  "actionsFor": "Acciones para {{name}}",
+  "actions": {
+    "openIn": "Abrir en {{app}}",
+    "reveal": "Mostrar en el gestor de archivos",
+    "copyPath": "Copiar ruta",
+    "fetch": "Hacer fetch del remoto",
+    "openRepository": "Abrir repositorio",
+    "done": "{{action}} — hecho",
+    "failed": "No funcionó"
+  },
+  "folderMenu": {
+    "label": "Acciones de {{name}}"
+  },
+  "proLock": {
+    "label": "{{label}}. {{reason}}"
+  },
+  "rootPicker": {
+    "remove": "Quitar {{name}}",
+    "empty": "Ninguna carpeta seleccionada",
+    "addAnother": "Añadir otra carpeta",
+    "multiRootPro": "Analizar varias carpetas a la vez es parte de Pro",
+    "browseLabel": "Buscar una carpeta",
+    "browse": "Explorar"
+  },
+  "index": {
+    "noFolder": "Primero selecciona o pega la ruta de una carpeta."
+  },
+  "palette": {
+    "label": "Paleta de comandos",
+    "close": "Cerrar",
+    "back": "Volver a todo",
+    "search": "Buscar proyectos y comandos",
+    "pickAction": "{{name}} — elige una acción",
+    "emptyNoProjects": "Añade una carpeta y tus proyectos aparecerán aquí.",
+    "noMatches": "No hay coincidencias.",
+    "indexed_one": "{{count}} proyecto indexado",
+    "indexed_other": "{{count}} proyectos indexados",
+    "hint": {
+      "back": "seleccionar · esc volver",
+      "close": "seleccionar · esc cerrar"
+    },
+    "groups": {
+      "actions": "Acciones",
+      "projects": "Proyectos",
+      "folders": "Carpetas",
+      "commands": "Comandos"
+    },
+    "folderAction": "{{action}} — {{name}}",
+    "commands": {
+      "projectPage": "Abrir página del proyecto",
+      "showInWorkspace": "Mostrar en el workspace",
+      "goWorkspace": "Ir a Workspace",
+      "reclaim": "Recuperar espacio",
+      "goInsights": "Ir a Insights",
+      "goMaintenance": "Ir a Mantenimiento",
+      "addFolder": "Añadir carpeta",
+      "rescan": "Analizar workspace",
+      "settings": "Abrir ajustes"
+    }
+  },
+  "titlebar": {
+    "title": {
+      "insights": "Insights de Uncached",
+      "maintenance": "Mantenimiento de Uncached",
+      "workspace": "Workspace de Uncached"
+    },
+    "pipeline": "Etapas del proceso",
+    "steps": {
+      "workspace": "Workspace",
+      "scan": "Análisis",
+      "review": "Revisión",
+      "done": "Listo"
+    },
+    "openSettings": "Abrir ajustes",
+    "closeWindow": "Cerrar ventana",
+    "minimizeWindow": "Minimizar ventana",
+    "restoreWindow": "Restaurar ventana",
+    "maximizeWindow": "Maximizar ventana"
+  },
+  "update": {
+    "available": "Uncached {{version}} está disponible",
+    "downloadingTitle": "Descargando Uncached {{version}}",
+    "unreachable": "No se pudo acceder a la actualización",
+    "busy": "Uncached está trabajando — esto esperará a que termine",
+    "percent": "{{percent}}%",
+    "later": "Más tarde",
+    "badge": {
+      "readyTitle": "Uncached {{version}} está instalado — reinicia para usarlo",
+      "restart": "Reiniciar",
+      "downloading": "Descargando",
+      "update": "Actualizar"
+    },
+    "dialog": {
+      "label": "Actualización de software",
+      "checkingTitle": "Buscando una actualización",
+      "readyTitle": "Listo para reiniciar",
+      "close": "Cerrar",
+      "checkingBody": "Consultando al servidor de actualizaciones cuál es la versión más reciente.",
+      "noNotes": "Esta versión no incluye notas.",
+      "progressUnknown": "Descargando — el servidor no indicó el tamaño",
+      "progress": "{{percent}}% — puedes cerrar esto y la descarga continúa",
+      "readyBody": "Uncached {{version}} está listo. Reiniciar tarda un segundo y no toca nada de tu workspace.",
+      "notNow": "Ahora no",
+      "checking": "Buscando…",
+      "restartNow": "Reiniciar ahora",
+      "downloading": "Descargando…",
+      "tryAgain": "Reintentar",
+      "install": "Descargar e instalar"
+    },
+    "toast": {
+      "body": "No se descarga ni se reemplaza nada hasta que lo pidas.",
+      "whatsNew": "Novedades",
+      "dismiss": "Descartar"
+    }
+  },
+  "menu": {
+    "file": "Archivo",
+    "edit": "Edición",
+    "view": "Ver",
+    "workspace": "Workspace",
+    "window": "Ventana",
+    "about": "Acerca de Uncached",
+    "services": "Servicios",
+    "hide": "Ocultar Uncached",
+    "hideOthers": "Ocultar otros",
+    "showAll": "Mostrar todo",
+    "quit": "Salir de Uncached",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "cut": "Cortar",
+    "copy": "Copiar",
+    "paste": "Pegar",
+    "selectAll": "Seleccionar todo",
+    "minimize": "Minimizar",
+    "zoom": "Zoom",
+    "closeWindow": "Cerrar ventana"
+  },
+  "native": {
+    "trayOpen": "Abrir Uncached",
+    "trayScan": "Analizar workspace",
+    "trayQuit": "Salir de Uncached",
+    "scanFinished_one": "{{count}} objetivo encontrado, {{size}} recuperables.",
+    "scanFinished_other": "{{count}} objetivos encontrados, {{size}} recuperables.",
+    "maintenanceTitle": "Mantenimiento de Uncached",
+    "maintenanceBody_one": "{{size}} recuperados de {{count}} proyecto inactivo. Todo se movió a la Papelera.",
+    "maintenanceBody_other": "{{size}} recuperados de {{count}} proyectos inactivos. Todo se movió a la Papelera."
+  },
+  "errors": {
+    "invalid_workspace": "Esta carpeta no se puede analizar.",
+    "io": "El disco rechazó la operación.",
+    "provider_unavailable": "Ningún analizador reconoce ya este objetivo. Vuelve a analizar.",
+    "target_missing": "El objetivo ya no existe. Vuelve a analizar.",
+    "target_not_directory": "El objetivo ya no es un directorio. Vuelve a analizar.",
+    "target_name_unsupported": "El nombre del objetivo no se puede leer en este sistema.",
+    "target_provider_mismatch": "El objetivo ya no coincide con lo que encontró el análisis. Vuelve a analizar.",
+    "target_context_invalid": "El proyecto que contiene el objetivo cambió desde el análisis. Vuelve a analizar.",
+    "target_outside_workspace": "El objetivo está fuera de las carpetas elegidas.",
+    "target_ignored_by_rule": "Una regla de exclusión cubre el objetivo.",
+    "target_identity_unavailable": "No se pudo identificar el objetivo en el disco. Vuelve a analizar.",
+    "target_identity_changed": "El objetivo se reemplazó desde el análisis. Vuelve a analizar.",
+    "target_reparse_point": "El objetivo o una carpeta superior es un enlace. Uncached no sigue enlaces al eliminar.",
+    "secure_operation_unsupported": "Este sistema no puede eliminar el objetivo de forma segura.",
+    "secure_target_open_failed": "No se pudo abrir el objetivo para eliminarlo.",
+    "secure_target_too_large": "El objetivo contiene más entradas de las que permite una eliminación.",
+    "secure_target_too_deep": "El objetivo tiene más niveles de anidamiento de los que permite una eliminación.",
+    "secure_enumeration_failed": "No se pudo leer el contenido del objetivo.",
+    "secure_handle_query_failed": "El sistema se negó a describir un archivo dentro del objetivo.",
+    "secure_deletion_failed": "El sistema se negó a eliminar el objetivo.",
+    "secure_trash_unavailable": "La Papelera no está disponible en este sistema.",
+    "secure_trash_initialization_failed": "No se pudo abrir la Papelera.",
+    "secure_trash_operation_failed": "No se pudo mover el objetivo a la Papelera.",
+    "secure_trash_aborted": "Se interrumpió el traslado del objetivo a la Papelera.",
+    "secure_trash_postcondition_failed": "El objetivo no estaba en la Papelera después del traslado.",
+    "target_in_use": "{{program}} está en ejecución. Ciérralo y vuelve a analizar — eliminar esto ahora lo rompería."
+  }
+}

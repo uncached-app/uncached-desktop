@@ -1,5 +1,6 @@
 import { Check, Clock, Copy, History, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { EVENT_PAGE, formatMoment, labelFor } from "./labels";
 import { formatBytes } from "../../utils/format.mjs";
 import type { Report } from "../../utils/report.d.mts";
@@ -16,6 +17,7 @@ export function EventLog({
   onShowMore: () => void;
   onShownChange?: (count: number) => void;
 }) {
+  const { t, i18n } = useTranslation();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -65,27 +67,33 @@ export function EventLog({
         <div className="flex items-center gap-2">
           <History size={14} className="text-mist-500" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-mist-100">
-            Cleanup Event Log
+            {t("insights.eventLog.title")}
           </h2>
         </div>
 
         {pageOptions.length > 0 ? (
           <div className="relative font-mono text-xs text-mist-500" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setOpen((current) => !current)}
-              aria-haspopup="listbox"
-              aria-expanded={open}
-              className="font-semibold text-mist-100 underline decoration-mist-500 decoration-dotted underline-offset-4 transition-colors hover:text-sage-300 hover:decoration-sage-400 cursor-pointer"
-            >
-              {visible.length}
-            </button>
-            {" "}of {report.events.length} {report.events.length === 1 ? "event" : "events"}
+            <Trans
+              i18nKey="insights.eventLog.pickedOf"
+              count={report.events.length}
+              values={{ shown: visible.length }}
+              components={{
+                picker: (
+                  <button
+                    type="button"
+                    onClick={() => setOpen((current) => !current)}
+                    aria-haspopup="listbox"
+                    aria-expanded={open}
+                    className="font-semibold text-mist-100 underline decoration-mist-500 decoration-dotted underline-offset-4 transition-colors hover:text-sage-300 hover:decoration-sage-400 cursor-pointer"
+                  />
+                ),
+              }}
+            />
 
             {open && (
               <ul
                 role="listbox"
-                className="absolute right-0 top-full z-30 mt-1.5 min-w-28 max-h-60 overflow-y-auto rounded-xl border border-forest-800 bg-forest-900 p-1 shadow-2xl"
+                className="absolute end-0 top-full z-30 mt-1.5 min-w-28 max-h-60 overflow-y-auto rounded-xl border border-forest-800 bg-forest-900 p-1 shadow-2xl"
               >
                 {pageOptions.map((count) => {
                   const isSelected =
@@ -101,13 +109,13 @@ export function EventLog({
                           onShownChange?.(count);
                           setOpen(false);
                         }}
-                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-left text-xs font-mono transition-colors cursor-pointer ${
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-start text-xs font-mono transition-colors cursor-pointer ${
                           isSelected
                             ? "bg-forest-800 text-sage-300 font-medium"
                             : "text-mist-300 hover:bg-forest-850 hover:text-mist-100"
                         }`}
                       >
-                        <span>{count === report.events.length ? `All (${count})` : count}</span>
+                        <span>{count === report.events.length ? t("insights.eventLog.all", { count }) : count}</span>
                         {isSelected && <Check size={11} className="text-sage-400" aria-hidden="true" />}
                       </button>
                     </li>
@@ -118,14 +126,14 @@ export function EventLog({
           </div>
         ) : (
           <span className="font-mono text-xs text-mist-500">
-            {visible.length} of {report.events.length} {report.events.length === 1 ? "event" : "events"}
+            {t("insights.eventLog.shownOf", { count: report.events.length, shown: visible.length })}
           </span>
         )}
       </div>
 
       {report.events.length === 0 ? (
         <div className="py-8 text-center">
-          <p className="text-xs text-mist-500">No cleanup recorded in this window.</p>
+          <p className="text-xs text-mist-500">{t("insights.eventLog.empty")}</p>
         </div>
       ) : (
         <>
@@ -139,16 +147,16 @@ export function EventLog({
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <span className="w-36 shrink-0 whitespace-nowrap font-mono text-[11px] text-mist-500">
-                      {formatMoment(event.at)}
+                      {formatMoment(event.at, i18n.language)}
                     </span>
 
                     <div className="min-w-0 flex-1 flex items-center gap-1.5">
                       <span
                         onClick={() => handleCopy(event.path, position)}
                         className="truncate font-mono text-xs text-mist-100 cursor-pointer hover:text-sage-300 transition-colors"
-                        title={event.path ?? "Path not recorded"}
+                        title={event.path ?? t("insights.eventLog.pathNotRecorded")}
                       >
-                        {event.path ?? "Path not recorded"}
+                        {event.path ?? t("insights.eventLog.pathNotRecorded")}
                       </span>
 
                       {event.path && (
@@ -156,8 +164,8 @@ export function EventLog({
                           type="button"
                           onClick={() => handleCopy(event.path, position)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-mist-500 hover:text-mist-100"
-                          title="Copy path"
-                          aria-label="Copy path"
+                          title={t("insights.eventLog.copyPath")}
+                          aria-label={t("insights.eventLog.copyPath")}
                         >
                           {isCopied ? <Check size={11} className="text-sage-300" /> : <Copy size={11} />}
                         </button>
@@ -167,26 +175,26 @@ export function EventLog({
 
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="rounded border border-forest-800 bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-sage-300">
-                      {labelFor("category", event.category)}
+                      {labelFor(t, "category", event.category)}
                     </span>
 
                     {event.trigger === "Scheduled" && (
                       <span className="inline-flex items-center gap-1 rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
-                        <Clock size={10} aria-hidden="true" /> schedule
+                        <Clock size={10} aria-hidden="true" /> {t("insights.eventLog.schedule")}
                       </span>
                     )}
 
                     {event.mode === "Permanent" ? (
                       <span className="inline-flex items-center gap-1 rounded border border-coral-300/30 bg-coral-300/10 px-1.5 py-0.5 font-mono text-[10px] text-coral-300">
-                        <Trash2 size={10} aria-hidden="true" /> nuke
+                        <Trash2 size={10} aria-hidden="true" /> {t("insights.eventLog.nuke")}
                       </span>
                     ) : (
                       <span className="rounded bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] text-mist-500">
-                        trash
+                        {t("insights.eventLog.trash")}
                       </span>
                     )}
 
-                    <span className="w-20 text-right font-mono text-xs font-bold text-sage-300">
+                    <span className="w-20 text-end font-mono text-xs font-bold text-sage-300">
                       {formatBytes(event.freedBytes)}
                     </span>
                   </div>
@@ -202,7 +210,9 @@ export function EventLog({
                 onClick={onShowMore}
                 className="w-full rounded-xl border border-forest-800 bg-forest-900 py-2 text-xs font-medium text-mist-300 shadow-xs transition-all hover:border-sage-400 hover:bg-forest-850 hover:text-mist-100"
               >
-                Show {Math.min(EVENT_PAGE, report.events.length - visible.length)} more events
+                {t("insights.eventLog.showMore", {
+                  count: Math.min(EVENT_PAGE, report.events.length - visible.length),
+                })}
               </button>
             </div>
           )}

@@ -24,6 +24,18 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import type { TFunction } from "i18next";
+import englishFindings from "../../i18n/locales/en/findings.json";
+
+type CategoryLabel = keyof typeof englishFindings.categories;
+
+/** Categories whose label is prose rather than a tool or ecosystem name. */
+const TRANSLATED_LABELS: Record<string, CategoryLabel> = {
+  PackageManagerCache: "packageCache",
+  AiToolCache: "aiToolCache",
+  EditorCache: "editorCache",
+  AndroidSdk: "androidSdk",
+};
 
 export const CATEGORY_PRESENTATION: Record<string, { label: string; icon: LucideIcon }> = {
   NodeModules: { label: "node_modules", icon: Package },
@@ -56,14 +68,15 @@ export const CATEGORY_PRESENTATION: Record<string, { label: string; icon: Lucide
   CocoapodsPods: { label: "CocoaPods", icon: Component },
   DartTool: { label: "Dart", icon: Feather },
   FlutterBuild: { label: "Flutter", icon: Feather },
-  PackageManagerCache: { label: "Package cache", icon: Database },
-  AiToolCache: { label: "AI tool cache", icon: Sparkles },
-  EditorCache: { label: "Editor cache", icon: Code },
-  AndroidSdk: { label: "Android SDK", icon: Smartphone },
+  PackageManagerCache: { label: englishFindings.categories.packageCache, icon: Database },
+  AiToolCache: { label: englishFindings.categories.aiToolCache, icon: Sparkles },
+  EditorCache: { label: englishFindings.categories.editorCache, icon: Code },
+  AndroidSdk: { label: englishFindings.categories.androidSdk, icon: Smartphone },
 };
 
 const CUSTOM_CATEGORY_PREFIX = "Custom:";
 
+/** Labels in English; `translatedCategoryPresentation` is the one for display. */
 export function categoryPresentation(category: string): { label: string; icon: LucideIcon } {
   const known = CATEGORY_PRESENTATION[category];
   if (known) return known;
@@ -73,4 +86,14 @@ export function categoryPresentation(category: string): { label: string; icon: L
       : category,
     icon: Folder,
   };
+}
+
+/** `categoryPresentation` with its prose labels in the interface language. */
+export function translatedCategoryPresentation(
+  category: string,
+  t: TFunction,
+): { label: string; icon: LucideIcon } {
+  const presentation = categoryPresentation(category);
+  const label = TRANSLATED_LABELS[category];
+  return label ? { ...presentation, label: t(`findings.categories.${label}`) } : presentation;
 }

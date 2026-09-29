@@ -1,0 +1,113 @@
+{
+  "header": {
+    "title": "Manutenção",
+    "badgePro": "Regras e ações",
+    "badgeFree": "Prévia da política",
+    "subtitle": "Automatize a higiene de projetos parados sem arriscar trabalho local ou sem commit.",
+    "eligible_one": "projeto elegível",
+    "eligible_other": "projetos elegíveis",
+    "reclaimable": "a liberar"
+  },
+  "scheduleNote": "O agendamento roda dentro do Uncached, então fechar para a barra de menus o mantém ativo e Encerrar o interrompe. Ele faz qualquer execução perdida na próxima vez que o app abrir.",
+  "policy": {
+    "title": "Política de seleção automática",
+    "summary": "> {{days}}d · ≥ {{size}}",
+    "matches_one": "{{count}} correspondência ({{size}})",
+    "matches_other": "{{count}} correspondências ({{size}})",
+    "idleLabel": "Sem alterações há pelo menos",
+    "idleChip": "{{days}}d",
+    "sizeLabel": "Cache de pelo menos",
+    "sizeChipTitle": "Pelo menos {{size}} de cache descartável",
+    "guardSynced": "Só repositórios 100% sincronizados com o remoto são elegíveis",
+    "guardTrash": "Sempre move para o Lixo (reversível)",
+    "description_one": "Libera espaço de projetos sem alterações há mais de <strong>{{count}} dia</strong> com pelo menos <strong>{{size}}</strong> de cache descartável.",
+    "description_other": "Libera espaço de projetos sem alterações há mais de <strong>{{count}} dias</strong> com pelo menos <strong>{{size}}</strong> de cache descartável.",
+    "idleChipTitle_one": "Sem alterações há pelo menos {{count}} dia",
+    "idleChipTitle_other": "Sem alterações há pelo menos {{count}} dias"
+  },
+  "schedule": {
+    "title": "Agendamento automático",
+    "subtitle": "Executa a política acima sem você e informa o que removeu.",
+    "toggle": "Agendar a manutenção",
+    "runEvery": "Frequência",
+    "intervals": {
+      "daily": "Diariamente",
+      "weekly": "Semanalmente",
+      "fortnightly": "Quinzenalmente",
+      "monthly": "Mensalmente"
+    },
+    "held": {
+      "disabled": "Desativado. Nada roda a menos que você clique em Executar manutenção.",
+      "notLicensed": "Execuções automáticas exigem uma licença ativa.",
+      "noWorkspace": "Nenhuma pasta escolhida, então não há nada para manter.",
+      "scanInProgress": "Aguardando a varredura aberta terminar."
+    },
+    "when": "{{date}} · {{time}}",
+    "nextRun": "Próxima execução <strong>{{next}}</strong>",
+    "nextRunWithLast": "Próxima execução <strong>{{next}}</strong> · última em {{last}}",
+    "dueNow": "Pendente. Começa nos próximos minutos.",
+    "safety": "Uma execução agendada segue a mesma política e move para o Lixo. Ela fica registrada em Insights como <strong>Um agendamento</strong>.",
+    "quitWarning": "Fechar a janela encerra o Uncached, então este agendamento só roda com a janela aberta. Ative <strong>Continuar em segundo plano</strong> em Ajustes para que ela feche para a barra de menus."
+  },
+  "selection": {
+    "emptyTitle": "Nenhum projeto corresponde a esta regra",
+    "readyTitle": "Prontos para manutenção ({{total}})",
+    "evaluating": "(avaliando...)",
+    "emptyHint": "Todos os projetos do workspace estão ativos recentemente, abaixo do tamanho mínimo ou protegidos.",
+    "readyHint": "A limpeza move os alvos para o Lixo, de forma reversível.",
+    "reclaimable": "{{size}} a liberar",
+    "remoteSynced": "Remoto em dia",
+    "clean": "Seu workspace está limpo. Nenhum projeto parado atinge o limite.",
+    "filteredOut": "Filtrados:",
+    "skipped": {
+      "verdict": "<strong>{{total}}</strong> sem segurança para automatizar",
+      "unmeasured": "<strong>{{total}}</strong> ainda não medidos",
+      "unknownActivity": "<strong>{{total}}</strong> com atividade ilegível",
+      "tooRecent": "<strong>{{total}}</strong> ativos recentemente",
+      "tooSmall": "<strong>{{total}}</strong> abaixo do tamanho mínimo"
+    },
+    "running": "Limpando {{done}} de {{total}}...",
+    "run": "Executar manutenção ({{total}})",
+    "runHint": "Move os alvos selecionados para o Lixo.",
+    "scanToEnable": "Varra seu workspace para habilitar a manutenção com um clique nos alvos identificados.",
+    "done_one": "✓ {{size}} liberados de {{count}} alvo.",
+    "done_other": "✓ {{size}} liberados de {{count}} alvos.",
+    "doneWithFailures_one": "✓ {{size}} liberados de {{count}} alvo ({{failed}} com falha).",
+    "doneWithFailures_other": "✓ {{size}} liberados de {{count}} alvos ({{failed}} com falha).",
+    "protected_one": "{{count}} projeto guarda trabalho sem commit/sem push neste disco (Protegido)",
+    "protected_other": "{{count}} projetos guardam trabalho sem commit/sem push neste disco (Protegidos)",
+    "viewInWorkspace": "Ver no workspace →",
+    "idle_one": "ocioso há {{count}} dia",
+    "idle_other": "ocioso há {{count}} dias"
+  },
+  "states": {
+    "noFolders": {
+      "title": "Nenhuma pasta escolhida ainda",
+      "body": "Uma política se aplica aos projetos das pastas que você varre. Ainda não há nenhuma.",
+      "action": "Escolher uma pasta"
+    },
+    "reading": {
+      "title": "Lendo suas pastas",
+      "body": "Descobrindo projetos..."
+    },
+    "measuring": {
+      "body": "A seleção aparece quando todos os projetos tiverem um peso.",
+      "title_one": "Medindo {{measured}} de {{count}} projeto",
+      "title_other": "Medindo {{measured}} de {{count}} projetos"
+    },
+    "noProjects": {
+      "title_one": "Nenhum projeto na pasta escolhida",
+      "title_other": "Nenhum projeto nas {{count}} pastas escolhidas",
+      "body": "Um projeto é um diretório com um repositório ou um manifesto dentro."
+    },
+    "indexFailed": {
+      "title": "Não foi possível ler suas pastas"
+    },
+    "pro": {
+      "badge": "Manutenção Pro",
+      "title": "É o Pro que executa esta política",
+      "body": "A seleção abaixo é a que uma execução usa, e ela é a mesma em todos os planos. O Pro faz a execução, repete de forma agendada sem você e registra o que cada uma removeu.",
+      "cta": "Obter o Uncached Pro"
+    }
+  }
+}

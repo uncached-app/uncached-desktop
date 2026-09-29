@@ -1,4 +1,5 @@
 import { FolderSearch, Loader2, LockKeyhole, Sparkles, TriangleAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { openExternalUrl } from "../../utils/externalLink";
 
 function Panel({
@@ -23,26 +24,30 @@ function Panel({
 
 /** Nothing to read yet, and the reason is one the user can act on. */
 export function NoFoldersChosen({ onChoose }: { onChoose: () => void }) {
+  const { t } = useTranslation();
+
   return (
-    <Panel icon={<FolderSearch size={22} strokeWidth={1.5} aria-hidden="true" />} title="No folders chosen yet">
-      <p>A policy is applied to the projects in the folders you scan. There are none yet.</p>
+    <Panel icon={<FolderSearch size={22} strokeWidth={1.5} aria-hidden="true" />} title={t("maintenance.states.noFolders.title")}>
+      <p>{t("maintenance.states.noFolders.body")}</p>
       <button
         type="button"
         onClick={onChoose}
         className="mt-4 rounded-xl border border-forest-800 bg-forest-950 px-3 py-2 text-xs font-medium text-mist-100 transition-colors hover:bg-forest-850 cursor-pointer"
       >
-        Choose a folder
+        {t("maintenance.states.noFolders.action")}
       </button>
     </Panel>
   );
 }
 
 export function ReadingFolders() {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center select-none">
       <Loader2 size={26} className="animate-spin text-sage-400" aria-hidden="true" />
-      <h3 className="mt-3 text-sm font-semibold text-mist-100">Reading your folders</h3>
-      <p className="mt-1 text-xs text-mist-500">Projects are being discovered...</p>
+      <h3 className="mt-3 text-sm font-semibold text-mist-100">{t("maintenance.states.reading.title")}</h3>
+      <p className="mt-1 text-xs text-mist-500">{t("maintenance.states.reading.body")}</p>
     </div>
   );
 }
@@ -53,29 +58,37 @@ export function ReadingFolders() {
  * policy from the one the user set.
  */
 export function Measuring({ measured, total }: { measured: number; total: number }) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center select-none">
       <Loader2 size={26} className="animate-spin text-sage-400" aria-hidden="true" />
-      <h3 className="mt-3 text-sm font-semibold text-mist-100">Measuring {measured} of {total} projects</h3>
-      <p className="mt-1 text-xs text-mist-500">The selection appears once every project has a weight.</p>
+      <h3 className="mt-3 text-sm font-semibold text-mist-100">
+        {t("maintenance.states.measuring.title", { measured, count: total })}
+      </h3>
+      <p className="mt-1 text-xs text-mist-500">{t("maintenance.states.measuring.body")}</p>
     </div>
   );
 }
 
 export function NoProjects({ roots }: { roots: number }) {
+  const { t } = useTranslation();
+
   return (
     <Panel
       icon={<FolderSearch size={22} strokeWidth={1.5} aria-hidden="true" />}
-      title={`No projects in the ${roots === 1 ? "folder" : `${roots} folders`} you chose`}
+      title={t("maintenance.states.noProjects.title", { count: roots })}
     >
-      <p>A project is a directory with a repository or a manifest in it.</p>
+      <p>{t("maintenance.states.noProjects.body")}</p>
     </Panel>
   );
 }
 
 export function IndexFailed({ message }: { message: string }) {
+  const { t } = useTranslation();
+
   return (
-    <Panel icon={<TriangleAlert size={22} strokeWidth={1.5} aria-hidden="true" />} title="Your folders could not be read">
+    <Panel icon={<TriangleAlert size={22} strokeWidth={1.5} aria-hidden="true" />} title={t("maintenance.states.indexFailed.title")}>
       <p className="font-mono text-[11px] break-words">{message}</p>
     </Panel>
   );
@@ -89,21 +102,21 @@ export function IndexFailed({ message }: { message: string }) {
  * want the feature. What Pro adds is the run, and the record of it.
  */
 export function ProPanel() {
+  const { t } = useTranslation();
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-pro-200/30 bg-pro-surface p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-xl">
           <div className="mb-3 inline-flex items-center gap-1.5 rounded-md border border-pro-200/30 bg-forest-950 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-pro-100">
             <LockKeyhole size={11} aria-hidden="true" />
-            <span>Pro Maintenance</span>
+            <span>{t("maintenance.states.pro.badge")}</span>
           </div>
 
-          <h2 className="text-base font-semibold text-mist-100">Pro is what runs this policy</h2>
+          <h2 className="text-base font-semibold text-mist-100">{t("maintenance.states.pro.title")}</h2>
 
           <p className="mt-2 text-xs leading-relaxed text-mist-500">
-            The selection below is the one a run acts on, and it is the same on every plan. Pro
-            performs the run, repeats it on a schedule without you, and records what each one
-            removed.
+            {t("maintenance.states.pro.body")}
           </p>
         </div>
 
@@ -113,7 +126,7 @@ export function ProPanel() {
           className="inline-flex items-center gap-1.5 rounded-xl bg-pro-200 px-4 py-2.5 text-xs font-semibold text-forest-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.99]"
         >
           <Sparkles size={13} aria-hidden="true" />
-          <span>Get Uncached Pro</span>
+          <span>{t("maintenance.states.pro.cta")}</span>
         </button>
       </div>
     </div>

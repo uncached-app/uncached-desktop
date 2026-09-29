@@ -1,5 +1,6 @@
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { ACTIONS, DEFAULT_BINDINGS } from "../../actions";
 import { bindingFrom, conflictsIn, formatBinding, resolveBindings } from "../../utils/keys.mjs";
 import type { AppSettings } from "../../types/settings";
@@ -23,6 +24,7 @@ export function ShortcutsContent({
   settings: AppSettings;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const overrides = settings.shortcuts ?? {};
   const bindings = resolveBindings(DEFAULT_BINDINGS, overrides);
   const clashing = new Set(conflictsIn(bindings).flat());
@@ -59,16 +61,17 @@ export function ShortcutsContent({
   return (
     <>
       <p className="mb-4 text-xs leading-5 text-mist-500">
-        Click a key to record a new one. These are stored in{" "}
-        <span className="font-mono text-mist-300">settings.json</span> by action name, so only what
-        you changed is kept and a default that moves in an update moves for you too.
+        <Trans
+          i18nKey="settings.shortcuts.intro"
+          values={{ file: "settings.json" }}
+          components={{ mono: <span className="font-mono text-mist-300" /> }}
+        />
       </p>
 
       {clashing.size > 0 && (
         <p className="mb-4 flex items-start gap-2 rounded-xl border border-coral-300/40 bg-coral-surface px-3.5 py-2.5 text-xs leading-5 text-coral-300">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-          Two commands share a key. Which of them answers to it is not something this app decides —
-          change one.
+          {t("settings.shortcuts.clash")}
         </p>
       )}
 
@@ -77,14 +80,17 @@ export function ShortcutsContent({
           const binding = bindings[action.id];
           const changed = overrides[action.id] !== undefined;
           const listening = recording === action.id;
+          const label = t(`settings.shortcuts.actions.${action.id}.label`);
 
           return (
             <div key={action.id} className="flex items-center justify-between gap-4 py-3.5 text-sm">
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className={clashing.has(action.id) ? "text-coral-300" : "text-mist-300"}>
-                  {action.label}
+                  {label}
                 </span>
-                <span className="text-xs leading-5 text-mist-500">{action.detail}</span>
+                <span className="text-xs leading-5 text-mist-500">
+                  {t(`settings.shortcuts.actions.${action.id}.detail`)}
+                </span>
               </span>
 
               <span className="flex shrink-0 items-center gap-1.5">
@@ -92,8 +98,10 @@ export function ShortcutsContent({
                   <button
                     type="button"
                     onClick={() => reset(action.id)}
-                    title={`Back to ${formatBinding(DEFAULT_BINDINGS[action.id])}`}
-                    aria-label={`Reset ${action.label}`}
+                    title={t("settings.shortcuts.resetTitle", {
+                      binding: formatBinding(DEFAULT_BINDINGS[action.id]),
+                    })}
+                    aria-label={t("settings.shortcuts.resetLabel", { action: label })}
                     className="grid size-7 cursor-pointer place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
                   >
                     <RotateCcw size={13} aria-hidden="true" />
@@ -110,7 +118,7 @@ export function ShortcutsContent({
                         : "border-forest-800 bg-forest-950 text-mist-100 hover:border-sage-400/60"
                   }`}
                 >
-                  {listening ? "Press a key" : formatBinding(binding)}
+                  {listening ? t("settings.shortcuts.pressKey") : formatBinding(binding)}
                 </button>
               </span>
             </div>
@@ -119,8 +127,7 @@ export function ShortcutsContent({
       </div>
 
       <p className="mt-4 text-[11px] leading-5 text-mist-500">
-        A key with no modifier only fires when nothing is being typed into, and never appears in the
-        menu bar — the system would claim it, and it would stop reaching what it is for.
+        {t("settings.shortcuts.footer")}
       </p>
     </>
   );

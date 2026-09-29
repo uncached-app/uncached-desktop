@@ -1,5 +1,6 @@
 import { ArrowLeft, CornerDownLeft, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PaletteRow } from "./palette/PaletteRow";
 import { usePaletteCommands, type PaletteCommand } from "./palette/usePaletteCommands";
 import { usePurgeFlow } from "../../hooks/usePurgeFlow";
@@ -7,12 +8,16 @@ import { groupCommands, rankCommands } from "../../utils/palette.mjs";
 import type { AppModule } from "../../types/module";
 import type { WorkspaceProject } from "../../types/workspace";
 
-const GROUP_LABELS: Record<string, string> = {
-  actions: "Actions",
-  projects: "Projects",
-  folders: "Folders",
-  commands: "Commands",
-};
+const GROUP_LABELS = {
+  actions: "shell.palette.groups.actions",
+  projects: "shell.palette.groups.projects",
+  folders: "shell.palette.groups.folders",
+  commands: "shell.palette.groups.commands",
+} as const;
+
+function isGroupId(id: string): id is keyof typeof GROUP_LABELS {
+  return Object.prototype.hasOwnProperty.call(GROUP_LABELS, id);
+}
 
 /**
  * Everything the app can do, from anywhere, without leaving the keyboard.
@@ -43,6 +48,7 @@ export function CommandPalette({
   onModuleChange: (module: AppModule) => void;
   onOpenSettings: () => void;
 }) {
+  const { t } = useTranslation();
   const flow = usePurgeFlow();
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<WorkspaceProject | null>(null);
@@ -96,12 +102,12 @@ export function CommandPalette({
       // Selecting a project is the palette changing level, not a verb that
       // finished — the new list of actions is its own evidence. Everything
       // else that stays open has none, so it says so.
-      else if (command.group !== "projects") setFlash(`${command.title} — done`);
+      else if (command.group !== "projects") setFlash(t("shell.actions.done", { action: command.title }));
     } catch (error) {
       // Said out loud rather than swallowed: a folder that moved since the scan
       // is the most likely failure here, and silence would read as a palette
       // that does nothing.
-      setFlash(typeof error === "string" ? error : "That did not work");
+      setFlash(typeof error === "string" ? error : t("shell.actions.failed"));
     }
   }
 
@@ -143,11 +149,11 @@ export function CommandPalette({
       className="fixed inset-0 z-50 flex items-start justify-center px-6 pt-[12vh]"
       role="dialog"
       aria-modal="true"
-      aria-label="Command palette"
+      aria-label={t("shell.palette.label")}
     >
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("shell.palette.close")}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-forest-950/70"
       />
@@ -161,10 +167,10 @@ export function CommandPalette({
             <button
               type="button"
               onClick={back}
-              aria-label="Back to everything"
+              aria-label={t("shell.palette.back")}
               className="shrink-0 rounded-md p-1 text-mist-500 transition-colors hover:text-mist-100"
             >
-              <ArrowLeft size={15} aria-hidden="true" />
+              <ArrowLeft className="rtl:-scale-x-100" size={15} aria-hidden="true" />
             </button>
           ) : (
             <Search size={15} className="shrink-0 text-mist-500" aria-hidden="true" />
@@ -177,8 +183,8 @@ export function CommandPalette({
               setCursor(0);
             }}
             onKeyDown={onKeyDown}
-            placeholder={scope ? `${scope.name} — pick an action` : "Search projects and commands"}
-            aria-label={scope ? `Actions for ${scope.name}` : "Search projects and commands"}
+            placeholder={scope ? t("shell.palette.pickAction", { name: scope.name }) : t("shell.palette.search")}
+            aria-label={scope ? t("shell.actionsFor", { name: scope.name }) : t("shell.palette.search")}
             className="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-mist-100 outline-none"
           />
         </div>
@@ -187,14 +193,14 @@ export function CommandPalette({
           {results.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-mist-500">
               {projects.length === 0 && !scope
-                ? "Add a folder and your projects show up here."
-                : "Nothing matches that."}
+                ? t("shell.palette.emptyNoProjects")
+                : t("shell.palette.noMatches")}
             </p>
           ) : (
             grouped.map((group) => (
               <div key={group.id} className="pb-1">
                 <p className="px-4 pb-1 pt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-mist-500">
-                  {GROUP_LABELS[group.id] ?? group.id}
+                  {isGroupId(group.id) ? t(GROUP_LABELS[group.id]) : group.id}
                 </p>
                 {group.items.map((item) => {
                   index += 1;
@@ -216,10 +222,10 @@ export function CommandPalette({
 
         <div className="flex items-center justify-between gap-3 border-t border-forest-800 px-4 py-2 font-mono text-[10px] text-mist-500">
           <span className={flash ? "text-sage-300" : undefined}>
-            {flash ?? (scope ? scope.path : `${projects.length} projects indexed`)}
+            {flash ?? (scope ? scope.path : t("shell.palette.indexed", { count: projects.length }))}
           </span>
           <span className="flex shrink-0 items-center gap-1">
-            <CornerDownLeft size={10} aria-hidden="true" /> select · esc {scope ? "back" : "close"}
+            <CornerDownLeft size={10} aria-hidden="true" /> {scope ? t("shell.palette.hint.back") : t("shell.palette.hint.close")}
           </span>
         </div>
       </div>

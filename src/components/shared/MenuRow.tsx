@@ -38,7 +38,7 @@ export function MenuRow({
       data-active={active}
       onMouseMove={onHover}
       onClick={onSelect}
-      className={`flex w-full items-center gap-3 px-4 py-2 text-left transition-colors ${
+      className={`flex w-full items-center gap-3 px-4 py-2 text-start transition-colors ${
         active ? "bg-forest-800" : onHover ? "" : "hover:bg-forest-800"
       }`}
     >

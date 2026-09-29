@@ -1,13 +1,15 @@
 import { CalendarClock, Repeat, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { ChoiceRow } from "../../components/shared/ChoiceRow";
 import type { Held, Schedule, ScheduleStatus } from "../../types/maintenance";
 
 const INTERVAL_CHOICES = [
-  { hours: 24, label: "Daily" },
-  { hours: 24 * 7, label: "Weekly" },
-  { hours: 24 * 14, label: "Fortnightly" },
-  { hours: 24 * 30, label: "Monthly" },
-];
+  { hours: 24, key: "daily" },
+  { hours: 24 * 7, key: "weekly" },
+  { hours: 24 * 14, key: "fortnightly" },
+  { hours: 24 * 30, key: "monthly" },
+] as const;
 
 /**
  * What the screen says instead of a next run, per reason.
@@ -15,25 +17,20 @@ const INTERVAL_CHOICES = [
  * `tooSoon` is absent on purpose: it is not an obstacle, it is the schedule
  * working, and the next-run date already says it better than a sentence would.
  */
-const HELD_COPY: Record<Exclude<Held, "tooSoon">, string> = {
-  disabled: "Turned off. Nothing runs unless you press Run now.",
-  notLicensed: "Unattended runs need an active licence.",
-  noWorkspace: "No folders chosen, so there is nothing to maintain.",
-  scanInProgress: "Waiting for the scan that is open to finish.",
-};
+type HeldCopy = Exclude<Held, "tooSoon">;
 
-function when(at: number | null): string | null {
+function when(at: number | null, t: TFunction, locale: string): string | null {
   if (at === null) return null;
   const date = new Date(at * 1000);
-  const dayMonth = date.toLocaleDateString(undefined, {
+  const dayMonth = date.toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
   });
-  const time = date.toLocaleTimeString(undefined, {
+  const time = date.toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return `${dayMonth} · ${time}`;
+  return t("maintenance.schedule.when", { date: dayMonth, time });
 }
 
 /**
@@ -65,20 +62,22 @@ export function ScheduleCard({
   status: ScheduleStatus | null;
   onChange: (schedule: Schedule) => void;
 }) {
-  const lastRun = when(status?.lastRunAt ?? null);
-  const nextRun = when(status?.nextRunAt ?? null);
+  const { t, i18n } = useTranslation();
+  const lastRun = when(status?.lastRunAt ?? null, t, i18n.language);
+  const nextRun = when(status?.nextRunAt ?? null, t, i18n.language);
+  const heldCopy = (held: HeldCopy) => t(`maintenance.schedule.held.${held}`);
   const blocked =
     status?.held && status.held !== "tooSoon" && status.held !== "disabled"
-      ? HELD_COPY[status.held]
+      ? heldCopy(status.held)
       : null;
 
   return (
     <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs transition-all">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-forest-800 pb-3">
         <div>
-          <h2 className="text-sm font-semibold text-mist-100">Unattended Schedule</h2>
+          <h2 className="text-sm font-semibold text-mist-100">{t("maintenance.schedule.title")}</h2>
           <p className="mt-0.5 text-xs text-mist-500">
-            Runs the policy above without you, and tells you what it removed.
+            {t("maintenance.schedule.subtitle")}
           </p>
         </div>
 
@@ -91,10 +90,10 @@ export function ScheduleCard({
             schedule.enabled ? "bg-sage-400" : "bg-forest-800"
           }`}
         >
-          <span className="sr-only">Run maintenance on a schedule</span>
+          <span className="sr-only">{t("maintenance.schedule.toggle")}</span>
           <span
             className={`absolute top-0.5 h-5 w-5 rounded-full shadow-xs transition-all ${
-              schedule.enabled ? "left-[22px] bg-forest-950" : "left-0.5 bg-mist-300"
+              schedule.enabled ? "start-[22px] bg-forest-950" : "start-0.5 bg-mist-300"
             }`}
             aria-hidden="true"
           />
@@ -104,7 +103,7 @@ export function ScheduleCard({
       <div className="mt-4">
         <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-mist-300">
           <Repeat size={13} className="text-mist-500" aria-hidden="true" />
-          <span>Run every</span>
+          <span>{t("maintenance.schedule.runEvery")}</span>
         </div>
         <ChoiceRow
           active={schedule.everyHours}
@@ -115,7 +114,9 @@ export function ScheduleCard({
              the bounds the backend clamps to, so picking one makes stored and
              in-force the same number; a stored value outside them highlights
              nothing, which is the honest answer. */
-          options={INTERVAL_CHOICES.map(({ hours, label }) => [hours, label] as const)}
+          options={INTERVAL_CHOICES.map(
+            ({ hours, key }) => [hours, t(`maintenance.schedule.intervals.${key}`)] as const,
+          )}
         />
       </div>
 
@@ -126,21 +127,26 @@ export function ScheduleCard({
             <span>{blocked}</span>
           ) : nextRun ? (
             <span>
-              Next run <span className="font-semibold text-mist-100">{nextRun}</span>
-              {lastRun && <span> · last ran {lastRun}</span>}
+              <Trans
+                i18nKey={lastRun ? "maintenance.schedule.nextRunWithLast" : "maintenance.schedule.nextRun"}
+                values={{ next: nextRun, last: lastRun }}
+                components={{ strong: <span className="font-semibold text-mist-100" /> }}
+              />
             </span>
           ) : schedule.enabled ? (
-            <span>Due now. It starts within the next few minutes.</span>
+            <span>{t("maintenance.schedule.dueNow")}</span>
           ) : (
-            <span>{HELD_COPY.disabled}</span>
+            <span>{heldCopy("disabled")}</span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
           <ShieldCheck size={14} className="shrink-0 text-sage-300" aria-hidden="true" />
           {/* Stated because it is the whole reason this is safe to leave on. */}
           <span>
-            A scheduled run obeys the same policy and moves to the Recycle Bin. It is recorded in
-            Insights as <span className="font-semibold text-mist-100">A schedule</span>.
+            <Trans
+              i18nKey="maintenance.schedule.safety"
+              components={{ strong: <span className="font-semibold text-mist-100" /> }}
+            />
           </span>
         </div>
       </div>
@@ -154,9 +160,10 @@ export function ScheduleCard({
         <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs leading-5 text-mist-300">
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
           <span>
-            Closing the window quits Uncached, so this schedule only runs while the window is open.
-            Turn on <span className="font-semibold text-mist-100">Keep running in the background</span>{" "}
-            in Settings to let it close to the menu bar instead.
+            <Trans
+              i18nKey="maintenance.schedule.quitWarning"
+              components={{ strong: <span className="font-semibold text-mist-100" /> }}
+            />
           </span>
         </div>
       )}

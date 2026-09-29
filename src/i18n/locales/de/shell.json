@@ -1,0 +1,177 @@
+{
+  "actionsFor": "Aktionen für {{name}}",
+  "actions": {
+    "openIn": "In {{app}} öffnen",
+    "reveal": "Im Dateimanager zeigen",
+    "copyPath": "Pfad kopieren",
+    "fetch": "Vom Remote fetchen",
+    "openRepository": "Repository öffnen",
+    "done": "{{action}} — erledigt",
+    "failed": "Das hat nicht funktioniert"
+  },
+  "folderMenu": {
+    "label": "Aktionen für {{name}}"
+  },
+  "proLock": {
+    "label": "{{label}}. {{reason}}"
+  },
+  "rootPicker": {
+    "remove": "{{name}} entfernen",
+    "empty": "Noch kein Ordner ausgewählt",
+    "addAnother": "Weiteren Ordner hinzufügen",
+    "multiRootPro": "Mehrere Ordner gleichzeitig scannen ist Teil von Pro",
+    "browseLabel": "Ordner auswählen",
+    "browse": "Durchsuchen"
+  },
+  "index": {
+    "noFolder": "Wähle zuerst einen Ordner oder füge einen Pfad ein."
+  },
+  "palette": {
+    "label": "Befehlspalette",
+    "close": "Schließen",
+    "back": "Zurück zu allem",
+    "search": "Projekte und Befehle suchen",
+    "pickAction": "{{name}} — Aktion wählen",
+    "emptyNoProjects": "Füge einen Ordner hinzu, dann erscheinen deine Projekte hier.",
+    "noMatches": "Keine Treffer.",
+    "indexed_one": "{{count}} Projekt indiziert",
+    "indexed_other": "{{count}} Projekte indiziert",
+    "hint": {
+      "back": "auswählen · esc zurück",
+      "close": "auswählen · esc schließen"
+    },
+    "groups": {
+      "actions": "Aktionen",
+      "projects": "Projekte",
+      "folders": "Ordner",
+      "commands": "Befehle"
+    },
+    "folderAction": "{{action}} — {{name}}",
+    "commands": {
+      "projectPage": "Projektseite öffnen",
+      "showInWorkspace": "Im Workspace zeigen",
+      "goWorkspace": "Zum Workspace",
+      "reclaim": "Speicher freigeben",
+      "goInsights": "Zu Insights",
+      "goMaintenance": "Zur Wartung",
+      "addFolder": "Ordner hinzufügen",
+      "rescan": "Workspace scannen",
+      "settings": "Einstellungen öffnen"
+    }
+  },
+  "titlebar": {
+    "title": {
+      "insights": "Uncached Insights",
+      "maintenance": "Uncached Wartung",
+      "workspace": "Uncached Workspace"
+    },
+    "pipeline": "Fortschritt",
+    "steps": {
+      "workspace": "Workspace",
+      "scan": "Scan",
+      "review": "Prüfen",
+      "done": "Fertig"
+    },
+    "openSettings": "Einstellungen öffnen",
+    "closeWindow": "Fenster schließen",
+    "minimizeWindow": "Fenster minimieren",
+    "restoreWindow": "Fenster wiederherstellen",
+    "maximizeWindow": "Fenster maximieren"
+  },
+  "update": {
+    "available": "Uncached {{version}} ist verfügbar",
+    "downloadingTitle": "Uncached {{version}} wird geladen",
+    "unreachable": "Das Update war nicht erreichbar",
+    "busy": "Uncached arbeitet — das Update wartet, bis es fertig ist",
+    "percent": "{{percent}} %",
+    "later": "Später",
+    "badge": {
+      "readyTitle": "Uncached {{version}} ist installiert — zum Verwenden neu starten",
+      "restart": "Neu starten",
+      "downloading": "Wird geladen",
+      "update": "Update"
+    },
+    "dialog": {
+      "label": "Softwareupdate",
+      "checkingTitle": "Suche nach Update",
+      "readyTitle": "Bereit zum Neustart",
+      "close": "Schließen",
+      "checkingBody": "Der Update-Server wird nach der neuesten Version gefragt.",
+      "noNotes": "Diese Version kam ohne Versionshinweise.",
+      "progressUnknown": "Wird geladen — der Server hat die Größe nicht angegeben",
+      "progress": "{{percent}} % — du kannst dies schließen, es läuft weiter",
+      "readyBody": "Uncached {{version}} ist bereit. Der Neustart dauert eine Sekunde, dein Workspace bleibt unberührt.",
+      "notNow": "Nicht jetzt",
+      "checking": "Wird geprüft…",
+      "restartNow": "Jetzt neu starten",
+      "downloading": "Wird geladen…",
+      "tryAgain": "Erneut versuchen",
+      "install": "Laden und installieren"
+    },
+    "toast": {
+      "body": "Nichts wird geladen oder ersetzt, bevor du es verlangst.",
+      "whatsNew": "Neuerungen",
+      "dismiss": "Schließen"
+    }
+  },
+  "menu": {
+    "file": "Ablage",
+    "edit": "Bearbeiten",
+    "view": "Darstellung",
+    "workspace": "Workspace",
+    "window": "Fenster",
+    "about": "Über Uncached",
+    "services": "Dienste",
+    "hide": "Uncached ausblenden",
+    "hideOthers": "Andere ausblenden",
+    "showAll": "Alle einblenden",
+    "quit": "Uncached beenden",
+    "undo": "Widerrufen",
+    "redo": "Wiederholen",
+    "cut": "Ausschneiden",
+    "copy": "Kopieren",
+    "paste": "Einsetzen",
+    "selectAll": "Alles auswählen",
+    "minimize": "Im Dock ablegen",
+    "zoom": "Zoomen",
+    "closeWindow": "Fenster schließen"
+  },
+  "native": {
+    "trayOpen": "Uncached öffnen",
+    "trayScan": "Workspace scannen",
+    "trayQuit": "Uncached beenden",
+    "scanFinished_one": "{{count}} Ziel gefunden, {{size}} freigebbar.",
+    "scanFinished_other": "{{count}} Ziele gefunden, {{size}} freigebbar.",
+    "maintenanceTitle": "Uncached Wartung",
+    "maintenanceBody_one": "{{size}} aus {{count}} inaktiven Projekt freigegeben. Alles wurde in den Papierkorb verschoben.",
+    "maintenanceBody_other": "{{size}} aus {{count}} inaktiven Projekten freigegeben. Alles wurde in den Papierkorb verschoben."
+  },
+  "errors": {
+    "invalid_workspace": "Dieser Ordner kann nicht gescannt werden.",
+    "io": "Die Festplatte hat den Vorgang verweigert.",
+    "provider_unavailable": "Kein Scanner erkennt dieses Ziel mehr. Scanne erneut.",
+    "target_missing": "Das Ziel existiert nicht mehr. Scanne erneut.",
+    "target_not_directory": "Das Ziel ist kein Verzeichnis mehr. Scanne erneut.",
+    "target_name_unsupported": "Der Name des Ziels kann auf diesem System nicht gelesen werden.",
+    "target_provider_mismatch": "Das Ziel passt nicht mehr zu dem, was der Scan gefunden hat. Scanne erneut.",
+    "target_context_invalid": "Das Projekt, in dem das Ziel liegt, hat sich seit dem Scan geändert. Scanne erneut.",
+    "target_outside_workspace": "Das Ziel liegt außerhalb der gewählten Ordner.",
+    "target_ignored_by_rule": "Eine Ausschlussregel gilt für das Ziel.",
+    "target_identity_unavailable": "Das Ziel konnte auf der Festplatte nicht identifiziert werden. Scanne erneut.",
+    "target_identity_changed": "Das Ziel wurde seit dem Scan ersetzt. Scanne erneut.",
+    "target_reparse_point": "Das Ziel oder ein übergeordneter Ordner ist ein Link. Uncached folgt beim Löschen keinen Links.",
+    "secure_operation_unsupported": "Dieses System kann das Ziel nicht sicher entfernen.",
+    "secure_target_open_failed": "Das Ziel konnte zum Entfernen nicht geöffnet werden.",
+    "secure_target_too_large": "Das Ziel enthält mehr Einträge, als ein Löschvorgang zulässt.",
+    "secure_target_too_deep": "Das Ziel ist tiefer verschachtelt, als ein Löschvorgang zulässt.",
+    "secure_enumeration_failed": "Der Inhalt des Ziels konnte nicht gelesen werden.",
+    "secure_handle_query_failed": "Das System lieferte keine Angaben zu einer Datei im Ziel.",
+    "secure_deletion_failed": "Das System hat das Löschen des Ziels verweigert.",
+    "secure_trash_unavailable": "Der Papierkorb ist auf diesem System nicht verfügbar.",
+    "secure_trash_initialization_failed": "Der Papierkorb konnte nicht geöffnet werden.",
+    "secure_trash_operation_failed": "Das Ziel konnte nicht in den Papierkorb verschoben werden.",
+    "secure_trash_aborted": "Das Verschieben des Ziels in den Papierkorb wurde unterbrochen.",
+    "secure_trash_postcondition_failed": "Das Ziel lag nach dem Verschieben nicht im Papierkorb.",
+    "target_in_use": "{{program}} läuft. Schließe es und scanne erneut — jetzt zu entfernen würde es beschädigen."
+  }
+}

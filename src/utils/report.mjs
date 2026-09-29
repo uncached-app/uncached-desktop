@@ -18,10 +18,10 @@
  * the setting, written out.
  */
 export const GRAINS = [
-  { id: "day", label: "day", window: "30 days", bucket: "day", buckets: 30 },
-  { id: "week", label: "week", window: "12 weeks", bucket: "week", buckets: 12 },
-  { id: "month", label: "month", window: "12 months", bucket: "month", buckets: 12 },
-  { id: "all", label: "all time", window: "all time", bucket: "month", buckets: null },
+  { id: "day", bucket: "day", buckets: 30 },
+  { id: "week", bucket: "week", buckets: 12 },
+  { id: "month", bucket: "month", buckets: 12 },
+  { id: "all", bucket: "month", buckets: null },
 ];
 
 /**

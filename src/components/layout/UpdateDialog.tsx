@@ -1,6 +1,7 @@
 import { ArrowUpCircle, Loader2, RotateCw, TriangleAlert, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { UpdateState } from "../../hooks/useUpdate";
 
@@ -36,6 +37,7 @@ export function UpdateDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
   const [installed, setInstalled] = useState<string | null>(null);
 
@@ -92,7 +94,7 @@ export function UpdateDialog({
           <motion.section
             role="dialog"
             aria-modal="true"
-            aria-label="Software update"
+            aria-label={t("shell.update.dialog.label")}
             onClick={(event) => event.stopPropagation()}
             initial={reducedMotion ? false : { opacity: 0, y: 8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -116,14 +118,14 @@ export function UpdateDialog({
               <div className="min-w-0 flex-1">
                 <h2 className="text-sm font-semibold text-mist-100">
                   {checking
-                    ? "Looking for an update"
+                    ? t("shell.update.dialog.checkingTitle")
                     : ready
-                      ? "Ready to restart"
+                      ? t("shell.update.dialog.readyTitle")
                       : downloading
-                        ? `Downloading Uncached ${update.version}`
+                        ? t("shell.update.downloadingTitle", { version: update.version })
                         : update.stage === "failed"
-                          ? "The update could not be reached"
-                          : `Uncached ${update.version} is available`}
+                          ? t("shell.update.unreachable")
+                          : t("shell.update.available", { version: update.version })}
                 </h2>
                 {installed && update.version && !checking && (
                   <p className="mt-1 font-mono text-[11px] text-mist-500">
@@ -135,7 +137,7 @@ export function UpdateDialog({
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={t("shell.update.dialog.close")}
                 className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
               >
                 <X size={14} aria-hidden="true" />
@@ -149,7 +151,7 @@ export function UpdateDialog({
                 </p>
               ) : checking ? (
                 <p className="text-xs leading-5 text-mist-500">
-                  Asking the update server what the newest release is.
+                  {t("shell.update.dialog.checkingBody")}
                 </p>
               ) : update.notes ? (
                 // Given the width prose needs, and selectable: a release note
@@ -159,7 +161,7 @@ export function UpdateDialog({
                 </div>
               ) : (
                 <p className="text-xs leading-5 text-mist-500">
-                  This release came without notes.
+                  {t("shell.update.dialog.noNotes")}
                 </p>
               )}
             </div>
@@ -181,16 +183,15 @@ export function UpdateDialog({
                   </div>
                   <p className="mt-2 text-[11px] text-mist-500">
                     {percent === null
-                      ? "Downloading — the server did not say how large this is"
-                      : `${percent}% — you can close this and it keeps going`}
+                      ? t("shell.update.dialog.progressUnknown")
+                      : t("shell.update.dialog.progress", { percent })}
                   </p>
                 </div>
               )}
 
               {ready && (
                 <p className="mb-4 text-[11px] leading-5 text-mist-500">
-                  Uncached {update.version} is in place. Restarting takes a second and nothing
-                  in your workspace is touched.
+                  {t("shell.update.dialog.readyBody", { version: update.version })}
                 </p>
               )}
 
@@ -204,7 +205,11 @@ export function UpdateDialog({
                   onClick={onClose}
                   className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-mist-500 transition-colors hover:text-mist-100"
                 >
-                  {ready ? "Later" : downloading ? "Close" : "Not now"}
+                  {ready
+                    ? t("shell.update.later")
+                    : downloading
+                      ? t("shell.update.dialog.close")
+                      : t("shell.update.dialog.notNow")}
                 </button>
 
                 <button
@@ -216,14 +221,14 @@ export function UpdateDialog({
                   className="cursor-pointer rounded-lg bg-sage-400 px-3 py-1.5 text-xs font-semibold text-forest-950 transition-colors hover:bg-sage-300 disabled:cursor-default disabled:opacity-50"
                 >
                   {checking
-                    ? "Checking…"
+                    ? t("shell.update.dialog.checking")
                     : ready
-                      ? "Restart now"
+                      ? t("shell.update.dialog.restartNow")
                       : downloading
-                        ? "Downloading…"
+                        ? t("shell.update.dialog.downloading")
                         : update.stage === "failed"
-                          ? "Try again"
-                          : "Download and install"}
+                          ? t("shell.update.dialog.tryAgain")
+                          : t("shell.update.dialog.install")}
                 </button>
               </div>
             </footer>

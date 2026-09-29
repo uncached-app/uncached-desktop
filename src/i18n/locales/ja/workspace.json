@@ -1,0 +1,331 @@
+{
+  "family": {
+    "declared": "{{tool}} ワークスペース",
+    "oneFolderSeveral": "1 つのフォルダに複数のプロジェクト",
+    "alone": "単独",
+    "aloneDetail": "ほかのプロジェクトと同じディレクトリにない"
+  },
+  "filters": {
+    "query": "「{{query}}」",
+    "clones": "リポジトリのコピー",
+    "clearAll": "すべてのフィルタをクリア"
+  },
+  "map": {
+    "nothingToDraw": "フィルタに一致するものがないため、描画するものがありません。"
+  },
+  "list": {
+    "rankedLabel": "サイズ順のプロジェクト",
+    "rankedTitle": "ディスクサイズ順",
+    "rankedHint": "サイズの大きいプロジェクトから表示",
+    "reclaimable": "{{size}} 回収可能",
+    "noMatch": "このフィルタに一致するプロジェクトはありません",
+    "noProjects": "このフォルダにプロジェクトはありません",
+    "indexed_other": "{{count}} 個のフォルダで {{projects}} 件のプロジェクトをインデックスしました。"
+  },
+  "form": {
+    "cancelledFound_other": "スキャンをキャンセル · 停止前に {{count}} 件の対象を検出",
+    "cancelled": "スキャンをキャンセルしました",
+    "lastRun_other": "前回の実行：{{count}} 件の対象を削除、{{size}} を回収",
+    "title": "ビルド成果物からディスク容量を回収。",
+    "subtitle": "ツールチェーンで再生成できる依存関係、ビルド、キャッシュのディレクトリを検出します。",
+    "open": "ワークスペースを開く"
+  },
+  "unavailable": {
+    "label": "ワークスペース",
+    "errorTitle": "フォルダを読み取れませんでした",
+    "errorHint": "システムが開くことを拒否したフォルダはインデックスできません。アプリにディスクへのアクセスを許可するか、その中のフォルダを選択すると読み取れるようになります。",
+    "retry": "再試行",
+    "chooseFolders": "別のフォルダを選択",
+    "readingTitle": "フォルダを読み取り中",
+    "readingHint": "プロジェクトを検出し、ワークスペースの構成を分析しています…"
+  },
+  "project": {
+    "running": {
+      "single": "<strong>このプロジェクトは実行中です。</strong>{{command}} が内部で動作しています。停止するまで成果物は計測されず、回収もできません。",
+      "several_other": "<strong>このプロジェクトは実行中です。</strong>{{command}} を含む {{count}} 個のプロセスが内部で動作しています。停止するまで成果物は計測されず、回収もできません。"
+    },
+    "back": "ワークスペース",
+    "pathCopied": "パスをコピーしました",
+    "copyPath": "フルパスをコピー",
+    "metrics": {
+      "total": "ディスク上の合計",
+      "reclaimable": "回収可能なキャッシュ",
+      "source": "ソースコード"
+    },
+    "partial": "このプロジェクト内の一部のフォルダを読み取れませんでした。上の数値はすべて計測値ではなく下限値です。"
+  },
+  "actions": {
+    "done": "{{action}} — 完了",
+    "failed": "失敗しました",
+    "showInWorkspace": "ワークスペースで表示"
+  },
+  "footprint": {
+    "title": "容量の内訳",
+    "across_other": "{{count}} 種類で {{size}}",
+    "barLabel": "成果物別の回収可能量"
+  },
+  "verdict": {
+    "title": "判定の分析",
+    "localWork": "未コミットまたは未プッシュのローカル作業",
+    "localBackup": "<strong>ローカルバックアップ：</strong>Git のリモートがリモートサーバではなく、このマシン上のローカルフォルダです。",
+    "installMissing": "ロックファイルはありますが、依存関係がインストールされていません。テストの前にパッケージマネージャでインストールしてください。",
+    "installStale": "前回のインストール後にロックファイルが変更されました。インストール済みの依存関係が古い可能性があります。",
+    "risk": {
+      "unpushedCommits_other": "{{count}} 件のコミットが未プッシュ",
+      "stashEntries_other": "{{count}} 件のスタッシュが保存済みで未適用",
+      "branchesWithoutUpstream_other": "{{count}} 個のブランチにリモートのアップストリームがない",
+      "untrackedFiles_other": "{{count}} 個のファイルが未コミット"
+    }
+  },
+  "restore": {
+    "noTerminal": "このマシンにターミナルが見つかりません — コマンドをコピーしました",
+    "running": "{{started}} — {{terminal}} で実行中",
+    "failed": "ターミナルを開けませんでした",
+    "pinned": "<strong>復元：</strong><code>{{command}}</code> — <mono>{{pinnedBy}}</mono> によって復元されるバージョンが固定されます。",
+    "unpinned": "<strong>復元：</strong><code>{{command}}</code> — バージョンを固定するものがないため、再インストールでは現在のバージョンが解決されます。容量は戻りますが、この依存関係の組み合わせは戻りません。",
+    "runTitle": "{{terminal}} を開き、ここで {{command}} を実行",
+    "copyTitle": "{{command}} をコピー",
+    "action": "今すぐ復元"
+  },
+  "git": {
+    "neverFetched": "一度もフェッチされていないため、リモートの状態は不明",
+    "checkedUntracked": "{{when}}に確認。このブランチは何も追跡していません",
+    "upToDate": "{{when}}時点で最新",
+    "behind_other": "{{when}}時点で {{count}} コミット遅れ",
+    "title": "Git の状態",
+    "branch": "ブランチ",
+    "dirty": "未コミットの変更あり",
+    "clean": "作業ツリーはクリーン",
+    "remote": "リモート",
+    "localRemote": "このドライブ上のローカルディレクトリ",
+    "noRemote": "リモートが設定されていません",
+    "lastCommit": "最終コミット",
+    "unknownDate": "不明",
+    "notRepository": "Git リポジトリではありません。リモートバックアップを追跡できません。"
+  },
+  "activity": {
+    "title": "アクティビティ",
+    "states": {
+      "active": "アクティブ",
+      "idle": "アイドル",
+      "cold": "放置",
+      "unknown": "不明"
+    },
+    "lastTouched": "最終更新",
+    "idleTime": "アイドル期間",
+    "idleDays_other": "{{count}} 日",
+    "cold": "放置されたプロジェクト"
+  },
+  "hygiene": {
+    "branch": {
+      "prunable": "リモートブランチは削除済みで、コミットはこのブランチにも含まれています",
+      "holdsWork": "リモートブランチは削除済みで、ほかにないコミットを保持しています",
+      "withAge": "{{state}} · 最終コミット {{age}}"
+    },
+    "outcome": {
+      "deleted_other": "{{count}} 個のブランチを削除しました",
+      "refused_other": "{{count}} 個が Git により拒否されました",
+      "nothing": "削除できるものはありません"
+    },
+    "title": "リポジトリの整理",
+    "fetchLabel": "リモートからリポジトリをフェッチ",
+    "fetch": "リモートをフェッチ",
+    "checked": "リモートの最終確認：{{when}}。ブランチが不要と判定されるのは、リモートで削除されたブランチをフェッチで prune した後だけです。",
+    "neverFetched": "このリポジトリは一度もフェッチされていないため、リモートの変更は反映されていません。",
+    "loading": "ブランチ、スタッシュ、ワークツリーを読み取り中。",
+    "empty": "不要なブランチ、スタッシュ、追加のワークツリーはありません。",
+    "keep": "保持",
+    "worktreeMissing": "{{path}} — ディレクトリは存在しませんが、登録は残っています",
+    "deleteMerged_other": "マージ済みのブランチ {{count}} 個を削除",
+    "deleteHint": "<mono>git branch -d</mono> を使用します。コミットがほかの場所にないブランチは削除を拒否します。"
+  },
+  "shared": {
+    "title": "ほかのプロジェクトとの共有",
+    "reading": "ほかのプロジェクトのインストール内容を読み取り中…",
+    "titleCount_other": "ほかのプロジェクトとの共有（{{count}}）",
+    "duplicate": "{{size}} が重複",
+    "intro": "ここにもほかのプロジェクトにもインストールされ、それぞれが独自のコピーを保持しています。",
+    "inProjects_other": "{{count}} 件のプロジェクト内",
+    "hint": "パッケージを個別に削除するとインストールが壊れます。容量を回収するには、下の「成果物」リストで親ディレクトリをクリーンアップしてください。"
+  },
+  "duplicates": {
+    "title_other": "重複したチェックアウト（{{count}}）",
+    "copies_other": "ディスク上に {{count}} 個のコピー",
+    "intro": "同じリポジトリが複数のディレクトリにクローンされています。各チェックアウトは独自のビルド成果物を持ち、個別にクリーンアップできます。",
+    "view": "プロジェクトを表示"
+  },
+  "artifacts": {
+    "refused": "バックエンドがこの対象を回収できませんでした。",
+    "title_other": "回収可能な成果物（{{count}}）",
+    "total": "合計 {{size}}",
+    "notCounted_other": "{{count}} 件は未集計",
+    "permanent": {
+      "title": "完全削除モード",
+      "body": "システムのゴミ箱を使わず、ディスクから直接削除します。削除ボタンを有効にするには、下に <token>{{token}}</token> と入力してください。",
+      "placeholder": "「{{token}}」と入力",
+      "inputLabel": "完全削除の確認用トークン",
+      "armed": "有効",
+      "armHint": "完全削除を有効にするには「{{token}}」と入力"
+    },
+    "empty": "破棄可能なビルド成果物は検出されませんでした。ディスク容量はすべてソースコードとバージョン管理が占めています。",
+    "partlyUnreadable": "一部読み取り不可",
+    "measuring": "計測中…",
+    "reclaim": "{{name}} を回収",
+    "deletePermanently": "完全に削除",
+    "moveToTrash": "ゴミ箱に移動"
+  },
+  "row": {
+    "partial": "このプロジェクト内の一部のフォルダを読み取れなかったため、これは合計ではなく下限値です。",
+    "onDisk": "ディスク上",
+    "details": "{{name}} プロジェクトの詳細",
+    "copies_other": "{{count}} 個のコピー",
+    "reclaimable": "回収可能",
+    "runningTitle": {
+      "single": "{{command}} がこのプロジェクト内で動作しています。停止するまで成果物は回収できません。",
+      "several_other": "{{command}} がこのプロジェクト内で動作しています（{{count}} 個のプロセス）。停止するまで成果物は回収できません。"
+    },
+    "running": "実行中 · {{command}}",
+    "measuring": "計測中…"
+  },
+  "menu": {
+    "label": "{{name}} の操作",
+    "openPage": "プロジェクトページを開く"
+  },
+  "header": {
+    "showFilters": "フィルタを表示",
+    "hideFilters": "フィルタを隠す",
+    "projects_other": "{{count}} 件のプロジェクト",
+    "rescan": "ワークスペースを再読み取り",
+    "onDisk": "ディスク上",
+    "reclaimable": "回収可能",
+    "atRiskTitle_other": "{{count}} 件のプロジェクトに未プッシュまたは未コミットの作業があります",
+    "atRisk": "要注意",
+    "reclaim": "ディスク容量を回収",
+    "filterLabel": "名前、パス、種類、ブランチでプロジェクトを絞り込む",
+    "filterPlaceholder": "名前、パス、エコシステム、ブランチで絞り込み",
+    "clearText": "テキストフィルタをクリア",
+    "order": "プロジェクトの並べ替え",
+    "byVerdict": "判定順",
+    "bySize": "サイズ順",
+    "byFolder": "フォルダ順",
+    "listTitle": "リスト表示 — キーボードで操作可能",
+    "list": "リスト",
+    "mapTitle": "マップ表示 — インタラクティブなワークスペースグラフ",
+    "map": "マップ",
+    "showing": "表示中",
+    "stopFiltering": "「{{label}}」での絞り込みを解除",
+    "clearAll": "すべてクリア"
+  },
+  "history": {
+    "moved": "前回の表示から <delta>{{sign}}{{size}}</delta>",
+    "unchanged": "前回の表示から変化なし",
+    "added_other": "+{{count}} 件追加",
+    "lifetime": "Uncached で <size>{{size}}</size> を回収済み"
+  },
+  "sidebar": {
+    "label": "ワークスペースのフィルタ",
+    "folders": "フォルダ",
+    "allProjects": "すべてのプロジェクト",
+    "removeAll_other": "{{count}} 個のフォルダをすべてワークスペースから外してやり直す",
+    "addAnother": "フォルダを追加",
+    "addReason": "複数フォルダの同時スキャンは Pro の機能です",
+    "addFolder": "フォルダを追加",
+    "rootLimit_other": "このプランでは一度に {{count}} 個のフォルダまで扱えます。",
+    "skipped_other": "{{count}} 個のフォルダをスキップしました。",
+    "capped_other": "マップは {{count}} 件のプロジェクトまでに制限されています。",
+    "verdict": "判定",
+    "everyVerdict": "すべての判定",
+    "artifact": "成果物",
+    "everyKind": "すべての種類",
+    "clonesTitle": "別の場所にもチェックアウトされているリポジトリを持つプロジェクト",
+    "remove": "{{label}} をワークスペースから外す"
+  },
+  "graph": {
+    "copiesHere_other": "{{count}} 個中 {{drawn}} 個のコピーがここに",
+    "copies_other": "{{count}} 個のコピー",
+    "declared": "{{tool}} ワークスペース",
+    "oneFolder": "1 つのフォルダ"
+  },
+  "canvas": {
+    "label_other": "{{count}} 件のプロジェクトと {{packages}} 個の共有パッケージ。リストも同じワークスペースを表示します。",
+    "workspaceTag": "ワークスペース",
+    "folderTag": "フォルダ",
+    "projects": "プロジェクト：",
+    "onDisk": "ディスク上：",
+    "atLeast": "{{size}} 以上",
+    "reclaimable": "回収可能：",
+    "heldBy": "共通点：",
+    "packageTag": "パッケージ",
+    "projectTag": "プロジェクト",
+    "sharedAcross": "共有先：",
+    "status": "状態：",
+    "footprint": "ディスク使用量：",
+    "measuring": "計測中…",
+    "clickToOpen": "クリックして開く",
+    "rightClick": "右クリックでオプション",
+    "packageStatus": "{{detail}} · {{size}} を共有",
+    "hint": "ドラッグで移動、スクロールでズーム",
+    "weighing": "計測中…",
+    "readingPackages": "パッケージを読み取り中…",
+    "omitted_other": "小さいパッケージ {{count}} 個を省略",
+    "legend": {
+      "package": "複数のプロジェクトがそれぞれコピーを持つパッケージ",
+      "folder": "複数のプロジェクトを含む 1 つのディレクトリ",
+      "clone": "2 回チェックアウトされた 1 つのリポジトリ"
+    },
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "fit": "ワークスペース全体を表示"
+  },
+  "verdicts": {
+    "protect": {
+      "label": "保護",
+      "summary": "このディスクにしかない作業を保持しています。"
+    },
+    "broken": {
+      "label": "要インストール",
+      "summary": "ロックファイルはありますが、何もインストールされていません。"
+    },
+    "staleDeps": {
+      "label": "インストールが古い",
+      "summary": "前回のインストール後にロックファイルが変更されました。"
+    },
+    "tradeOff": {
+      "label": "使用中",
+      "summary": "回収可能ですが、再インストールのコストがかかります。"
+    },
+    "safe": {
+      "label": "安全に回収可能",
+      "summary": "すべてリモートにあり、数か月間誰も触れていません。"
+    },
+    "archivable": {
+      "label": "すべてリモートにあり",
+      "summary": "回収できるものはありません。ローカルコピーは保持しても削除しても構いません。"
+    },
+    "unknown": {
+      "label": "判定不能",
+      "summary": "判断に必要な情報を読み取れませんでした。自動で操作することはありません。"
+    }
+  },
+  "evidence": {
+    "notOnRemote": "どのリモートにもない作業。",
+    "broken": "判定するには先にインストールしてください。",
+    "staleDeps": "インストール済みの依存関係がロックファイルと一致しません。",
+    "gitUnreadable": "Git を読み取れませんでした。",
+    "notRepository": "リポジトリではありません。",
+    "archivableIdle": "{{idle}}。すべてのコミットがリモートにあります。",
+    "archivable": "すべてのコミットがリモートにあります。",
+    "toReclaim": "{{size}} を回収可能",
+    "toReinstall": "{{size}} の再インストールが必要",
+    "risk": {
+      "unpushedCommits_other": "{{count}} 件のコミットが未プッシュ",
+      "stashEntries_other": "{{count}} 件のスタッシュを保存済み",
+      "branchesWithoutUpstream_other": "{{count}} 個のブランチにリモートなし",
+      "untrackedFiles_other": "{{count}} 個のファイルが未コミット",
+      "separator": "、"
+    },
+    "touchedToday": "今日更新",
+    "idleDays_other": "{{count}} 日間アイドル",
+    "untouchedMonths_other": "{{count}} か月間未更新"
+  }
+}

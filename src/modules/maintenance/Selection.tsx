@@ -1,14 +1,7 @@
 import { Check, FolderGit2, Loader2, Play, ShieldAlert, Sparkles } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import type { MaintenancePreview, SkipReason } from "../../types/maintenance";
 import { formatBytes } from "../../utils/format.mjs";
-
-const SKIP_REASONS: Record<SkipReason, string> = {
-  verdict: "not safe to automate",
-  unmeasured: "not measured yet",
-  unknownActivity: "activity unreadable",
-  tooRecent: "recently active",
-  tooSmall: "below size floor",
-};
 
 export type RunState =
   | { kind: "idle" }
@@ -36,6 +29,7 @@ export function Selection({
   onRun: () => void;
   onShowProtected: (() => void) | null;
 }) {
+  const { t } = useTranslation();
   const selected = preview.selected;
   const running = run.kind === "running";
 
@@ -51,25 +45,25 @@ export function Selection({
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-mist-100">
               {selected.length === 0
-                ? "No Projects Match This Rule"
-                : `Ready for Maintenance (${selected.length})`}
+                ? t("maintenance.selection.emptyTitle")
+                : t("maintenance.selection.readyTitle", { total: selected.length })}
             </h2>
             {settling && (
               <span className="font-mono text-[10px] text-mist-500">
-                (evaluating...)
+                {t("maintenance.selection.evaluating")}
               </span>
             )}
           </div>
           <p className="mt-0.5 text-xs text-mist-500">
             {selected.length === 0
-              ? "All workspace projects are either recently active, below the size floor, or protected."
-              : "Reclaiming targets moves them reversibly to the Recycle Bin."}
+              ? t("maintenance.selection.emptyHint")
+              : t("maintenance.selection.readyHint")}
           </p>
         </div>
 
         {selected.length > 0 && (
           <span className="font-mono text-xs font-bold text-sage-300">
-            {formatBytes(preview.bytes)} reclaimable
+            {t("maintenance.selection.reclaimable", { size: formatBytes(preview.bytes) })}
           </span>
         )}
       </div>
@@ -89,10 +83,10 @@ export function Selection({
                     {entry.name}
                   </span>
                   <div className="mt-0.5 flex items-center gap-2 text-[10px] text-mist-500">
-                    <span>idle {entry.idleDays} days</span>
+                    <span>{t("maintenance.selection.idle", { count: entry.idleDays })}</span>
                     <span className="inline-flex items-center gap-0.5 text-sage-300">
                       <Check size={10} />
-                      <span>Remote synced</span>
+                      <span>{t("maintenance.selection.remoteSynced")}</span>
                     </span>
                   </div>
                 </div>
@@ -107,20 +101,24 @@ export function Selection({
       ) : (
         <div className="flex items-center gap-2.5 py-4 text-xs text-mist-300">
           <Sparkles size={16} className="shrink-0 text-sage-300" aria-hidden="true" />
-          <span>Your workspace is clean. No dormant projects meet the threshold.</span>
+          <span>{t("maintenance.selection.clean")}</span>
         </div>
       )}
 
       {/* Skip Reasons Breakdown (Flat tag metadata) */}
       {skippedReasons.length > 0 && (
         <div className="border-t border-forest-800 pt-3 text-xs text-mist-500 flex flex-wrap items-center gap-1.5">
-          <span className="text-mist-500">Filtered out:</span>
+          <span className="text-mist-500">{t("maintenance.selection.filteredOut")}</span>
           {skippedReasons.map(([reason, count]) => (
             <span
               key={reason}
               className="inline-flex items-center gap-1 rounded-md bg-forest-850 px-2 py-0.5 font-mono text-[11px] text-mist-300"
             >
-              <strong className="text-mist-100">{count}</strong> {SKIP_REASONS[reason]}
+              <Trans
+                i18nKey={`maintenance.selection.skipped.${reason}`}
+                values={{ total: count }}
+                components={{ strong: <strong className="text-mist-100" /> }}
+              />
             </span>
           ))}
         </div>
@@ -151,13 +149,13 @@ export function Selection({
                     )}
                     <span>
                       {run.kind === "running" && run.total > 0
-                        ? `Reclaiming ${run.done} of ${run.total}...`
-                        : `Run Maintenance (${selected.length})`}
+                        ? t("maintenance.selection.running", { done: run.done, total: run.total })
+                        : t("maintenance.selection.run", { total: selected.length })}
                     </span>
                   </button>
                   {run.kind === "idle" && (
                     <span className="text-xs text-mist-500">
-                      Moves selected targets to the Recycle Bin.
+                      {t("maintenance.selection.runHint")}
                     </span>
                   )}
                 </div>
@@ -176,16 +174,19 @@ export function Selection({
               </div>
             ) : (
               <p className="text-xs leading-5 text-mist-500">
-                Scan your workspace to enable one-click maintenance on identified targets.
+                {t("maintenance.selection.scanToEnable")}
               </p>
             ))}
 
           {/* Feedback messages without heavy nested boxes */}
           {run.kind === "done" && (
             <p className="mt-2 text-xs font-medium text-sage-300">
-              ✓ Reclaimed {formatBytes(run.freedBytes)} from {run.removed}{" "}
-              {run.removed === 1 ? "target" : "targets"}
-              {run.failed > 0 && ` (${run.failed} failed)`}.
+              {t(
+                run.failed > 0
+                  ? "maintenance.selection.doneWithFailures"
+                  : "maintenance.selection.done",
+                { count: run.removed, size: formatBytes(run.freedBytes), failed: run.failed },
+              )}
             </p>
           )}
 
@@ -201,10 +202,8 @@ export function Selection({
 }
 
 function ProtectedNote({ count, onShow }: { count: number; onShow: (() => void) | null }) {
-  const text =
-    count === 1
-      ? "1 project holds uncommitted/unpushed work on this disk (Protected)"
-      : `${count} projects hold uncommitted/unpushed work on this disk (Protected)`;
+  const { t } = useTranslation();
+  const text = t("maintenance.selection.protected", { count });
 
   return (
     <div className="mt-3 flex items-center justify-between gap-3 text-xs text-coral-300">
@@ -218,7 +217,7 @@ function ProtectedNote({ count, onShow }: { count: number; onShow: (() => void) 
           onClick={onShow}
           className="shrink-0 font-semibold underline underline-offset-2 hover:opacity-80 cursor-pointer"
         >
-          View in workspace &rarr;
+          {t("maintenance.selection.viewInWorkspace")}
         </button>
       )}
     </div>

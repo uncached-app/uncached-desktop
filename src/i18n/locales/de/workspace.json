@@ -1,0 +1,370 @@
+{
+  "family": {
+    "declared": "{{tool}}-Workspace",
+    "oneFolderSeveral": "Ein Ordner, mehrere Projekte",
+    "alone": "Einzeln",
+    "aloneDetail": "In keinem Verzeichnis mit einem anderen Projekt"
+  },
+  "filters": {
+    "query": "„{{query}}“",
+    "clones": "Kopien eines Repos",
+    "clearAll": "Alle Filter entfernen"
+  },
+  "map": {
+    "nothingToDraw": "Nichts entspricht den Filtern, daher gibt es kein Bild zu zeichnen."
+  },
+  "list": {
+    "rankedLabel": "Projekte nach Größe sortiert",
+    "rankedTitle": "Nach Speicherbedarf",
+    "rankedHint": "Größte Projekte zuerst",
+    "reclaimable": "{{size}} freigebbar",
+    "noMatch": "Keine Projekte entsprechen diesem Filter",
+    "noProjects": "Keine Projekte in diesem Ordner",
+    "indexed_one": "{{projects}} Projekte in {{count}} Ordner indiziert.",
+    "indexed_other": "{{projects}} Projekte in {{count}} Ordnern indiziert."
+  },
+  "form": {
+    "cancelledFound_one": "Scan abgebrochen · {{count}} Ziel vor dem Stopp gefunden",
+    "cancelledFound_other": "Scan abgebrochen · {{count}} Ziele vor dem Stopp gefunden",
+    "cancelled": "Scan abgebrochen",
+    "lastRun_one": "Letzter Lauf: {{count}} Ziel entfernt, {{size}} freigegeben",
+    "lastRun_other": "Letzter Lauf: {{count}} Ziele entfernt, {{size}} freigegeben",
+    "title": "Speicher von Build-Artefakten freigeben.",
+    "subtitle": "Findet Abhängigkeits-, Build- und Cache-Verzeichnisse, die deine Toolchains neu erzeugen können.",
+    "open": "Workspace öffnen"
+  },
+  "unavailable": {
+    "label": "Workspace",
+    "errorTitle": "Deine Ordner konnten nicht gelesen werden",
+    "errorHint": "Ein Ordner, den das System nicht öffnen lässt, kann nicht indiziert werden. Lesbar wird er, wenn du der App Zugriff auf die Festplatte gibst oder einen Ordner darin wählst.",
+    "retry": "Erneut versuchen",
+    "chooseFolders": "Andere Ordner wählen",
+    "readingTitle": "Deine Ordner werden gelesen",
+    "readingHint": "Projekte werden erkannt und die Workspace-Struktur analysiert..."
+  },
+  "project": {
+    "running": {
+      "single": "<strong>Dieses Projekt läuft.</strong> {{command}} arbeitet darin. Seine Artefakte werden nicht gemessen und können erst freigegeben werden, wenn es stoppt.",
+      "several_one": "<strong>Dieses Projekt läuft.</strong> {{count}} Prozess arbeitet darin, darunter {{command}}. Seine Artefakte werden nicht gemessen und können erst freigegeben werden, wenn es stoppt.",
+      "several_other": "<strong>Dieses Projekt läuft.</strong> {{count}} Prozesse arbeiten darin, darunter {{command}}. Seine Artefakte werden nicht gemessen und können erst freigegeben werden, wenn es stoppt."
+    },
+    "back": "Workspace",
+    "pathCopied": "Pfad kopiert",
+    "copyPath": "Vollständigen Pfad kopieren",
+    "metrics": {
+      "total": "gesamt belegt",
+      "reclaimable": "freigebbarer Cache",
+      "source": "Quellcode"
+    },
+    "partial": "Einige Ordner in diesem Projekt konnten nicht gelesen werden. Jeder Wert oben ist eine Untergrenze, keine Messung."
+  },
+  "actions": {
+    "done": "{{action}} — erledigt",
+    "failed": "Das hat nicht funktioniert",
+    "showInWorkspace": "Im Workspace zeigen"
+  },
+  "footprint": {
+    "title": "Wohin der Speicher ging",
+    "across_one": "{{size}} in {{count}} Art",
+    "across_other": "{{size}} in {{count}} Arten",
+    "barLabel": "Freigebbarer Speicher nach Artefakt"
+  },
+  "verdict": {
+    "title": "Bewertung",
+    "localWork": "Nicht committete oder nicht gepushte lokale Arbeit",
+    "localBackup": "<strong>Lokale Sicherung:</strong> Das Git-Remote ist ein lokaler Ordner auf diesem Rechner, kein Remote-Server.",
+    "installMissing": "Lockfile vorhanden, Abhängigkeiten fehlen. Vor dem Testen die Paketmanager-Installation ausführen.",
+    "installStale": "Lockfile nach der letzten Installation geändert. Installierte Abhängigkeiten sind möglicherweise veraltet.",
+    "risk": {
+      "unpushedCommits_one": "{{count}} Commit nie gepusht",
+      "unpushedCommits_other": "{{count}} Commits nie gepusht",
+      "stashEntries_one": "{{count}} Stash gespeichert und nicht angewendet",
+      "stashEntries_other": "{{count}} Stashes gespeichert und nicht angewendet",
+      "branchesWithoutUpstream_one": "{{count}} Branch ohne Remote-Upstream",
+      "branchesWithoutUpstream_other": "{{count}} Branches ohne Remote-Upstream",
+      "untrackedFiles_one": "{{count}} Datei nie committet",
+      "untrackedFiles_other": "{{count}} Dateien nie committet"
+    }
+  },
+  "restore": {
+    "noTerminal": "kein Terminal auf diesem Rechner gefunden — der Befehl wurde kopiert",
+    "running": "{{started}} — läuft in {{terminal}}",
+    "failed": "Dieses Terminal hat sich nicht geöffnet",
+    "pinned": "<strong>Wiederherstellen:</strong> <code>{{command}}</code> — <mono>{{pinnedBy}}</mono> legt fest, welche Versionen zurückkommen.",
+    "unpinned": "<strong>Wiederherstellen:</strong> <code>{{command}}</code> — hier legt nichts die Versionen fest, eine Neuinstallation löst also aktuelle auf. Der Speicher kommt zurück, genau diese Abhängigkeiten nicht.",
+    "runTitle": "{{command}} hier in {{terminal}} ausführen",
+    "copyTitle": "{{command}} kopieren",
+    "action": "Jetzt wiederherstellen"
+  },
+  "git": {
+    "neverFetched": "Nie gefetcht, daher ist über das Remote nichts bekannt",
+    "checkedUntracked": "Geprüft {{when}}. Dieser Branch hat keinen Upstream",
+    "upToDate": "Aktuell, Stand {{when}}",
+    "behind_one": "{{count}} Commit zurück, Stand {{when}}",
+    "behind_other": "{{count}} Commits zurück, Stand {{when}}",
+    "title": "Git-Kontext",
+    "branch": "Branch",
+    "dirty": "nicht committete Änderungen",
+    "clean": "sauberer Arbeitsbaum",
+    "remote": "Remote",
+    "localRemote": "lokales Verzeichnis auf diesem Laufwerk",
+    "noRemote": "Kein Remote konfiguriert",
+    "lastCommit": "Letzter Commit",
+    "unknownDate": "unbekannt",
+    "notRepository": "Kein Git-Repository. Keine Remote-Sicherung nachverfolgbar."
+  },
+  "activity": {
+    "title": "Aktivität",
+    "states": {
+      "active": "aktiv",
+      "idle": "inaktiv",
+      "cold": "kalt",
+      "unknown": "unbekannt"
+    },
+    "lastTouched": "Zuletzt geändert",
+    "idleTime": "Inaktiv seit",
+    "idleDays_one": "{{count}} Tag",
+    "idleDays_other": "{{count}} Tagen",
+    "cold": "kaltes Projekt"
+  },
+  "hygiene": {
+    "branch": {
+      "prunable": "sein Remote-Branch ist weg, und seine Commits sind auch auf diesem Branch",
+      "holdsWork": "sein Remote-Branch ist weg, und er enthält noch Commits, die sonst nirgends existieren",
+      "withAge": "{{state}} · letzter Commit {{age}}"
+    },
+    "outcome": {
+      "deleted_one": "{{count}} Branch gelöscht",
+      "deleted_other": "{{count}} Branches gelöscht",
+      "refused_one": "{{count}} von Git verweigert",
+      "refused_other": "{{count}} von Git verweigert",
+      "nothing": "Nichts mehr zu löschen"
+    },
+    "title": "Repository-Hygiene",
+    "fetchLabel": "Repository vom Remote fetchen",
+    "fetch": "Remote fetchen",
+    "checked": "Remote zuletzt geprüft {{when}}. Ein Branch gilt erst als tot, wenn ein Fetch entfernt hat, was das Remote gelöscht hat.",
+    "neverFetched": "Dieses Repository wurde nie gefetcht, daher ist hier nicht bekannt, was sich auf dem Remote geändert hat.",
+    "loading": "Branches, Stashes und Worktrees werden gelesen.",
+    "empty": "Keine toten Branches, keine Stashes, keine zusätzlichen Worktrees.",
+    "keep": "behalten",
+    "worktreeMissing": "{{path}} — das Verzeichnis ist weg, die Registrierung nicht",
+    "deleteMerged_one": "{{count}} gemergten Branch löschen",
+    "deleteMerged_other": "{{count}} gemergte Branches löschen",
+    "deleteHint": "Verwendet <mono>git branch -d</mono>, das alles verweigert, dessen Commits nicht anderswo liegen."
+  },
+  "shared": {
+    "title": "Mit anderen Projekten geteilt",
+    "reading": "Wird gelesen, was andere Projekte installiert haben...",
+    "titleCount_one": "Mit anderen Projekten geteilt ({{count}})",
+    "titleCount_other": "Mit anderen Projekten geteilt ({{count}})",
+    "duplicate": "{{size}} doppelt",
+    "intro": "Hier und in anderen Projekten installiert, jeweils mit eigener Kopie.",
+    "inProjects_one": "in {{count}} Projekt",
+    "inProjects_other": "in {{count}} Projekten",
+    "hint": "Pakete lassen sich nicht einzeln entfernen, ohne Installationen zu beschädigen. Bereinige das übergeordnete Verzeichnis in der Artefaktliste unten, um Speicher freizugeben."
+  },
+  "duplicates": {
+    "title_one": "Doppelte Checkouts ({{count}})",
+    "title_other": "Doppelte Checkouts ({{count}})",
+    "copies_one": "{{count}} lokale Kopie",
+    "copies_other": "{{count}} lokale Kopien",
+    "intro": "Dasselbe Repository ist in mehreren Verzeichnissen geklont. Jeder Checkout hat eigene Build-Artefakte und lässt sich unabhängig bereinigen.",
+    "view": "Projekt ansehen"
+  },
+  "artifacts": {
+    "refused": "Dieses Ziel konnte vom Backend nicht freigegeben werden.",
+    "title_one": "Freigebbare Artefakte ({{count}})",
+    "title_other": "Freigebbare Artefakte ({{count}})",
+    "total": "{{size}} gesamt",
+    "notCounted_one": "{{count}} nicht gezählt",
+    "notCounted_other": "{{count}} nicht gezählt",
+    "permanent": {
+      "title": "Modus: Endgültig löschen",
+      "body": "Ziele werden direkt von der Festplatte entfernt, ohne den Papierkorb des Systems. Gib unten <token>{{token}}</token> ein, um die Löschen-Schaltflächen scharf zu schalten.",
+      "placeholder": "„{{token}}“ eingeben",
+      "inputLabel": "Bestätigungswort für endgültiges Löschen",
+      "armed": "Scharf",
+      "armHint": "„{{token}}“ eingeben, um endgültiges Löschen scharf zu schalten"
+    },
+    "empty": "Hier wurden keine verzichtbaren Build-Artefakte erkannt. Der gesamte Speicher entfällt auf Quellcode und Versionskontrolle.",
+    "partlyUnreadable": "teilweise nicht lesbar",
+    "measuring": "wird gemessen...",
+    "reclaim": "{{name}} freigeben",
+    "deletePermanently": "Endgültig löschen",
+    "moveToTrash": "In den Papierkorb"
+  },
+  "row": {
+    "partial": "Einige Ordner in diesem Projekt konnten nicht gelesen werden, daher ist dies eine Untergrenze, keine Summe.",
+    "onDisk": "belegt",
+    "details": "Projektdetails zu {{name}}",
+    "copies_one": "{{count}} Kopie",
+    "copies_other": "{{count}} Kopien",
+    "reclaimable": "freigebbar",
+    "runningTitle": {
+      "single": "{{command}} arbeitet in diesem Projekt. Seine Artefakte können erst freigegeben werden, wenn es stoppt.",
+      "several_one": "{{command}} arbeitet in diesem Projekt ({{count}} Prozess). Seine Artefakte können erst freigegeben werden, wenn es stoppt.",
+      "several_other": "{{command}} arbeitet in diesem Projekt ({{count}} Prozesse). Seine Artefakte können erst freigegeben werden, wenn es stoppt."
+    },
+    "running": "läuft · {{command}}",
+    "measuring": "wird gemessen..."
+  },
+  "menu": {
+    "label": "Aktionen für {{name}}",
+    "openPage": "Projektseite öffnen"
+  },
+  "header": {
+    "showFilters": "Filter zeigen",
+    "hideFilters": "Filter ausblenden",
+    "projects_one": "{{count}} Projekt",
+    "projects_other": "{{count}} Projekte",
+    "rescan": "Workspace erneut lesen",
+    "onDisk": "belegt",
+    "reclaimable": "freigebbar",
+    "atRiskTitle_one": "{{count}} Projekt enthält nicht gepushte oder nicht committete Arbeit",
+    "atRiskTitle_other": "{{count}} Projekte enthalten nicht gepushte oder nicht committete Arbeit",
+    "atRisk": "gefährdet",
+    "reclaim": "Speicher freigeben",
+    "filterLabel": "Projekte nach Name, Pfad, Art oder Branch filtern",
+    "filterPlaceholder": "Nach Name, Pfad, Ökosystem oder Branch filtern",
+    "clearText": "Textfilter löschen",
+    "order": "Projekte sortieren",
+    "byVerdict": "Nach Bewertung",
+    "bySize": "Nach Größe",
+    "byFolder": "Nach Ordner",
+    "listTitle": "Listenansicht — per Tastatur bedienbar",
+    "list": "Liste",
+    "mapTitle": "Kartenansicht — interaktiver Workspace-Graph",
+    "map": "Karte",
+    "showing": "Angezeigt",
+    "stopFiltering": "Filter {{label}} entfernen",
+    "clearAll": "Alle entfernen"
+  },
+  "history": {
+    "moved": "<delta>{{sign}}{{size}}</delta> seit deinem letzten Besuch",
+    "unchanged": "Unverändert seit deinem letzten Besuch",
+    "added_one": "+{{count}} neu",
+    "added_other": "+{{count}} neu",
+    "lifetime": "<size>{{size}}</size> mit Uncached freigegeben"
+  },
+  "sidebar": {
+    "label": "Workspace-Filter",
+    "folders": "Ordner",
+    "allProjects": "Alle Projekte",
+    "removeAll_one": "Den Workspace-Ordner entfernen und neu beginnen",
+    "removeAll_other": "Alle {{count}} Workspace-Ordner entfernen und neu beginnen",
+    "addAnother": "Weiteren Ordner hinzufügen",
+    "addReason": "Mehrere Ordner gleichzeitig scannen ist Teil von Pro",
+    "addFolder": "Ordner hinzufügen",
+    "rootLimit_one": "Dieser Plan erlaubt einen Ordner gleichzeitig.",
+    "rootLimit_other": "Dieser Plan erlaubt {{count}} Ordner gleichzeitig.",
+    "skipped_one": "{{count}} Ordner wurde übersprungen.",
+    "skipped_other": "{{count}} Ordner wurden übersprungen.",
+    "capped_one": "Karte auf {{count}} Projekt begrenzt.",
+    "capped_other": "Karte auf {{count}} Projekte begrenzt.",
+    "verdict": "Bewertung",
+    "everyVerdict": "Jede Bewertung",
+    "artifact": "Artefakt",
+    "everyKind": "Jede Art",
+    "clonesTitle": "Projekte mit einem Repository, das auch anderswo ausgecheckt ist",
+    "remove": "{{label}} aus dem Workspace entfernen"
+  },
+  "graph": {
+    "copiesHere_one": "{{drawn}} von {{count}} Kopie hier",
+    "copiesHere_other": "{{drawn}} von {{count}} Kopien hier",
+    "copies_one": "{{count}} Kopie",
+    "copies_other": "{{count}} Kopien",
+    "declared": "{{tool}}-Workspace",
+    "oneFolder": "ein Ordner"
+  },
+  "canvas": {
+    "label_one": "{{count}} Projekt und {{packages}} geteilte Pakete. Die Liste zeigt denselben Workspace.",
+    "label_other": "{{count}} Projekte und {{packages}} geteilte Pakete. Die Liste zeigt denselben Workspace.",
+    "workspaceTag": "Workspace",
+    "folderTag": "Ordner",
+    "projects": "Projekte:",
+    "onDisk": "Belegt:",
+    "atLeast": "mindestens {{size}}",
+    "reclaimable": "Freigebbar:",
+    "heldBy": "Verbunden durch:",
+    "packageTag": "Paket",
+    "projectTag": "Projekt",
+    "sharedAcross": "Geteilt von:",
+    "status": "Status:",
+    "footprint": "Speicherbedarf:",
+    "measuring": "wird gemessen...",
+    "clickToOpen": "Klicken zum Öffnen",
+    "rightClick": "Rechtsklick für Optionen",
+    "packageStatus": "{{detail}} · {{size}} geteilt",
+    "hint": "Ziehen zum Verschieben, Scrollen zum Zoomen",
+    "weighing": "Wird gemessen...",
+    "readingPackages": "Pakete werden gelesen...",
+    "omitted_one": "{{count}} kleineres Paket ausgelassen",
+    "omitted_other": "{{count}} kleinere Pakete ausgelassen",
+    "legend": {
+      "package": "ein Paket, von dem mehr als ein Projekt eine eigene Kopie hat",
+      "folder": "ein Verzeichnis mit mehreren Projekten",
+      "clone": "ein Repository, zweimal ausgecheckt"
+    },
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "fit": "Ganzen Workspace einpassen"
+  },
+  "verdicts": {
+    "protect": {
+      "label": "Schützen",
+      "summary": "Enthält Arbeit, die nur auf dieser Festplatte existiert."
+    },
+    "broken": {
+      "label": "Installation nötig",
+      "summary": "Ein Lockfile, hinter dem nichts installiert ist."
+    },
+    "staleDeps": {
+      "label": "Veraltete Installation",
+      "summary": "Das Lockfile wurde nach der letzten Installation geändert."
+    },
+    "tradeOff": {
+      "label": "In Benutzung",
+      "summary": "Freigebbar, aber die Neuinstallation kostet dich Zeit."
+    },
+    "safe": {
+      "label": "Sicher freigebbar",
+      "summary": "Alles liegt auf einem Remote und wurde seit Monaten nicht angefasst."
+    },
+    "archivable": {
+      "label": "Vollständig auf Remote",
+      "summary": "Nichts mehr freizugeben. Die lokale Kopie kannst du behalten oder löschen."
+    },
+    "unknown": {
+      "label": "Nicht ermittelt",
+      "summary": "Zu wenig lesbar für eine Bewertung. Nie automatisch angetastet."
+    }
+  },
+  "evidence": {
+    "notOnRemote": "Arbeit, die auf keinem Remote liegt.",
+    "broken": "Installiere es, bevor hier etwas bewertet werden kann.",
+    "staleDeps": "Die installierten Abhängigkeiten passen nicht mehr zum Lockfile.",
+    "gitUnreadable": "Git konnte nicht gelesen werden.",
+    "notRepository": "Kein Repository.",
+    "archivableIdle": "{{idle}}, und jeder Commit liegt auf dem Remote.",
+    "archivable": "Jeder Commit liegt auf dem Remote.",
+    "toReclaim": "{{size}} freizugeben",
+    "toReinstall": "{{size}} müssten neu installiert werden",
+    "risk": {
+      "unpushedCommits_one": "{{count}} Commit nicht gepusht",
+      "unpushedCommits_other": "{{count}} Commits nicht gepusht",
+      "stashEntries_one": "{{count}} Stash gespeichert",
+      "stashEntries_other": "{{count}} Stashes gespeichert",
+      "branchesWithoutUpstream_one": "{{count}} Branch ohne Remote",
+      "branchesWithoutUpstream_other": "{{count}} Branches ohne Remote",
+      "untrackedFiles_one": "{{count}} Datei nie committet",
+      "untrackedFiles_other": "{{count}} Dateien nie committet",
+      "separator": ", "
+    },
+    "touchedToday": "Heute geändert",
+    "idleDays_one": "{{count}} Tag inaktiv",
+    "idleDays_other": "{{count}} Tage inaktiv",
+    "untouchedMonths_one": "Seit {{count}} Monat unberührt",
+    "untouchedMonths_other": "Seit {{count}} Monaten unberührt"
+  }
+}

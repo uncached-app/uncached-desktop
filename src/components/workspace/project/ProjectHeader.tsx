@@ -1,5 +1,6 @@
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { formatBytes } from "../../../utils/format.mjs";
 import { copyText } from "../../../utils/clipboard";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
@@ -17,6 +18,7 @@ export function ProjectHeader({
   footprint: Footprint | null;
   onBack: () => void;
 }) {
+  const { t, i18n } = useTranslation();
   const presentation = VERDICT_PRESENTATION[verdict];
   const [copied, setCopied] = useState(false);
 
@@ -40,8 +42,8 @@ export function ProjectHeader({
           onClick={onBack}
           className="group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-mist-500 transition-colors hover:bg-forest-900 hover:text-mist-100"
         >
-          <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-0.5" aria-hidden="true" />
-          <span>Workspace</span>
+          <ArrowLeft size={13} className="rtl:-scale-x-100 transition-transform group-hover:-translate-x-0.5" aria-hidden="true" />
+          <span>{t("workspace.project.back")}</span>
         </button>
         <span className="opacity-40">/</span>
         <span className="truncate font-mono text-[11px] text-mist-300">{project.name}</span>
@@ -57,7 +59,7 @@ export function ProjectHeader({
               {project.kind}
             </span>
             <span className={`rounded-md border px-2.5 py-0.5 text-xs font-semibold ${presentation.className}`}>
-              {presentation.label}
+              {t(presentation.labelKey)}
             </span>
           </div>
 
@@ -68,8 +70,8 @@ export function ProjectHeader({
             <button
               type="button"
               onClick={() => void handleCopyPath()}
-              title={copied ? "Path copied!" : "Copy full path"}
-              aria-label="Copy full path"
+              title={copied ? t("workspace.project.pathCopied") : t("workspace.project.copyPath")}
+              aria-label={t("workspace.project.copyPath")}
               className="grid size-6 shrink-0 place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-900 hover:text-mist-100"
             >
               {copied ? <Check size={12} className="text-sage-300" /> : <Copy size={12} />}
@@ -84,19 +86,23 @@ export function ProjectHeader({
                 partial total makes the share partial too. */}
             <MetricCard
               value={formatBytes(footprint.totalBytes)}
-              label="total on disk"
+              label={t("workspace.project.metrics.total")}
               partial={footprint.hasErrors}
             />
             <MetricCard
               value={formatBytes(footprint.reclaimableBytes)}
-              label="reclaimable cache"
+              label={t("workspace.project.metrics.reclaimable")}
               accent={footprint.reclaimableBytes > 0}
-              badge={reclaimableShare > 0 ? `${reclaimableShare}%` : undefined}
+              badge={
+                reclaimableShare > 0
+                  ? new Intl.NumberFormat(i18n.language, { style: "percent" }).format(reclaimableShare / 100)
+                  : undefined
+              }
               partial={footprint.hasErrors}
             />
             <MetricCard
               value={formatBytes(footprint.sourceBytes)}
-              label="source code"
+              label={t("workspace.project.metrics.source")}
               partial={footprint.hasErrors}
             />
           </div>
@@ -105,8 +111,7 @@ export function ProjectHeader({
 
       {footprint?.hasErrors && (
         <p className="mt-3 text-xs leading-5 text-mist-500">
-          Some folders under this project could not be read. Every figure above is the smallest it
-          could be, not the measurement.
+          {t("workspace.project.partial")}
         </p>
       )}
     </header>

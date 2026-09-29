@@ -1,11 +1,12 @@
 import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, HardDrive, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { formatBytes } from "../../utils/format.mjs";
 import type { Report } from "../../utils/report.d.mts";
 
 /** The four numbers, and whether the window beat the one before it. */
 export function Summary({ report }: { report: Report }) {
-  const { totals, trend } = report;
-  const window = report.grain.window;
+  const { t } = useTranslation();
+  const { totals, trend, grain } = report;
   const up = (trend ?? 0) > 0;
 
   return (
@@ -14,7 +15,7 @@ export function Summary({ report }: { report: Report }) {
       <div className="relative overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 p-4.5 transition-all hover:border-sage-400/40">
         <div className="flex items-center justify-between">
           <p className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-mist-500">
-            Reclaimed Disk
+            {t("insights.summary.reclaimed")}
           </p>
           <span className="grid size-6 place-items-center rounded-md bg-sage-400/10 text-sage-300">
             <HardDrive size={13} aria-hidden="true" />
@@ -29,7 +30,9 @@ export function Summary({ report }: { report: Report }) {
         <div className="mt-2 flex items-center gap-1.5">
           {trend === null ? (
             <span className="font-mono text-xs text-mist-500">
-              {report.grain.buckets === null ? "All recorded time" : `Last ${window}`}
+              {grain.id === "all"
+                ? t("insights.summary.allRecorded")
+                : t(`insights.summary.last.${grain.id}`, { count: grain.buckets })}
             </span>
           ) : (
             <span
@@ -44,32 +47,36 @@ export function Summary({ report }: { report: Report }) {
               ) : (
                 <ArrowDownRight size={12} aria-hidden="true" />
               )}
-              <span>{Math.abs(Math.round(trend * 100))}%</span>
-              <span className="font-sans text-mist-500">vs prev {window}</span>
+              <span>{t("insights.summary.trend", { percent: Math.abs(Math.round(trend * 100)) })}</span>
+              {grain.id !== "all" && (
+                <span className="font-sans text-mist-500">
+                  {t(`insights.summary.versus.${grain.id}`, { count: grain.buckets })}
+                </span>
+              )}
             </span>
           )}
         </div>
       </div>
 
       <StatCard
-        label="Cleanups"
+        label={t("insights.summary.cleanups")}
         icon={Activity}
         value={String(totals.cleanups)}
-        note={`across ${totals.activeDays} ${totals.activeDays === 1 ? "active day" : "active days"}`}
+        note={t("insights.summary.activeDays", { count: totals.activeDays })}
       />
 
       <StatCard
-        label="Largest Cleanup"
+        label={t("insights.summary.largest")}
         icon={BarChart3}
         value={formatBytes(totals.largestBytes)}
-        note="single largest artifact"
+        note={t("insights.summary.largestNote")}
       />
 
       <StatCard
-        label="Average Cleanup"
+        label={t("insights.summary.average")}
         icon={Sparkles}
         value={formatBytes(totals.averageBytes)}
-        note="reclaimed per cleanup"
+        note={t("insights.summary.averageNote")}
       />
     </div>
   );

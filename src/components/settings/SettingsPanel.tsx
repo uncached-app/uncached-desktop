@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
@@ -10,6 +11,8 @@ import { useThemeFiles, type UserTheme } from "../../hooks/useThemeFiles";
 import { paintTheme } from "../../hooks/useTheme";
 import type { AppSettings, Appearance, IgnoreRuleReview } from "../../types/settings";
 import { openExternalUrl } from "../../utils/externalLink";
+import { LOCALES, resolveLocale } from "../../i18n/locales.mjs";
+import type { LanguagePreference } from "../../i18n/locales.d.mts";
 
 type SettingsPanelProps = {
   open: boolean;
@@ -30,15 +33,15 @@ type SettingsPanelProps = {
 };
 
 const sections = [
-  "General",
-  "Opening",
-  "Scanning",
-  "Ignore rules",
-  "Deletion",
-  "Shortcuts",
-  "Appearance",
-  "Licence",
-  "About",
+  "general",
+  "opening",
+  "scanning",
+  "ignoreRules",
+  "deletion",
+  "shortcuts",
+  "appearance",
+  "licence",
+  "about",
 ] as const;
 type Section = (typeof sections)[number];
 
@@ -55,7 +58,8 @@ export function SettingsPanel({
   update,
   onOpenUpdate,
 }: SettingsPanelProps) {
-  const [section, setSection] = useState<Section>("General");
+  const { t } = useTranslation();
+  const [section, setSection] = useState<Section>("general");
   const [appInfo, setAppInfo] = useState<{ name: string; version: string; website: string } | null>(
     null,
   );
@@ -94,28 +98,28 @@ export function SettingsPanel({
       <section
         role="dialog"
         aria-modal="true"
-        aria-label="Settings"
+        aria-label={t("settings.title")}
         onClick={(event) => event.stopPropagation()}
         className="ui-rise flex h-[min(680px,calc(100vh-32px))] w-full max-w-3xl overflow-hidden rounded-3xl border border-forest-800 bg-forest-900 shadow-2xl"
       >
         {/* Left Sidebar */}
-        <aside className="hidden w-52 shrink-0 border-r border-forest-800 bg-forest-950 sm:flex sm:flex-col">
+        <aside className="hidden w-52 shrink-0 border-e border-forest-800 bg-forest-950 sm:flex sm:flex-col">
           <div className="flex h-14 items-center gap-2.5 border-b border-forest-800 px-5 text-sm font-semibold text-mist-100">
             <Settings size={16} className="text-sage-300" />
-            <span>Settings</span>
+            <span>{t("settings.title")}</span>
           </div>
-          <nav className="flex-1 space-y-1 p-3.5 overflow-y-auto" aria-label="Settings sections">
+          <nav className="flex-1 space-y-1 p-3.5 overflow-y-auto" aria-label={t("settings.sectionNav")}>
             {sections.map((item) => (
               <button
                 key={item}
                 type="button"
                 onClick={() => setSection(item)}
-                className={`flex w-full items-center rounded-xl px-3 py-2.5 text-left text-xs font-medium transition-colors cursor-pointer ${section === item
+                className={`flex w-full items-center rounded-xl px-3 py-2.5 text-start text-xs font-medium transition-colors cursor-pointer ${section === item
                     ? "bg-forest-850 font-semibold text-mist-100 shadow-2xs"
                     : "text-mist-500 hover:bg-forest-900 hover:text-mist-300"
                   }`}
               >
-                {item}
+                {t(`settings.sections.${item}`)}
               </button>
             ))}
           </nav>
@@ -127,14 +131,16 @@ export function SettingsPanel({
           <header className="flex h-14 shrink-0 items-center justify-between border-b border-forest-800 px-6 sm:px-8">
             <div className="flex items-center gap-2.5 sm:hidden">
               <Settings size={16} className="text-sage-300" />
-              <span className="text-sm font-semibold text-mist-100">Settings</span>
+              <span className="text-sm font-semibold text-mist-100">{t("settings.title")}</span>
             </div>
-            <h2 className="hidden text-base font-semibold text-mist-100 sm:block">{section}</h2>
+            <h2 className="hidden text-base font-semibold text-mist-100 sm:block">
+              {t(`settings.sections.${section}`)}
+            </h2>
             <Select
-              label="Settings section"
+              label={t("settings.sectionPicker")}
               size="sm"
               value={section}
-              options={sections.map((item) => ({ value: item, label: item }))}
+              options={sections.map((item) => ({ value: item, label: t(`settings.sections.${item}`) }))}
               onChange={(value) => setSection(value as Section)}
               className="sm:hidden"
             />
@@ -142,7 +148,7 @@ export function SettingsPanel({
               type="button"
               onClick={onClose}
               className="grid size-8 shrink-0 place-items-center rounded-xl border border-forest-800 bg-forest-850 text-mist-400 hover:border-forest-750 hover:bg-forest-800 hover:text-mist-100 transition-colors cursor-pointer"
-              aria-label="Close settings"
+              aria-label={t("settings.close")}
             >
               <X size={15} />
             </button>
@@ -150,13 +156,13 @@ export function SettingsPanel({
 
           {/* Body Content */}
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
-            {section === "Licence" ? (
+            {section === "licence" ? (
               <LicenseSection onActivated={onLicenseChange} proEnabled={proEnabled} />
-            ) : section === "About" ? (
+            ) : section === "about" ? (
               <AboutContent appInfo={appInfo} update={update} onOpenUpdate={onOpenUpdate} />
             ) : loading || !settings ? (
               <div className="grid h-full place-items-center text-xs text-mist-500">
-                Loading settings...
+                {t("settings.loading")}
               </div>
             ) : (
               <SettingsContent
@@ -184,7 +190,7 @@ export function SettingsPanel({
                 className={`size-1.5 rounded-full ${saving ? "bg-sage-400 animate-pulse" : "bg-forest-700"
                   }`}
               />
-              {saving ? "Saving..." : "Saved automatically"}
+              {saving ? t("settings.saving") : t("settings.saved")}
             </span>
           </footer>
         </div>
@@ -201,11 +207,15 @@ export function SettingsPanel({
             aria-modal="true"
             className="w-full max-w-sm rounded-3xl border border-forest-800 bg-forest-900 p-6 shadow-2xl"
           >
-            <h2 className="text-lg font-semibold text-mist-100">Enable permanent deletion?</h2>
+            <h2 className="text-lg font-semibold text-mist-100">
+              {t("settings.permanentConfirm.title")}
+            </h2>
             <p className="mt-2.5 text-xs leading-5 text-mist-400">
-              Targets are deleted directly from disk instead of moved to the Recycle Bin. Not
-              recoverable. Each cleanup will require typing{" "}
-              <strong className="font-mono text-coral-300 font-bold">Nuke</strong> to confirm.
+              <Trans
+                i18nKey="settings.permanentConfirm.body"
+                values={{ word: "Nuke" }}
+                components={{ strong: <strong className="font-mono text-coral-300 font-bold" /> }}
+              />
             </p>
             <div className="mt-6 flex justify-end gap-2.5">
               <button
@@ -213,7 +223,7 @@ export function SettingsPanel({
                 onClick={() => setConfirmPermanent(false)}
                 className="rounded-xl border border-forest-800 bg-forest-850 px-3.5 py-2 text-xs font-medium text-mist-300 hover:bg-forest-800 cursor-pointer"
               >
-                Cancel
+                {t("settings.cancel")}
               </button>
               <button
                 type="button"
@@ -223,7 +233,7 @@ export function SettingsPanel({
                 }}
                 className="rounded-xl bg-coral-300 px-3.5 py-2 text-xs font-semibold text-forest-950 hover:opacity-90 cursor-pointer"
               >
-                Enable permanent deletion
+                {t("settings.permanentConfirm.confirm")}
               </button>
             </div>
           </div>
@@ -246,54 +256,22 @@ function SettingsContent({
   updateSettings: SettingsPanelProps["updateSettings"];
   onRequestPermanentDelete: () => void;
 }) {
-  if (section === "General") {
-    return (
-      <>
-        <p className="mb-4 text-xs leading-5 text-mist-500">
-          Configure application startup, background operation and automatic updates.
-        </p>
-        <SettingsGroup>
-          <SettingToggle
-            label="Open at startup"
-            hint="Automatically start Uncached when you log in to your computer."
-            checked={settings.openAtStartup}
-            onChange={(value) => updateSettings({ openAtStartup: value })}
-          />
-          <SettingToggle
-            label="Keep running in the background"
-            hint="Closing the window hides Uncached in the menu bar instead of quitting it. Scheduled maintenance runs from there; Quit ends it until you open the app again."
-            checked={settings.keepRunningInBackground}
-            onChange={(value) => updateSettings({ keepRunningInBackground: value })}
-          />
-          <SettingToggle
-            label="Remember last workspace"
-            hint="Restore your previously open folders and analysis automatically on launch."
-            checked={settings.rememberLastWorkspace}
-            onChange={(value) => updateSettings({ rememberLastWorkspace: value })}
-          />
-          <SettingToggle
-            label="Check for updates"
-            hint="Periodically check for new releases and security improvements."
-            checked={settings.checkForUpdates}
-            onChange={(value) => updateSettings({ checkForUpdates: value })}
-          />
-        </SettingsGroup>
-      </>
-    );
+  if (section === "general") {
+    return <GeneralContent settings={settings} updateSettings={updateSettings} />;
   }
-  if (section === "Opening") {
+  if (section === "opening") {
     return <OpeningContent settings={settings} updateSettings={updateSettings} />;
   }
-  if (section === "Scanning") {
+  if (section === "scanning") {
     return <ScanningContent settings={settings} updateSettings={updateSettings} />;
   }
-  if (section === "Ignore rules") {
+  if (section === "ignoreRules") {
     return <IgnoreRulesContent settings={settings} updateSettings={updateSettings} />;
   }
-  if (section === "Shortcuts") {
+  if (section === "shortcuts") {
     return <ShortcutsContent settings={settings} updateSettings={updateSettings} />;
   }
-  if (section === "Deletion") {
+  if (section === "deletion") {
     return (
       <DeletionContent
         settings={settings}
@@ -314,21 +292,21 @@ function DeletionContent({
   updateSettings: SettingsPanelProps["updateSettings"];
   onRequestPermanentDelete: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <>
-      <p className="mb-4 text-xs leading-5 text-mist-500">
-        Choose how build artifacts and caches are removed from your disk during cleanup.
-      </p>
+      <p className="mb-4 text-xs leading-5 text-mist-500">{t("settings.deletion.intro")}</p>
       <SettingsGroup>
         <SettingRadio
-          label="Move to Recycle Bin"
-          hint="Reclaimable artifacts are moved to the system Recycle Bin/Trash, so cleanups can be reversed."
+          label={t("settings.deletion.trash.label")}
+          hint={t("settings.deletion.trash.hint")}
           selected={settings.defaultCleanMode === "Trash"}
           onClick={() => updateSettings({ defaultCleanMode: "Trash" })}
         />
         <SettingRadio
-          label="Permanently delete"
-          hint="Targets are deleted directly from disk to free up space immediately. Each run requires confirmation."
+          label={t("settings.deletion.permanent.label")}
+          hint={t("settings.deletion.permanent.hint")}
           selected={settings.defaultCleanMode === "Permanent"}
           onClick={onRequestPermanentDelete}
         />
@@ -346,6 +324,7 @@ function AppearanceContent({
   updateSettings: SettingsPanelProps["updateSettings"];
   themes: UserTheme[];
 }) {
+  const { t } = useTranslation();
   // Named rather than swallowed: a colour the app could not read is a line
   // somebody typed, and the only thing worse than not applying it is not
   // saying so.
@@ -388,20 +367,26 @@ function AppearanceContent({
   // The row is greyed and its pointer says no; neither says why. The paragraph
   // above does, and somebody who arrives at the row it is about has already
   // read past it.
-  const because = only ? `${chosen?.name} carries no ${only === "light" ? "dark" : "light"} colours.` : undefined;
+  const because = only
+    ? t(only === "light" ? "settings.appearance.lacksDark" : "settings.appearance.lacksLight", {
+      name: chosen?.name,
+    })
+    : undefined;
 
   return (
     <>
       <p className="mb-4 text-xs leading-5 text-mist-500">
         {only
-          ? `${chosen?.name} is a ${only} theme — it carries no colours for the other, so this follows it.`
-          : "Choose your interface theme."}
+          ? t(only === "light" ? "settings.appearance.lockedToLight" : "settings.appearance.lockedToDark", {
+            name: chosen?.name,
+          })
+          : t("settings.appearance.intro")}
       </p>
       <SettingsGroup>
         <SettingRadio
           icon={<Moon size={15} />}
-          label="Dark"
-          hint="Sleek dark theme optimized for low-light development environments."
+          label={t("settings.appearance.dark.label")}
+          hint={t("settings.appearance.dark.hint")}
           selected={only ? only === "dark" : settings.appearance === "dark"}
           disabled={locked("dark")}
           unavailable={because}
@@ -409,8 +394,8 @@ function AppearanceContent({
         />
         <SettingRadio
           icon={<Sun size={15} />}
-          label="Light"
-          hint="Clean high-contrast light theme."
+          label={t("settings.appearance.light.label")}
+          hint={t("settings.appearance.light.hint")}
           selected={only ? only === "light" : settings.appearance === "light"}
           disabled={locked("light")}
           unavailable={because}
@@ -418,8 +403,8 @@ function AppearanceContent({
         />
         <SettingRadio
           icon={<Monitor size={15} />}
-          label="System"
-          hint="Automatically follows your operating system appearance preference."
+          label={t("settings.appearance.system.label")}
+          hint={t("settings.appearance.system.hint")}
           selected={only ? false : settings.appearance === "system"}
           disabled={only !== null}
           unavailable={because}
@@ -428,29 +413,32 @@ function AppearanceContent({
       </SettingsGroup>
 
       <p className="mt-7 mb-4 text-xs leading-5 text-mist-500">
-        A theme file renames some of the app's colours and leaves the rest, so one written today
-        still works after a release adds a surface.
+        {t("settings.appearance.themesIntro")}
       </p>
       <SettingsGroup>
         <div className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span>Theme</span>
+            <span>{t("settings.appearance.theme.label")}</span>
             <span className="text-xs leading-5 text-mist-500">
               {problems.length > 0
                 ? problems[0]
                 : chosen && chosen.light && chosen.dark
-                  ? "Carries both light and dark."
-                  : `${themes.filter((entry) => !entry.builtIn).length} of these are yours.`}
+                  ? t("settings.appearance.theme.both")
+                  : t("settings.appearance.theme.yours", {
+                    count: themes.filter((entry) => !entry.builtIn).length,
+                  })}
             </span>
           </span>
           <Select
-            label="Theme"
+            label={t("settings.appearance.theme.label")}
             value={settings.theme ?? ""}
             options={[
               { value: "", label: "Uncached" },
               ...themes.map((entry) => ({
                 value: entry.id,
-                label: entry.builtIn ? entry.name : `${entry.name} (custom)`,
+                label: entry.builtIn
+                  ? entry.name
+                  : t("settings.appearance.theme.custom", { name: entry.name }),
               })),
             ]}
             onChange={(value) => void updateSettings({ theme: value === "" ? null : value })}
@@ -461,11 +449,13 @@ function AppearanceContent({
 
         <div className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span>Your settings and themes</span>
+            <span>{t("settings.appearance.files.label")}</span>
             <span className="text-xs leading-5 text-mist-500">
-              <span className="font-mono text-mist-300">settings.json</span> and a{" "}
-              <span className="font-mono text-mist-300">themes</span> folder, in your own Library.
-              Edit either and come back — both are read again when the window is.
+              <Trans
+                i18nKey="settings.appearance.files.hint"
+                values={{ file: "settings.json", folder: "themes" }}
+                components={{ mono: <span className="font-mono text-mist-300" /> }}
+              />
             </span>
           </span>
           <button
@@ -473,7 +463,7 @@ function AppearanceContent({
             onClick={() => void invoke("reveal_config").catch(() => { })}
             className="shrink-0 cursor-pointer rounded-xl border border-forest-800 bg-forest-950 px-3 py-2 text-xs font-medium text-mist-300 transition-colors hover:border-sage-400/60 hover:text-mist-100"
           >
-            Open folder
+            {t("settings.appearance.files.open")}
           </button>
         </div>
       </SettingsGroup>
@@ -490,6 +480,7 @@ function AboutContent({
   update: UpdateState;
   onOpenUpdate: () => void;
 }) {
+  const { t } = useTranslation();
   const websiteUrl = appInfo?.website ?? "https://uncached.app";
   const eulaUrl = "https://uncached.app/eula";
 
@@ -498,8 +489,10 @@ function AboutContent({
       <img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-20" />
       <img src="/brand/UNCACHED-ICON-DARK-NOBG.svg" alt="" className="theme-logo-dark size-20" />
       <h3 className="mt-6 text-2xl font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
-      <p className="mt-2 text-sm text-mist-500">Reclaim disk from build artifacts.</p>
-      <p className="mt-6 font-mono text-xs text-mist-500">Version {appInfo?.version ?? "..."}</p>
+      <p className="mt-2 text-sm text-mist-500">{t("settings.about.tagline")}</p>
+      <p className="mt-6 font-mono text-xs text-mist-500">
+        {t("settings.about.version", { version: appInfo?.version ?? "..." })}
+      </p>
 
       <UpdateStatus update={update} onOpenUpdate={onOpenUpdate} />
       <div className="mt-5 flex flex-col items-center gap-2">
@@ -515,7 +508,7 @@ function AboutContent({
           onClick={(e) => openExternalUrl(eulaUrl, e)}
           className="text-xs text-mist-500 hover:text-mist-300 underline"
         >
-          End User License Agreement (EULA)
+          {t("settings.about.eula")}
         </a>
       </div>
     </div>
@@ -534,6 +527,7 @@ function IgnoreRulesContent({
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(settings.ignoreRules);
   const [review, setReview] = useState<IgnoreRuleReview | null>(null);
 
@@ -560,10 +554,11 @@ function IgnoreRulesContent({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <p className="text-xs leading-5 text-mist-500">
-        Paths listed here are never scanned and never deleted, whatever the app finds there. One rule
-        per line, in <span className="font-mono text-mist-300">.gitignore</span> syntax — a bare name
-        matches anywhere, a full path matches that path and everything under it, and{" "}
-        <span className="font-mono text-mist-300">!</span> makes an exception.
+        <Trans
+          i18nKey="settings.ignoreRules.intro"
+          values={{ syntax: ".gitignore", negation: "!" }}
+          components={{ mono: <span className="font-mono text-mist-300" /> }}
+        />
       </p>
 
       <textarea
@@ -574,7 +569,7 @@ function IgnoreRulesContent({
         }}
         spellCheck={false}
         placeholder={IGNORE_RULES_PLACEHOLDER}
-        aria-label="Ignore rules"
+        aria-label={t("settings.sections.ignoreRules")}
         aria-invalid={problemLines.size > 0}
         className="mt-4 min-h-44 flex-1 resize-none rounded-2xl border border-forest-800 bg-forest-950 p-4 font-mono text-xs leading-6 placeholder:text-mist-500/60 focus:outline-none focus:border-sage-400/60 shadow-2xs"
       />
@@ -587,20 +582,88 @@ function IgnoreRulesContent({
               key={problem.line}
               className="rounded-xl bg-confidence-review-surface px-4 py-2.5 text-xs leading-5 text-confidence-review"
             >
-              <span className="font-semibold">Line {problem.line}</span> could not be read, so it
-              protects nothing: <span className="font-mono">{problem.text.trim()}</span> —{" "}
-              {problem.reason}
+              {/* User text goes in as component children, never as `values`: Trans
+                  parses the interpolated string for tags. */}
+              <Trans
+                i18nKey="settings.ignoreRules.problem"
+                values={{ line: problem.line }}
+                components={{
+                  bold: <span className="font-semibold" />,
+                  rule: <span className="font-mono">{problem.text.trim()}</span>,
+                  reason: <>{problem.reason}</>,
+                }}
+              />
             </p>
           ))}
         {review && (
           <p className="text-xs text-mist-500">
             {review.active === 0
-              ? "No rules yet. Everything the scan finds is offered."
-              : `${review.active} ${review.active === 1 ? "rule is" : "rules are"} in force.`}
+              ? t("settings.ignoreRules.empty")
+              : t("settings.ignoreRules.inForce", { count: review.active })}
           </p>
         )}
       </div>
     </div>
+  );
+}
+
+function GeneralContent({
+  settings,
+  updateSettings,
+}: {
+  settings: AppSettings;
+  updateSettings: SettingsPanelProps["updateSettings"];
+}) {
+  const { t } = useTranslation();
+  const systemTag = resolveLocale("system", navigator.languages);
+  const systemName = LOCALES.find((locale) => locale.tag === systemTag)?.name ?? systemTag;
+
+  return (
+    <>
+      <p className="mb-4 text-xs leading-5 text-mist-500">{t("settings.general.intro")}</p>
+      <SettingsGroup>
+        <div className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span>{t("settings.language.label")}</span>
+            <span className="text-xs leading-5 text-mist-500">{t("settings.language.hint")}</span>
+          </span>
+          <Select
+            label={t("settings.language.label")}
+            value={settings.language ?? "system"}
+            options={[
+              { value: "system", label: t("settings.language.system", { name: systemName }) },
+              ...LOCALES.map((locale) => ({ value: locale.tag, label: locale.name })),
+            ]}
+            onChange={(value) => void updateSettings({ language: value as LanguagePreference })}
+            className="w-52 shrink-0"
+          />
+        </div>
+        <SettingToggle
+          label={t("settings.general.openAtStartup.label")}
+          hint={t("settings.general.openAtStartup.hint")}
+          checked={settings.openAtStartup}
+          onChange={(value) => updateSettings({ openAtStartup: value })}
+        />
+        <SettingToggle
+          label={t("settings.general.keepRunning.label")}
+          hint={t("settings.general.keepRunning.hint")}
+          checked={settings.keepRunningInBackground}
+          onChange={(value) => updateSettings({ keepRunningInBackground: value })}
+        />
+        <SettingToggle
+          label={t("settings.general.rememberWorkspace.label")}
+          hint={t("settings.general.rememberWorkspace.hint")}
+          checked={settings.rememberLastWorkspace}
+          onChange={(value) => updateSettings({ rememberLastWorkspace: value })}
+        />
+        <SettingToggle
+          label={t("settings.general.checkUpdates.label")}
+          hint={t("settings.general.checkUpdates.hint")}
+          checked={settings.checkForUpdates}
+          onChange={(value) => updateSettings({ checkForUpdates: value })}
+        />
+      </SettingsGroup>
+    </>
   );
 }
 
@@ -611,48 +674,46 @@ function ScanningContent({
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
 }) {
+  const { t } = useTranslation();
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
 
   return (
     <>
-      <p className="mb-4 text-xs leading-5 text-mist-500">
-        Build artifacts inside your folders are always detected. These are the caches that live
-        elsewhere, written by tools rather than by a project.
-      </p>
+      <p className="mb-4 text-xs leading-5 text-mist-500">{t("settings.scanning.intro")}</p>
       <SettingsGroup>
         <SettingToggle
-          label="Package manager caches"
-          hint="Include npm, pnpm, yarn, cargo, pip, and uv global package caches."
+          label={t("settings.scanning.packageManagers.label")}
+          hint={t("settings.scanning.packageManagers.hint")}
           checked={settings.detectPackageManagerCaches}
           onChange={(value) => updateSettings({ detectPackageManagerCaches: value })}
         />
         <SettingToggle
-          label="AI tool caches"
-          hint="Include Claude Code, the Claude app, Codex, and opencode caches."
+          label={t("settings.scanning.aiTools.label")}
+          hint={t("settings.scanning.aiTools.hint")}
           checked={settings.detectAiToolCaches}
           onChange={(value) => updateSettings({ detectAiToolCaches: value })}
         />
         <SettingToggle
-          label="Editor caches"
-          hint="Include VS Code and JetBrains workspace metadata caches."
+          label={t("settings.scanning.editors.label")}
+          hint={t("settings.scanning.editors.hint")}
           checked={settings.detectEditorCaches}
           onChange={(value) => updateSettings({ detectEditorCaches: value })}
         />
         <SettingToggle
-          label="Game engine caches"
-          hint="Include Unity's package and Asset Store downloads, and Godot's editor cache and export templates."
+          label={t("settings.scanning.gameEngines.label")}
+          hint={t("settings.scanning.gameEngines.hint")}
           checked={settings.detectGameEngineCaches}
           onChange={(value) => updateSettings({ detectGameEngineCaches: value })}
         />
         <SettingToggle
-          label="Android SDK"
-          hint="Include downloaded system images and the emulators built from them."
+          label={t("settings.scanning.androidSdk.label")}
+          hint={t("settings.scanning.androidSdk.hint")}
           checked={settings.detectAndroidSdk}
           onChange={(value) => updateSettings({ detectAndroidSdk: value })}
         />
         <SettingToggle
-          label="Container storage"
-          hint="Report the size of Docker Desktop's disk image. Uncached never removes it."
+          label={t("settings.scanning.containerStorage.label")}
+          hint={t("settings.scanning.containerStorage.hint")}
           checked={settings.detectContainerStorage}
           onChange={(value) => updateSettings({ detectContainerStorage: value })}
         />
@@ -662,17 +723,14 @@ function ScanningContent({
             the fault it was added to fix. */}
         {isMac && (
           <SettingToggle
-            label="Xcode developer data"
-            hint="Include DerivedData, device support, simulators, and simulator runtimes."
+            label={t("settings.scanning.xcode.label")}
+            hint={t("settings.scanning.xcode.hint")}
             checked={settings.detectXcodeData}
             onChange={(value) => updateSettings({ detectXcodeData: value })}
           />
         )}
       </SettingsGroup>
-      <p className="mt-4 text-xs leading-5 text-mist-500">
-        To leave something inside a workspace alone, add it under Ignore rules — a rule there covers
-        every kind of artifact and applies to scheduled runs too.
-      </p>
+      <p className="mt-4 text-xs leading-5 text-mist-500">{t("settings.scanning.footer")}</p>
     </>
   );
 }
@@ -684,28 +742,27 @@ function OpeningContent({
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
 }) {
+  const { t } = useTranslation();
   const launchers = useLaunchers();
   const editors = launchers?.filter((launcher) => launcher.kind === "editor") ?? null;
   const terminals = launchers?.filter((launcher) => launcher.kind === "terminal") ?? null;
 
   return (
     <>
-      <p className="mb-4 text-xs leading-5 text-mist-500">
-        Choose which installed application opens when launching a project or terminal.
-      </p>
+      <p className="mb-4 text-xs leading-5 text-mist-500">{t("settings.opening.intro")}</p>
       <SettingsGroup>
         <LauncherChoice
-          label="Editor"
-          hint="Left automatic, the editor built for the project's language leads, then any general-purpose one."
-          empty="No editor was found in your Applications folder."
+          label={t("settings.opening.editor.label")}
+          hint={t("settings.opening.editor.hint")}
+          empty={t("settings.opening.editor.empty")}
           launchers={editors}
           chosen={settings.preferredEditor}
           onChoose={(preferredEditor) => updateSettings({ preferredEditor })}
         />
         <LauncherChoice
-          label="Terminal"
-          hint="No platform exposes a default terminal an app opening a directory could read, so automatic is whichever was found first."
-          empty="No terminal was found."
+          label={t("settings.opening.terminal.label")}
+          hint={t("settings.opening.terminal.hint")}
+          empty={t("settings.opening.terminal.empty")}
           launchers={terminals}
           chosen={settings.preferredTerminal}
           onChoose={(preferredTerminal) => updateSettings({ preferredTerminal })}
@@ -730,6 +787,7 @@ function LauncherChoice({
   chosen: string | null;
   onChoose: (id: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const detecting = launchers === null;
   const none = !detecting && launchers.length === 0;
   const uninstalled =
@@ -739,9 +797,9 @@ function LauncherChoice({
     !launchers.some((launcher) => launcher.id === chosen);
 
   const options = [
-    { value: "", label: "Automatic" },
+    { value: "", label: t("settings.opening.automatic") },
     ...(launchers ?? []).map((launcher) => ({ value: launcher.id, label: launcher.name })),
-    ...(uninstalled ? [{ value: chosen as string, label: "Not installed" }] : []),
+    ...(uninstalled ? [{ value: chosen as string, label: t("settings.opening.notInstalled") }] : []),
   ];
 
   return (
@@ -750,11 +808,11 @@ function LauncherChoice({
         <span className="font-medium text-mist-100">{label}</span>
         <span className="text-xs leading-5 text-mist-500">
           {detecting
-            ? "Reading what this machine has installed..."
+            ? t("settings.opening.detecting")
             : none
               ? empty
               : uninstalled
-                ? "The one you chose is no longer installed, so opening falls back to detection."
+                ? t("settings.opening.uninstalled")
                 : hint}
         </span>
       </span>
@@ -844,7 +902,7 @@ function SettingRadio({
       disabled={disabled}
       onClick={onClick}
       title={disabled ? unavailable : undefined}
-      className={`group flex w-full items-center justify-between gap-4 py-4 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
+      className={`group flex w-full items-center justify-between gap-4 py-4 text-start text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
         disabled ? "" : "cursor-pointer"
       } ${selected ? "text-mist-100" : `text-mist-500 ${live ? "hover:text-mist-300" : ""}`}`}
     >
@@ -888,23 +946,30 @@ function SettingRadio({
  * updated" with no answer at all.
  */
 function UpdateStatus({ update, onOpenUpdate }: { update: UpdateState; onOpenUpdate: () => void }) {
+  const { t } = useTranslation();
   const offered = update.stage === "available" || update.stage === "ready";
   const busy = update.stage === "checking" || update.stage === "downloading";
 
   return (
     <div className="mt-3 flex flex-col items-center gap-2">
       {update.stage === "available" && (
-        <p className="text-xs text-sage-300">Uncached {update.version} is available</p>
+        <p className="text-xs text-sage-300">
+          {t("settings.about.update.available", { version: update.version ?? "" })}
+        </p>
       )}
       {update.stage === "downloading" && (
         <p className="text-xs text-mist-500">
-          Downloading {update.version}
-          {update.progress === null ? "" : ` — ${Math.round(update.progress * 100)}%`}
+          {update.progress === null
+            ? t("settings.about.update.downloading", { version: update.version ?? "" })
+            : t("settings.about.update.downloadingProgress", {
+              version: update.version ?? "",
+              percent: Math.round(update.progress * 100),
+            })}
         </p>
       )}
       {update.stage === "ready" && (
         <p className="text-xs text-sage-300">
-          Uncached {update.version} is installed — restart to use it
+          {t("settings.about.update.ready", { version: update.version ?? "" })}
         </p>
       )}
       {update.stage === "failed" && update.problem && (
@@ -918,14 +983,14 @@ function UpdateStatus({ update, onOpenUpdate }: { update: UpdateState; onOpenUpd
         className="cursor-pointer rounded-lg border border-forest-800 px-2.5 py-1 text-xs font-medium text-mist-300 transition-colors hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 disabled:cursor-default disabled:opacity-50"
       >
         {update.stage === "checking"
-          ? "Checking…"
+          ? t("settings.about.update.checking")
           : update.stage === "downloading"
-            ? "Show progress"
+            ? t("settings.about.update.showProgress")
             : update.stage === "available"
-              ? "See what's new"
+              ? t("settings.about.update.whatsNew")
               : update.stage === "ready"
-                ? "Restart now"
-                : "Check for updates"}
+                ? t("settings.about.update.restart")
+                : t("settings.about.update.check")}
       </button>
     </div>
   );

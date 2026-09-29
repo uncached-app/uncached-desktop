@@ -100,21 +100,40 @@ pub fn hide_dock_on_silent_start(app: &AppHandle) {
     }
 }
 
+const TRAY_ID: &str = "uncached";
+
+fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let strings = crate::native_strings::current();
+    let open = MenuItem::with_id(app, "open", &strings.tray_open, true, None::<&str>)?;
+    let scan = MenuItem::with_id(app, "scan", &strings.tray_scan, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", &strings.tray_quit, true, None::<&str>)?;
+    Menu::with_items(
+        app,
+        &[&open, &scan, &PredefinedMenuItem::separator(app)?, &quit],
+    )
+}
+
+/// Rebuilds the tray menu in the current interface language.
+///
+/// A native menu holds its titles; it does not re-read them.
+pub fn relabel(app: &AppHandle) {
+    let Some(tray) = app.tray_by_id(TRAY_ID) else {
+        return;
+    };
+    if let Ok(menu) = tray_menu(app) {
+        let _ = tray.set_menu(Some(menu));
+    }
+}
+
 /// Builds the tray icon and its menu.
 ///
 /// The menu is short on purpose. A tray menu is not a second interface: it
 /// reopens the app and it quits, and every other decision belongs on a screen
 /// where the consequences are visible.
 pub fn install(app: &AppHandle) -> tauri::Result<()> {
-    let open = MenuItem::with_id(app, "open", "Open Uncached", true, None::<&str>)?;
-    let scan = MenuItem::with_id(app, "scan", "Scan workspace", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit Uncached", true, None::<&str>)?;
-    let menu = Menu::with_items(
-        app,
-        &[&open, &scan, &PredefinedMenuItem::separator(app)?, &quit],
-    )?;
+    let menu = tray_menu(app)?;
 
-    TrayIconBuilder::with_id("uncached")
+    TrayIconBuilder::with_id(TRAY_ID)
         .icon(tray_icon(app))
         // macOS renders a template image itself, inverting it for the light and
         // dark menu bar. Setting this on other platforms would strip the colour
@@ -200,15 +219,17 @@ pub fn watch_scans(app: &AppHandle) {
             return;
         }
 
+        let strings = crate::native_strings::current();
+        let size = crate::native_strings::localized_size(bytes, &strings);
         let _ = handle
             .notification()
             .builder()
             .title("Uncached")
-            .body(format!(
-                "{} {} found, {} reclaimable.",
+            .body(crate::native_strings::render(
+                &strings.scan_finished,
+                &strings.locale,
                 targets,
-                if targets == 1 { "target" } else { "targets" },
-                crate::models::target::format_size(bytes)
+                &size,
             ))
             .show();
     });

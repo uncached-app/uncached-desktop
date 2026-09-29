@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Clipboard, FolderOpen, SquarePen, SquareTerminal } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { editorsFor, preferred, useLaunchers, type Launcher } from "./useLaunchers";
 import { useSettings } from "./useSettings";
 import { copyText } from "../utils/clipboard";
@@ -25,14 +27,15 @@ import type { ProjectAction } from "./useProjectActions";
  * under it. This is interface reaching a capability that was already there.
  */
 export function useFolderActions(path: string | null): ProjectAction[] {
+  const { t } = useTranslation();
   const launchers = useLaunchers();
   const { settings } = useSettings();
   const preferredEditor = settings?.preferredEditor ?? null;
   const preferredTerminal = settings?.preferredTerminal ?? null;
 
   return useMemo(
-    () => (path ? folderActions(launchers ?? [], path, preferredEditor, preferredTerminal) : []),
-    [path, launchers, preferredEditor, preferredTerminal],
+    () => (path ? folderActions(t, launchers ?? [], path, preferredEditor, preferredTerminal) : []),
+    [t, path, launchers, preferredEditor, preferredTerminal],
   );
 }
 
@@ -43,6 +46,7 @@ export function useFolderActions(path: string | null): ProjectAction[] {
  * called in a loop. Both callers read the same list from the same place.
  */
 export function folderActions(
+  t: TFunction,
   launchers: Launcher[],
   path: string,
   preferredEditor: string | null,
@@ -58,7 +62,7 @@ export function folderActions(
   for (const launcher of editors) {
     actions.push({
       id: `open-${launcher.id}`,
-      title: `Open in ${launcher.name}`,
+      title: t("shell.actions.openIn", { app: launcher.name }),
       keywords: ["edit", "editor", "folder", launcher.name],
       icon: SquarePen,
       leaves: true,
@@ -73,7 +77,7 @@ export function folderActions(
   if (terminal) {
     actions.push({
       id: "open-terminal",
-      title: `Open in ${terminal.name}`,
+      title: t("shell.actions.openIn", { app: terminal.name }),
       keywords: ["shell", "terminal", "cd", "folder"],
       icon: SquareTerminal,
       leaves: true,
@@ -83,7 +87,7 @@ export function folderActions(
 
   actions.push({
     id: "reveal",
-    title: "Reveal in file manager",
+    title: t("shell.actions.reveal"),
     keywords: ["finder", "explorer", "folder", "show"],
     icon: FolderOpen,
     leaves: true,
@@ -92,7 +96,7 @@ export function folderActions(
 
   actions.push({
     id: "copy",
-    title: "Copy path",
+    title: t("shell.actions.copyPath"),
     detail: path,
     keywords: ["clipboard", "path"],
     // The one verb whose result is right here, so the caller stays put and

@@ -4,6 +4,7 @@ pub mod filesystem;
 pub mod logging;
 pub mod menu;
 pub mod models;
+mod native_strings;
 mod process;
 pub mod scanner;
 mod scheduler;
@@ -117,6 +118,7 @@ pub fn run() {
             cleanup_history,
             available_launchers,
             commands::storage::storage_report,
+            native_strings::set_native_strings,
             commands::storage::open_full_disk_access,
             reveal_project,
             open_project_with,

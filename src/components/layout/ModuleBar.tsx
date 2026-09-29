@@ -1,5 +1,6 @@
 import { Bot, Folders, HardDrive, Settings, Sparkles } from "lucide-react";
 import type React from "react";
+import { useTranslation } from "react-i18next";
 import type { AppModule } from "../../types/module";
 import type { ResultsView } from "../../hooks/usePurgeFlow";
 
@@ -38,6 +39,7 @@ export function ModuleBar({
   onViewChange,
   onOpenSettings,
 }: ModuleBarProps) {
+  const { t } = useTranslation();
   const inWorkspace = activeModule === "reclaim";
 
   function go(module: AppModule, next: ResultsView) {
@@ -46,14 +48,14 @@ export function ModuleBar({
   }
 
   return (
-    <nav className="relative flex shrink-0 items-center justify-center gap-1 border-t border-forest-800 bg-forest-900/40 px-4 py-2" aria-label="Uncached modules">
+    <nav className="relative flex shrink-0 items-center justify-center gap-1 border-t border-forest-800 bg-forest-900/40 px-4 py-2" aria-label={t("modules.bar")}>
       <ModuleButton
         active={inWorkspace && view === "projects"}
-        label="Uncached Workspace"
+        label={t("modules.workspace.label")}
         onClick={() => go("reclaim", "projects")}
       >
         <Folders size={15} strokeWidth={1.8} className={inWorkspace && view === "projects" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
-        <span>Workspace</span>
+        <span>{t("modules.workspace.name")}</span>
       </ModuleButton>
 
       {/* Before a folder is chosen this lands on the same picker Workspace
@@ -61,27 +63,27 @@ export function ModuleBar({
           state for that would be two screens saying one thing. */}
       <ModuleButton
         active={inWorkspace && view === "artifacts"}
-        label="Reclaim disk"
+        label={t("modules.reclaim.label")}
         onClick={() => go("reclaim", "artifacts")}
       >
         <HardDrive size={15} strokeWidth={1.8} className={inWorkspace && view === "artifacts" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
-        <span>Reclaim</span>
+        <span>{t("modules.reclaim.name")}</span>
       </ModuleButton>
       <ModuleButton
         active={activeModule === "intelligence"}
-        label={proEnabled ? "Uncached Maintenance" : "Uncached Maintenance (Pro)"}
+        label={proEnabled ? t("modules.maintenance.label") : t("modules.maintenance.labelLocked")}
         onClick={() => onChange("intelligence")}
       >
         <Bot size={15} strokeWidth={1.8} className={activeModule === "intelligence" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
-        <span className="hidden sm:inline">Maintenance</span>
+        <span className="hidden sm:inline">{t("modules.maintenance.name")}</span>
       </ModuleButton>
       <ModuleButton
         active={activeModule === "insights"}
-        label={proEnabled ? "Uncached Insights" : "Uncached Insights (Pro)"}
+        label={proEnabled ? t("modules.insights.label") : t("modules.insights.labelLocked")}
         onClick={() => onChange("insights")}
       >
         <Sparkles size={15} strokeWidth={1.8} className={activeModule === "insights" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
-        <span className="hidden sm:inline">Insights</span>
+        <span className="hidden sm:inline">{t("modules.insights.name")}</span>
       </ModuleButton>
 
       {/* Absolute, so the modules stay centred on the bar rather than being
@@ -90,9 +92,9 @@ export function ModuleBar({
         <button
           type="button"
           onClick={onOpenSettings}
-          aria-label="Open settings"
-          title="Settings"
-          className="absolute right-4 grid size-8 cursor-pointer place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
+          aria-label={t("modules.openSettings")}
+          title={t("settings.title")}
+          className="absolute end-4 grid size-8 cursor-pointer place-items-center rounded-lg text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
         >
           <Settings size={16} strokeWidth={1.8} aria-hidden="true" />
         </button>

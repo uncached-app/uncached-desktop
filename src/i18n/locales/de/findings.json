@@ -1,0 +1,184 @@
+{
+  "section": {
+    "label": "Scan-Ziele"
+  },
+  "breadcrumb": {
+    "workspace": "Workspace",
+    "current": "Freigabe-Ziele"
+  },
+  "backToWorkspace": "Zurück zum Workspace",
+  "header": {
+    "targets_one": "{{count}} Ziel",
+    "targets_other": "{{count}} Ziele",
+    "reclaimable": "freigebbar",
+    "selected_one": "ausgewählt ({{count}})",
+    "selected_other": "ausgewählt ({{count}})",
+    "inUse": "{{size}} in Benutzung",
+    "inUseTarget": "{{name}} — {{tool}} läuft",
+    "planFree": "Free {{size}}",
+    "planPro": "Pro {{size}}",
+    "reclaimableScope_one": "Bezieht sich auf {{ready}} von {{count}} Ziel — die übrigen werden noch gemessen, konnten nicht gemessen werden oder werden nur gemeldet und nie entfernt.",
+    "reclaimableScope_other": "Bezieht sich auf {{ready}} von {{count}} Zielen — die übrigen werden noch gemessen, konnten nicht gemessen werden oder werden nur gemeldet und nie entfernt."
+  },
+  "delete": {
+    "button": "Löschen",
+    "unsupported": "Uncached konnte nicht lesen, was dieses System entfernen lässt, daher wird nichts angeboten."
+  },
+  "notice": {
+    "permanent": "Ausgewählte Ziele werden endgültig gelöscht. Nicht wiederherstellbar.",
+    "recycle": "Ausgewählte Ziele werden in den Papierkorb verschoben. Von dort bei Bedarf wiederherstellbar.",
+    "unreadable_one": "Das System hat den Zugriff auf {{count}} Ordner verweigert, daher sind Anzahl und Summe oben Untergrenzen.",
+    "unreadable_other": "Das System hat den Zugriff auf {{count}} Ordner verweigert, daher sind Anzahl und Summe oben Untergrenzen.",
+    "unreadableHint": "Gib Uncached Festplattenvollzugriff, um sie zu lesen.",
+    "ignoreRules_one": "{{count}} Ausschlussregel ist aktiv. Betroffene Pfade wurden von diesem Scan ausgenommen.",
+    "ignoreRules_other": "{{count}} Ausschlussregeln sind aktiv. Betroffene Pfade wurden von diesem Scan ausgenommen."
+  },
+  "empty": {
+    "scanning": "Scan läuft.",
+    "none": "Keine freigebbaren Ziele in diesem Workspace.",
+    "scanningHint": "Ziele erscheinen, sobald sie gefunden werden.",
+    "tooRecent_one": "Alles hier Gefundene wurde vor weniger als {{count}} Tag beschrieben.",
+    "tooRecent_other": "Alles hier Gefundene wurde vor weniger als {{count}} Tagen beschrieben.",
+    "settingsHint": "Welche Caches erkannt werden, legst du in den Einstellungen unter Scannen fest.",
+    "showEveryAge": "Jedes Alter zeigen"
+  },
+  "failed": {
+    "title_one": "{{count}} Ziel wurde nicht entfernt.",
+    "title_other": "{{count}} Ziele wurden nicht entfernt.",
+    "refused": "Das System hat das Entfernen verweigert.",
+    "retry_one": "Es bleibt ausgewählt. Erneutes Drücken nach Behebung der Ursache versucht es noch einmal.",
+    "retry_other": "Sie bleiben ausgewählt. Erneutes Drücken nach Behebung der Ursache versucht es noch einmal."
+  },
+  "pro": {
+    "more": "{{size}} mehr mit Pro verfügbar",
+    "pitch": "Alle Bereinigungen, Workspace und Intelligence freischalten.",
+    "cta": "Uncached Pro holen"
+  },
+  "list": {
+    "selectAll": "Alle auswählen",
+    "deselectAll": "Auswahl aufheben",
+    "selectedOf": "{{selected}} von {{total}}",
+    "heldByRunning_one": "{{count}} in einem laufenden Projekt — wird nicht entfernt",
+    "heldByRunning_other": "{{count}} in laufenden Projekten — werden nicht entfernt"
+  },
+  "age": {
+    "any": "Jedes Alter",
+    "anyHint": "Alles, was der Scan gefunden hat",
+    "olderThan": "{{days}}+ Tg.",
+    "monthHint": "Seit einem Monat nicht beschrieben",
+    "threeMonthsHint": "Seit drei Monaten nicht beschrieben"
+  },
+  "order": {
+    "confidence": {
+      "label": "Unsicherste",
+      "hint": "Ziele, bei denen der Scanner am unsichersten ist, zuerst",
+      "hintFree": "Ziele, bei denen der Scanner am unsichersten ist, zuerst. Bei Free steht in jedem Fall vorn, was dein Plan bereinigen kann."
+    },
+    "size": {
+      "label": "Größte",
+      "hint": "Größter Platzbedarf zuerst",
+      "hintFree": "Größter Platzbedarf zuerst. Bei Free steht in jedem Fall vorn, was dein Plan bereinigen kann."
+    }
+  },
+  "confirm": {
+    "deleting": "Wird gelöscht",
+    "moving": "Wird in den Papierkorb verschoben",
+    "deletePermanently": "Endgültig löschen",
+    "moveToRecycleBin": "In den Papierkorb",
+    "deletingProgress_one": "{{count}} Ziel wird gelöscht...",
+    "deletingProgress_other": "{{count}} Ziele werden gelöscht...",
+    "movingProgress_one": "{{count}} Ziel wird verschoben...",
+    "movingProgress_other": "{{count}} Ziele werden verschoben...",
+    "permanentWarning_one": "{{count}} Ziel wird von der Festplatte gelöscht. Nicht wiederherstellbar.",
+    "permanentWarning_other": "{{count}} Ziele werden von der Festplatte gelöscht. Nicht wiederherstellbar.",
+    "recycleWarning_one": "{{count}} Ziel wird in den Papierkorb verschoben. Von dort wiederherstellen, falls ein Build es braucht.",
+    "recycleWarning_other": "{{count}} Ziele werden in den Papierkorb verschoben. Von dort wiederherstellen, falls ein Build sie braucht.",
+    "close": "Bestätigung schließen",
+    "reclaims": "Gibt <strong>{{size}}</strong> frei (geschätzt)",
+    "typeToConfirm": "Zum Bestätigen <strong>{{word}}</strong> eingeben.",
+    "inputLabel": "Bestätigung für endgültiges Löschen",
+    "cleaning": "Wird bereinigt...",
+    "cancel": "Abbrechen"
+  },
+  "row": {
+    "select": "{{name}} auswählen",
+    "ageHint": "Die neueste Datei darin. Ein Cache, der seit Monaten nicht beschrieben wurde, lässt sich durch einen Rebuild ersetzen.",
+    "inUseHint": "Uncached entfernt dies nicht, solange {{tool}} läuft: Die Dateien, die es geöffnet hält, würden mit entfernt.",
+    "inUse": "In Benutzung",
+    "copied": "Kopiert",
+    "copy": "Kopieren",
+    "reportedNotRemoved": "gemeldet, nicht entfernt",
+    "loadingSize": "Größe wird geladen",
+    "sizeUnavailable": "Größe nicht verfügbar",
+    "retryLabel": "Größe für {{name}} fehlgeschlagen. Messung wiederholen",
+    "retry": "Wiederholen",
+    "toolRunning": "{{tool}} läuft",
+    "unlockToClean": "zum Bereinigen freischalten"
+  },
+  "confidence": {
+    "badgeLabel": "{{level}} für {{name}}. Erkanntes anzeigen",
+    "levels": {
+      "high": "Hohe Sicherheit",
+      "medium": "Mittlere Sicherheit",
+      "review": "Prüfen"
+    },
+    "reasons": {
+      "knownArtifact": "Bekanntes Build-Artefakt",
+      "projectManifest": "Liegt in einem Projekt mit Manifest",
+      "lockfile": "Das Projekt hat ein Lockfile, der Inhalt ist reproduzierbar",
+      "declaredDisposable": "In der .gitignore des Projekts als verzichtbar deklariert",
+      "versionControlled": "Von Git verfolgt, also keine Build-Ausgabe",
+      "versionManagerPath": "Verzeichnis eines Versionsmanagers, enthält global installierte Pakete",
+      "systemPath": "Gehört zum Betriebssystem, nicht zu einem Projekt",
+      "noProjectContext": "Kein umgebendes Projekt gefunden",
+      "knownLocation": "Bekannter Cache-Ort eines bestimmten Tools",
+      "sharedCache": "Von allen Projekten geteilt: Leeren verlangsamt künftige Installationen",
+      "toolState": "Gehört zu einem Tool, nicht zu einem Build"
+    }
+  },
+  "reportedOnly": {
+    "title": "Nicht von Uncached entfernt",
+    "intro": "Das Tool, dem diese gehören, gibt sie sicher frei. Führe seinen Befehl in einem Terminal aus.",
+    "copyCommand": "Befehl für {{name}} kopieren"
+  },
+  "categories": {
+    "packageCache": "Paket-Cache",
+    "aiToolCache": "KI-Tool-Cache",
+    "editorCache": "Editor-Cache",
+    "androidSdk": "Android SDK"
+  },
+  "categoryBar": {
+    "summary": "{{label}}: {{segments}}",
+    "segment": "{{category}} {{size}}",
+    "smallerKinds_one": "{{count}} kleinere Art",
+    "smallerKinds_other": "{{count}} kleinere Arten"
+  },
+  "completion": {
+    "title": "Workspace freigegeben",
+    "result_one": "Du hast {{size}} aus {{count}} Ziel freigegeben.",
+    "result_other": "Du hast {{size}} aus {{count}} Zielen freigegeben.",
+    "recoveryPermanent": "Nicht wiederherstellbar. Baue die Artefakte neu, um sie wiederherzustellen.",
+    "recoveryRecycle": "Aus dem Papierkorb wiederherstellen, falls ein Build sie braucht.",
+    "targetsRemoved": "Ziele entfernt",
+    "spaceReclaimed": "Speicher freigegeben",
+    "scanAnother": "Anderen Ordner scannen"
+  },
+  "scan": {
+    "measuring": "Ziele werden gemessen",
+    "checkingCaches": "Tool-Caches werden geprüft",
+    "scanningProjects": "Projekte werden gescannt",
+    "measuringHint": "Belegter Speicher wird für jedes Ziel berechnet.",
+    "checkingCachesHint": "Paketmanager-, KI- und Editor-Caches in deinem Benutzerordner.",
+    "scanningProjectsHint": "Ziele werden gemessen, sobald sie gefunden werden.",
+    "scanningLabel": "Workspace wird gescannt",
+    "directoriesChecked": "Verzeichnisse geprüft",
+    "measured": "gemessen",
+    "targetsFound_one": "Ziel gefunden",
+    "targetsFound_other": "Ziele gefunden",
+    "recentlyFound": "Zuletzt gefunden",
+    "cancelRefused": "Der Scan war fertig, bevor er abgebrochen werden konnte.",
+    "startOver": "Neu beginnen",
+    "cancelling": "Wird abgebrochen...",
+    "cancel": "Scan abbrechen"
+  }
+}

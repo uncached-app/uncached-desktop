@@ -1,0 +1,22 @@
+{
+  "workspace": {
+    "name": "Workspace",
+    "label": "Uncached Workspace"
+  },
+  "reclaim": {
+    "name": "Reclaim",
+    "label": "Reclaim disk"
+  },
+  "maintenance": {
+    "name": "Maintenance",
+    "label": "Uncached Maintenance",
+    "labelLocked": "Uncached Maintenance (Pro)"
+  },
+  "insights": {
+    "name": "Insights",
+    "label": "Uncached Insights",
+    "labelLocked": "Uncached Insights (Pro)"
+  },
+  "openSettings": "Open settings",
+  "bar": "Uncached modules"
+}

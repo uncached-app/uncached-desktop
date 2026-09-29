@@ -115,7 +115,31 @@ pub enum LicenseError {
     NoPublicKey,
 }
 
+impl From<LicenseError> for crate::errors::CommandError {
+    fn from(error: LicenseError) -> Self {
+        let base = crate::errors::CommandError::new(error.code(), error.message());
+        match &error {
+            LicenseError::UnsupportedVersion(version) => base.with("version", version.to_string()),
+            LicenseError::Expired(at) => base.with("date", at.format("%Y-%m-%d").to_string()),
+            LicenseError::NotPro(plan) => base.with("plan", plan.clone()),
+            _ => base,
+        }
+    }
+}
+
 impl LicenseError {
+    /// Stable name the interface translates by.
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::Malformed => "licence_malformed",
+            Self::BadSignature => "licence_bad_signature",
+            Self::UnsupportedVersion(_) => "licence_unsupported_version",
+            Self::Expired(_) => "licence_expired",
+            Self::NotPro(_) => "licence_not_pro",
+            Self::NoPublicKey => "licence_no_public_key",
+        }
+    }
+
     pub fn message(&self) -> String {
         match self {
             Self::Malformed => {
@@ -278,8 +302,11 @@ pub fn active_license() -> Option<License> {
 }
 
 #[tauri::command]
-pub async fn activate_license(app: AppHandle, key: String) -> Result<LicenseInfo, String> {
-    let license = verify(&key).map_err(|error| error.message())?;
+pub async fn activate_license(
+    app: AppHandle,
+    key: String,
+) -> Result<LicenseInfo, crate::errors::CommandError> {
+    let license = verify(&key)?;
     let path = license_path(&app)?;
     let parent = path
         .parent()
@@ -360,6 +387,33 @@ mod tests {
     use base64::Engine;
     use chrono::{Duration, Utc};
     use ed25519_dalek::{Signer, SigningKey};
+
+    /// The interface picks the sentence by code and fills it from the params,
+    /// so every refusal has to arrive as data it can translate.
+    #[test]
+    fn a_refused_key_reaches_the_interface_as_a_code_with_its_details() {
+        use crate::errors::CommandError;
+
+        let expired = CommandError::from(LicenseError::Expired(
+            chrono::DateTime::parse_from_rfc3339("2026-09-01T00:00:00Z")
+                .unwrap()
+                .with_timezone(&Utc),
+        ));
+        assert_eq!(expired.code, "licence_expired");
+        assert_eq!(
+            expired.params.get("date").map(String::as_str),
+            Some("2026-09-01")
+        );
+
+        let plan = CommandError::from(LicenseError::NotPro("team".into()));
+        assert_eq!(plan.code, "licence_not_pro");
+        assert_eq!(plan.params.get("plan").map(String::as_str), Some("team"));
+
+        let malformed = CommandError::from(LicenseError::Malformed);
+        assert_eq!(malformed.code, "licence_malformed");
+        assert!(malformed.params.is_empty());
+        assert_eq!(malformed.message, LicenseError::Malformed.message());
+    }
 
     /// A fixed key, so the tests need no randomness and no build-time secret.
     fn keypair() -> SigningKey {

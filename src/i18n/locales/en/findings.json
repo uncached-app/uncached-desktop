@@ -1,0 +1,184 @@
+{
+  "section": {
+    "label": "Scan targets"
+  },
+  "breadcrumb": {
+    "workspace": "Workspace",
+    "current": "Reclaim Targets"
+  },
+  "backToWorkspace": "Back to Workspace",
+  "header": {
+    "targets_one": "{{count}} target",
+    "targets_other": "{{count}} targets",
+    "reclaimable": "reclaimable",
+    "selected_one": "selected ({{count}})",
+    "selected_other": "selected ({{count}})",
+    "inUse": "{{size}} in use",
+    "inUseTarget": "{{name}} — {{tool}} is running",
+    "planFree": "Free {{size}}",
+    "planPro": "Pro {{size}}",
+    "reclaimableScope_one": "Across {{ready}} of the {{count}} target — the rest are still being measured, failed to measure, or are reported and never removed.",
+    "reclaimableScope_other": "Across {{ready}} of the {{count}} targets — the rest are still being measured, failed to measure, or are reported and never removed."
+  },
+  "delete": {
+    "button": "Delete",
+    "unsupported": "Uncached could not read what this system allows it to remove, so nothing is offered."
+  },
+  "notice": {
+    "permanent": "Selected targets are deleted permanently. Not recoverable.",
+    "recycle": "Selected targets move to the Recycle Bin. Restorable from there if needed.",
+    "unreadable_one": "{{count}} folder was withheld by the system, so the count and the total above are both a floor.",
+    "unreadable_other": "{{count}} folders were withheld by the system, so the count and the total above are both a floor.",
+    "unreadableHint": "Grant Uncached Full Disk Access to read them.",
+    "ignoreRules_one": "{{count}} ignore rule is in force. Covered paths were excluded from this scan.",
+    "ignoreRules_other": "{{count}} ignore rules are in force. Covered paths were excluded from this scan."
+  },
+  "empty": {
+    "scanning": "Scan in progress.",
+    "none": "No reclaimable targets in this workspace.",
+    "scanningHint": "Targets appear as they are found.",
+    "tooRecent_one": "Everything found here was written to in the last {{count}} day.",
+    "tooRecent_other": "Everything found here was written to in the last {{count}} days.",
+    "settingsHint": "Adjust which caches are detected in Settings, under Scanning.",
+    "showEveryAge": "Show every age"
+  },
+  "failed": {
+    "title_one": "One target was not removed.",
+    "title_other": "{{count}} targets were not removed.",
+    "refused": "The system refused the removal.",
+    "retry_one": "It is still selected, so pressing again once the reason is gone retries it.",
+    "retry_other": "They are still selected, so pressing again once the reason is gone retries them."
+  },
+  "pro": {
+    "more": "{{size}} more available with Pro",
+    "pitch": "Unlock every cleaner, Workspace and Intelligence.",
+    "cta": "Get Uncached Pro"
+  },
+  "list": {
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "selectedOf": "{{selected}} of {{total}}",
+    "heldByRunning_one": "{{count}} in a project that is running — it will not be removed",
+    "heldByRunning_other": "{{count}} in projects that are running — they will not be removed"
+  },
+  "age": {
+    "any": "Any age",
+    "anyHint": "Everything the scan found",
+    "olderThan": "{{days}}d+",
+    "monthHint": "Nothing has written to these in a month",
+    "threeMonthsHint": "Nothing has written to these in three months"
+  },
+  "order": {
+    "confidence": {
+      "label": "Least certain",
+      "hint": "Targets the scanner is least sure about come first",
+      "hintFree": "Targets the scanner is least sure about come first. On Free, what your plan can clean leads either way."
+    },
+    "size": {
+      "label": "Largest",
+      "hint": "Heaviest on disk first",
+      "hintFree": "Heaviest on disk first. On Free, what your plan can clean leads either way."
+    }
+  },
+  "confirm": {
+    "deleting": "Deleting",
+    "moving": "Moving to Recycle Bin",
+    "deletePermanently": "Delete permanently",
+    "moveToRecycleBin": "Move to Recycle Bin",
+    "deletingProgress_one": "Deleting {{count}} target...",
+    "deletingProgress_other": "Deleting {{count}} targets...",
+    "movingProgress_one": "Moving {{count}} target...",
+    "movingProgress_other": "Moving {{count}} targets...",
+    "permanentWarning_one": "{{count}} target will be deleted from disk. Not recoverable.",
+    "permanentWarning_other": "{{count}} targets will be deleted from disk. Not recoverable.",
+    "recycleWarning_one": "{{count}} target will be moved to the Recycle Bin. Restore from there if a build needs them.",
+    "recycleWarning_other": "{{count}} targets will be moved to the Recycle Bin. Restore from there if a build needs them.",
+    "close": "Close confirmation",
+    "reclaims": "Reclaims <strong>{{size}}</strong> (estimated)",
+    "typeToConfirm": "Type <strong>{{word}}</strong> to confirm.",
+    "inputLabel": "Permanent deletion confirmation",
+    "cleaning": "Cleaning...",
+    "cancel": "Cancel"
+  },
+  "row": {
+    "select": "Select {{name}}",
+    "ageHint": "The newest file inside it. A cache nothing has written to in months is one a rebuild can replace.",
+    "inUseHint": "Uncached will not remove this while {{tool}} is running: the files it holds open would go with it.",
+    "inUse": "In use",
+    "copied": "Copied",
+    "copy": "Copy",
+    "reportedNotRemoved": "reported, not removed",
+    "loadingSize": "Loading size",
+    "sizeUnavailable": "Size unavailable",
+    "retryLabel": "Size failed for {{name}}. Retry measurement",
+    "retry": "Retry",
+    "toolRunning": "{{tool}} is running",
+    "unlockToClean": "unlock to clean"
+  },
+  "confidence": {
+    "badgeLabel": "{{level}} for {{name}}. Show what was detected",
+    "levels": {
+      "high": "High confidence",
+      "medium": "Medium confidence",
+      "review": "Review"
+    },
+    "reasons": {
+      "knownArtifact": "Recognized build artifact",
+      "projectManifest": "Sits inside a project with a manifest",
+      "lockfile": "The project has a lockfile, contents are reproducible",
+      "declaredDisposable": "Declared disposable by the project's .gitignore",
+      "versionControlled": "Tracked by Git, so it is not a build output",
+      "versionManagerPath": "Version manager directory, holds globally installed packages",
+      "systemPath": "Belongs to the operating system, not to a project",
+      "noProjectContext": "No project found around it",
+      "knownLocation": "Known cache location belonging to a specific tool",
+      "sharedCache": "Shared by every project: clearing it makes future installs slower",
+      "toolState": "Belongs to a tool rather than to a build"
+    }
+  },
+  "reportedOnly": {
+    "title": "Not removed by Uncached",
+    "intro": "The tool that owns these reclaims them safely. Run its command in a terminal.",
+    "copyCommand": "Copy command for {{name}}"
+  },
+  "categories": {
+    "packageCache": "Package cache",
+    "aiToolCache": "AI tool cache",
+    "editorCache": "Editor cache",
+    "androidSdk": "Android SDK"
+  },
+  "categoryBar": {
+    "summary": "{{label}}: {{segments}}",
+    "segment": "{{category}} {{size}}",
+    "smallerKinds_one": "{{count}} smaller kind",
+    "smallerKinds_other": "{{count}} smaller kinds"
+  },
+  "completion": {
+    "title": "Workspace reclaimed",
+    "result_one": "You reclaimed {{size}} from {{count}} target.",
+    "result_other": "You reclaimed {{size}} from {{count}} targets.",
+    "recoveryPermanent": "Not recoverable. Rebuild the artifacts to restore them.",
+    "recoveryRecycle": "Restore from the Recycle Bin if a build needs them.",
+    "targetsRemoved": "Targets removed",
+    "spaceReclaimed": "Space reclaimed",
+    "scanAnother": "Scan another folder"
+  },
+  "scan": {
+    "measuring": "Measuring targets",
+    "checkingCaches": "Checking your tool caches",
+    "scanningProjects": "Scanning your projects",
+    "measuringHint": "Computing size on disk for each target.",
+    "checkingCachesHint": "Package manager, AI and editor caches in your home folder.",
+    "scanningProjectsHint": "Targets are measured as they are found.",
+    "scanningLabel": "Scanning workspace",
+    "directoriesChecked": "directories checked",
+    "measured": "measured",
+    "targetsFound_one": "target found",
+    "targetsFound_other": "targets found",
+    "recentlyFound": "Recently found",
+    "cancelRefused": "The scan finished before it could be cancelled.",
+    "startOver": "Start over",
+    "cancelling": "Cancelling...",
+    "cancel": "Cancel scan"
+  }
+}

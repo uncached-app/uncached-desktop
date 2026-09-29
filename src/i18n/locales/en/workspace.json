@@ -1,0 +1,370 @@
+{
+  "family": {
+    "declared": "{{tool}} workspace",
+    "oneFolderSeveral": "One folder, several projects",
+    "alone": "On their own",
+    "aloneDetail": "In no directory with another project"
+  },
+  "filters": {
+    "query": "\"{{query}}\"",
+    "clones": "Copies of a repo",
+    "clearAll": "Clear all filters"
+  },
+  "map": {
+    "nothingToDraw": "Nothing matches the filters, so there is no picture to draw."
+  },
+  "list": {
+    "rankedLabel": "Projects ranked by size",
+    "rankedTitle": "Ranked by Disk Size",
+    "rankedHint": "Heaviest projects first",
+    "reclaimable": "{{size}} reclaimable",
+    "noMatch": "No projects match this filter",
+    "noProjects": "No projects in this folder",
+    "indexed_one": "{{projects}} projects were indexed across {{count}} folder.",
+    "indexed_other": "{{projects}} projects were indexed across {{count}} folders."
+  },
+  "form": {
+    "cancelledFound_one": "Scan cancelled · {{count}} target found before stopping",
+    "cancelledFound_other": "Scan cancelled · {{count}} targets found before stopping",
+    "cancelled": "Scan cancelled",
+    "lastRun_one": "Last run: {{count}} target removed, {{size}} reclaimed",
+    "lastRun_other": "Last run: {{count}} targets removed, {{size}} reclaimed",
+    "title": "Reclaim disk from build artifacts.",
+    "subtitle": "Finds dependency, build, and cache directories your toolchains can regenerate.",
+    "open": "Open workspace"
+  },
+  "unavailable": {
+    "label": "Workspace",
+    "errorTitle": "Your folders could not be read",
+    "errorHint": "A folder the system refuses to open cannot be indexed. Granting the app access to the disk, or choosing a folder inside it, is what makes it readable.",
+    "retry": "Try again",
+    "chooseFolders": "Choose other folders",
+    "readingTitle": "Reading your folders",
+    "readingHint": "Discovering projects and analyzing workspace structure..."
+  },
+  "project": {
+    "running": {
+      "single": "<strong>This project is running.</strong> {{command}} is working inside it. Its artifacts are not measured and cannot be reclaimed until it stops.",
+      "several_one": "<strong>This project is running.</strong> {{count}} process is working inside it, one of them {{command}}. Its artifacts are not measured and cannot be reclaimed until it stops.",
+      "several_other": "<strong>This project is running.</strong> {{count}} processes are working inside it, one of them {{command}}. Its artifacts are not measured and cannot be reclaimed until it stops."
+    },
+    "back": "Workspace",
+    "pathCopied": "Path copied!",
+    "copyPath": "Copy full path",
+    "metrics": {
+      "total": "total on disk",
+      "reclaimable": "reclaimable cache",
+      "source": "source code"
+    },
+    "partial": "Some folders under this project could not be read. Every figure above is the smallest it could be, not the measurement."
+  },
+  "actions": {
+    "done": "{{action}} — done",
+    "failed": "That did not work",
+    "showInWorkspace": "Show in workspace"
+  },
+  "footprint": {
+    "title": "Where the space went",
+    "across_one": "{{size}} across {{count}} kind",
+    "across_other": "{{size}} across {{count}} kinds",
+    "barLabel": "Reclaimable weight by artifact"
+  },
+  "verdict": {
+    "title": "Verdict Analysis",
+    "localWork": "Uncommitted or unpushed local work",
+    "localBackup": "<strong>Local backup:</strong> The git remote is a local folder on this machine rather than a remote server.",
+    "installMissing": "Lockfile present with missing dependencies. Run package manager install before testing.",
+    "installStale": "Lockfile changed after last install. Installed dependencies may be stale.",
+    "risk": {
+      "unpushedCommits_one": "{{count}} commit never pushed",
+      "unpushedCommits_other": "{{count}} commits never pushed",
+      "stashEntries_one": "{{count}} stash saved and unapplied",
+      "stashEntries_other": "{{count}} stashes saved and unapplied",
+      "branchesWithoutUpstream_one": "{{count}} branch without remote upstream",
+      "branchesWithoutUpstream_other": "{{count}} branches without remote upstream",
+      "untrackedFiles_one": "{{count}} file never committed",
+      "untrackedFiles_other": "{{count}} files never committed"
+    }
+  },
+  "restore": {
+    "noTerminal": "no terminal found on this machine — the command is copied",
+    "running": "{{started}} — running in {{terminal}}",
+    "failed": "That terminal did not open",
+    "pinned": "<strong>Restoring:</strong> <code>{{command}}</code> — <mono>{{pinnedBy}}</mono> fixes which versions come back.",
+    "unpinned": "<strong>Restoring:</strong> <code>{{command}}</code> — nothing here pins the versions, so a reinstall resolves current ones. The space returns; this exact set of dependencies does not.",
+    "runTitle": "Run {{command}} in {{terminal}}, here",
+    "copyTitle": "Copy {{command}}",
+    "action": "Restore now"
+  },
+  "git": {
+    "neverFetched": "Never fetched, so nothing is known about the remote",
+    "checkedUntracked": "Checked {{when}}. This branch tracks nothing",
+    "upToDate": "Up to date as of {{when}}",
+    "behind_one": "{{count}} commit behind as of {{when}}",
+    "behind_other": "{{count}} commits behind as of {{when}}",
+    "title": "Git Context",
+    "branch": "Branch",
+    "dirty": "uncommitted changes",
+    "clean": "clean working tree",
+    "remote": "Remote",
+    "localRemote": "local directory on this drive",
+    "noRemote": "No remote configured",
+    "lastCommit": "Last commit",
+    "unknownDate": "unknown",
+    "notRepository": "Not a git repository. No remote backup tracking available."
+  },
+  "activity": {
+    "title": "Activity",
+    "states": {
+      "active": "active",
+      "idle": "idle",
+      "cold": "cold",
+      "unknown": "unknown"
+    },
+    "lastTouched": "Last touched",
+    "idleTime": "Idle time",
+    "idleDays_one": "{{count}} day",
+    "idleDays_other": "{{count}} days",
+    "cold": "cold project"
+  },
+  "hygiene": {
+    "branch": {
+      "prunable": "its remote branch is gone, and its commits are on this branch too",
+      "holdsWork": "its remote branch is gone, and it still holds commits nothing else has",
+      "withAge": "{{state}} · last commit {{age}}"
+    },
+    "outcome": {
+      "deleted_one": "{{count}} branch deleted",
+      "deleted_other": "{{count}} branches deleted",
+      "refused_one": "{{count}} refused by Git",
+      "refused_other": "{{count}} refused by Git",
+      "nothing": "Nothing left to delete"
+    },
+    "title": "Repository hygiene",
+    "fetchLabel": "Fetch repository from remote",
+    "fetch": "Fetch remote",
+    "checked": "Remote last checked {{when}}. A branch only reads as dead once a fetch has pruned what the remote deleted.",
+    "neverFetched": "This repository has never been fetched, so nothing here knows what the remote has done.",
+    "loading": "Reading branches, stashes and worktrees.",
+    "empty": "No dead branches, no stashes, no extra worktrees.",
+    "keep": "keep",
+    "worktreeMissing": "{{path}} — the directory is gone and the registration is not",
+    "deleteMerged_one": "Delete {{count}} merged branch",
+    "deleteMerged_other": "Delete {{count}} merged branches",
+    "deleteHint": "Uses <mono>git branch -d</mono>, which refuses anything whose commits are not somewhere else."
+  },
+  "shared": {
+    "title": "Shared With Other Projects",
+    "reading": "Reading what other projects have installed...",
+    "titleCount_one": "Shared With Other Projects ({{count}})",
+    "titleCount_other": "Shared With Other Projects ({{count}})",
+    "duplicate": "{{size}} duplicate",
+    "intro": "Installed here and in other projects, each keeping its own copy.",
+    "inProjects_one": "in {{count}} project",
+    "inProjects_other": "in {{count}} projects",
+    "hint": "Packages cannot be removed individually without breaking installs. Clean the parent directory in the Artifacts list below to reclaim space."
+  },
+  "duplicates": {
+    "title_one": "Duplicate Checkouts ({{count}})",
+    "title_other": "Duplicate Checkouts ({{count}})",
+    "copies_one": "{{count}} copy on disk",
+    "copies_other": "{{count}} copies on disk",
+    "intro": "The same repository is cloned in multiple directories. Each checkout carries its own build artifacts and can be cleaned independently.",
+    "view": "View project"
+  },
+  "artifacts": {
+    "refused": "That target could not be reclaimed by backend.",
+    "title_one": "Reclaimable Artifacts ({{count}})",
+    "title_other": "Reclaimable Artifacts ({{count}})",
+    "total": "{{size}} total",
+    "notCounted_one": "{{count}} not counted",
+    "notCounted_other": "{{count}} not counted",
+    "permanent": {
+      "title": "Permanent Deletion Mode",
+      "body": "Items will be removed directly from disk without using the system Recycle Bin. Type <token>{{token}}</token> below to arm deletion buttons.",
+      "placeholder": "Type \"{{token}}\"",
+      "inputLabel": "Permanent deletion confirmation token",
+      "armed": "Armed",
+      "armHint": "Type \"{{token}}\" to arm permanent deletion"
+    },
+    "empty": "No disposable build artifacts detected here. All disk space is accounted for by source code and version control.",
+    "partlyUnreadable": "partly unreadable",
+    "measuring": "measuring...",
+    "reclaim": "Reclaim {{name}}",
+    "deletePermanently": "Delete permanently",
+    "moveToTrash": "Move to Recycle Bin"
+  },
+  "row": {
+    "partial": "Some folders under this project could not be read, so this is a floor rather than a total.",
+    "onDisk": "on disk",
+    "details": "{{name}} project details",
+    "copies_one": "{{count}} copy",
+    "copies_other": "{{count}} copies",
+    "reclaimable": "reclaimable",
+    "runningTitle": {
+      "single": "{{command}} is working inside this project. Its artifacts cannot be reclaimed until it stops.",
+      "several_one": "{{command}} is working inside this project ({{count}} process). Its artifacts cannot be reclaimed until it stops.",
+      "several_other": "{{command}} is working inside this project ({{count}} processes). Its artifacts cannot be reclaimed until it stops."
+    },
+    "running": "running · {{command}}",
+    "measuring": "measuring..."
+  },
+  "menu": {
+    "label": "{{name}} actions",
+    "openPage": "Open project page"
+  },
+  "header": {
+    "showFilters": "Show filters",
+    "hideFilters": "Hide filters",
+    "projects_one": "{{count}} project",
+    "projects_other": "{{count}} projects",
+    "rescan": "Read the workspace again",
+    "onDisk": "on disk",
+    "reclaimable": "reclaimable",
+    "atRiskTitle_one": "{{count}} project holds unpushed or uncommitted work",
+    "atRiskTitle_other": "{{count}} projects hold unpushed or uncommitted work",
+    "atRisk": "at risk",
+    "reclaim": "Reclaim disk",
+    "filterLabel": "Filter projects by name, path, kind or branch",
+    "filterPlaceholder": "Filter by name, path, ecosystem or branch",
+    "clearText": "Clear the text filter",
+    "order": "Order projects",
+    "byVerdict": "By verdict",
+    "bySize": "By size",
+    "byFolder": "By folder",
+    "listTitle": "List view — readable by keyboard",
+    "list": "List",
+    "mapTitle": "Map view — interactive workspace graph",
+    "map": "Map",
+    "showing": "Showing",
+    "stopFiltering": "Stop filtering by {{label}}",
+    "clearAll": "Clear all"
+  },
+  "history": {
+    "moved": "<delta>{{sign}}{{size}}</delta> since your last visit",
+    "unchanged": "Unchanged since your last visit",
+    "added_one": "+{{count}} new",
+    "added_other": "+{{count}} new",
+    "lifetime": "<size>{{size}}</size> reclaimed with Uncached"
+  },
+  "sidebar": {
+    "label": "Workspace filters",
+    "folders": "Folders",
+    "allProjects": "All projects",
+    "removeAll_one": "Remove the {{count}} workspace folder and start over",
+    "removeAll_other": "Remove all {{count}} workspace folders and start over",
+    "addAnother": "Add another folder",
+    "addReason": "Scanning several folders at once is part of Pro",
+    "addFolder": "Add folder",
+    "rootLimit_one": "This plan covers one folder at a time.",
+    "rootLimit_other": "This plan covers {{count}} folders at a time.",
+    "skipped_one": "{{count}} folder was skipped.",
+    "skipped_other": "{{count}} folders were skipped.",
+    "capped_one": "Map capped at {{count}} project.",
+    "capped_other": "Map capped at {{count}} projects.",
+    "verdict": "Verdict",
+    "everyVerdict": "Every verdict",
+    "artifact": "Artifact",
+    "everyKind": "Every kind",
+    "clonesTitle": "Projects holding a repository that is also checked out somewhere else",
+    "remove": "Remove {{label}} from the workspace"
+  },
+  "graph": {
+    "copiesHere_one": "{{drawn}} of {{count}} copy here",
+    "copiesHere_other": "{{drawn}} of {{count}} copies here",
+    "copies_one": "{{count}} copy",
+    "copies_other": "{{count}} copies",
+    "declared": "{{tool}} workspace",
+    "oneFolder": "one folder"
+  },
+  "canvas": {
+    "label_one": "{{count}} project and {{packages}} shared packages. The list reads the same workspace.",
+    "label_other": "{{count}} projects and {{packages}} shared packages. The list reads the same workspace.",
+    "workspaceTag": "workspace",
+    "folderTag": "folder",
+    "projects": "Projects:",
+    "onDisk": "On disk:",
+    "atLeast": "at least {{size}}",
+    "reclaimable": "Reclaimable:",
+    "heldBy": "Held together by:",
+    "packageTag": "package",
+    "projectTag": "project",
+    "sharedAcross": "Shared across:",
+    "status": "Status:",
+    "footprint": "Disk footprint:",
+    "measuring": "measuring...",
+    "clickToOpen": "Click to open",
+    "rightClick": "Right-click for options",
+    "packageStatus": "{{detail}} · {{size}} shared",
+    "hint": "Drag to move, scroll to zoom",
+    "weighing": "Weighing...",
+    "readingPackages": "Reading packages...",
+    "omitted_one": "{{count}} lighter package omitted",
+    "omitted_other": "{{count}} lighter packages omitted",
+    "legend": {
+      "package": "a package more than one project keeps its own copy of",
+      "folder": "one directory holding several projects",
+      "clone": "one repository checked out twice"
+    },
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Fit whole workspace"
+  },
+  "verdicts": {
+    "protect": {
+      "label": "Protect",
+      "summary": "Holds work that exists only on this disk."
+    },
+    "broken": {
+      "label": "Needs install",
+      "summary": "A lockfile with nothing installed behind it."
+    },
+    "staleDeps": {
+      "label": "Stale install",
+      "summary": "The lockfile changed after the last install."
+    },
+    "tradeOff": {
+      "label": "In use",
+      "summary": "Reclaimable, but you will pay to reinstall."
+    },
+    "safe": {
+      "label": "Safe to reclaim",
+      "summary": "Everything is on a remote and nobody has touched it in months."
+    },
+    "archivable": {
+      "label": "Fully on remote",
+      "summary": "Nothing left to reclaim. The local copy is yours to keep or drop."
+    },
+    "unknown": {
+      "label": "Not established",
+      "summary": "Not enough was readable to judge. Never touched automatically."
+    }
+  },
+  "evidence": {
+    "notOnRemote": "Work that is not on any remote.",
+    "broken": "Install it before anything here can be judged.",
+    "staleDeps": "The installed dependencies no longer match the lockfile.",
+    "gitUnreadable": "Git could not be read.",
+    "notRepository": "Not a repository.",
+    "archivableIdle": "{{idle}}, and every commit is on the remote.",
+    "archivable": "Every commit is on the remote.",
+    "toReclaim": "{{size}} to reclaim",
+    "toReinstall": "{{size}} would need reinstalling",
+    "risk": {
+      "unpushedCommits_one": "{{count}} commit not pushed",
+      "unpushedCommits_other": "{{count}} commits not pushed",
+      "stashEntries_one": "{{count}} stash saved",
+      "stashEntries_other": "{{count}} stashes saved",
+      "branchesWithoutUpstream_one": "{{count}} branch with no remote",
+      "branchesWithoutUpstream_other": "{{count}} branches with no remote",
+      "untrackedFiles_one": "{{count}} file never committed",
+      "untrackedFiles_other": "{{count}} files never committed",
+      "separator": ", "
+    },
+    "touchedToday": "Touched today",
+    "idleDays_one": "Idle {{count}} day",
+    "idleDays_other": "Idle {{count}} days",
+    "untouchedMonths_one": "Untouched for {{count}} month",
+    "untouchedMonths_other": "Untouched for {{count}} months"
+  }
+}

@@ -1,5 +1,6 @@
 import { Ban, Info, LoaderCircle, RotateCcw } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { ScanNotice, ScanProgress, ScanTarget, Step } from "../../types/scan";
 
 interface ScanViewProps {
@@ -25,6 +26,7 @@ export function ScanView({
   notice,
   resetScan,
 }: ScanViewProps) {
+  const { t, i18n } = useTranslation();
   const reducedMotion = useReducedMotion();
   // Counted rather than tracked separately: a target stops being pending the
   // moment its size arrives, and that event is already being listened for.
@@ -34,15 +36,15 @@ export function ScanView({
   // so rather than arriving as more of the same walk.
   const caches = progress?.phase === "caches";
   const heading = !scanning
-    ? "Measuring targets"
+    ? t("findings.scan.measuring")
     : caches
-      ? "Checking your tool caches"
-      : "Scanning your projects";
+      ? t("findings.scan.checkingCaches")
+      : t("findings.scan.scanningProjects");
   const subheading = !scanning
-    ? "Computing size on disk for each target."
+    ? t("findings.scan.measuringHint")
     : caches
-      ? "Package manager, AI and editor caches in your home folder."
-      : "Targets are measured as they are found.";
+      ? t("findings.scan.checkingCachesHint")
+      : t("findings.scan.scanningProjectsHint");
   // Newest first, and only the last few. What this answers is "is it finding
   // anything", which a name and the folder it sits in answer and a full path
   // set in a column this width does not.
@@ -56,7 +58,7 @@ export function ScanView({
       animate={{ opacity: 1, scale: 1 }}
       exit={reducedMotion ? undefined : { opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      aria-label={scanning ? "Scanning workspace" : "Measuring targets"}
+      aria-label={scanning ? t("findings.scan.scanningLabel") : t("findings.scan.measuring")}
       className="flex h-full w-full flex-col items-center justify-center text-center"
     >
       <div className="flex flex-col items-center max-w-md w-full">
@@ -79,16 +81,16 @@ export function ScanView({
         <div className="mt-8 flex min-h-16 items-center justify-center gap-12 px-4 py-3 text-center">
           <div>
             <strong className="block font-mono text-2xl font-medium tracking-tight text-sage-300">
-              {scanning && !caches ? (progress?.directoriesScanned.toLocaleString() ?? "0") : measured}
+              {scanning && !caches ? (progress?.directoriesScanned.toLocaleString(i18n.language) ?? "0") : measured}
             </strong>
             <span className="mt-1 block font-sans text-xs text-mist-500">
-              {scanning && !caches ? "directories checked" : "measured"}
+              {scanning && !caches ? t("findings.scan.directoriesChecked") : t("findings.scan.measured")}
             </span>
           </div>
           <div>
             <strong className="block font-mono text-2xl font-medium tracking-tight text-sage-300">{targets.length}</strong>
             <span className="mt-1 block font-sans text-xs text-mist-500">
-              {targets.length === 1 ? "target found" : "targets found"}
+              {t("findings.scan.targetsFound", { count: targets.length })}
             </span>
           </div>
         </div>
@@ -100,7 +102,7 @@ export function ScanView({
             are in the home directory rather than under anything the user chose
             — a screen that went quiet there read as a scan that had stopped. */}
         <ul
-          aria-label="Recently found"
+          aria-label={t("findings.scan.recentlyFound")}
           aria-live="polite"
           className="mt-2 flex h-24 w-full flex-col items-center justify-start gap-1 overflow-hidden"
         >
@@ -130,7 +132,7 @@ export function ScanView({
           {notice?.kind === "cancelRefused" && (
             <>
               <Info size={13} className="shrink-0 text-mist-500" aria-hidden="true" />
-              <span>The scan finished before it could be cancelled.</span>
+              <span>{t("findings.scan.cancelRefused")}</span>
             </>
           )}
         </div>
@@ -149,7 +151,7 @@ export function ScanView({
               className="inline-flex items-center gap-2 rounded-xl border border-forest-800 bg-forest-900 px-4 py-2 text-xs font-semibold text-mist-300 transition-colors hover:bg-forest-850 hover:text-mist-100"
             >
               <RotateCcw size={14} aria-hidden="true" />
-              Start over
+              {t("findings.scan.startOver")}
             </button>
           )}
 
@@ -161,7 +163,7 @@ export function ScanView({
               className="inline-flex items-center gap-2 rounded-xl bg-coral-300 px-4 py-2 text-xs font-semibold text-forest-950 transition-colors hover:opacity-90 disabled:cursor-not-allowed"
             >
               <Ban size={14} aria-hidden="true" />
-              <span>{cancelling ? "Cancelling..." : "Cancel scan"}</span>
+              <span>{cancelling ? t("findings.scan.cancelling") : t("findings.scan.cancel")}</span>
             </button>
           )}
         </div>

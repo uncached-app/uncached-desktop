@@ -1,4 +1,5 @@
 import { FolderSearch, Ghost, Loader2 } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import type { OrphanReport } from "../../types/orphans";
 import { formatBytes } from "../../utils/format.mjs";
 
@@ -25,24 +26,26 @@ export function Orphans({
   error: string | null;
   onReveal: (path: string) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs transition-all">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-forest-800 pb-3">
         <div className="flex items-center gap-2">
           <Ghost size={14} className="text-mist-500" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-mist-100">
-            Left behind
+            {t("insights.orphans.title")}
           </h2>
         </div>
 
         {running ? (
           <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-xs text-mist-500">
             <Loader2 size={12} className="animate-spin text-sage-300" aria-hidden="true" />
-            Looking
+            {t("insights.orphans.looking")}
           </span>
         ) : report ? (
           <span className="font-mono text-xs text-mist-500">
-            {report.examined} folders examined
+            {t("insights.orphans.examined", { count: report.examined })}
           </span>
         ) : null}
       </div>
@@ -54,12 +57,13 @@ export function Orphans({
           <div className="mt-4 flex items-center justify-between gap-3">
             <p className="text-xs text-mist-300">
               {report.orphans.length > 0 ? (
-                <>
-                  <span className="font-mono font-semibold text-sage-300">{formatBytes(report.bytes)}</span>{" "}
-                  belongs to no project
-                </>
+                <Trans
+                  i18nKey="insights.orphans.found"
+                  values={{ size: formatBytes(report.bytes) }}
+                  components={{ size: <span className="font-mono font-semibold text-sage-300" /> }}
+                />
               ) : (
-                "Every build folder here belongs to a project."
+                t("insights.orphans.none")
               )}
             </p>
             {report.orphans.length > 0 && (
@@ -77,8 +81,8 @@ export function Orphans({
                     <button
                       type="button"
                       onClick={() => onReveal(orphan.path)}
-                      title={`Show ${orphan.path} in the file manager`}
-                      className="group flex w-full items-center justify-between gap-4 py-2.5 px-1 rounded-lg transition-colors hover:bg-forest-850/30 cursor-pointer text-left"
+                      title={t("insights.orphans.reveal", { path: orphan.path })}
+                      className="group flex w-full items-center justify-between gap-4 py-2.5 px-1 rounded-lg transition-colors hover:bg-forest-850/30 cursor-pointer text-start"
                     >
                       <div className="flex min-w-0 items-center gap-2.5">
                         <FolderSearch
@@ -93,13 +97,13 @@ export function Orphans({
                           <span className="mt-0.5 block font-mono text-[10px] text-mist-500">
                             {orphan.label}
                             {!orphan.regenerable && (
-                              <span className="text-amber-300"> · cannot be rebuilt</span>
+                              <span className="text-amber-300"> · {t("insights.orphans.cannotRebuild")}</span>
                             )}
                           </span>
                         </div>
                       </div>
                       <span className="shrink-0 font-mono text-xs font-bold text-mist-100">
-                        {orphan.bytes === null ? "unreadable" : formatBytes(orphan.bytes)}
+                        {orphan.bytes === null ? t("insights.orphans.unreadable") : formatBytes(orphan.bytes)}
                       </span>
                     </button>
                   </li>
@@ -107,15 +111,9 @@ export function Orphans({
               </ul>
 
               <div className="mt-3 grid gap-2 border-t border-forest-800 pt-3 text-[11px] leading-relaxed text-mist-500">
-                <p>
-                  Uncached will not remove these. A build folder is only ever a target when the
-                  project file that owns it sits beside it. Open one to decide for yourself.
-                </p>
+                <p>{t("insights.orphans.note")}</p>
                 {report.orphans.some((orphan) => !orphan.regenerable) && (
-                  <p>
-                    The environments above are the exception: without the project's dependency file,
-                    no command can rebuild one.
-                  </p>
+                  <p>{t("insights.orphans.exception")}</p>
                 )}
               </div>
             </>

@@ -1,3 +1,15 @@
+/**
+ * The locale sizes and ages are written in when a caller does not name one.
+ *
+ * Set by the i18n layer whenever the interface language changes. Kept here so
+ * this module stays free of any framework and testable under plain Node.
+ */
+let activeLocale = "en";
+
+export function setFormatLocale(tag) {
+  activeLocale = tag;
+}
+
 const UNITS = [
   { unit: 1024 ** 3, suffix: "GB" },
   { unit: 1024 ** 2, suffix: "MB" },
@@ -22,16 +34,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * Nothing measured yet reads as null rather than as "today": a cache whose age
  * is unknown is not a cache anybody should decide about.
  */
-export function formatAge(seconds, now = Date.now()) {
+export function formatAge(seconds, now = Date.now(), locale = activeLocale) {
   if (typeof seconds !== "number" || !Number.isFinite(seconds)) return null;
+  // `long` rather than `short`: CLDR's short Arabic form for a past month reads
+  // as a future one ("within 3 months").
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "long" });
   const days = Math.floor((now - seconds * 1000) / DAY_MS);
-  if (days < 0) return "today";
-  if (days < 1) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 30) return `${days}d ago`;
+  if (days < 1) return relative.format(0, "day");
+  if (days < 30) return relative.format(-days, "day");
   const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(months / 12)}y ago`;
+  if (months < 12) return relative.format(-months, "month");
+  return relative.format(-Math.floor(months / 12), "year");
 }
 
 /** Whether a timestamp is at least `days` old. Unknown ages are never old. */
@@ -40,12 +53,35 @@ export function isOlderThan(seconds, days, now = Date.now()) {
   return now - seconds * 1000 >= days * DAY_MS;
 }
 
-export function formatBytes(bytes) {
+/**
+ * Only the number is localised. The unit symbols are the ones every platform's
+ * tooling prints, and CLDR's own short forms differ from them in ways that
+ * would change the English output (`kB`, `byte`).
+ *
+ * Grouping is off so English stays identical to Rust's `format_size`, which
+ * the parity table in the tests checks row for row.
+ */
+export function formatBytes(bytes, locale = activeLocale) {
   const whole = Math.trunc(bytes);
   for (const { unit, suffix } of UNITS) {
-    if (whole >= unit) return `${twoPlaces(whole, unit)} ${suffix}`;
+    if (whole >= unit) {
+      const hundredths = twoPlaces(whole, unit);
+      return `${decimals(locale).format(Number(hundredths) / 100)} ${suffix}`;
+    }
   }
-  return `${whole} B`;
+  return `${integers(locale).format(whole)} B`;
+}
+
+function decimals(locale) {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  });
+}
+
+function integers(locale) {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0, useGrouping: false });
 }
 
 /**
@@ -68,5 +104,5 @@ function twoPlaces(bytes, unit) {
   if (twiceRemainder > divisor || (twiceRemainder === divisor && hundredths % 2n === 1n)) {
     hundredths += 1n;
   }
-  return `${hundredths / 100n}.${String(hundredths % 100n).padStart(2, "0")}`;
+  return hundredths;
 }

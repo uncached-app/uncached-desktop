@@ -1,0 +1,113 @@
+{
+  "header": {
+    "title": "Mantenimiento",
+    "badgePro": "Reglas y acciones",
+    "badgeFree": "Vista previa de la política",
+    "subtitle": "Automatiza la limpieza de proyectos inactivos sin arriesgar trabajo local o sin commit.",
+    "eligible_one": "proyecto elegible",
+    "eligible_other": "proyectos elegibles",
+    "reclaimable": "recuperable"
+  },
+  "scheduleNote": "La programación se ejecuta dentro de Uncached, así que cerrar a la barra de menús la mantiene activa y Salir la detiene. Retoma cualquier ejecución perdida la próxima vez que se abre la app.",
+  "policy": {
+    "title": "Política de selección automática",
+    "summary": "> {{days}}d · ≥ {{size}}",
+    "matches_one": "{{count}} coincidencia ({{size}})",
+    "matches_other": "{{count}} coincidencias ({{size}})",
+    "idleLabel": "Sin tocar durante al menos",
+    "idleChip": "{{days}}d",
+    "sizeLabel": "Tamaño de caché de al menos",
+    "sizeChipTitle": "Al menos {{size}} de caché desechable",
+    "guardSynced": "Solo son elegibles los repositorios 100% sincronizados con el remoto",
+    "guardTrash": "Siempre mueve a la Papelera (reversible)",
+    "description_one": "Recupera proyectos sin tocar desde hace más de <strong>{{count}} día</strong> con al menos <strong>{{size}}</strong> de caché desechable.",
+    "description_other": "Recupera proyectos sin tocar desde hace más de <strong>{{count}} días</strong> con al menos <strong>{{size}}</strong> de caché desechable.",
+    "idleChipTitle_one": "Sin tocar durante al menos {{count}} día",
+    "idleChipTitle_other": "Sin tocar durante al menos {{count}} días"
+  },
+  "schedule": {
+    "title": "Programación desatendida",
+    "subtitle": "Ejecuta la política de arriba sin ti y te informa de lo que eliminó.",
+    "toggle": "Ejecutar el mantenimiento de forma programada",
+    "runEvery": "Frecuencia",
+    "intervals": {
+      "daily": "Diaria",
+      "weekly": "Semanal",
+      "fortnightly": "Quincenal",
+      "monthly": "Mensual"
+    },
+    "held": {
+      "disabled": "Desactivado. No se ejecuta nada salvo con Ejecutar mantenimiento.",
+      "notLicensed": "Las ejecuciones desatendidas requieren una licencia activa.",
+      "noWorkspace": "No hay carpetas elegidas, así que no hay nada que mantener.",
+      "scanInProgress": "Esperando a que termine el análisis abierto."
+    },
+    "when": "{{date}} · {{time}}",
+    "nextRun": "Próxima ejecución <strong>{{next}}</strong>",
+    "nextRunWithLast": "Próxima ejecución <strong>{{next}}</strong> · última {{last}}",
+    "dueNow": "Pendiente. Empieza en los próximos minutos.",
+    "safety": "Una ejecución programada sigue la misma política y mueve a la Papelera. Se registra en Insights como <strong>Programación</strong>.",
+    "quitWarning": "Cerrar la ventana cierra Uncached, así que esta programación solo se ejecuta con la ventana abierta. Activa <strong>Seguir en segundo plano</strong> en Ajustes para que se cierre a la barra de menús."
+  },
+  "selection": {
+    "emptyTitle": "Ningún proyecto cumple esta regla",
+    "readyTitle": "Listos para mantenimiento ({{total}})",
+    "evaluating": "(evaluando...)",
+    "emptyHint": "Todos los proyectos del workspace están activos recientemente, por debajo del tamaño mínimo o protegidos.",
+    "readyHint": "Recuperar objetivos los mueve de forma reversible a la Papelera.",
+    "reclaimable": "{{size}} recuperables",
+    "remoteSynced": "Sincronizado",
+    "clean": "Tu workspace está limpio. Ningún proyecto inactivo alcanza el umbral.",
+    "filteredOut": "Excluidos:",
+    "skipped": {
+      "verdict": "<strong>{{total}}</strong> no seguros para automatizar",
+      "unmeasured": "<strong>{{total}}</strong> sin medir aún",
+      "unknownActivity": "<strong>{{total}}</strong> con actividad ilegible",
+      "tooRecent": "<strong>{{total}}</strong> activos recientemente",
+      "tooSmall": "<strong>{{total}}</strong> bajo el tamaño mínimo"
+    },
+    "running": "Recuperando {{done}} de {{total}}...",
+    "run": "Ejecutar mantenimiento ({{total}})",
+    "runHint": "Mueve los objetivos seleccionados a la Papelera.",
+    "scanToEnable": "Analiza tu workspace para activar el mantenimiento en un clic sobre los objetivos identificados.",
+    "done_one": "✓ {{size}} recuperados de {{count}} objetivo.",
+    "done_other": "✓ {{size}} recuperados de {{count}} objetivos.",
+    "doneWithFailures_one": "✓ {{size}} recuperados de {{count}} objetivo ({{failed}} con error).",
+    "doneWithFailures_other": "✓ {{size}} recuperados de {{count}} objetivos ({{failed}} con error).",
+    "protected_one": "{{count}} proyecto tiene trabajo sin commit o sin subir en este disco (Protegido)",
+    "protected_other": "{{count}} proyectos tienen trabajo sin commit o sin subir en este disco (Protegidos)",
+    "viewInWorkspace": "Ver en el workspace →",
+    "idle_one": "inactivo {{count}} día",
+    "idle_other": "inactivo {{count}} días"
+  },
+  "states": {
+    "noFolders": {
+      "title": "Aún no hay carpetas elegidas",
+      "body": "La política se aplica a los proyectos de las carpetas que analizas. Todavía no hay ninguna.",
+      "action": "Elegir una carpeta"
+    },
+    "reading": {
+      "title": "Leyendo tus carpetas",
+      "body": "Descubriendo proyectos..."
+    },
+    "measuring": {
+      "body": "La selección aparece cuando todos los proyectos tienen tamaño.",
+      "title_one": "Midiendo {{measured}} de {{count}} proyecto",
+      "title_other": "Midiendo {{measured}} de {{count}} proyectos"
+    },
+    "noProjects": {
+      "title_one": "Sin proyectos en la carpeta elegida",
+      "title_other": "Sin proyectos en las {{count}} carpetas elegidas",
+      "body": "Un proyecto es un directorio que contiene un repositorio o un manifiesto."
+    },
+    "indexFailed": {
+      "title": "No se pudieron leer tus carpetas"
+    },
+    "pro": {
+      "badge": "Mantenimiento Pro",
+      "title": "Pro es lo que ejecuta esta política",
+      "body": "La selección de abajo es la que usa una ejecución, y es la misma en todos los planes. Pro realiza la ejecución, la repite de forma programada sin ti y registra lo que eliminó cada una.",
+      "cta": "Obtener Uncached Pro"
+    }
+  }
+}

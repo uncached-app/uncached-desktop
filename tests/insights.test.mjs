@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import i18next from "i18next";
 import { REDACTED, buildInsights } from "../src/utils/insights.mjs";
 
 const GB = 1024 * 1024 * 1024;
@@ -34,6 +36,28 @@ function build(projects, footprints, verdicts = {}, totals = null) {
   return buildInsights({ projects, footprints, verdicts, totals, formatBytes });
 }
 
+const english = i18next.createInstance();
+await english.init({
+  lng: "en",
+  resources: {
+    en: {
+      translation: {
+        insights: JSON.parse(
+          readFileSync(new URL("../src/i18n/locales/en/insights.json", import.meta.url)),
+        ),
+      },
+    },
+  },
+  interpolation: { escapeValue: false },
+});
+
+/** The sentence as the English interface shows it. Throws on a key the catalogue lacks. */
+function render(insight) {
+  const { key, params } = insight.message;
+  assert.ok(english.exists(key, params), `${key} is not in the English catalogue`);
+  return english.t(key, params);
+}
+
 test("a quiet workspace produces no sentences at all", () => {
   const projects = [project("api")];
   const insights = build(projects, { "/w/api": footprint(1024) });
@@ -52,8 +76,14 @@ test("cold and heavy is one finding, not two", () => {
 
   const cold = build(projects, footprints).find((insight) => insight.id === "cold");
   assert.ok(cold, "a cold project holding 22 GB is worth a line");
-  assert.match(cold.text, /1 project has been untouched/);
-  assert.match(cold.text, /22\.00 GB/);
+  assert.deepEqual(cold.message, {
+    key: "insights.highlights.findings.cold",
+    params: { count: 1, days: 90, size: "22.00 GB" },
+  });
+  assert.equal(
+    render(cold),
+    "1 project has been untouched for over 90 days, holding 22.00 GB of regenerable output.",
+  );
   assert.equal(cold.action.kind, "verdict");
 });
 
@@ -78,7 +108,9 @@ test("the heaviest project is named, because a total says where nothing is", () 
   const footprints = { "/w/api": footprint(14 * GB), "/w/web": footprint(2 * GB) };
 
   const heaviest = build(projects, footprints).find((insight) => insight.id === "heaviest");
-  assert.match(heaviest.text, /^api alone holds 14\.00 GB/);
+  assert.equal(heaviest.message.key, "insights.highlights.findings.heaviest");
+  assert.deepEqual(heaviest.message.params, { name: "api", size: "14.00 GB" });
+  assert.equal(render(heaviest), "api alone holds 14.00 GB that a build can regenerate.");
   assert.deepEqual(heaviest.action, { kind: "project", path: "/w/api" });
 });
 
@@ -90,7 +122,10 @@ test("one dominant artifact kind is a finding; an even spread is not", () => {
       { category: "CargoTarget", bytes: 1 * GB },
     ]) },
   ).find((insight) => insight.id === "concentration");
-  assert.match(dominant.text, /90% of what you can reclaim is NodeModules/);
+  assert.deepEqual(dominant.message, {
+    key: "insights.highlights.findings.concentration",
+    params: { percent: 90, category: "NodeModules", size: "9.00 GB" },
+  });
 
   const spread = build(
     [project("api")],
@@ -109,8 +144,12 @@ test("work that exists only on this disk leads, and carries no byte count", () =
 
   const insights = build(projects, footprints, verdicts);
   assert.equal(insights[0].id, "protect", "risk is not sorted by size");
-  assert.match(insights[0].text, /1 project holds work that exists only on this disk/);
-  assert.doesNotMatch(insights[0].text, /GB/, "the point is not how much it weighs");
+  assert.deepEqual(insights[0].message, {
+    key: "insights.highlights.findings.protect",
+    params: { count: 1 },
+  });
+  assert.equal(render(insights[0]), "1 project holds work that exists only on this disk.");
+  assert.doesNotMatch(render(insights[0]), /GB/, "the point is not how much it weighs");
 });
 
 test("nothing invents urgency", () => {
@@ -122,7 +161,8 @@ test("nothing invents urgency", () => {
   const insights = build(projects, footprints, { "/w/dup": "protect" });
 
   for (const insight of insights) {
-    assert.doesNotMatch(insight.text, /!|now|hurry|warning|danger|urgent/i, insight.text);
+    const text = render(insight);
+    assert.doesNotMatch(text, /!|now|hurry|warning|danger|urgent/i, text);
   }
 });
 
@@ -150,7 +190,11 @@ test("every sentence that offers a destination has one the map can reach", () =>
   const reclaimed = insights.at(-1);
 
   assert.equal(reclaimed.id, "reclaimed", "history closes the list");
-  assert.match(reclaimed.text, /238\.00 GB with Uncached across 12 cleanups/);
+  assert.deepEqual(reclaimed.message, {
+    key: "insights.highlights.findings.reclaimed",
+    params: { count: 12, size: "238.00 GB" },
+  });
+  assert.equal(render(reclaimed), "You have reclaimed 238.00 GB with Uncached across 12 cleanups.");
   assert.equal(reclaimed.action, undefined, "the past has no destination");
 
   // The fixture has to actually produce the findings whose destinations were
@@ -199,7 +243,12 @@ test("history alone still speaks, on a workspace with nothing to report", () => 
   const totals = { allTimeBytes: 5 * GB, last30DaysBytes: 0, cleanups: 1, firstRecordedAt: null };
   const insights = build([project("api")], { "/w/api": footprint(0) }, {}, totals);
   assert.equal(insights.length, 1);
-  assert.match(insights[0].text, /1 cleanup\b/, "singular when it happened once");
+  assert.equal(insights[0].message.params.count, 1);
+  assert.equal(
+    render(insights[0]),
+    "You have reclaimed 5.00 GB with Uncached across 1 cleanup.",
+    "singular when it happened once",
+  );
 });
 
 test("a plan without measurements reads every finding and none of the numbers", () => {
@@ -225,11 +274,41 @@ test("a plan without measurements reads every finding and none of the numbers", 
     paid.map((insight) => insight.id),
   );
   for (const insight of free) {
-    assert.doesNotMatch(insight.text, /GB|MB|KB/, `${insight.id} leaked a measurement`);
+    assert.doesNotMatch(render(insight), /GB|MB|KB/, `${insight.id} leaked a measurement`);
   }
 
   // The one sentence that must never be withheld: warning someone they are
   // about to lose work is not a paid feature.
-  const risk = (list) => list.find((insight) => insight.id === "protect").text;
-  assert.equal(risk(free), risk(paid), "the risk warning reads the same on every plan");
+  const risk = (list) => list.find((insight) => insight.id === "protect").message;
+  assert.deepEqual(risk(free), risk(paid), "the risk warning reads the same on every plan");
+});
+
+test("every finding has an English sentence with no placeholder left unfilled", () => {
+  const projects = [
+    project("old", { activity: { idleDays: 300, state: "cold" } }),
+    project("dup", { duplicateOf: ["/elsewhere/dup"] }),
+    project("stale"),
+    project("secret"),
+  ];
+  const footprints = {
+    "/w/old": footprint(20 * GB, [{ category: "NodeModules", bytes: 20 * GB }]),
+    "/w/dup": footprint(5 * GB),
+    "/w/stale": footprint(GB),
+    "/w/secret": footprint(1024),
+  };
+  const verdicts = { "/w/stale": "staleDeps", "/w/secret": "protect" };
+  const totals = { allTimeBytes: 3 * GB, last30DaysBytes: 0, cleanups: 2, firstRecordedAt: null };
+
+  const insights = build(projects, footprints, verdicts, totals);
+  assert.deepEqual(
+    insights.map((insight) => insight.id).sort(),
+    ["cold", "concentration", "duplicates", "heaviest", "protect", "reclaimed", "stale"],
+  );
+  for (const insight of insights) {
+    assert.doesNotMatch(render(insight), /\{\{|\}\}|insights\./, insight.id);
+  }
+  assert.equal(
+    render(insights.find((insight) => insight.id === "stale")),
+    "1 project has dependencies that no longer match its lockfile.",
+  );
 });

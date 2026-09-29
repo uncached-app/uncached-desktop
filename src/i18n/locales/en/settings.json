@@ -1,0 +1,277 @@
+{
+  "title": "Settings",
+  "close": "Close settings",
+  "cancel": "Cancel",
+  "loading": "Loading settings...",
+  "saving": "Saving...",
+  "saved": "Saved automatically",
+  "sectionPicker": "Settings section",
+  "sectionNav": "Settings sections",
+  "sections": {
+    "general": "General",
+    "opening": "Opening",
+    "scanning": "Scanning",
+    "ignoreRules": "Ignore rules",
+    "deletion": "Deletion",
+    "shortcuts": "Shortcuts",
+    "appearance": "Appearance",
+    "licence": "Licence",
+    "about": "About"
+  },
+  "general": {
+    "intro": "Configure application startup, background operation and automatic updates.",
+    "openAtStartup": {
+      "label": "Open at startup",
+      "hint": "Automatically start Uncached when you log in to your computer."
+    },
+    "keepRunning": {
+      "label": "Keep running in the background",
+      "hint": "Closing the window hides Uncached in the menu bar instead of quitting it. Scheduled maintenance runs from there; Quit ends it until you open the app again."
+    },
+    "rememberWorkspace": {
+      "label": "Remember last workspace",
+      "hint": "Restore your previously open folders and analysis automatically on launch."
+    },
+    "checkUpdates": {
+      "label": "Check for updates",
+      "hint": "Periodically check for new releases and security improvements."
+    }
+  },
+  "language": {
+    "label": "Language",
+    "hint": "The interface, the menu bar and notifications.",
+    "system": "System ({{name}})"
+  },
+  "permanentConfirm": {
+    "title": "Enable permanent deletion?",
+    "body": "Targets are deleted directly from disk instead of moved to the Recycle Bin. Not recoverable. Each cleanup will require typing <strong>{{word}}</strong> to confirm.",
+    "confirm": "Enable permanent deletion"
+  },
+  "opening": {
+    "intro": "Choose which installed application opens when launching a project or terminal.",
+    "editor": {
+      "label": "Editor",
+      "hint": "Left automatic, the editor built for the project's language leads, then any general-purpose one.",
+      "empty": "No editor was found in your Applications folder."
+    },
+    "terminal": {
+      "label": "Terminal",
+      "hint": "No platform exposes a default terminal an app opening a directory could read, so automatic is whichever was found first.",
+      "empty": "No terminal was found."
+    },
+    "automatic": "Automatic",
+    "notInstalled": "Not installed",
+    "detecting": "Reading what this machine has installed...",
+    "uninstalled": "The one you chose is no longer installed, so opening falls back to detection."
+  },
+  "scanning": {
+    "intro": "Build artifacts inside your folders are always detected. These are the caches that live elsewhere, written by tools rather than by a project.",
+    "packageManagers": {
+      "label": "Package manager caches",
+      "hint": "Include npm, pnpm, yarn, cargo, pip, and uv global package caches."
+    },
+    "aiTools": {
+      "label": "AI tool caches",
+      "hint": "Include Claude Code, the Claude app, Codex, and opencode caches."
+    },
+    "editors": {
+      "label": "Editor caches",
+      "hint": "Include VS Code and JetBrains workspace metadata caches."
+    },
+    "gameEngines": {
+      "label": "Game engine caches",
+      "hint": "Include Unity's package and Asset Store downloads, and Godot's editor cache and export templates."
+    },
+    "androidSdk": {
+      "label": "Android SDK",
+      "hint": "Include downloaded system images and the emulators built from them."
+    },
+    "containerStorage": {
+      "label": "Container storage",
+      "hint": "Report the size of Docker Desktop's disk image. Uncached never removes it."
+    },
+    "xcode": {
+      "label": "Xcode developer data",
+      "hint": "Include DerivedData, device support, simulators, and simulator runtimes."
+    },
+    "footer": "To leave something inside a workspace alone, add it under Ignore rules — a rule there covers every kind of artifact and applies to scheduled runs too."
+  },
+  "ignoreRules": {
+    "intro": "Paths listed here are never scanned and never deleted, whatever the app finds there. One rule per line, in <mono>{{syntax}}</mono> syntax — a bare name matches anywhere, a full path matches that path and everything under it, and <mono>{{negation}}</mono> makes an exception.",
+    "problem": "<bold>Line {{line}}</bold> could not be read, so it protects nothing: <rule/> — <reason/>",
+    "empty": "No rules yet. Everything the scan finds is offered.",
+    "inForce_one": "{{count}} rule is in force.",
+    "inForce_other": "{{count}} rules are in force."
+  },
+  "deletion": {
+    "intro": "Choose how build artifacts and caches are removed from your disk during cleanup.",
+    "trash": {
+      "label": "Move to Recycle Bin",
+      "hint": "Reclaimable artifacts are moved to the system Recycle Bin/Trash, so cleanups can be reversed."
+    },
+    "permanent": {
+      "label": "Permanently delete",
+      "hint": "Targets are deleted directly from disk to free up space immediately. Each run requires confirmation."
+    }
+  },
+  "appearance": {
+    "intro": "Choose your interface theme.",
+    "lockedToLight": "{{name}} is a light theme — it carries no colours for the other, so this follows it.",
+    "lockedToDark": "{{name}} is a dark theme — it carries no colours for the other, so this follows it.",
+    "lacksDark": "{{name}} carries no dark colours.",
+    "lacksLight": "{{name}} carries no light colours.",
+    "dark": {
+      "label": "Dark",
+      "hint": "Sleek dark theme optimized for low-light development environments."
+    },
+    "light": {
+      "label": "Light",
+      "hint": "Clean high-contrast light theme."
+    },
+    "system": {
+      "label": "System",
+      "hint": "Automatically follows your operating system appearance preference."
+    },
+    "themesIntro": "A theme file renames some of the app's colours and leaves the rest, so one written today still works after a release adds a surface.",
+    "theme": {
+      "label": "Theme",
+      "both": "Carries both light and dark.",
+      "yours_one": "{{count}} of these is yours.",
+      "yours_other": "{{count}} of these are yours.",
+      "custom": "{{name}} (custom)"
+    },
+    "files": {
+      "label": "Your settings and themes",
+      "hint": "<mono>{{file}}</mono> and a <mono>{{folder}}</mono> folder, in your own Library. Edit either and come back — both are read again when the window is.",
+      "open": "Open folder"
+    }
+  },
+  "about": {
+    "tagline": "Reclaim disk from build artifacts.",
+    "version": "Version {{version}}",
+    "eula": "End User License Agreement (EULA)",
+    "update": {
+      "available": "Uncached {{version}} is available",
+      "downloading": "Downloading {{version}}",
+      "downloadingProgress": "Downloading {{version}} — {{percent}}%",
+      "ready": "Uncached {{version}} is installed — restart to use it",
+      "checking": "Checking…",
+      "showProgress": "Show progress",
+      "whatsNew": "See what's new",
+      "restart": "Restart now",
+      "check": "Check for updates"
+    }
+  },
+  "license": {
+    "reading": "Reading your licence...",
+    "active": {
+      "tagline": "All features active on this machine",
+      "badge": "Active",
+      "renews_one": "Licence renews in {{count}} day.",
+      "renews_other": "Licence renews in {{count}} days.",
+      "renewalEmail": "Your receipt and updated key will arrive by email.",
+      "holder": "Licensed to",
+      "seats": "Authorized seats",
+      "machines_one": "{{count}} machine",
+      "machines_other": "{{count}} machines",
+      "expiration": "Expiration",
+      "perpetual": "Perpetual",
+      "reference": "Reference",
+      "copyReference": "Copy reference, for a support request",
+      "movingTitle": "Moving to another machine?",
+      "movingHint": "Take your key with you before removing it here.",
+      "copied": "Copied",
+      "copyKey": "Copy licence key",
+      "removing": "Removing...",
+      "confirmRemove": "Yes, remove it",
+      "remove": "Remove from this machine"
+    },
+    "expired": {
+      "title": "Licence expired",
+      "holderAndDate": "{{holder}} · {{date}}",
+      "badge": "Lapsed",
+      "body": "Pro features are locked until it is renewed. Everything Free does is untouched — no project and nothing on disk is affected by this."
+    },
+    "free": {
+      "badge": "Current plan",
+      "body": "Free reclaims every artifact of every project, with no limits. Pro adds the readings that span the whole workspace:"
+    },
+    "features": {
+      "map": "Interactive 2D workspace map",
+      "schedule": "Automated background cleanups",
+      "duplicates": "Cross-project duplicate insights",
+      "analytics": "Lifetime reclaimed analytics"
+    },
+    "form": {
+      "keyLabel": "Licence key",
+      "renewedKeyLabel": "Renewed licence key",
+      "placeholder": "Paste the key from your receipt",
+      "partialKey": "This looks like part of a key. Paste the whole line from your receipt.",
+      "failed": "Activation failed. Please check your key.",
+      "validating": "Validating...",
+      "activate": "Activate Pro",
+      "reactivate": "Reactivate Pro",
+      "getLicence": "Get a licence",
+      "renewLicence": "Renew licence",
+      "offline": "Activation is offline. The key carries its own signature, so nothing is sent anywhere and it keeps working without a connection."
+    },
+    "errors": {
+      "licence_malformed": "That is not a licence key. Paste the whole line from your receipt.",
+      "licence_bad_signature": "This key was not issued by Uncached, or it was altered in transit.",
+      "licence_unsupported_version": "This key needs a newer version of Uncached to read (format {{version}}).",
+      "licence_expired": "This licence expired on {{date}}.",
+      "licence_not_pro": "This key unlocks \"{{plan}}\", which this build has nothing to unlock.",
+      "licence_no_public_key": "This build cannot verify licences. It was compiled without a signing key."
+    }
+  },
+  "shortcuts": {
+    "intro": "Click a key to record a new one. These are stored in <mono>{{file}}</mono> by action name, so only what you changed is kept and a default that moves in an update moves for you too.",
+    "clash": "Two commands share a key. Which of them answers to it is not something this app decides — change one.",
+    "resetTitle": "Back to {{binding}}",
+    "resetLabel": "Reset {{action}}",
+    "pressKey": "Press a key",
+    "footer": "A key with no modifier only fires when nothing is being typed into, and never appears in the menu bar — the system would claim it, and it would stop reaching what it is for.",
+    "actions": {
+      "palette": {
+        "label": "Command Palette",
+        "detail": "Every project and every module, by name."
+      },
+      "rescan": {
+        "label": "Scan Workspace",
+        "detail": "Reads the chosen folders again."
+      },
+      "quickClean": {
+        "label": "Reclaim Disk",
+        "detail": "Opens the artifacts the last scan found, ready to review."
+      },
+      "settings": {
+        "label": "Settings",
+        "detail": "The panel. macOS puts this one under the app menu itself."
+      },
+      "toggleMap": {
+        "label": "Map",
+        "detail": "Switches between the list and the picture, and back."
+      },
+      "toggleSidebar": {
+        "label": "Filters",
+        "detail": "Folds the filter column away and back."
+      },
+      "focusFilter": {
+        "label": "Filter Projects",
+        "detail": "Jumps to the filter field from anywhere on the screen."
+      },
+      "workspace": {
+        "label": "Workspace",
+        "detail": "The projects, and what they weigh."
+      },
+      "maintenance": {
+        "label": "Maintenance",
+        "detail": "The policy, and what it would select."
+      },
+      "insights": {
+        "label": "Insights",
+        "detail": "The workspace as one picture, and what has been reclaimed."
+      }
+    }
+  }
+}

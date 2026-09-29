@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { ProjectRow } from "./ProjectRow";
 import { formatBytes } from "../../../utils/format.mjs";
 import { VERDICT_PRESENTATION } from "../verdictPresentation";
@@ -24,6 +25,7 @@ export function VerdictGroup({
   onOpenProject: (path: string) => void;
   onContextMenu: (project: WorkspaceProject, event: React.MouseEvent) => void;
 }) {
+  const { t } = useTranslation();
   const presentation = VERDICT_PRESENTATION[verdict];
   const reclaimable = projects.reduce(
     (sum, project) => sum + (footprints[project.path]?.reclaimableBytes ?? 0),
@@ -37,17 +39,17 @@ export function VerdictGroup({
         <div className="flex min-w-0 items-center gap-2">
           <span className={`size-2 shrink-0 rounded-full ${presentation.dotClassName}`} aria-hidden="true" />
           <h2 id={`verdict-${verdict}`} className="shrink-0 text-xs font-semibold text-mist-100">
-            {presentation.label}
+            {t(presentation.labelKey)}
           </h2>
           <span className="shrink-0 rounded-md bg-forest-850 px-1.5 py-0.5 font-mono text-[10px] font-medium text-mist-300">
             {projects.length}
           </span>
-          <span className="hidden sm:inline-block truncate text-xs text-mist-500">· {presentation.summary}</span>
+          <span className="hidden sm:inline-block truncate text-xs text-mist-500">· {t(presentation.summaryKey)}</span>
         </div>
 
         {reclaimable > 0 && (
           <span className="shrink-0 rounded-md bg-forest-900 border border-forest-800 px-2 py-0.5 font-mono text-[11px] font-medium text-sage-300">
-            {formatBytes(reclaimable)} reclaimable
+            {t("workspace.list.reclaimable", { size: formatBytes(reclaimable) })}
           </span>
         )}
       </div>

@@ -1,0 +1,198 @@
+{
+  "module": {
+    "title": "インサイト",
+    "badge": {
+      "pro": "分析とトレンド",
+      "free": "スキャンインテリジェンス"
+    },
+    "intro": {
+      "pro": "記録されたすべてのクリーンアップ、ディスク回収のペース、前回のスキャンの集計。",
+      "free": "ワークスペースのリアルタイムの計測値です。Pro にアップグレードすると、回収履歴とトレンドを継続して記録できます。"
+    },
+    "stage": {
+      "orphans": "プロジェクトが存在しないビルドフォルダを検索中…",
+      "repositories": "すべてのリポジトリで不要なブランチとスタッシュを読み取り中…",
+      "duplicates": "すべての node_modules で同一のコピーを読み取り中…"
+    },
+    "closerLook": {
+      "title": "詳細",
+      "settled": "ワークスペースの確定時点で読み取った内容です。",
+      "readingLabel": "ワークスペースを読み取り中",
+      "readAgainLabel": "ワークスペースを再読み取り",
+      "reading": "読み取り中…",
+      "readAgain": "再読み取り"
+    }
+  },
+  "reading": "読み取り中",
+  "storage": {
+    "noAnswer": "このボリュームから応答がありません。",
+    "title": "このディスク",
+    "readAgain": "ボリュームを再読み取り",
+    "usedOf": "{{total}} 中 {{used}} 使用",
+    "capacity": "容量",
+    "used": "使用済み",
+    "free": "空き",
+    "purgeable": "パージ可能",
+    "purgeableHint": "使用済みとして数えられ、空き容量が必要になった時点で解放されます。スナップショットや、システムが再取得できるものです。",
+    "withheld": "システムが一部のディレクトリを Uncached に公開しないため、スキャンの合計はすべて正確な値ではなく下限値です。",
+    "openFullDiskAccess": "フルディスクアクセスを開く"
+  },
+  "pro": {
+    "badge": "Pro 分析",
+    "title": "クリーンアップ履歴とインテリジェンスは Uncached Pro の機能です",
+    "body": "Free は毎回マシンを新たに読み取ります。Pro はスケジュールによる自動実行を含むすべてのクリーンアップを記録し、タイムライングラフ、エコシステム別の内訳、ワークスペースをまたいだディスクのトレンドを表示します。",
+    "cta": "Uncached Pro を入手"
+  },
+  "noHistory": {
+    "title": "クリーンアップの記録はまだありません",
+    "body": "キャッシュやビルド成果物をクリーンアップすると、履歴と内訳が自動的に表示されます。"
+  },
+  "filterChips": {
+    "label": "絞り込み",
+    "dimension": "{{dimension}}：",
+    "clearAll": "すべてクリア"
+  },
+  "dimensions": {
+    "category": "成果物",
+    "workspace": "ワークスペース",
+    "trigger": "実行者",
+    "mode": "削除方法"
+  },
+  "values": {
+    "unrecorded": "記録なし",
+    "trash": "ゴミ箱",
+    "permanent": "完全に削除",
+    "scheduled": "スケジュール",
+    "manual": "手動"
+  },
+  "grains": {
+    "word": {
+      "day": "日",
+      "week": "週",
+      "month": "月",
+      "all": "全期間"
+    },
+    "option": {
+      "day": "日別",
+      "week": "週別",
+      "month": "月別",
+      "all": "全期間"
+    },
+    "window": {
+      "day_other": "{{count}} 日",
+      "week_other": "{{count}} 週間",
+      "month_other": "{{count}} か月"
+    }
+  },
+  "summary": {
+    "reclaimed": "回収したディスク",
+    "allRecorded": "記録された全期間",
+    "last": {
+      "day_other": "過去 {{count}} 日",
+      "week_other": "過去 {{count}} 週間",
+      "month_other": "過去 {{count}} か月"
+    },
+    "versus": {
+      "day_other": "前の {{count}} 日と比較",
+      "week_other": "前の {{count}} 週間と比較",
+      "month_other": "前の {{count}} か月と比較"
+    },
+    "trend": "{{percent}}%",
+    "cleanups": "クリーンアップ",
+    "activeDays_other": "稼働日数 {{count}} 日",
+    "largest": "最大のクリーンアップ",
+    "largestNote": "単一の成果物で最大",
+    "average": "平均クリーンアップ",
+    "averageNote": "1 回あたりの回収量"
+  },
+  "timeline": {
+    "titleByGrain": "<word>回収量</word><word>/</word><picker></picker>",
+    "titleAllTime": "<word>回収量</word><picker></picker>",
+    "bucket": "{{date}}：",
+    "bucketCleanups_other": "（{{count}} 回のクリーンアップ）",
+    "peak": "ピーク：",
+    "chartLabel": "回収したディスクの推移"
+  },
+  "breakdown": {
+    "filtered": "絞り込み中",
+    "empty": "この期間の記録はありません。",
+    "cleanups_other": "{{count}} 回のクリーンアップ",
+    "share": "構成比 {{percent}}%"
+  },
+  "eventLog": {
+    "title": "クリーンアップのイベントログ",
+    "pickedOf_other": "{{count}} 件中 <picker>{{shown}}</picker> 件",
+    "shownOf_other": "{{count}} 件中 {{shown}} 件",
+    "all": "すべて（{{count}}）",
+    "empty": "この期間のクリーンアップの記録はありません。",
+    "pathNotRecorded": "パスの記録なし",
+    "copyPath": "パスをコピー",
+    "schedule": "スケジュール",
+    "nuke": "完全削除",
+    "trash": "ゴミ箱",
+    "showMore_other": "さらに {{count}} 件のイベントを表示"
+  },
+  "portrait": {
+    "title": "このワークスペース",
+    "projects_other": "{{count}} 件のプロジェクト",
+    "pending_other": "{{count}} 件を計測中",
+    "onDisk": "ディスク上",
+    "reclaimable": "回収可能",
+    "yourWork": "作業データ",
+    "barLabel": "ワークスペース全体の成果物別の回収可能量"
+  },
+  "highlights": {
+    "title": "前回のスキャンからの検出事項",
+    "scanned_other": "{{count}} 件のプロジェクトをスキャン済み",
+    "emptyTitle": "目立った点はありません",
+    "emptyNoScan": "ワークスペースをスキャンすると、検出事項と推奨事項が表示されます。",
+    "emptyQuiet": "放置、過大、重複、ロックファイルとの不一致に該当するプロジェクトはありません。",
+    "view": "ワークスペースで表示",
+    "findings": {
+      "cold_other": "{{count}} 件のプロジェクトが {{days}} 日以上更新されておらず、再生成可能な出力を {{size}} 保持しています。",
+      "heaviest": "{{name}} だけで、ビルドで再生成できる {{size}} を保持しています。",
+      "concentration": "回収可能な容量の {{percent}}%（{{size}}）が{{category}}です。",
+      "duplicates_other": "{{count}} 件のプロジェクトが、別の場所にあるリポジトリのコピーです。",
+      "stale_other": "{{count}} 件のプロジェクトで、依存関係がロックファイルと一致していません。",
+      "protect_other": "{{count}} 件のプロジェクトが、このディスクにしかない作業を保持しています。",
+      "reclaimed_other": "Uncached で {{count}} 回のクリーンアップにより {{size}} を回収しました。"
+    }
+  },
+  "duplicates": {
+    "title": "重複した依存関係",
+    "distinct_other": "{{count}} 個の異なるパッケージ",
+    "wasted": "プロジェクト間の同一コピーが <size>{{size}}</size> を占有",
+    "none": "プロジェクト間で重複しているものはありません。",
+    "copies_other": "{{count}} 件のプロジェクト",
+    "each": "各 {{size}}",
+    "hidden_other": "ほかに {{count}} 個のパッケージが重複しています。Pro ですべて表示されます。",
+    "shared_other": "{{count}} 件のプロジェクトは、パッケージをコピーせず共有ストアにリンクしています。",
+    "note": "各パッケージのコピーを 1 つだけ計測し、残りは計算で求めています。ネイティブのコンパイル済みバイナリを含むパッケージは、プロジェクトによってサイズが異なる場合があります。"
+  },
+  "repositories": {
+    "title": "リポジトリの整理",
+    "examined_other": "{{count}} 個のリポジトリ",
+    "carrying_other": "<count>{{count}}</count> 個のリポジトリに未マージの項目があります",
+    "clean": "すべてのリポジトリがクリーンです。",
+    "prunable_other": "{{count}} 個が削除可能",
+    "deadTitle_other": "{{count}} 個の不要なブランチ",
+    "dead_other": "{{count}} 個が不要",
+    "stashesTitle_other": "{{count}} 件のスタッシュ",
+    "stashed_other": "スタッシュ {{count}} 件",
+    "worktrees_other": "{{count}} 個のワークツリー",
+    "prunableNote_other": "不要なブランチ <strong>{{count}} 個中 {{prunable}} 個</strong>を削除できます。残りは、ほかのどこからも到達できないコミットを保持しています。削除するにはリポジトリを開いてください。",
+    "noneSafe": "これらのブランチはどれも安全に削除できません。コミットにほかのどこからも到達できないためです。スタッシュとワークツリーは報告のみで、操作しません。"
+  },
+  "orphans": {
+    "title": "取り残されたフォルダ",
+    "looking": "検索中",
+    "examined_other": "{{count}} 個のフォルダを確認済み",
+    "found": "<size>{{size}}</size> がどのプロジェクトにも属していません",
+    "none": "ここにあるビルドフォルダはすべてプロジェクトに属しています。",
+    "reveal": "{{path}} をファイルマネージャで表示",
+    "cannotRebuild": "再ビルド不可",
+    "unreadable": "読み取り不可",
+    "note": "Uncached はこれらを削除しません。ビルドフォルダが削除対象になるのは、それを所有するプロジェクトファイルが隣にある場合だけです。開いて判断してください。",
+    "exception": "上記の環境は例外です。プロジェクトの依存関係ファイルがなければ、どのコマンドでも再ビルドできません。"
+  }
+}

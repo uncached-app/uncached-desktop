@@ -1,29 +1,33 @@
-import { categoryPresentation } from "../../components/findings/categoryPresentation";
+import type { TFunction } from "i18next";
+import { translatedCategoryPresentation } from "../../components/findings/categoryPresentation";
 import type { Dimension, Report } from "../../utils/report.d.mts";
 
-export const DIMENSION_LABELS: Record<Dimension, string> = {
-  category: "Artifact",
-  workspace: "Workspace",
-  trigger: "Started by",
-  mode: "Removed to",
-};
+const DIMENSION_LABEL_KEYS = {
+  category: "insights.dimensions.category",
+  workspace: "insights.dimensions.workspace",
+  trigger: "insights.dimensions.trigger",
+  mode: "insights.dimensions.mode",
+} as const satisfies Record<Dimension, string>;
 
-/** The value written when the event predates the dimension it is missing. */
-export const UNRECORDED = "Unrecorded";
+export function dimensionLabel(t: TFunction, dimension: Dimension): string {
+  return t(DIMENSION_LABEL_KEYS[dimension]);
+}
 
 /** How many cleanups the log shows before it stops being a list. */
 export const EVENT_PAGE = 10;
 
 /** A dimension value, in the words the rest of the app already uses. */
-export function labelFor(dimension: Dimension, key: string | null): string {
-  if (key === null) return UNRECORDED;
-  if (dimension === "category") return categoryPresentation(key).label;
+export function labelFor(t: TFunction, dimension: Dimension, key: string | null): string {
+  if (key === null) return t("insights.values.unrecorded");
+  if (dimension === "category") return translatedCategoryPresentation(key, t).label;
   if (dimension === "workspace") {
     const segments = key.split("/").filter(Boolean);
     return segments.length > 0 ? segments[segments.length - 1] : key;
   }
-  if (dimension === "mode") return key === "Trash" ? "Recycle Bin" : "Permanently";
-  return key === "Scheduled" ? "A schedule" : "You";
+  if (dimension === "mode") {
+    return key === "Trash" ? t("insights.values.trash") : t("insights.values.permanent");
+  }
+  return key === "Scheduled" ? t("insights.values.scheduled") : t("insights.values.manual");
 }
 
 /**
@@ -32,15 +36,15 @@ export function labelFor(dimension: Dimension, key: string | null): string {
  * A month bucket labelled "1 Aug" reads as a day, and two of them a year apart
  * read as the same bucket — which is exactly how an axis stops meaning anything.
  */
-export function formatBucket(iso: string, bucket: Report["bucket"]): string {
+export function formatBucket(iso: string, bucket: Report["bucket"], locale: string): string {
   const date = new Date(iso);
-  if (bucket === "month") return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  if (bucket === "month") return date.toLocaleDateString(locale, { month: "short", year: "numeric" });
+  return date.toLocaleDateString(locale, { month: "short", day: "numeric" });
 }
 
-export function formatMoment(iso: string): string {
+export function formatMoment(iso: string, locale: string): string {
   const date = new Date(iso);
-  const dayMonth = date.toLocaleDateString(undefined, { month: "short", day: "numeric" }).replace(/\.$/, "");
-  const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const dayMonth = date.toLocaleDateString(locale, { month: "short", day: "numeric" }).replace(/\.$/, "");
+  const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   return `${dayMonth} · ${time}`;
 }

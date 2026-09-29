@@ -1,4 +1,5 @@
 import { HardDrive } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { CategoryBar, CategoryLegend } from "../../components/CategoryBar";
 import { VERDICT_PRESENTATION } from "../../components/workspace/verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
@@ -22,6 +23,7 @@ export function Portrait({
   portrait: PortraitData;
   onOpenWorkspace: () => void;
 }) {
+  const { t } = useTranslation();
   if (portrait.projects === 0) return null;
 
   return (
@@ -30,24 +32,24 @@ export function Portrait({
         <div>
           <h2 className="flex items-center gap-2 text-sm font-semibold text-mist-100">
             <HardDrive size={15} className="text-mist-500" aria-hidden="true" />
-            This workspace
+            {t("insights.portrait.title")}
           </h2>
           <p className="mt-0.5 text-xs text-mist-500">
-            {portrait.projects} {portrait.projects === 1 ? "project" : "projects"}
+            {t("insights.portrait.projects", { count: portrait.projects })}
             {/* Named rather than waited for: a figure that keeps climbing while
                 someone reads it is a figure they stop believing. */}
-            {portrait.pending > 0 && <> · {portrait.pending} still being measured</>}
+            {portrait.pending > 0 && <> · {t("insights.portrait.pending", { count: portrait.pending })}</>}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Metric value={formatBytes(portrait.totalBytes)} label="on disk" />
+          <Metric value={formatBytes(portrait.totalBytes)} label={t("insights.portrait.onDisk")} />
           <Metric
             value={formatBytes(portrait.reclaimableBytes)}
-            label="reclaimable"
+            label={t("insights.portrait.reclaimable")}
             accent={portrait.reclaimableBytes > 0}
           />
-          <Metric value={formatBytes(portrait.sourceBytes)} label="your work" />
+          <Metric value={formatBytes(portrait.sourceBytes)} label={t("insights.portrait.yourWork")} />
         </div>
       </div>
 
@@ -56,7 +58,7 @@ export function Portrait({
           <div className="mt-4">
             <CategoryBar
               entries={portrait.categories}
-              label="Reclaimable weight across the workspace, by artifact"
+              label={t("insights.portrait.barLabel")}
             />
           </div>
           <div className="mt-4">
@@ -75,7 +77,7 @@ export function Portrait({
                 key={verdict}
                 type="button"
                 onClick={() => onOpenWorkspace()}
-                title={presentation.summary}
+                title={t(presentation.summaryKey)}
                 className="group inline-flex items-center gap-1.5 text-xs text-mist-500 transition-colors hover:text-mist-100"
               >
                 <span
@@ -85,7 +87,7 @@ export function Portrait({
                 <span className="font-mono font-semibold text-mist-300 group-hover:text-mist-100">
                   {count}
                 </span>
-                <span>{presentation.label}</span>
+                <span>{t(presentation.labelKey)}</span>
               </button>
             );
           })}
@@ -105,7 +107,7 @@ function Metric({
   accent?: boolean;
 }) {
   return (
-    <div className="text-right">
+    <div className="text-end">
       <span
         className={`block font-mono text-sm font-bold ${accent ? "text-sage-300" : "text-mist-100"}`}
       >

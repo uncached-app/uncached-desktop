@@ -1,4 +1,5 @@
 import { Folder, FolderGit2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ProjectRow } from "./ProjectRow";
 import { formatBytes } from "../../../utils/format.mjs";
 import type { Footprint, RunningProject, Verdict, WorkspaceProject } from "../../../types/workspace";
@@ -53,6 +54,7 @@ export function FamilyGroup({
    */
   onFolderMenu?: (event: React.MouseEvent) => void;
 }) {
+  const { t } = useTranslation();
   const reclaimable = projects.reduce(
     (sum, project) => sum + (footprints[project.path]?.reclaimableBytes ?? 0),
     0,
@@ -94,7 +96,7 @@ export function FamilyGroup({
 
         {reclaimable > 0 && (
           <span className="shrink-0 rounded-md border border-forest-800 bg-forest-900 px-2 py-0.5 font-mono text-[11px] font-medium text-sage-300">
-            {formatBytes(reclaimable)} reclaimable
+            {t("workspace.list.reclaimable", { size: formatBytes(reclaimable) })}
           </span>
         )}
       </div>

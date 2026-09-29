@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Check, Copy, Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { ScanTarget } from "../../types/scan";
 import { formatBytes } from "../../utils/format.mjs";
 import { copyText } from "../../utils/clipboard";
 
 export function ReportedOnlyList({ targets }: { targets: ScanTarget[] }) {
+  const { t } = useTranslation();
   if (targets.length === 0) return null;
 
   const totalBytes = targets.reduce((sum, target) => sum + target.sizeBytes, 0);
@@ -13,12 +15,12 @@ export function ReportedOnlyList({ targets }: { targets: ScanTarget[] }) {
     <section aria-labelledby="reported-only-title" className="mt-6">
       <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
         <h2 id="reported-only-title" className="text-sm font-semibold text-mist-300">
-          Not removed by Uncached
+          {t("findings.reportedOnly.title")}
         </h2>
         <span className="font-mono text-[11px] text-mist-500">{formatBytes(totalBytes)}</span>
       </div>
       <p className="mb-3 px-1 text-xs leading-5 text-mist-500">
-        The tool that owns these reclaims them safely. Run its command in a terminal.
+        {t("findings.reportedOnly.intro")}
       </p>
       <div className="overflow-hidden rounded-2xl border border-forest-800 bg-forest-900 shadow-xs">
         {targets.map((target, position) => (
@@ -30,6 +32,7 @@ export function ReportedOnlyList({ targets }: { targets: ScanTarget[] }) {
 }
 
 function ReportedOnlyRow({ target, first }: { target: ScanTarget; first: boolean }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const command = target.reclaimWith;
 
@@ -64,12 +67,12 @@ function ReportedOnlyRow({ target, first }: { target: ScanTarget; first: boolean
         <strong className="shrink-0 text-sm font-semibold text-mist-300">{formatBytes(target.sizeBytes)}</strong>
       </div>
       {command && (
-        <div className="ml-8.5 flex min-w-0 items-center gap-2 rounded-lg border border-forest-800 bg-forest-950 py-1 pl-3 pr-1">
+        <div className="ms-8.5 flex min-w-0 items-center gap-2 rounded-lg border border-forest-800 bg-forest-950 py-1 ps-3 pe-1">
           <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-mist-300 select-text">{command}</code>
           <button
             type="button"
             onClick={copyCommand}
-            aria-label={`Copy command for ${target.label ?? target.name}`}
+            aria-label={t("findings.reportedOnly.copyCommand", { name: target.label ?? target.name })}
             className="grid size-7 shrink-0 place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-800 hover:text-mist-100"
           >
             {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}

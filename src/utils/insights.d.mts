@@ -14,10 +14,24 @@ export type InsightAction =
   | { kind: "category"; category: string }
   | { kind: "duplicates" };
 
+/** An i18n key under `insights.highlights.findings`, and what fills it. */
+export type InsightMessage = {
+  key:
+    | "insights.highlights.findings.cold"
+    | "insights.highlights.findings.heaviest"
+    | "insights.highlights.findings.concentration"
+    | "insights.highlights.findings.duplicates"
+    | "insights.highlights.findings.stale"
+    | "insights.highlights.findings.protect"
+    | "insights.highlights.findings.reclaimed";
+  /** Byte counts arrive already formatted by the injected `formatBytes`. */
+  params: Record<string, string | number>;
+};
+
 export type Insight = {
   id: string;
   bytes: number;
-  text: string;
+  message: InsightMessage;
   pinned?: boolean;
   action?: InsightAction;
 };

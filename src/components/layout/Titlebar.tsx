@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { isTauri } from "@tauri-apps/api/core";
 import { Check, Maximize2, Minus, Settings, Square, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Step } from "../../types/scan";
 import type { AppModule } from "../../types/module";
 import type { ResultsView } from "../../hooks/usePurgeFlow";
 import { UpdateBadge } from "./UpdateBadge";
 import type { UpdateState } from "../../hooks/useUpdate";
 
-const STEPS = ["Workspace", "Scan", "Review", "Done"] as const;
+const STEPS = ["workspace", "scan", "review", "done"] as const;
 
 export function Titlebar({
   step,
@@ -27,6 +28,7 @@ export function Titlebar({
   /** Opens the update dialog, which is where the offer is read and taken. */
   onOpenUpdate: () => void;
 }) {
+  const { t } = useTranslation();
   const [maximized, setMaximized] = useState(false);
   const [focused, setFocused] = useState(true);
   const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
@@ -37,11 +39,11 @@ export function Titlebar({
   // there is nothing yet to be in the middle of.
   const title =
     activeModule === "insights"
-      ? "Uncached Insights"
+      ? t("shell.titlebar.title.insights")
       : activeModule === "intelligence"
-        ? "Uncached Maintenance"
+        ? t("shell.titlebar.title.maintenance")
         : step === 3 && view === "projects"
-          ? "Uncached Workspace"
+          ? t("shell.titlebar.title.workspace")
           : "Uncached";
 
   useEffect(() => {
@@ -86,17 +88,17 @@ export function Titlebar({
         <img src="/brand/UNCACHED-LOGO-LIGHT-NOBG.svg" alt="Uncached" className="theme-logo-light h-5 w-auto object-contain" />
         <img src="/brand/UNCACHED-LOGO-DARK-NOBG.svg" alt="" className="theme-logo-dark h-5 w-auto object-contain" />
       </div>}
-      {reclaiming ? <nav aria-label="Progress pipeline" className={`pointer-events-none hidden items-center gap-1.5 text-xs sm:flex ${isMac ? "absolute left-1/2 order-2 -translate-x-1/2" : "order-1"}`}>
-        {STEPS.map((label, index) => {
+      {reclaiming ? <nav aria-label={t("shell.titlebar.pipeline")} className={`pointer-events-none hidden items-center gap-1.5 text-xs sm:flex ${isMac ? "absolute left-1/2 order-2 -translate-x-1/2" : "order-1"}`}>
+        {STEPS.map((stepKey, index) => {
           const stepNumber = (index + 1) as Step;
           const isCurrent = step === stepNumber;
           const isPassed = step > stepNumber;
-          return <span key={label} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ${isCurrent ? "bg-forest-800 text-sage-300" : isPassed ? "text-mist-300" : "text-mist-500"}`}><span className={`grid size-4 place-items-center rounded-full text-[10px] font-mono ${isCurrent ? "bg-sage-400 font-bold text-forest-950" : isPassed ? "bg-forest-800 text-sage-300" : "bg-forest-900 text-mist-500"}`}>{isPassed ? <Check size={10} strokeWidth={3} /> : stepNumber}</span>{label}</span>;
+          return <span key={stepKey} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ${isCurrent ? "bg-forest-800 text-sage-300" : isPassed ? "text-mist-300" : "text-mist-500"}`}><span className={`grid size-4 place-items-center rounded-full text-[10px] font-mono ${isCurrent ? "bg-sage-400 font-bold text-forest-950" : isPassed ? "bg-forest-800 text-sage-300" : "bg-forest-900 text-mist-500"}`}>{isPassed ? <Check size={10} strokeWidth={3} /> : stepNumber}</span>{t(`shell.titlebar.steps.${stepKey}`)}</span>;
         })}
       </nav> : <span className={`pointer-events-none text-xs font-medium text-mist-500 ${isMac ? "absolute left-1/2 -translate-x-1/2" : "order-1"}`}>{title}</span>}
       <div className={`flex items-center gap-1.5 ${isMac ? "order-4 ml-auto" : "order-2"}`} data-tauri-drag-region="false">
         <UpdateBadge update={update} onOpen={onOpenUpdate} />
-        {isMac && <button type="button" onClick={onOpenSettings} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label="Open settings"><Settings size={16} /></button>}
+        {isMac && <button type="button" onClick={onOpenSettings} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label={t("shell.titlebar.openSettings")}><Settings size={16} /></button>}
         {!isMac && <WindowControls isMac={isMac} focused={focused} maximized={maximized} minimize={minimize} toggleMaximize={toggleMaximize} close={close} />}
       </div>
     </header>
@@ -118,21 +120,22 @@ function WindowControls({
   toggleMaximize: () => Promise<void>;
   close: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   if (isMac) {
     return (
       <div className={`window-controls order-1 flex items-center gap-2 ${focused ? "window-focused" : "window-unfocused"}`} data-tauri-drag-region="false">
-        <button type="button" onClick={close} className="traffic-light traffic-light-close" aria-label="Close window"><X size={11} /></button>
-        <button type="button" onClick={minimize} className="traffic-light traffic-light-minimize" aria-label="Minimize window"><Minus size={11} /></button>
-        <button type="button" onClick={toggleMaximize} className="traffic-light traffic-light-maximize" aria-label={maximized ? "Restore window" : "Maximize window"}>{maximized ? <Maximize2 size={10} /> : <Square size={10} />}</button>
+        <button type="button" onClick={close} className="traffic-light traffic-light-close" aria-label={t("shell.titlebar.closeWindow")}><X size={11} /></button>
+        <button type="button" onClick={minimize} className="traffic-light traffic-light-minimize" aria-label={t("shell.titlebar.minimizeWindow")}><Minus size={11} /></button>
+        <button type="button" onClick={toggleMaximize} className="traffic-light traffic-light-maximize" aria-label={maximized ? t("shell.titlebar.restoreWindow") : t("shell.titlebar.maximizeWindow")}>{maximized ? <Maximize2 size={10} /> : <Square size={10} />}</button>
       </div>
     );
   }
 
   return (
     <div className="order-2 flex items-center gap-1" data-tauri-drag-region="false">
-      <button type="button" onClick={minimize} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label="Minimize window"><Minus size={14} /></button>
-      <button type="button" onClick={toggleMaximize} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label={maximized ? "Restore window" : "Maximize window"}>{maximized ? <Maximize2 size={13} /> : <Square size={12} />}</button>
-      <button type="button" onClick={close} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-coral-300 hover:text-forest-950" aria-label="Close window"><X size={14} /></button>
+      <button type="button" onClick={minimize} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label={t("shell.titlebar.minimizeWindow")}><Minus size={14} /></button>
+      <button type="button" onClick={toggleMaximize} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-forest-850 hover:text-mist-100" aria-label={maximized ? t("shell.titlebar.restoreWindow") : t("shell.titlebar.maximizeWindow")}>{maximized ? <Maximize2 size={13} /> : <Square size={12} />}</button>
+      <button type="button" onClick={close} className="grid size-7 place-items-center rounded-md bg-forest-800 text-mist-500 hover:bg-coral-300 hover:text-forest-950" aria-label={t("shell.titlebar.closeWindow")}><X size={14} /></button>
     </div>
   );
 }
