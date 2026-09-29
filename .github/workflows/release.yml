@@ -131,6 +131,15 @@ jobs:
             echo "These must be the same version." >&2
             exit 1
           fi
+          # A live version's manifest carries the signatures of the bundles under
+          # it, cached at the edge as immutable: rebuilding it would replace them
+          # and break every update to it. Checked here, before any compiling.
+          live=$(curl -fsS https://cdn.uncached.app/latest.json \
+            | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+          if [ "$live" = "$conf" ]; then
+            echo "$conf is already live; bump the version to release again." >&2
+            exit 1
+          fi
 
       - name: Require a licence public key
         shell: bash
@@ -306,11 +315,33 @@ jobs:
             exit 1
           fi
 
+      # The installer a person opens, as opposed to the app inside it, which the
+      # bundler has already notarised. Stapling rewrites the dmg; no updater
+      # signature covers it, so nothing downstream goes stale.
+      - name: Notarise the disk image
+        if: startsWith(matrix.os, 'macos') && env.APPLE_ID != ''
+        shell: bash
+        env:
+          SOURCE: ${{ github.workspace }}/release/${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          images=("$SOURCE"/*.dmg)
+          if [ ${#images[@]} -ne 1 ]; then
+            echo "Expected one dmg in $SOURCE, found ${#images[@]}." >&2
+            exit 1
+          fi
+          xcrun notarytool submit "${images[0]}" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --timeout 30m
+          xcrun stapler staple "${images[0]}"
+          xcrun stapler validate "${images[0]}"
+
       # Straight to where the CDN serves it: nothing reads `releases/<version>/`
       # until `latest.json` names that version, and the manifest goes up last.
-      # A version that is already live is refused. Its manifest carries the
-      # signatures of the bundles there and the edge caches them as immutable,
-      # so replacing them breaks every update to it.
       - name: Upload to the CDN
         shell: bash
         env:
@@ -325,12 +356,6 @@ jobs:
         run: |
           set -euo pipefail
           version=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          live=$(curl -fsS https://cdn.uncached.app/latest.json \
-            | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
-          if [ "$live" = "$version" ]; then
-            echo "$version is already live; its bundles are not replaced." >&2
-            exit 1
-          fi
           # `--delete` so the prefix holds exactly this build: a leftover from an
           # earlier attempt would give the manifest two bundles to choose from.
           aws s3 sync "$SOURCE" "s3://$BUCKET/releases/$version/$TRIPLE/" \
