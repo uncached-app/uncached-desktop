@@ -121,7 +121,7 @@ pub enum Outcome {
 
 /// Applies the rules to one project, in the order that decides the reason.
 pub fn evaluate(candidate: &Candidate, policy: &MaintenancePolicy) -> Outcome {
-    if policy.excluded.iter().any(|path| *path == candidate.path) {
+    if policy.excluded.contains(&candidate.path) {
         return Outcome::Skipped(SkipReason::Excluded);
     }
     if !candidate.verdict.allows_automation() {

@@ -67,7 +67,7 @@ fn build(projects: &[PathBuf], pro_enabled: bool) -> ToolchainReport {
             version: entry.version,
         })
         .collect();
-    unused.sort_by(|left, right| right.bytes.cmp(&left.bytes));
+    unused.sort_by_key(|entry| std::cmp::Reverse(entry.bytes));
 
     crate::logging::info(
         "toolchains",
