@@ -181,7 +181,7 @@
     "notCounted_other": "{{count}} not counted",
     "permanent": {
       "title": "Permanent Deletion Mode",
-      "body": "Items will be removed directly from disk without using the system Recycle Bin. Type <token>{{token}}</token> below to arm deletion buttons.",
+      "body": "Items will be removed directly from disk without using the system Trash. Type <token>{{token}}</token> below to arm deletion buttons.",
       "placeholder": "Type \"{{token}}\"",
       "inputLabel": "Permanent deletion confirmation token",
       "armed": "Armed",
@@ -192,7 +192,7 @@
     "measuring": "measuring...",
     "reclaim": "Reclaim {{name}}",
     "deletePermanently": "Delete permanently",
-    "moveToTrash": "Move to Recycle Bin"
+    "moveToTrash": "Move to Trash"
   },
   "row": {
     "partial": "Some folders under this project could not be read, so this is a floor rather than a total.",

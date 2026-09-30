@@ -13,7 +13,7 @@ export function getCleanupCopy(mode, removed) {
   }
 
   return {
-    result: `${removed} ${noun} moved to your system Recycle Bin/Trash.`,
-    recovery: "You can restore them from the Recycle Bin/Trash if needed.",
+    result: `${removed} ${noun} moved to your system Trash.`,
+    recovery: "You can restore them from the Trash if needed.",
   };
 }

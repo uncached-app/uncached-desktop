@@ -168,11 +168,11 @@
     "secure_enumeration_failed": "The target's contents could not be read.",
     "secure_handle_query_failed": "The system would not describe a file inside the target.",
     "secure_deletion_failed": "The system refused to delete the target.",
-    "secure_trash_unavailable": "The Recycle Bin is not available on this system.",
-    "secure_trash_initialization_failed": "The Recycle Bin could not be opened.",
-    "secure_trash_operation_failed": "The target could not be moved to the Recycle Bin.",
-    "secure_trash_aborted": "Moving the target to the Recycle Bin was interrupted.",
-    "secure_trash_postcondition_failed": "The target was not in the Recycle Bin after the move.",
+    "secure_trash_unavailable": "The Trash is not available on this system.",
+    "secure_trash_initialization_failed": "The Trash could not be opened.",
+    "secure_trash_operation_failed": "The target could not be moved to the Trash.",
+    "secure_trash_aborted": "Moving the target to the Trash was interrupted.",
+    "secure_trash_postcondition_failed": "The target was not in the Trash after the move.",
     "target_in_use": "{{program}} is running. Close it and scan again — removing this now would break it."
   },
   "commandErrors": {

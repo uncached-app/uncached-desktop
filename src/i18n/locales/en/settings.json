@@ -44,7 +44,7 @@
   },
   "permanentConfirm": {
     "title": "Enable permanent deletion?",
-    "body": "Targets are deleted directly from disk instead of moved to the Recycle Bin. Not recoverable. Each cleanup will require typing <strong>{{word}}</strong> to confirm.",
+    "body": "Targets are deleted directly from disk instead of moved to the Trash. Not recoverable. Each cleanup will require typing <strong>{{word}}</strong> to confirm.",
     "confirm": "Enable permanent deletion"
   },
   "opening": {
@@ -106,8 +106,8 @@
   "deletion": {
     "intro": "Choose how build artifacts and caches are removed from your disk during cleanup.",
     "trash": {
-      "label": "Move to Recycle Bin",
-      "hint": "Reclaimable artifacts are moved to the system Recycle Bin/Trash, so cleanups can be reversed."
+      "label": "Move to Trash",
+      "hint": "Reclaimable artifacts are moved to the system Trash, so cleanups can be reversed."
     },
     "permanent": {
       "label": "Permanently delete",

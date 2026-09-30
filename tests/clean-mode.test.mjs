@@ -10,8 +10,8 @@ test("permanent cleanup requires exact Nuke confirmation", () => {
 
 test("completion copy distinguishes reversible and permanent cleanup", () => {
   assert.deepEqual(getCleanupCopy("Trash", 2), {
-    result: "2 items moved to your system Recycle Bin/Trash.",
-    recovery: "You can restore them from the Recycle Bin/Trash if needed.",
+    result: "2 items moved to your system Trash.",
+    recovery: "You can restore them from the Trash if needed.",
   });
   assert.deepEqual(getCleanupCopy("Permanent", 1), {
     result: "1 item permanently deleted.",
