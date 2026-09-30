@@ -16,8 +16,11 @@ must not be weakened to hide it.
 
 On Windows, v1 reports `moveToTrash` from a runtime Shell activation probe and
 returns typed `secure_trash_unavailable` without mutating the target when that
-backend is unavailable. On non-Windows platforms, v1 reports
-`moveToTrash: false` and returns the same typed error without mutating the
-target. Permanent cleanup uses the platform-specific secure backend separately;
+backend is unavailable. On macOS and Linux, v1 reports `moveToTrash: true`:
+Trash re-checks the target's device and inode identity against the value
+recorded at validation, then calls `trash::delete`. A check-then-move race
+remains between that check and the move. Platforms with no secure backend
+report `moveToTrash: false` and return `secure_trash_unavailable` without
+mutating the target. Permanent cleanup uses the platform-specific secure backend separately;
 native HRESULTs and other private native details never cross the public IPC
 contract.

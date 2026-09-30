@@ -17,7 +17,15 @@ colors:
   light-surface: "#fffdf5"
   light-raised: "#ece8d6"
   light-border: "#d8d1b8"
+  light-text-primary: "#1b1b15"
+  light-text-secondary: "#3d3a2c"
+  light-text-muted: "#65614b"
+  light-accent-emphasis: "#765800"
   light-accent: "#7a5b00"
+  light-accent-muted: "#b08a00"
+  light-warning: "#ad3d1a"
+  pro-purple-light: "#4a2d6f"
+  pro-purple-dark: "#dcc7ff"
 typography:
   display:
     fontFamily: "Hanken Grotesk, sans-serif"
@@ -77,27 +85,27 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.hazard-yellow}"
-    textColor: "{colors.forest-night}"
+    textColor: "{colors.bin-night}"
     rounded: "{rounded.md}"
     padding: "0.6875rem 1.25rem"
   button-destructive:
-    backgroundColor: "{colors.warning-coral}"
-    textColor: "{colors.forest-night}"
+    backgroundColor: "{colors.warning-orange}"
+    textColor: "{colors.bin-night}"
     rounded: "{rounded.md}"
     padding: "0.625rem 1rem"
   button-secondary:
-    backgroundColor: "{colors.forest-raised}"
-    textColor: "{colors.mist-secondary}"
+    backgroundColor: "{colors.bin-raised}"
+    textColor: "{colors.paper-secondary}"
     rounded: "{rounded.md}"
     padding: "0.625rem 1rem"
   input-path:
-    backgroundColor: "{colors.forest-surface}"
-    textColor: "{colors.mist-primary}"
+    backgroundColor: "{colors.bin-surface}"
+    textColor: "{colors.paper-primary}"
     rounded: "{rounded.lg}"
     padding: "0.75rem 1rem"
   finding-card:
-    backgroundColor: "{colors.forest-surface}"
-    textColor: "{colors.mist-secondary}"
+    backgroundColor: "{colors.bin-surface}"
+    textColor: "{colors.paper-secondary}"
     rounded: "{rounded.lg}"
     padding: "1rem"
 
@@ -107,7 +115,7 @@ components:
 
 ## Overview
 
-**Creative North Star: "Quiet Forest Utility"**
+**Creative North Star: "Garbage Man"**
 
 Uncached is a quiet surface running a destructive operation. The visual system is calm on purpose: a warm near-black canvas, layered tonal surfaces, and hazard yellow for safe forward motion give scanning, review, and confirmation room to be read without turning cleanup into a spectacle.
 
@@ -132,10 +140,13 @@ In CSS, `:root` carries the light values and `[data-theme="dark"]` overrides the
 ### Primary
 - **Hazard Yellow** (`#f5c518`): Primary action, active progress, selected state, and safe confirmation. Text on it is Bin Night.
 - **Hazard Yellow Light** (`#ffd83d`): Hover and affirmative emphasis on dark surfaces.
-- **Light Accent** (`#7a5b00`): The same role in light, where yellow fails contrast against paper.
+- **Light Accent** (`#7a5b00`, with `#765800` for emphasis and `#b08a00` muted): The same role in light, where yellow fails contrast against paper.
 
 ### Secondary
-- **Warning Orange** (`#ff7a4d`): Cancel, delete, permanent deletion, and other actions with destructive consequence.
+- **Warning Orange** (`#ff7a4d`; `#ad3d1a` in light): Cancel, delete, permanent deletion, and other actions with destructive consequence.
+
+### Pro
+- **Pro Purple** (`#dcc7ff` dark / `#4a2d6f` light): Marks Pro-only features, licence state, and locked controls.
 
 ### Neutral
 - **Bin Night** (`#14140f`): App canvas, titlebar, and deepest layer.
@@ -146,12 +157,14 @@ In CSS, `:root` carries the light values and `[data-theme="dark"]` overrides the
 - **Paper Secondary** (`#ccc8b4`): Supporting text and secondary controls.
 - **Paper Muted** (`#99957f`): Hints, metadata, labels, and inactive states.
 
+Light maps the same neutral roles to canvas `#f6f4ea`, surface `#fffdf5`, raised `#ece8d6`, border `#d8d1b8`, and text `#1b1b15` / `#3d3a2c` / `#65614b`.
+
 The token names in code (`forest-*`, `sage-*`, `mist-*`, `coral-*`) are roles, kept from the first palette so themes written against them keep working.
 
 ### Named Rules
 **The Signal Scarcity Rule.** Yellow and orange are state signals, not decoration. Use them where users need to understand what is safe, active, selected, cancelling, or destructive.
 
-Coral in particular is a promise that something can be cancelled or destroyed. A coral surface that carries no action — a disabled button repurposed as a progress label — spends the signal on nothing and teaches users to stop reading it.
+Orange in particular is a promise that something can be cancelled or destroyed. An orange surface that carries no action — a disabled button repurposed as a progress label — spends the signal on nothing and teaches users to stop reading it.
 
 ## Typography
 
@@ -180,13 +193,13 @@ Coral in particular is a promise that something can be cancelled or destroyed. A
 
 ### Rules
 
-- **Name the real thing.** `node_modules`, `target/`, `__pycache__`, `.gradle`, `Recycle Bin`, bytes, directories. Never "clutter", "junk", "stuff you don't need".
+- **Name the real thing.** `node_modules`, `target/`, `__pycache__`, `.gradle`, `Trash`, bytes, directories. Never "clutter", "junk", "stuff you don't need".
 - **Never enumerate the scanners in prose.** Scanner coverage grows; a hardcoded list of artifact names becomes a lie on the next release and cannot be caught by a type checker. Describe the *class* — "dependency, build, and cache directories your toolchains can regenerate" — and let real artifact names appear only where they come from live data: category chips, target paths, and the Scanning settings toggles.
 - **Lead with the fact.** Counts, sizes, paths, and durations come first; explanation second, and only when it changes a decision.
 - **One idea, once.** If the heading states the state, the paragraph below it adds new information or is deleted. A subheading restated the heading in different words is the most common failure: under "Scanning workspace", "Walking the directory tree" says nothing — "Targets are measured as they are found" explains the mechanism the user can see running.
 - **Accessible names track state.** A region's `aria-label` and a control's accessible name follow the state they describe. A section that announces "Scanning workspace" after the scan finished is reporting a state that no longer exists.
 - **State consequences flatly.** Destructive copy names the object, the destination, and the recoverability — as fact, not as caution. "Deleted permanently. Not recoverable." beats "Careful! This can't be undone."
-- **Controls name their operation**, not the gesture: `Scan workspace`, `Delete permanently`, `Move to Recycle Bin`, `Back to Workspace`.
+- **Controls name their operation**, not the gesture: `Scan workspace`, `Delete permanently`, `Move to Trash`, `Back to Workspace`.
 - **Do not churn working strings.** This register is about removing metaphor and reassurance, not about restating labels that already say the right thing in the product's own words.
 - **Errors name what failed and what to do**, and may quote the exact runtime or path detail. Internal error strings are acceptable to surface; vague apologies are not.
 - **Progress is measured, never invented.** Report real directory counts, target counts, and elapsed milliseconds.
@@ -207,7 +220,7 @@ Coral in particular is a promise that something can be cancelled or destroyed. A
 | The scanned root, as a concept | **workspace** | project, repo, directory tree |
 | The scanned root, as a value the user picks or pastes | **folder** / **path** | location, destination |
 | Walking the tree | **scan** | search, look, hunt |
-| Removing a target | **clean up** (flow), **delete** / **move to Recycle Bin** (action) | remove, purge, wipe, nuke¹ |
+| Removing a target | **clean up** (flow), **delete** / **move to Trash** (action) | remove, purge, wipe, nuke¹ |
 | Bytes recovered | **reclaimed** | saved, freed up, gained |
 
 ¹ `Nuke` is the literal confirmation token required by the backend for permanent deletion. It is a typed value, never prose.
@@ -225,10 +238,10 @@ Spacing follows a compact rhythm built from `0.25rem`, `0.5rem`, `0.75rem`, `1re
 
 ## Elevation & Depth
 
-This is a tonal-layering system. Depth comes primarily from Bin Night, Bin Surface, Bin Raised, and Bin Border relationships, not from persistent shadows. Dialogs may use a strong ambient shadow because they interrupt the workflow; ordinary cards should remain grounded. A subtle fixed grain texture adds material continuity without becoming a visible pattern.
+This is a tonal-layering system. Depth comes primarily from Bin Night, Bin Surface, Bin Raised, and Bin Border relationships, not from persistent shadows. Dialogs may use a strong ambient shadow because they interrupt the workflow; ordinary cards should remain grounded. There is no texture overlay.
 
 ### Named Rules
-**The Grounded Surface Rule.** Cards and controls sit in the forest layers. Do not float every element with a shadow; reserve lift for modal interruption and meaningful focus.
+**The Grounded Surface Rule.** Cards and controls sit in the Bin layers. Do not float every element with a shadow; reserve lift for modal interruption and meaningful focus.
 
 ## Shapes
 
@@ -258,7 +271,7 @@ The form language is gently curved and tactile: compact controls use `0.75rem` r
 ### Inputs / Fields
 - **Style:** Bin Surface fill, Bin Border outline, `1rem` radius, and a monospace value field for paths.
 - **Focus:** Yellow border with a low-opacity yellow ring.
-- **Error / Disabled:** Coral text for errors; preserve surface structure while reducing opacity for disabled controls.
+- **Error / Disabled:** Warning Orange text for errors; preserve surface structure while reducing opacity for disabled controls.
 
 ### Navigation
 - **Style:** Progress pipeline uses compact pill labels with numbered circular markers. Current step receives a Bin Raised capsule and yellow marker; passed steps use Paper Secondary and a yellow check; future steps stay muted.
@@ -273,14 +286,14 @@ Target cards pair a selectable checkbox, a small monospace category chip, a trun
 - **Do** preserve the layered Bin surfaces and use tonal contrast before adding decoration.
 - **Do** reserve Hazard Yellow for safe action, progress, selection, and focus.
 - **Do** use Geist Mono for paths, categories, counts, and other filesystem facts.
-- **Do** keep destructive actions unmistakably Coral and explicit.
+- **Do** keep destructive actions unmistakably Warning Orange and explicit.
 - **Do** respect reduced-motion preferences and keep transitions short.
 - **Do** write every string in the spec-terse register: real artifact names, exact counts, stated consequences.
 - **Do** keep one term per concept across UI, docs, and metadata (see the terminology table).
 
 ### Don't:
 - **Don't** introduce generic neon gradients, cyberpunk glow, or terminal-green spectacle.
-- **Don't** use coral as a general accent or interchangeable brand color.
+- **Don't** use orange as a general accent or interchangeable brand color.
 - **Don't** make every container shadowed or floating.
 - **Don't** turn technical metadata into decorative typography.
 - **Don't** replace the Uncached logo assets with improvised marks.

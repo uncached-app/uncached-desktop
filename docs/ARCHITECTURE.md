@@ -48,7 +48,7 @@ Cancellation invalidates the session and removes its targets after publication b
 1. Frontend invokes `clean_target` with `targetId`, `mode`, and optional confirmation.
 2. Backend claims the registered target; the frontend never supplies an authoritative path.
 3. Backend canonicalizes again, rejects links, roots, critical directories, outside-root targets, invalid provider context, missing identity, and identity changes.
-4. `TrashCleaner` or `PermanentCleaner` runs in a blocking worker after policy checks.
+4. `CleanService` calls uncached-core `clean_to_trash` or `clean_permanently` in a blocking worker after policy checks; both go through Core's platform secure cleanup backend.
 5. Backend records the removal in history and answers the invoke. Cleanup emits no events: the only party that needs the outcome is the caller, and it is holding the result.
 
 `Permanent` requires exact `Nuke` confirmation. Cleanup capabilities gate UI actions but do not replace backend authorization. Targets and cleanup claims live in memory; restarting the application invalidates prior targets.
@@ -68,8 +68,8 @@ Three systems each have a screen where the user manages what runs in the
 background, and each reads different metadata off the build. Everything they
 read is in `bundle` in `tauri.conf.json`: `publisher`, `copyright`, `category`,
 `shortDescription`, `longDescription`, `homepage`, and the per-platform blocks
-under it. Left empty — which is the default and was the state of this app until
-now — the entries read as a nameless executable by nobody.
+under it. All of these are set. Left empty, which is the Tauri default, the
+entries read as a nameless executable by nobody.
 
 **macOS** shows login items under System Settings › General › Login Items &
 Extensions. Two things decide how the entry reads there, and neither is a
@@ -87,15 +87,14 @@ refused — and a refused prompt is autostart silently not working. This app use
 The second is *signing*. "Item de desenvolvedor não identificado" is macOS
 saying the binary carries no Developer ID it can attribute. No configuration
 removes that line: it needs a Developer ID Application certificate, a signature,
-and notarisation. In development it is doubly true, because a dev run registers
-`target/debug/uncached` — an unsigned bare binary with no bundle at all, which is
-why the name shows lowercase there and will not in a build.
+and notarisation. Release builds have all three — the release workflow signs
+with the Developer ID certificate and notarises through `notarytool` — so the
+line appears only for local builds. A dev run registers `target/debug/uncached`
+— an unsigned bare binary with no bundle at all, which is why the name shows
+lowercase there and will not in a release.
 
-**Windows** lists startup entries in Task Manager and in Settings › Apps ›
-Startup, with a Publisher column. That column is the Authenticode signature's
-subject, not `bundle.publisher` — unsigned reads "Unknown publisher", and an
-OV or EV code-signing certificate is what fills it. `bundle.publisher` still
-reaches the installer and Add/Remove Programs.
+**Windows** is not released; the plan is an MSIX through the Microsoft Store,
+which signs the package, so no Authenticode setup exists here.
 
 **Linux** has no single such screen; the desktop environment reads
 `~/.config/autostart/*.desktop`, whose `Name`, `Comment`, `Icon` and

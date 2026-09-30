@@ -52,7 +52,7 @@ Marcador é sempre um arquivo **diretamente ao lado** do diretório reivindicado
 | `ZigCache` | `zig-cache`, `.zig-cache`, `zig-out` | `build.zig` |
 | `ElixirBuild` | `_build`, `.elixir-tools`, `.elixir_ls`, `.lexical` | `mix.exs` |
 | `HaskellBuild` | `.stack-work`, `dist-newstyle` | `stack.yaml` ou `cabal.project` |
-| `ComposerVendor` | `vendor` | `composer.json` |
+| `ComposerVendor` | `vendor` | `composer.json`; no desktop, também `composer.lock` ou `.git`, e nunca abaixo da raiz de um plugin ou tema WordPress (ver nota) |
 | `TerraformDir` | `.terraform` | `.terraform.lock.hcl` |
 | `UnityLibrary` | `Library`, `Temp`, `Obj`, `Logs`, `MemoryCaptures`, `Build`, `Builds` | `Assembly-CSharp.csproj` |
 | `UnrealIntermediate` | `Binaries`, `Build`, `Saved`, `DerivedDataCache`, `Intermediate` | qualquer `*.uproject` |
@@ -64,11 +64,13 @@ Marcador é sempre um arquivo **diretamente ao lado** do diretório reivindicado
 | `DartTool` | `.dart_tool` | `pubspec.yaml` |
 | `FlutterBuild` | `build`, `linux/flutter/ephemeral`, `windows/flutter/ephemeral` | `pubspec.yaml` |
 
-Categorias de descoberta — `PackageManagerCache`, `AiToolCache`, `EditorCache` — não vêm do walk do workspace: `KnownLocationScanner` as confirma contra um catálogo de caminhos sob o home. `Docker` está no modelo e não tem scanner.
+O desktop não registra o `ComposerVendor` do core: `composer()` em `src-tauri/src/scanner/mod.rs` o substitui por um `ProjectMarker::Custom` que, além de `composer.json`, exige `composer.lock` ou `.git` na raiz, e recusa qualquer raiz abaixo de `wp-content/{plugins,themes,mu-plugins,client-mu-plugins}/<extensão>/`. Bibliotecas empacotadas dentro de um plugin trazem `composer.json` próprio e nada que permita reinstalá-las.
+
+Categorias de descoberta não vêm do walk do workspace: `KnownLocationScanner` as confirma contra um catálogo de caminhos sob o home, por plataforma. São `PackageManagerCache`, `AiToolCache`, `EditorCache`, `XcodeDerivedData` (DerivedData, device support, caches e os diretórios do simulador), `UnityLibrary` e `GodotCache` (caches das engines fora de qualquer projeto), `AndroidSdk` (system images e emuladores) e `Docker` (a imagem de disco do Docker Desktop, catalogada como `ReportOnly`).
 
 ### `LocationKind::ReportOnly`
 
-Entrada do catálogo que o produto mede e **nunca remove**. Hoje: `Xcode/Archives` e `CoreSimulator/Devices` — normalmente os dois maiores diretórios que o Xcode possui, e nenhum dos dois é nosso para apagar. Um archive guarda os dSYMs que simbolicam crashes de uma release que já está com usuários; um device de simulador guarda o que foi instalado e configurado dentro dele.
+Entrada do catálogo que o produto mede e **nunca remove**. Hoje: `Xcode/Archives` e `CoreSimulator/Devices` — normalmente os dois maiores diretórios que o Xcode possui, e nenhum dos dois é nosso para apagar. Um archive guarda os dSYMs que simbolicam crashes de uma release que já está com usuários; um device de simulador guarda o que foi instalado e configurado dentro dele. Também `ReportOnly`: os emuladores Android (`.android/avd`), que guardam o que foi instalado neles, e a imagem de disco do Docker, que contém todas as imagens, volumes e containers. No macOS, `probe_system()` reporta ainda os runtimes do simulador em `/System/Library/AssetsV2`, sempre como `ReportOnly`.
 
 A garantia é estrutural, não visual: `KnownLocationScanner::entries()` filtra `ReportOnly`, então nenhum provider avaliza esses caminhos e a limpeza os recusa no mesmo portão que recusa um diretório mal identificado. O alvo carrega `cleanable: false` no wire para que a interface não ofereça um controle que o backend negaria — mas se a interface esquecer, a deleção continua impossível. Dois testes cobrem os dois lados (`the_provider_set_vouches_for_every_cleanable_location` e `no_provider_vouches_for_a_report_only_location`).
 
@@ -87,22 +89,22 @@ Estas ausências são decisão, não lacuna, e seguem o Kondo:
 
 `get_default_providers()` registra **todos** os providers de workspace, sempre. Os cinco toggles que existiam foram removidos: uma regra de ignoração diz "nunca toque em nada com esse nome, em lugar nenhum", vale para as trinta categorias em vez de cinco, e vence contra o provider, a confiança e um agendamento. Um interruptor ao lado disso era duplicata mais fraca de um mecanismo que o usuário já tinha.
 
-O que restou em Settings § Scanning cobre só o que o walk nunca alcança: `PackageManagerCache`, `AiToolCache` e `EditorCache`. Esses não têm equivalente em regra de ignoração — vivem sob caminhos que ninguém escolheu, pertencem a ferramentas e não a projetos, e cada um custa uma coisa diferente ao ser perdido. `discovery_categories()` traduz os toggles, e a filtragem acontece antes de qualquer medição: desligar uma categoria faz o scan trabalhar menos, não esconder resultado depois.
+O que restou em Settings § Scanning cobre só o que o walk nunca alcança, em sete toggles: `detectPackageManagerCaches` (`PackageManagerCache`), `detectAiToolCaches` (`AiToolCache`), `detectEditorCaches` (`EditorCache`), `detectGameEngineCaches` (`UnityLibrary` e `GodotCache`), `detectAndroidSdk` (`AndroidSdk`), `detectContainerStorage` (`Docker`) e `detectXcodeData` (`XcodeDerivedData`, exibido só no macOS). Esses não têm equivalente em regra de ignoração — vivem sob caminhos que ninguém escolheu, pertencem a ferramentas e não a projetos, e cada um custa uma coisa diferente ao ser perdido. `discovery_categories()` traduz os toggles, e a filtragem acontece antes de qualquer medição: desligar uma categoria faz o scan trabalhar menos, não esconder resultado depois.
 
-`XcodeDerivedData` segue o workspace e não esses interruptores: é a mesma categoria que o walk reporta.
+`detectXcodeData` controla só as entradas do catálogo de `XcodeDerivedData`; o `XcodeDerivedDataScanner` do walk continua registrado sempre, como os demais providers de workspace.
 
 `ReactNative` é registrado **primeiro**, no core e no desktop. Ele reivindica caminhos dentro de `ios/` e `android/` que Gradle e CocoaPods reivindicariam pelo nome solto, e `classify` devolve o primeiro provider que confirmar.
 
 ## Plano
 
-`plan_for_category()` em `commands/entitlements.rs` é a única definição da fronteira Free. Todo artefato de projeto é Free, em qualquer ecossistema. O que permanece Pro é o que não é artefato de projeto: os stores compartilhados por toda a máquina (`PackageManagerCache`, `AiToolCache`, `EditorCache`, `Docker`), onde esvaziar torna todo restore futuro mais lento em vez de recuperar output de build.
+`plan_for_category()` em `commands/entitlements.rs` é a única definição da fronteira Free. Todo artefato de projeto é Free, em qualquer ecossistema. O que permanece Pro é o que não é artefato de projeto: os stores compartilhados por toda a máquina (`PackageManagerCache`, `AiToolCache`, `EditorCache`), onde esvaziar torna todo restore futuro mais lento em vez de recuperar output de build, e as categorias `Custom(_)`. `Docker` é Free: sua única entrada é `ReportOnly`, então não há limpeza a cobrar.
 
 ## Adding scanner
 
 1. Se o provider é "marcador + lista de caminhos", adicionar uma função em `uncached-core/src/scanner/providers/ecosystems.rs` e incluí-la em `ecosystems::all()`.
 2. Caso contrário, criar módulo em `providers/` e implementar `Scanner`.
 3. Adicionar a categoria em `model.rs` (variante, `as_wire` e `from_wire`).
-4. Adicionar a apresentação da categoria em `TargetCard.tsx`, senão a UI mostra o nome cru da categoria.
+4. Adicionar a apresentação da categoria em `src/components/findings/categoryPresentation.ts`, senão a UI mostra o nome cru da categoria.
 5. Adicionar testes de nome e de contexto — incluindo o gêmeo inválido, sem o marcador.
 
 Provider confirmation must stay cheap and contextual. A name match alone is a candidate; `confirm_context` decides whether it is a confirmed target. Once confirmed, discovery registers it for bounded asynchronous sizing and stops descending into that terminal directory.

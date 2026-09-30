@@ -81,9 +81,11 @@ permission, so making it work meant either widening the token to one that can
 create and delete buckets, or speaking the protocol the narrow token already
 has. `aws` ships on the runner, so the narrow token stays.
 
-Apple and Windows signing add `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
-`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`. The
-workflow passes them through already; they are simply absent.
+Apple signing adds `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
+`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`. All six
+are set; the workflow forwards them to the macOS builds, which sign with the
+Developer ID and notarise. If they were removed, the builds would fall back to
+ad-hoc signing as described above.
 
 ## Nothing runs on a push
 
@@ -119,10 +121,10 @@ gh workflow run ci.yml --repo uncached-app/uncached-core
 Nothing compiles the desktop crate for Windows any more: neither workflow has a
 Windows job. Expect fixes the first time the Store package is built.
 
-The rest of the checks live where you are:The rest of the checks live where you are:
+The rest of the checks live where you are:
 
 ```bash
-pnpm test                                   # 178 tests
+pnpm test
 npx tsc --noEmit
 cd src-tauri && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check
 ```
@@ -158,61 +160,37 @@ because nothing downstream can tell. That heading is dropped from what ships:
 the app draws the version directly above these words.
 
 ```bash
-git commit -am "release: 0.1.2"
-git tag v0.1.2
+git commit -am "release: 0.3.0"
+git tag v0.3.0
 git push origin master --tags
 ```
 
-The tag is the trigger. `workflow_dispatch` builds and signs without publishing,
-which is how a release is rehearsed.
+The tag is the trigger. `workflow_dispatch` takes two inputs:
 
-## The Windows installer's own artwork
+- `dry_run` (default `true`): builds, signs and uploads the bundles to the CDN
+  and validates the manifest, but does not replace `latest.json` or attach
+  anything to a GitHub release. This is how a release is rehearsed.
+- `publish_only` (default `false`): skips the build and publishes the bundles
+  already on the CDN for this version. Used when a release failed after the
+  build. With `dry_run` left on it only rebuilds and validates the manifest.
 
-NSIS draws a wizard, and without images of ours it draws its own — a generic
-one, as the first thing anybody sees of this app on Windows. It takes exactly
-two, at sizes it will stretch anything else into:
+## Windows
 
-| | size | where |
-| --- | --- | --- |
-| `installer-sidebar.bmp` | 164 x 314 | down the left of the welcome and finish pages |
-| `installer-header.bmp` | 150 x 57 | the strip at the top of every page between them |
-
-Both are generated from the app icon by `scripts/build-installer-art.mjs`, so
-changing the icon changes the installer rather than leaving two files nobody
-remembers exist. BMP because NSIS takes nothing else — no PNG, no alpha — which
-is why each is composited onto a solid background rather than left transparent.
-The sidebar is the app's dark surface; the header is white, because it sits
-beside the page title on a white page and a dark strip there reads as a
-rendering fault rather than as branding.
-
-`installMode` is `currentUser`: this app writes to a workspace the user already
-owns and never needs administrator rights, so asking for them at install time
-would be asking for something it does not use.
-
-## Windows ships NSIS and not MSI
-
-`bundle.targets` names them one by one rather than saying `all`, and MSI is the
-one left out. Two reasons, either enough on its own:
-
-MSI requires a pre-release identifier that is **numeric only** — `0.1.1-3`
-passes, `0.1.1-alpha.3` does not. Keeping it would mean the product's version
-scheme answering to an installer format for as long as the product exists.
-
-And `all` produces a signed `.msi.zip` *and* a signed `.nsis.zip`. Both are
-valid updater bundles, which leaves "which one updates" unanswerable — the
-manifest builder refuses that rather than guessing, so the release would stop
-even with a version MSI accepts.
-
-What is given up is enterprise deployment by Group Policy, which wants an MSI.
-Nothing else: NSIS is what Tauri recommends and what an individual downloads.
+Windows is not released; the plan is an MSIX through the Microsoft Store, so the
+NSIS settings and installer artwork in `tauri.conf.json` and
+`scripts/build-installer-art.mjs` are unused.
 
 ## What the workflow does, and the order it matters in
 
-1. Builds four targets: macOS arm64, macOS x64, Linux x64, Windows x64.
+1. Builds three targets: macOS arm64, macOS x64, Linux x64. The macOS builds are
+   signed with the Developer ID and notarised.
 2. Signs each updater bundle with the minisign key.
 3. Uploads every bundle to `releases/<version>/<triple>/`, cached for a year and
    immutable.
 4. **Then** uploads `latest.json`, cached for five minutes.
+5. Attaches the installers — dmg, deb, rpm and AppImage — to a draft GitHub
+   release for the tag. The updater bundles are not attached; they live only on
+   the CDN.
 
 Step 4 is last and separate on purpose. `latest.json` is what tells running apps
 that a version exists; if it landed before the bundle it names, every client

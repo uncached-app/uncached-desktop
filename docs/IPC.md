@@ -167,7 +167,7 @@ The primary worktree is filtered out. `missing` means the registration in
 
 ### `fetch_project`
 
-Request: `{ "path": "/work/api" }`. The app's only network operation.
+Request: `{ "path": "/work/api" }`. The only command that reaches the network. Outside the command set, the updater plugin fetches `https://cdn.uncached.app/latest.json` and, when an update is accepted, the bundle it names.
 
 ```json
 { "hygiene": { }, "fetchedAt": 1755000000 }
@@ -264,7 +264,9 @@ One event per cleaned target, appended when the removal succeeded. Every field p
 
 ### `preview_maintenance`
 
-Request: `{ "candidates": [...], "policy": { "minIdleDays": 90, "minBytes": 524288000 } }`
+Request: `{ "candidates": [...], "policy": { "minIdleDays": 90, "minBytes": 524288000, "excluded": [] } }`
+
+`excluded` lists project paths the policy never selects; it defaults to empty.
 
 A candidate is `{ path, name, verdict, idleDays, reclaimableBytes }`, where `idleDays` and
 `reclaimableBytes` are nullable — an unmeasured project is unknown, never zero. Every field was
@@ -281,7 +283,7 @@ Raw response:
 }
 ```
 
-`reason` is one of `verdict`, `unmeasured`, `unknownActivity`, `tooRecent`, `tooSmall`. Skipped
+`reason` is one of `excluded`, `verdict`, `unmeasured`, `unknownActivity`, `tooRecent`, `tooSmall`, checked in that order. Skipped
 entries are returned rather than counted in the backend because a policy that quietly matches
 nothing is indistinguishable from a broken one. Free on every plan: reading is not the capability
 being sold.
@@ -309,16 +311,19 @@ No request payload. Raw response:
 
 ```json
 {
-  "schedule": { "enabled": true, "everyHours": 168 },
+  "schedule": { "enabled": true, "everyHours": 168, "lowDiskGb": 20 },
   "intervalHours": 168,
   "lastRunAt": 1755100800,
   "nextRunAt": 1755705600,
   "held": null,
   "minEveryHours": 24,
   "maxEveryHours": 720,
-  "keepsRunningInBackground": true
+  "keepsRunningInBackground": true,
+  "freeBytes": 53687091200
 }
 ```
+
+`schedule.lowDiskGb` is `number | null`: when set above zero, a run is also triggered when the workspace's disk has less than that many gigabytes free; `null` or `0` turns that trigger off. `freeBytes` is `number | null`, the least free space across the workspace roots' volumes, which is the figure that trigger compares against; `null` when there are no roots or no volume could be read.
 
 Where the unattended schedule stands. `intervalHours` is the interval actually in force, which a
 hand-edited settings file can differ from — it is clamped to the two bounds returned beside it, so
@@ -407,10 +412,11 @@ Response is a v1 envelope containing:
 }
 ```
 
-`permanentCleanup` and `moveToTrash` gate available cleanup modes. On Windows,
-`moveToTrash` is runtime-probed: it is `true` when Shell `IFileOperation`
-activation succeeds and `false` when that backend is unavailable. It remains
-`false` on non-Windows platforms. `secureIdentity` reports whether platform
+`permanentCleanup` and `moveToTrash` gate available cleanup modes. Both are
+`true` on macOS and Linux. On Windows, `moveToTrash` is runtime-probed: it is
+`true` when Shell `IFileOperation` activation succeeds and `false` when that
+backend is unavailable. Both are `false` on platforms with no secure cleanup
+backend. `secureIdentity` reports whether platform
 identity checks are supported. These booleans are capability facts, not
 authorization; the backend still performs the final target and policy checks.
 
@@ -418,19 +424,56 @@ authorization; the backend still performs the final target and policy checks.
 
 `get_settings`, `update_settings`, and `get_app_info` currently return raw command DTOs. Their fields are camelCase. Settings persistence is implemented in `settings.json`; missing settings use safe defaults, while invalid or unreadable settings return command errors.
 
-`maintenance` is a stored block, `{ minIdleDays, minBytes }`, defaulting to 90 days and 500 MiB. A settings file written before it existed loads and takes the default, like every other field.
+`maintenance` is a stored block, `{ minIdleDays, minBytes, excluded }`, defaulting to 90 days, 500 MiB and no excluded paths. A settings file written before it existed loads and takes the default, like every other field.
 
 `preferredEditor` and `preferredTerminal` hold a launcher id, or `null` for automatic. Stored rather than inferred, because there is nothing to infer from: macOS exposes no default-terminal setting at all, and no platform has a default *editor* in any sense an app that opens a directory could read. Automatic means the ranking in `available_launchers` — for an editor, the specialist for the project's own language, then anything general-purpose, then the specialists for other languages; for a terminal, whichever was detected first. A preference naming something no longer installed is ignored rather than obeyed into an empty list.
 
-`maintenanceSchedule` is `{ enabled, everyHours }`, and it is **off by default** — the first unattended deletion on a machine is one the user turned on, never one an install inherited. `maintenanceLastRunAt` is Unix seconds, written by the backend only: it records the last *attempt*, stamped before the work rather than after, so a run interrupted by a crash or a power loss does not come back and immediately try again. A run that correctly selected nothing writes no cleanup log line, which is why the attempt is stored rather than derived from the history.
+`maintenanceSchedule` is `{ enabled, everyHours, lowDiskGb }`, and it is **off by default** — the first unattended deletion on a machine is one the user turned on, never one an install inherited. `maintenanceLastRunAt` is Unix seconds, written by the backend only: it records the last *attempt*, stamped before the work rather than after, so a run interrupted by a crash or a power loss does not come back and immediately try again. A run that correctly selected nothing writes no cleanup log line, which is why the attempt is stored rather than derived from the history.
 
 There is no background-fetch setting. Fetch is something the user asks for, one repository at a time. It could now run on the maintenance thread, but reaching the network unattended is a separate decision from removing a regenerable directory, and it is not dressed as existing.
+
+### Other commands
+
+Raw results; argument names are the camelCase keys the frontend passes. Commands that take project `paths` authorise each one against `workspaceRoots` like `reveal_project`.
+
+| Command | Arguments | Result |
+| --- | --- | --- |
+| `review_ignore_rules` | `{ text }` | `{ active, problems: [{ line, text, reason }] }`: how many rules compile, and the lines that do not. |
+| `starts_hidden` | none | `boolean`: whether this launch should stay in the tray. |
+| `normalize_workspace_roots` | `{ paths }` | `string[]`: canonical roots with any root inside another dropped. |
+| `measure_project_footprint` | `{ path }` | `{ totalBytes, sourceBytes, reclaimableBytes, byCategory: [{ category, bytes }], hasErrors }` for one project. |
+| `unused_dependencies` | `{ paths }` | `ProjectDependencies[]`: `{ project, reports: [{ manifest, ecosystem, declared, unused }], unreadable }`. Node and Cargo manifests, read as text; each `unused` entry has `name`, `kind`, `confidence`, `reason` and a `removeWith` command that the app never runs. |
+| `toolchain_report` | `{ paths }` | `{ installedCount, unusedCount, unusedBytes, unused, locked }`: nvm, fnm, rustup, pyenv and SDKMAN versions no project pins and no manager uses as default. `unused` is empty without Pro. |
+| `storage_report` | none | `{ path, totalBytes, freeBytes, usedBytes, purgeableBytes, fullDiskAccess } \| null` for the volume holding the home directory; the last two are `null` off macOS. |
+| `open_full_disk_access` | none | `boolean`: opens the macOS Full Disk Access pane; `false` elsewhere. |
+| `diagnostic_report` | none | `string`: plain-text support report (version, system, plan, scan settings, last 200 log lines) with the home directory replaced by `~`. Nothing is sent. |
+| `open_log_folder` | none | Reveals the log file, or its folder, in the file manager. |
+| `get_entitlement_status` | none | `{ plan: "free" \| "pro", proEnabled }`. |
+| `activate_license` | `{ key }` | `{ id, holder, plan, expiresAt, seats }` after verifying the key's signature locally and storing it; a typed command error otherwise. |
+| `get_license` | none | `{ license, expired, expiresInDays } \| null`. |
+| `stored_license_key` | none | `string \| null`: the stored key, so it can be shown before removal. |
+| `deactivate_license` | none | Removes the stored licence. |
+| `record_workspace_visit` | `{ projects: [{ path, totalBytes, reclaimableBytes }] }` | `{ since, totalDelta, reclaimableDelta, projectsAdded, projectsRemoved } \| null`: the change since the previous visit's snapshot, then replaces the snapshot. `null` on Free and on the first visit. |
+| `clear_history` | none | Deletes the workspace snapshot and the cleanup log read by `cleanup_history`. |
+| `set_tray_summary` | `{ reclaimableBytes }` | Stores the reclaimable total (`number \| null`) for the tray menu and relabels it. |
+| `set_native_strings` | `{ strings }` | Replaces the localized strings used by the tray and native notifications, then relabels the tray. |
+| `install_menu` | `{ actions: [{ id, label, menu, accelerator }], labels }` | Builds the native menu bar; a chosen item emits `menu:action` with its `id`. |
+| `set_app_icon` | `{ variant }` | Applies and stores an icon variant id, or the bundle icon for `null`. Any other variant requires Pro (`requires_pro_icon`). |
+| `set_window_frame` | `{ x, y, width, height }` | Sets the window's outer rectangle in physical pixels, size first. |
+| `watch_workspace` | `{ roots }` | Replaces the filesystem watcher; changes emit `workspace:changed` with the changed paths. An empty list stops watching. |
+| `list_themes` | none | `[{ id, name, light, dark, problems, builtIn }]`: shipped themes and the JSON files in `<config>/themes`. `light` and `dark` are `[token, value][]` or `null`. |
+| `reveal_config` | none | Reveals the themes folder in the file manager, falling back to opening it. |
 
 ## Workspace index
 
 `scan_workspace_index` project entries carry `git.behind` and `git.lastFetchAt`. `behind` is the largest distance across branches that have an upstream — not the sum, which would describe no branch that exists — and is `null` when nothing has an upstream to be behind. `lastFetchAt` is the modification time of `.git/FETCH_HEAD`, and `null` means the repository has never been fetched.
 
 Neither reaches `recoverability`. Being behind says something exists elsewhere, not that something here is at risk, and letting it decide would make a `git fetch` change what may be deleted unattended.
+
+`git` also carries:
+
+- `exposedSecrets`: files holding credentials that Git would publish, as `{ path, committed, kind }`. `path` is relative to the repository root and `/`-separated; `committed` is `true` when the file is in the index and `false` when it is untracked and not ignored; `kind` is `env`, `privateKey`, `credentials` or `token`.
+- `objectStore`: `git count-objects -v` in bytes, as `{ looseObjects, looseBytes, packs, packBytes, garbageBytes, gcRecommended }`, or `null` when Git would not say. `gcRecommended` is `true` past the limit at which Git would repack on its own.
 
 `running_projects` takes `paths` and returns `[{ path, command, processes }]` for those with a process whose working directory is inside them. One process listing answers for the whole workspace, so it is asked for the batch. A project it names is not measured — the tree is being written to while it would be read, so the weight would be stale on arrival — and every screen that would offer a Clean for it says why instead. Unsupported platforms return an empty list rather than a guess; cleanup still refuses a locked directory on its own.
 
@@ -464,7 +507,7 @@ All events are emitted by Tauri with a v1 envelope. Event names are exact and ca
 | `scan:cancelled` | `scanId`, `totalTargets`, `totalBytesFound` |
 | `scan:failed` | `scanId`, nested sanitized `error` |
 
-`scan:target_found` target fields are `id`, `path`, `name`, `label`, `category`, `plan`, `confidence`, `cleanable`, `sizeBytes`, `sizePending`, `sizeHasErrors` and `formattedSize`. The target has no `identity` field, and no `lastModified`: it was a `metadata` call per target filling a field no screen read.
+`scan:target_found` target fields are `id`, `path`, `name`, `label`, `category`, `plan`, `confidence`, `cleanable`, `reclaimWith`, `blockedBy`, `sizeBytes`, `lastUsedAt`, `sizePending`, `sizeHasErrors` and `formattedSize`. `reclaimWith` is the owning tool's command that reclaims a location that is not cleanable, otherwise `null`. `blockedBy` names the program using the directory right now, if one is; cleanup refuses it again at removal. `lastUsedAt` is the newest write inside, in Unix seconds, `null` while unmeasured. The target has no `identity` field, and no `lastModified`: it was a `metadata` call per target filling a field no screen read.
 
 `scan:progress` carries `phase`: `"workspace"` while the chosen folders are being walked, `"caches"` for the pass over the catalogued tool caches in the home directory. They are two readings of two different places — the directory counter stops when the walk does, and the paths that follow belong to no project — so step 2 names the one it is showing rather than presenting both as one long walk. Optional on arrival: a core that predates the field produces a scan that reads as the first phase throughout.
 
