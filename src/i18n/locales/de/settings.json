@@ -224,7 +224,10 @@
     "features": {
       "schedule": "Automatische Bereinigung im Hintergrund",
       "duplicates": "Duplikate über Projekte hinweg",
-      "analytics": "Gesamtstatistik des freigegebenen Speichers"
+      "analytics": "Gesamtstatistik des freigegebenen Speichers",
+      "lowDisk": "Wartung, wenn der Speicher knapp wird",
+      "caches": "Maschinenweite Caches",
+      "toolchains": "Jede ungenutzte Toolchain-Version"
     },
     "form": {
       "keyLabel": "Lizenzschlüssel",

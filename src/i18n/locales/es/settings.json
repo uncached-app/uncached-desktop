@@ -224,7 +224,10 @@
     "features": {
       "schedule": "Limpiezas automáticas en segundo plano",
       "duplicates": "Insights de duplicados entre proyectos",
-      "analytics": "Estadísticas de todo lo recuperado"
+      "analytics": "Estadísticas de todo lo recuperado",
+      "lowDisk": "Mantenimiento cuando el disco se llena",
+      "caches": "Cachés de toda la máquina",
+      "toolchains": "Cada versión de toolchain sin uso"
     },
     "form": {
       "keyLabel": "Clave de licencia",

@@ -30,7 +30,7 @@ type LicenseState = {
 const RENEWAL_NOTICE_DAYS = 14;
 
 /** What Pro adds. Free reclaims every artifact of every project, always. */
-const PRO_FEATURES = ["schedule", "duplicates", "analytics"] as const;
+const PRO_FEATURES = ["schedule", "lowDisk", "caches", "toolchains", "duplicates", "analytics"] as const;
 
 /**
  * A key is `<payload>.<signature>`, both base64url.

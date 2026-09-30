@@ -224,7 +224,10 @@
     "features": {
       "schedule": "Automated background cleanups",
       "duplicates": "Cross-project duplicate insights",
-      "analytics": "Lifetime reclaimed analytics"
+      "analytics": "Lifetime reclaimed analytics",
+      "lowDisk": "Maintenance when the disk runs low",
+      "caches": "Machine-wide caches",
+      "toolchains": "Every unused toolchain version"
     },
     "form": {
       "keyLabel": "Licence key",
