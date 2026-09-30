@@ -48,7 +48,7 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, b
         gravity: 1.2,
         ticks: 120,
         origin,
-        colors: ["#b9d98d", "#ffc2b5", "#edf0eb"],
+        colors: ["#f5c518", "#ffd83d", "#ff7a4d", "#f5f3e8"],
         disableForReducedMotion: true,
         zIndex: 100,
       });
