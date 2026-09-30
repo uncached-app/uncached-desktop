@@ -57,7 +57,6 @@ const BUILT_IN: &[(&str, &str)] = &[
     ("janitor", include_str!("../../themes/janitor.json")),
     ("cached", include_str!("../../themes/cached.json")),
     ("dusty", include_str!("../../themes/dusty.json")),
-    ("garbage-man", include_str!("../../themes/garbage-man.json")),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]

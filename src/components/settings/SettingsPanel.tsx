@@ -434,7 +434,7 @@ function AppearanceContent({
             label={t("settings.appearance.theme.label")}
             value={settings.theme ?? ""}
             options={[
-              { value: "", label: "Uncached" },
+              { value: "", label: "Garbage Man" },
               ...themes.map((entry) => ({
                 value: entry.id,
                 label: entry.builtIn

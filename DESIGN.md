@@ -2,21 +2,22 @@
 name: Uncached
 description: Reclaim disk from build artifacts.
 colors:
-  forest-night: "#101311"
-  forest-surface: "#151b17"
-  forest-raised: "#1a211c"
-  forest-border: "#222b24"
-  fresh-sage: "#b9d98d"
-  fresh-sage-light: "#d1eca9"
-  sage-deep: "#a8c982"
-  mist-primary: "#edf0eb"
-  mist-secondary: "#c7d0c1"
-  mist-muted: "#8e998e"
-  warning-coral: "#ffc2b5"
-  light-canvas: "#f4f6f1"
-  light-surface: "#ffffff"
-  light-raised: "#eef2eb"
-  light-border: "#dfe7dc"
+  bin-night: "#14140f"
+  bin-surface: "#1b1b15"
+  bin-raised: "#24241c"
+  bin-border: "#38382b"
+  hazard-yellow: "#f5c518"
+  hazard-yellow-light: "#ffd83d"
+  hazard-yellow-deep: "#d9a800"
+  paper-primary: "#f5f3e8"
+  paper-secondary: "#ccc8b4"
+  paper-muted: "#99957f"
+  warning-orange: "#ff7a4d"
+  light-canvas: "#f6f4ea"
+  light-surface: "#fffdf5"
+  light-raised: "#ece8d6"
+  light-border: "#d8d1b8"
+  light-accent: "#7a5b00"
 typography:
   display:
     fontFamily: "Hanken Grotesk, sans-serif"
@@ -75,7 +76,7 @@ spacing:
   section: "2rem"
 components:
   button-primary:
-    backgroundColor: "{colors.fresh-sage}"
+    backgroundColor: "{colors.hazard-yellow}"
     textColor: "{colors.forest-night}"
     rounded: "{rounded.md}"
     padding: "0.6875rem 1.25rem"
@@ -108,44 +109,47 @@ components:
 
 **Creative North Star: "Quiet Forest Utility"**
 
-Uncached is a quiet surface running a destructive operation. The visual system is calm on purpose: a dark evergreen canvas, layered tonal surfaces, and pale sage for safe forward motion give scanning, review, and confirmation room to be read without turning cleanup into a spectacle.
+Uncached is a quiet surface running a destructive operation. The visual system is calm on purpose: a warm near-black canvas, layered tonal surfaces, and hazard yellow for safe forward motion give scanning, review, and confirmation room to be read without turning cleanup into a spectacle.
 
 **The calm is visual only during the operation.** Surfaces, spacing, and motion stay restrained while scanning and deletion are in progress. A confirmed result may become visibly rewarding: reclaimed bytes, processed targets, positive language, and a short celebration give the operation a satisfying endpoint. Copy during the operation remains written for developers who already know what `node_modules` is and want counts, paths, byte sizes, and consequences.
 
 Technical information such as paths, categories, and sizes uses a distinct monospace voice; explanation stays humanist and readable, but never chatty. Tonal surfaces do most of the structural work, with color reserved for meaningful state.
 
 **Key Characteristics:**
-- Deep evergreen canvas with layered forest surfaces.
-- Pale botanical green for safe, affirmative actions.
-- Soft coral for destructive or cancelling actions.
+- Warm near-black canvas with olive-tinted layered surfaces.
+- Hazard yellow for safe, affirmative actions; deep amber carries it in light.
+- Warning orange for destructive or cancelling actions.
 - Rounded, tactile controls with compact developer-tool density.
 - Quiet motion that clarifies transitions and progress.
 - Flat, factual copy: real artifact names, exact counts, stated consequences.
 
 ## Colors
 
-Deep Forest + Fresh Sage creates a low-noise, safety-oriented palette. **Light is the default theme and the one most users will see**; dark is the deliberate alternative. Both express the same role assignments — the palette below names the dark values, and the light theme maps every role onto a pale neutral canvas with darkened sage and coral so contrast holds in both.
+Garbage Man: a working palette, hazard yellow on the warm near-black of a bin lid. Both modes express the same role assignments. The palette below names the dark values; the light theme maps every role onto warm paper, with the yellow deepened to amber so that light text on a filled button and amber text on paper both hold 4.5:1.
 
-Because light ships as the default, it is not a secondary skin: any new surface must be checked in light first, then dark. In CSS, `:root` carries the light values and `[data-theme="dark"]` overrides them, so the first paint is correct before settings resolve.
+In CSS, `:root` carries the light values and `[data-theme="dark"]` overrides them, so the first paint is correct before settings resolve. Check any new surface in both.
 
 ### Primary
-- **Fresh Sage** (`#b9d98d`): Primary action, active progress, selected state, and safe confirmation.
-- **Fresh Sage Light** (`#d1eca9`): Hover and higher-contrast affirmative emphasis on dark surfaces.
+- **Hazard Yellow** (`#f5c518`): Primary action, active progress, selected state, and safe confirmation. Text on it is Bin Night.
+- **Hazard Yellow Light** (`#ffd83d`): Hover and affirmative emphasis on dark surfaces.
+- **Light Accent** (`#7a5b00`): The same role in light, where yellow fails contrast against paper.
 
 ### Secondary
-- **Warning Coral** (`#ffc2b5`): Cancel, delete, permanent deletion, and other actions with destructive consequence.
+- **Warning Orange** (`#ff7a4d`): Cancel, delete, permanent deletion, and other actions with destructive consequence.
 
 ### Neutral
-- **Forest Night** (`#101311`): App canvas, titlebar, and deepest layer.
-- **Forest Surface** (`#151b17`): Main cards, dialogs, and input surfaces.
-- **Forest Raised** (`#1a211c`): Hover surfaces and secondary controls.
-- **Forest Border** (`#222b24`): Dividers, outlines, and quiet boundaries.
-- **Mist Primary** (`#edf0eb`): Primary text and high-importance values.
-- **Mist Secondary** (`#c7d0c1`): Supporting text and secondary controls.
-- **Mist Muted** (`#8e998e`): Hints, metadata, labels, and inactive states.
+- **Bin Night** (`#14140f`): App canvas, titlebar, and deepest layer.
+- **Bin Surface** (`#1b1b15`): Main cards, dialogs, and input surfaces.
+- **Bin Raised** (`#24241c`): Hover surfaces and secondary controls.
+- **Bin Border** (`#38382b`): Dividers, outlines, and quiet boundaries.
+- **Paper Primary** (`#f5f3e8`): Primary text and high-importance values.
+- **Paper Secondary** (`#ccc8b4`): Supporting text and secondary controls.
+- **Paper Muted** (`#99957f`): Hints, metadata, labels, and inactive states.
+
+The token names in code (`forest-*`, `sage-*`, `mist-*`, `coral-*`) are roles, kept from the first palette so themes written against them keep working.
 
 ### Named Rules
-**The Signal Scarcity Rule.** Sage and coral are state signals, not decoration. Use them where users need to understand what is safe, active, selected, cancelling, or destructive.
+**The Signal Scarcity Rule.** Yellow and orange are state signals, not decoration. Use them where users need to understand what is safe, active, selected, cancelling, or destructive.
 
 Coral in particular is a promise that something can be cancelled or destroyed. A coral surface that carries no action — a disabled button repurposed as a progress label — spends the signal on nothing and teaches users to stop reading it.
 
@@ -221,7 +225,7 @@ Spacing follows a compact rhythm built from `0.25rem`, `0.5rem`, `0.75rem`, `1re
 
 ## Elevation & Depth
 
-This is a tonal-layering system. Depth comes primarily from Forest Night, Forest Surface, Forest Raised, and Forest Border relationships, not from persistent shadows. Dialogs may use a strong ambient shadow because they interrupt the workflow; ordinary cards should remain grounded. A subtle fixed grain texture adds material continuity without becoming a visible pattern.
+This is a tonal-layering system. Depth comes primarily from Bin Night, Bin Surface, Bin Raised, and Bin Border relationships, not from persistent shadows. Dialogs may use a strong ambient shadow because they interrupt the workflow; ordinary cards should remain grounded. A subtle fixed grain texture adds material continuity without becoming a visible pattern.
 
 ### Named Rules
 **The Grounded Surface Rule.** Cards and controls sit in the forest layers. Do not float every element with a shadow; reserve lift for modal interruption and meaningful focus.
@@ -234,10 +238,10 @@ The form language is gently curved and tactile: compact controls use `0.75rem` r
 
 ### Buttons
 - **Shape:** Soft, compact corners (`0.75rem`) with a subtle pressed translation.
-- **Primary:** Fresh Sage fill, Forest Night text, semibold label, minimum 2.75rem height.
-- **Destructive:** Warning Coral fill, Forest Night text; use only for cancellation, deletion, or permanent consequences.
-- **Secondary:** Forest Raised fill with Mist Secondary text; hover one layer lighter and Sage text when relevant.
-- **Hover / Focus:** Shift surface or border color; use a visible Sage focus ring on keyboard focus. Active state translates down 1px and scales to `0.99`.
+- **Primary:** Hazard Yellow fill, Bin Night text, semibold label, minimum 2.75rem height.
+- **Destructive:** Warning Orange fill, Bin Night text; use only for cancellation, deletion, or permanent consequences.
+- **Secondary:** Bin Raised fill with Paper Secondary text; hover one layer lighter and yellow text when relevant.
+- **Hover / Focus:** Shift surface or border color; use a visible yellow focus ring on keyboard focus. Active state translates down 1px and scales to `0.99`.
 - **Disabled vs. absent:** `disabled` means "this operation exists but is momentarily unavailable" — a scan is cancelling, a size is still resolving. When the operation does not exist at all in the current state, remove the control instead of disabling it and relabelling it. A button is never a status readout.
 - **Reserved space:** where a control appears and disappears with state, hold its slot with a `min-height` so the layout does not jump. The stillness is part of the calm; a shifting column is not.
 
@@ -246,28 +250,28 @@ The form language is gently curved and tactile: compact controls use `0.75rem` r
 
 ### Cards / Containers
 - **Corner Style:** Rounded `1rem` to `1.5rem`.
-- **Background:** Forest Surface over Forest Night canvas.
+- **Background:** Bin Surface over Bin Night canvas.
 - **Shadow Strategy:** Flat at rest; modal containers can use ambient shadow.
-- **Border:** Forest Border by default; Sage border when a target is selected or a surface is actively focused.
+- **Border:** Bin Border by default; yellow border when a target is selected or a surface is actively focused.
 - **Internal Padding:** Usually `1rem`; larger empty states and dialogs use `1.5rem`.
 
 ### Inputs / Fields
-- **Style:** Forest Surface fill, Forest Border outline, `1rem` radius, and a monospace value field for paths.
-- **Focus:** Sage border with a low-opacity Sage ring.
+- **Style:** Bin Surface fill, Bin Border outline, `1rem` radius, and a monospace value field for paths.
+- **Focus:** Yellow border with a low-opacity yellow ring.
 - **Error / Disabled:** Coral text for errors; preserve surface structure while reducing opacity for disabled controls.
 
 ### Navigation
-- **Style:** Progress pipeline uses compact pill labels with numbered circular markers. Current step receives a Forest Raised capsule and Sage marker; passed steps use Mist Secondary and a Sage check; future steps stay muted.
+- **Style:** Progress pipeline uses compact pill labels with numbered circular markers. Current step receives a Bin Raised capsule and yellow marker; passed steps use Paper Secondary and a yellow check; future steps stay muted.
 - **Desktop / Narrow treatment:** Pipeline is visible at desktop widths and collapses on narrow widths. Tauri titlebar controls remain compact, square, and separate from workflow navigation.
 
 ### Target Card
-Target cards pair a selectable checkbox, a small monospace category chip, a truncated monospace path, and a right-aligned size. Selected cards use a Sage border and retain the same grounded surface. The design token is still named `finding-card`; the user-facing term is always **target**.
+Target cards pair a selectable checkbox, a small monospace category chip, a truncated monospace path, and a right-aligned size. Selected cards use a yellow border and retain the same grounded surface. The design token is still named `finding-card`; the user-facing term is always **target**.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** preserve Deep Forest surfaces and use tonal contrast before adding decoration.
-- **Do** reserve Fresh Sage for safe action, progress, selection, and focus.
+- **Do** preserve the layered Bin surfaces and use tonal contrast before adding decoration.
+- **Do** reserve Hazard Yellow for safe action, progress, selection, and focus.
 - **Do** use Geist Mono for paths, categories, counts, and other filesystem facts.
 - **Do** keep destructive actions unmistakably Coral and explicit.
 - **Do** respect reduced-motion preferences and keep transitions short.

@@ -41,33 +41,33 @@
      same amount or the first frame is a rectangle wider than the window. */
   --window-gutter: 16px;
   --window-radius: 18px;
-  --window-shadow: 0 6px 16px rgb(24 32 24 / 0.16), 0 1px 4px rgb(24 32 24 / 0.1);
-  --theme-forest-950: #f4f6f1;
-  --theme-forest-900: #ffffff;
-  --theme-forest-850: #e2e8df;
-  --theme-forest-800: #ccdac9;
-  --theme-sage-300: #386641;
-  --theme-sage-400: #57843d;
-  --theme-sage-500: #7fa84e;
-  --theme-mist-100: #111711;
-  --theme-mist-300: #2b362c;
-  --theme-mist-500: #4c5a4d;
-  --theme-coral-300: #bc4749;
+  --window-shadow: 0 6px 16px rgb(27 27 21 / 0.16), 0 1px 4px rgb(27 27 21 / 0.1);
+  --theme-forest-950: #f6f4ea;
+  --theme-forest-900: #fffdf5;
+  --theme-forest-850: #ece8d6;
+  --theme-forest-800: #d8d1b8;
+  --theme-sage-300: #765800;
+  --theme-sage-400: #7a5b00;
+  --theme-sage-500: #b08a00;
+  --theme-mist-100: #1b1b15;
+  --theme-mist-300: #3d3a2c;
+  --theme-mist-500: #65614b;
+  --theme-coral-300: #ad3d1a;
   /* Care, not alarm: the same tint every other verdict gets, so a protected
      project reads as a filled circle rather than a hole in the page. */
-  --theme-coral-surface: #f7dedd;
+  --theme-coral-surface: #f8e2d8;
   --theme-pro-100: #4a2d6f;
   --theme-pro-200: #5e3d85;
   --theme-pro-surface: #efe7fa;
   /* Confidence reads as reassurance, caution and inquiry — never alarm.
      Review is blue because it asks the user to look at something, and blue
      carries that without the urgency red would add to a routine finding. */
-  --theme-confidence-high: #2e5535;
-  --theme-confidence-high-surface: #e1ecd1;
-  --theme-confidence-medium: #7a4f10;
-  --theme-confidence-medium-surface: #f7ebcf;
-  --theme-confidence-review: #2b5470;
-  --theme-confidence-review-surface: #dde9f2;
+  --theme-confidence-high: #46620f;
+  --theme-confidence-high-surface: #e6eed2;
+  --theme-confidence-medium: #7f4c00;
+  --theme-confidence-medium-surface: #f8ead0;
+  --theme-confidence-review: #1d5a80;
+  --theme-confidence-review-surface: #deedf6;
   color-scheme: light;
   font-family: var(--font-sans);
   color: var(--color-mist-100);
@@ -81,27 +81,27 @@
   /* Deeper, because a shadow reads against what surrounds the window, and on a
      dark desktop a light-theme shadow is invisible. */
   --window-shadow: 0 6px 18px rgb(0 0 0 / 0.5), 0 1px 4px rgb(0 0 0 / 0.32);
-  --theme-forest-950: #0e120f;
-  --theme-forest-900: #141a15;
-  --theme-forest-850: #1b231d;
-  --theme-forest-800: #253127;
-  --theme-sage-300: #b4e590;
-  --theme-sage-400: #9dd47a;
-  --theme-sage-500: #86bd63;
-  --theme-mist-100: #f2f5f1;
-  --theme-mist-300: #cfd8cc;
-  --theme-mist-500: #93a092;
-  --theme-coral-300: #ff9b94;
-  --theme-coral-surface: #281a19;
-  --theme-pro-100: #eee0ff;
-  --theme-pro-200: #d9b8ff;
-  --theme-pro-surface: #211b2b;
-  --theme-confidence-high: #b4e590;
-  --theme-confidence-high-surface: #1b241a;
-  --theme-confidence-medium: #f2cd94;
-  --theme-confidence-medium-surface: #262017;
-  --theme-confidence-review: #a6cde6;
-  --theme-confidence-review-surface: #16212a;
+  --theme-forest-950: #14140f;
+  --theme-forest-900: #1b1b15;
+  --theme-forest-850: #24241c;
+  --theme-forest-800: #38382b;
+  --theme-sage-300: #ffd83d;
+  --theme-sage-400: #f5c518;
+  --theme-sage-500: #d9a800;
+  --theme-mist-100: #f5f3e8;
+  --theme-mist-300: #ccc8b4;
+  --theme-mist-500: #99957f;
+  --theme-coral-300: #ff7a4d;
+  --theme-coral-surface: #33201a;
+  --theme-pro-100: #dcc7ff;
+  --theme-pro-200: #b28cff;
+  --theme-pro-surface: #221c33;
+  --theme-confidence-high: #a8d84a;
+  --theme-confidence-high-surface: #212a12;
+  --theme-confidence-medium: #ffb03a;
+  --theme-confidence-medium-surface: #2e2312;
+  --theme-confidence-review: #6ec6ff;
+  --theme-confidence-review-surface: #12222e;
   color-scheme: dark;
 }
 
