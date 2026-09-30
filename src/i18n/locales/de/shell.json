@@ -148,7 +148,11 @@
     "maintenanceBody_other": "{{size}} aus {{count}} inaktiven Projekten freigegeben. Alles wurde in den Papierkorb verschoben.",
     "trayFree": "{{size}} frei",
     "trayReclaimable": "{{size}} freigebbar",
-    "trayRunMaintenance": "Wartung jetzt ausführen"
+    "trayRunMaintenance": "Wartung jetzt ausführen",
+    "digestTitle": "Uncached diese Woche",
+    "digestBoth": "Diese Woche {{freed}} freigegeben. {{size}} lassen sich noch freigeben.",
+    "digestFreed": "Diese Woche {{freed}} freigegeben.",
+    "digestReclaimable": "{{size}} lassen sich freigeben. Diese Woche wurde nichts bereinigt."
   },
   "errors": {
     "invalid_workspace": "Dieser Ordner kann nicht gescannt werden.",

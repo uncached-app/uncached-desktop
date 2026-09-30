@@ -55,6 +55,9 @@ export type AppSettings = {
   maintenanceSchedule: Schedule;
   /** Unix seconds of the last unattended attempt. Written by the backend only. */
   maintenanceLastRunAt: number | null;
+  /** A weekly notification of what was freed and what is left; Pro, off by default. */
+  weeklyDigest: boolean;
+  weeklyDigestLastAt: number | null;
 };
 
 export type IgnoreRuleProblem = {

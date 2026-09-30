@@ -148,7 +148,11 @@
     "maintenanceBody_other": "{{size}} liberados de {{count}} projetos ociosos. Tudo foi para o Lixo.",
     "trayFree": "{{size}} livres",
     "trayReclaimable": "{{size}} recuperáveis",
-    "trayRunMaintenance": "Rodar manutenção agora"
+    "trayRunMaintenance": "Rodar manutenção agora",
+    "digestTitle": "Uncached nesta semana",
+    "digestBoth": "{{freed}} liberados nesta semana. Ainda dá para recuperar {{size}}.",
+    "digestFreed": "{{freed}} liberados nesta semana.",
+    "digestReclaimable": "Dá para recuperar {{size}}. Nada foi limpo nesta semana."
   },
   "errors": {
     "invalid_workspace": "Esta pasta não pode ser varrida.",

@@ -35,6 +35,10 @@
     "checkUpdates": {
       "label": "Check for updates",
       "hint": "Periodically check for new releases and security improvements."
+    },
+    "weeklyDigest": {
+      "label": "Weekly summary",
+      "hint": "Once a week, a notification with what was freed and what can still be reclaimed. Only when there is something to say."
     }
   },
   "language": {

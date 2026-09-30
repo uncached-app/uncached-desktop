@@ -179,6 +179,11 @@ fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     Menu::with_items(app, &items)
 }
 
+/// The reclaimable total the window last measured.
+pub fn reclaimable() -> Option<u64> {
+    RECLAIMABLE.read().ok().and_then(|guard| *guard)
+}
+
 /// What the window measured as reclaimable, for the tray to show. `None`
 /// until a workspace has been measured.
 #[tauri::command]

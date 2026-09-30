@@ -274,6 +274,17 @@ pub async fn record_workspace_visit(
     Ok(change)
 }
 
+/// Bytes the log records as freed at or after `since`.
+pub fn freed_since(app: &AppHandle, since: DateTime<Utc>) -> u64 {
+    let Ok(dir) = history_dir(app) else {
+        return 0;
+    };
+    read_cleanup_log(&dir.join(CLEANUP_LOG_FILE))
+        .iter()
+        .filter(|entry| entry.at >= since)
+        .fold(0u64, |sum, entry| sum.saturating_add(entry.freed_bytes))
+}
+
 /// Appends one cleanup to the log.
 ///
 /// One line per target, written on the success path only: the history answers

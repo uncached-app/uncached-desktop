@@ -150,6 +150,13 @@ pub struct AppSettings {
     /// as long as the policy matched nothing.
     #[serde(default)]
     pub maintenance_last_run_at: Option<i64>,
+    /// A weekly notification of what was freed and what is left. Off until the
+    /// user turns it on; Pro.
+    #[serde(default)]
+    pub weekly_digest: bool,
+    /// Unix seconds of the last digest, or of turning it on.
+    #[serde(default)]
+    pub weekly_digest_last_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -231,6 +238,8 @@ impl Default for AppSettings {
             maintenance: crate::workspace::maintenance::MaintenancePolicy::default(),
             maintenance_schedule: crate::workspace::schedule::Schedule::default(),
             maintenance_last_run_at: None,
+            weekly_digest: false,
+            weekly_digest_last_at: None,
         }
     }
 }
@@ -319,6 +328,10 @@ pub async fn update_settings(
     app: AppHandle,
     settings: AppSettings,
 ) -> Result<AppSettings, CommandError> {
+    let mut settings = settings;
+    if let Ok(stored) = load_settings(&app) {
+        keep_backend_stamps(&mut settings, &stored);
+    }
     persist_settings(&app, &settings).map_err(settings_unreadable)?;
     // Applied after the write, so the login item follows what was stored rather
     // than what was asked for and might have failed to save.
@@ -393,6 +406,25 @@ pub fn record_cleanup(app: &AppHandle, freed_bytes: u64) -> Result<(), String> {
 /// loses power mid-scan — does not come back and immediately try the same thing
 /// again. The cost of stamping early is one skipped interval; the cost of
 /// stamping late is a loop.
+/// Stamps only the backend writes. The window's copy of them is whatever it
+/// loaded, so saving any other setting would put an old stamp back: a
+/// maintenance run before its interval, a digest sent twice. Toggling the digest
+/// restarts its week.
+fn keep_backend_stamps(incoming: &mut AppSettings, stored: &AppSettings) {
+    incoming.maintenance_last_run_at = stored.maintenance_last_run_at;
+    incoming.weekly_digest_last_at = if incoming.weekly_digest == stored.weekly_digest {
+        stored.weekly_digest_last_at
+    } else {
+        None
+    };
+}
+
+pub fn record_weekly_digest(app: &AppHandle, at: i64) -> Result<(), String> {
+    let mut settings = load_settings(app)?;
+    settings.weekly_digest_last_at = Some(at);
+    persist_settings(app, &settings)
+}
+
 pub fn record_maintenance_run(app: &AppHandle, at: i64) -> Result<(), String> {
     let mut settings = load_settings(app)?;
     settings.maintenance_last_run_at = Some(at);
@@ -573,5 +605,39 @@ mod tests {
 
         assert!(result.is_err());
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn saving_from_the_window_keeps_the_stamps_the_backend_wrote() {
+        let stored = AppSettings {
+            maintenance_last_run_at: Some(2_000),
+            weekly_digest: true,
+            weekly_digest_last_at: Some(3_000),
+            ..AppSettings::default()
+        };
+        let mut incoming = AppSettings {
+            maintenance_last_run_at: Some(1_000),
+            weekly_digest: true,
+            weekly_digest_last_at: Some(1_000),
+            ..AppSettings::default()
+        };
+        super::keep_backend_stamps(&mut incoming, &stored);
+        assert_eq!(incoming.maintenance_last_run_at, Some(2_000));
+        assert_eq!(incoming.weekly_digest_last_at, Some(3_000));
+    }
+
+    #[test]
+    fn toggling_the_digest_restarts_its_week() {
+        let stored = AppSettings {
+            weekly_digest: false,
+            weekly_digest_last_at: Some(3_000),
+            ..AppSettings::default()
+        };
+        let mut incoming = AppSettings {
+            weekly_digest: true,
+            ..AppSettings::default()
+        };
+        super::keep_backend_stamps(&mut incoming, &stored);
+        assert_eq!(incoming.weekly_digest_last_at, None);
     }
 }

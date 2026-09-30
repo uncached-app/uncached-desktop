@@ -98,6 +98,7 @@ fn tick(app: &AppHandle) {
     };
 
     let now = chrono::Utc::now().timestamp();
+    crate::digest::tick(app, &settings, now);
     let conditions = Conditions {
         schedule: settings.maintenance_schedule,
         pro_enabled: crate::commands::entitlements::current_status().pro_enabled,

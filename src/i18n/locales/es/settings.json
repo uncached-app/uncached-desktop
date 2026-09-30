@@ -35,6 +35,10 @@
     "checkUpdates": {
       "label": "Buscar actualizaciones",
       "hint": "Comprueba periódicamente si hay versiones nuevas y mejoras de seguridad."
+    },
+    "weeklyDigest": {
+      "label": "Resumen semanal",
+      "hint": "Una vez por semana, una notificación con lo que se liberó y lo que aún se puede recuperar. Solo cuando hay algo que decir."
     }
   },
   "language": {

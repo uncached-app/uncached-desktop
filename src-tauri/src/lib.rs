@@ -1,4 +1,5 @@
 mod app_icon;
+mod digest;
 pub mod commands;
 pub mod errors;
 pub mod filesystem;

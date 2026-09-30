@@ -262,7 +262,7 @@ function SettingsContent({
   onRequestPermanentDelete: () => void;
 }) {
   if (section === "general") {
-    return <GeneralContent settings={settings} updateSettings={updateSettings} />;
+    return <GeneralContent settings={settings} updateSettings={updateSettings} proEnabled={proEnabled} />;
   }
   if (section === "opening") {
     return <OpeningContent settings={settings} updateSettings={updateSettings} />;
@@ -630,9 +630,11 @@ function IgnoreRulesContent({
 function GeneralContent({
   settings,
   updateSettings,
+  proEnabled,
 }: {
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
+  proEnabled: boolean;
 }) {
   const { t } = useTranslation();
   const systemTag = resolveLocale("system", navigator.languages);
@@ -670,6 +672,14 @@ function GeneralContent({
           checked={settings.keepRunningInBackground}
           onChange={(value) => updateSettings({ keepRunningInBackground: value })}
         />
+        {proEnabled && (
+          <SettingToggle
+            label={t("settings.general.weeklyDigest.label")}
+            hint={t("settings.general.weeklyDigest.hint")}
+            checked={settings.weeklyDigest}
+            onChange={(value) => updateSettings({ weeklyDigest: value })}
+          />
+        )}
         <SettingToggle
           label={t("settings.general.rememberWorkspace.label")}
           hint={t("settings.general.rememberWorkspace.hint")}

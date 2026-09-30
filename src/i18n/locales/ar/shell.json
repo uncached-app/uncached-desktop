@@ -160,7 +160,11 @@
     "maintenanceBody_other": "استُعيد {{size}} من {{count}} مشروع خامل. نُقل كل شيء إلى سلة المهملات.",
     "trayFree": "{{size}} متاحة",
     "trayReclaimable": "{{size}} قابلة للاسترداد",
-    "trayRunMaintenance": "تشغيل الصيانة الآن"
+    "trayRunMaintenance": "تشغيل الصيانة الآن",
+    "digestTitle": "Uncached هذا الأسبوع",
+    "digestBoth": "تم تحرير {{freed}} هذا الأسبوع. يمكن استرداد {{size}} أخرى.",
+    "digestFreed": "تم تحرير {{freed}} هذا الأسبوع.",
+    "digestReclaimable": "يمكن استرداد {{size}}. لم يُنظَّف شيء هذا الأسبوع."
   },
   "errors": {
     "invalid_workspace": "لا يمكن فحص هذا المجلد.",

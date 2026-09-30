@@ -30,6 +30,13 @@ pub struct NativeStrings {
     /// Placeholder: `{{size}}`.
     pub tray_reclaimable: String,
     pub tray_run_maintenance: String,
+    pub digest_title: String,
+    /// Placeholders: `{{freed}}`, `{{size}}`.
+    pub digest_both: String,
+    /// Placeholder: `{{freed}}`.
+    pub digest_freed: String,
+    /// Placeholder: `{{size}}`.
+    pub digest_reclaimable: String,
     /// Placeholders: `{{count}}` targets, `{{size}}`.
     pub scan_finished: Forms,
     pub maintenance_title: String,
@@ -54,6 +61,11 @@ impl Default for NativeStrings {
             tray_free: "{{size}} free".to_owned(),
             tray_reclaimable: "{{size}} reclaimable".to_owned(),
             tray_run_maintenance: "Run maintenance now".to_owned(),
+            digest_title: "Uncached this week".to_owned(),
+            digest_both: "{{freed}} freed this week. {{size}} more can be reclaimed.".to_owned(),
+            digest_freed: "{{freed}} freed this week.".to_owned(),
+            digest_reclaimable: "{{size}} can be reclaimed. Nothing was cleaned this week."
+                .to_owned(),
             scan_finished: forms(
                 "{{count}} target found, {{size}} reclaimable.",
                 "{{count}} targets found, {{size}} reclaimable.",
@@ -129,14 +141,24 @@ pub fn render(forms: &Forms, locale: &str, count: u64, size: &str) -> String {
         .replace("{{size}}", &format!("{open}{size}{close}"))
 }
 
-/// Fills `{{size}}` in a template with no count, isolated as `render` does.
-pub fn fill_size(template: &str, locale: &str, size: &str) -> String {
+/// Fills `{{name}}` placeholders in a template with no count, isolated as
+/// `render` does.
+pub fn fill(template: &str, locale: &str, values: &[(&str, &str)]) -> String {
     let (open, close) = if locale == "ar" {
         ("\u{2068}", "\u{2069}")
     } else {
         ("", "")
     };
-    template.replace("{{size}}", &format!("{open}{size}{close}"))
+    values
+        .iter()
+        .fold(template.to_owned(), |text, (name, value)| {
+            text.replace(&format!("{{{{{name}}}}}"), &format!("{open}{value}{close}"))
+        })
+}
+
+/// Fills `{{size}}` in a template with no count.
+pub fn fill_size(template: &str, locale: &str, size: &str) -> String {
+    fill(template, locale, &[("size", size)])
 }
 
 /// A size the way the locale writes it. Only the decimal separator changes;

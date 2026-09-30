@@ -148,7 +148,11 @@
     "maintenanceBody_other": "{{size}} recuperados de {{count}} proyectos inactivos. Todo se movió a la Papelera.",
     "trayFree": "{{size}} libres",
     "trayReclaimable": "{{size}} recuperables",
-    "trayRunMaintenance": "Ejecutar mantenimiento ahora"
+    "trayRunMaintenance": "Ejecutar mantenimiento ahora",
+    "digestTitle": "Uncached esta semana",
+    "digestBoth": "{{freed}} liberados esta semana. Aún se pueden recuperar {{size}}.",
+    "digestFreed": "{{freed}} liberados esta semana.",
+    "digestReclaimable": "Se pueden recuperar {{size}}. No se limpió nada esta semana."
   },
   "errors": {
     "invalid_workspace": "Esta carpeta no se puede analizar.",

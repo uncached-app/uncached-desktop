@@ -145,7 +145,11 @@
     "maintenanceBody_other": "アイドル状態の {{count}} 件のプロジェクトから {{size}} を回収しました。すべてゴミ箱に移動済みです。",
     "trayFree": "空き {{size}}",
     "trayReclaimable": "回収可能 {{size}}",
-    "trayRunMaintenance": "今すぐメンテナンスを実行"
+    "trayRunMaintenance": "今すぐメンテナンスを実行",
+    "digestTitle": "今週の Uncached",
+    "digestBoth": "今週は {{freed}} を解放しました。さらに {{size}} を回収できます。",
+    "digestFreed": "今週は {{freed}} を解放しました。",
+    "digestReclaimable": "{{size}} を回収できます。今週はクリーンアップしていません。"
   },
   "errors": {
     "invalid_workspace": "このフォルダはスキャンできません。",
