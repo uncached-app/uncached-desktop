@@ -8,6 +8,7 @@ import { preferred, useLaunchers } from "../../../hooks/useLaunchers";
 import { useSettings } from "../../../hooks/useSettings";
 import { copyText } from "../../../utils/clipboard";
 import type { Footprint, Recoverability, Verdict, WorkspaceProject } from "../../../types/workspace";
+import { describeFailure } from "../../../i18n/errors";
 
 /**
  * The verdict, with its reasons rather than its summary.
@@ -157,7 +158,7 @@ function RestoreLine({
       });
       onResult(t("workspace.restore.running", { started, terminal: terminal.name }));
     } catch (error) {
-      onResult(typeof error === "string" ? error : t("workspace.restore.failed"));
+      onResult(describeFailure(error, t("workspace.restore.failed")));
     }
   }
 

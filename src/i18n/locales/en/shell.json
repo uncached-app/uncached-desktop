@@ -174,5 +174,27 @@
     "secure_trash_aborted": "Moving the target to the Recycle Bin was interrupted.",
     "secure_trash_postcondition_failed": "The target was not in the Recycle Bin after the move.",
     "target_in_use": "{{program}} is running. Close it and scan again — removing this now would break it."
+  },
+  "commandErrors": {
+    "unknown": "Something went wrong.",
+    "internal": "Something went wrong: {{detail}}",
+    "folder_gone": "That folder no longer exists.",
+    "not_a_folder": "That is not a folder.",
+    "outside_workspace": "That folder is outside your workspace.",
+    "no_folder_selected": "Choose at least one folder.",
+    "folder_unreadable": "That folder cannot be opened: {{detail}}",
+    "app_not_installed": "That application is not installed.",
+    "terminal_not_installed": "That terminal is not installed.",
+    "terminal_refused": "The terminal would not run the command.",
+    "no_restore_recipe": "Nothing in this project says how to reinstall it.",
+    "script_unwritable": "There is nowhere to write the reinstall script.",
+    "git_failed": "Git refused: {{detail}}",
+    "requires_pro": "Running maintenance requires Uncached Pro.",
+    "settings_unreadable": "The settings could not be saved or read: {{detail}}",
+    "io": "The disk refused: {{detail}}",
+    "not_found": "Not found: {{detail}}",
+    "permission_denied": "Permission denied: {{detail}}",
+    "scan_cancelled": "The scan was cancelled.",
+    "cleanup_cancelled": "The cleanup was cancelled before anything was removed."
   }
 }

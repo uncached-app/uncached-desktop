@@ -174,5 +174,27 @@
     "secure_trash_aborted": "Das Verschieben des Ziels in den Papierkorb wurde unterbrochen.",
     "secure_trash_postcondition_failed": "Das Ziel lag nach dem Verschieben nicht im Papierkorb.",
     "target_in_use": "{{program}} läuft. Schließe es und scanne erneut — jetzt zu entfernen würde es beschädigen."
+  },
+  "commandErrors": {
+    "unknown": "Etwas ist schiefgelaufen.",
+    "internal": "Etwas ist schiefgelaufen: {{detail}}",
+    "folder_gone": "Dieser Ordner existiert nicht mehr.",
+    "not_a_folder": "Das ist kein Ordner.",
+    "outside_workspace": "Dieser Ordner liegt außerhalb deines Workspace.",
+    "no_folder_selected": "Wähle mindestens einen Ordner.",
+    "folder_unreadable": "Dieser Ordner lässt sich nicht öffnen: {{detail}}",
+    "app_not_installed": "Diese Anwendung ist nicht installiert.",
+    "terminal_not_installed": "Dieses Terminal ist nicht installiert.",
+    "terminal_refused": "Das Terminal hat den Befehl nicht ausgeführt.",
+    "no_restore_recipe": "Nichts in diesem Projekt sagt, wie es neu installiert wird.",
+    "script_unwritable": "Es gibt keinen Ort, um das Installationsskript zu speichern.",
+    "git_failed": "Git hat abgelehnt: {{detail}}",
+    "requires_pro": "Die Wartung auszuführen erfordert Uncached Pro.",
+    "settings_unreadable": "Die Einstellungen konnten nicht gelesen oder gespeichert werden: {{detail}}",
+    "io": "Der Datenträger hat abgelehnt: {{detail}}",
+    "not_found": "Nicht gefunden: {{detail}}",
+    "permission_denied": "Zugriff verweigert: {{detail}}",
+    "scan_cancelled": "Der Scan wurde abgebrochen.",
+    "cleanup_cancelled": "Die Bereinigung wurde abgebrochen, bevor etwas entfernt wurde."
   }
 }

@@ -1,4 +1,5 @@
 use crate::commands::locate::authorize;
+use crate::errors::command::CommandError;
 use std::collections::HashSet;
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -14,7 +15,7 @@ use uncached_core::ProjectDependencies;
 pub async fn unused_dependencies(
     app: AppHandle,
     paths: Vec<String>,
-) -> Result<Vec<ProjectDependencies>, String> {
+) -> Result<Vec<ProjectDependencies>, CommandError> {
     let mut projects: Vec<PathBuf> = Vec::new();
     for path in &paths {
         projects.push(authorize(&app, path)?);
@@ -36,5 +37,5 @@ pub async fn unused_dependencies(
             .collect()
     })
     .await
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string().into())
 }

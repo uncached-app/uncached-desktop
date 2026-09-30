@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { EMPTY_REPORT, type DuplicateReport } from "../types/duplicates";
+import { describeFailure } from "../i18n/errors";
 
 /**
  * The same package, installed once per project.
@@ -21,7 +22,7 @@ export function useDuplicatePackages(projectPaths: string[]) {
     try {
       setReport(await invoke<DuplicateReport>("duplicate_packages", { paths: projectPaths }));
     } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : String(scanError));
+      setError(describeFailure(scanError));
       setReport(EMPTY_REPORT);
     } finally {
       setRunning(false);

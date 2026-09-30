@@ -237,6 +237,9 @@ pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorIn
         NukeError::NotFound(_) => uncached_core::CoreError::TargetMissing {
             path: "target".into(),
         },
+        NukeError::NoScanRoot | NukeError::NotADirectory(_) => {
+            uncached_core::CoreError::InvalidWorkspace("scan root".into())
+        }
         NukeError::PermissionDenied(_) => uncached_core::CoreError::SecureDeletionFailed {
             path: "target".into(),
             source: std::io::Error::other("desktop permission denied"),
@@ -596,9 +599,7 @@ impl ScanService {
             let metadata = std::fs::symlink_metadata(root_path)
                 .map_err(|_| NukeError::NotFound(root_path.display().to_string()))?;
             if !metadata.is_dir() || metadata.file_type().is_symlink() {
-                return Err(NukeError::PermissionDenied(
-                    "Scan root must be a real directory".to_string(),
-                ));
+                return Err(NukeError::NotADirectory(root_path.display().to_string()));
             }
             canonical.push(scan_path(&dunce::canonicalize(root_path)?));
         }
@@ -608,7 +609,7 @@ impl ScanService {
         let requested = canonical.len();
         let scan_roots = canonical.into_iter().take(limit).collect::<Vec<_>>();
         if scan_roots.is_empty() {
-            return Err(NukeError::NotFound("No scan root selected".to_string()));
+            return Err(NukeError::NoScanRoot);
         }
         let roots_over_limit = requested.saturating_sub(scan_roots.len());
         let canonical_root = scan_roots[0].clone();

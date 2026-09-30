@@ -17,6 +17,7 @@
 //! wait for a terminal that does not exist and hang the command forever.
 
 use crate::commands::locate::authorize;
+use crate::errors::command::CommandError;
 use crate::workspace::hygiene::{self, Hygiene};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -74,11 +75,11 @@ fn read_hygiene(path: &Path) -> Hygiene {
 /// the unpushed-work warning, and a product that charges to be told a six-month
 /// stash exists is a product that let it be forgotten.
 #[tauri::command]
-pub async fn project_hygiene(app: AppHandle, path: String) -> Result<Hygiene, String> {
+pub async fn project_hygiene(app: AppHandle, path: String) -> Result<Hygiene, CommandError> {
     let target = authorize(&app, &path)?;
     tauri::async_runtime::spawn_blocking(move || read_hygiene(&target))
         .await
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string().into())
 }
 
 /// One repository that is carrying something, and what.
@@ -125,7 +126,7 @@ pub struct WorkspaceHygiene {
 pub async fn workspace_hygiene(
     app: AppHandle,
     paths: Vec<String>,
-) -> Result<WorkspaceHygiene, String> {
+) -> Result<WorkspaceHygiene, CommandError> {
     let mut projects: Vec<PathBuf> = Vec::new();
     for path in &paths {
         projects.push(authorize(&app, path)?);
@@ -133,7 +134,7 @@ pub async fn workspace_hygiene(
 
     tauri::async_runtime::spawn_blocking(move || aggregate(&projects))
         .await
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string().into())
 }
 
 /// The aggregation, separated from the command so it can be exercised against
@@ -204,7 +205,7 @@ pub struct FetchResult {
 /// a hung one. Git asks for credentials on whatever channel it can find, and
 /// with no terminal attached it waits forever.
 #[tauri::command]
-pub async fn fetch_project(app: AppHandle, path: String) -> Result<FetchResult, String> {
+pub async fn fetch_project(app: AppHandle, path: String) -> Result<FetchResult, CommandError> {
     let target = authorize(&app, &path)?;
     tauri::async_runtime::spawn_blocking(move || {
         let output = crate::process::quiet("git")
@@ -216,7 +217,7 @@ pub async fn fetch_project(app: AppHandle, path: String) -> Result<FetchResult, 
             .env("SSH_ASKPASS", "")
             .env("GIT_SSH_COMMAND", "ssh -oBatchMode=yes")
             .output()
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| CommandError::from(error.to_string()))?;
 
         if !output.status.success() {
             // Git's own message, trimmed to one line: it says whether this was a
@@ -228,7 +229,7 @@ pub async fn fetch_project(app: AppHandle, path: String) -> Result<FetchResult, 
                 .find(|line| !line.trim().is_empty())
                 .unwrap_or("Fetch failed")
                 .trim();
-            return Err(reason.to_owned());
+            return Err(CommandError::new("git_failed", reason).with("detail", reason));
         }
 
         Ok(FetchResult {
@@ -271,7 +272,7 @@ pub async fn prune_branches(
     app: AppHandle,
     path: String,
     branches: Vec<String>,
-) -> Result<PruneResult, String> {
+) -> Result<PruneResult, CommandError> {
     let target = authorize(&app, &path)?;
     tauri::async_runtime::spawn_blocking(move || {
         let before = read_hygiene(&target);
@@ -322,7 +323,7 @@ pub async fn prune_branches(
         }
     })
     .await
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string().into())
 }
 
 fn now() -> i64 {

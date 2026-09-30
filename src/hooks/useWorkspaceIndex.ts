@@ -2,15 +2,10 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { WorkspaceIndex } from "../types/workspace";
+import { describeFailure } from "../i18n/errors";
 
 /** How long an index is trusted before a focus is allowed to re-read it. */
 const STALE_AFTER_MS = 5 * 60 * 1000;
-
-function indexFailure(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (error instanceof Error) return error.message;
-  return JSON.stringify(error);
-}
 
 /** Indexes the roots it is given. Free on every plan; Rust caps how many apply. */
 export function useWorkspaceIndex() {
@@ -44,9 +39,7 @@ export function useWorkspaceIndex() {
       setIndex(await invoke<WorkspaceIndex>("scan_workspace_index", { paths }));
       indexedAt.current = Date.now();
     } catch (scanError) {
-      // A rejected command carries the string Rust returned, so quoting it as
-      // JSON would put the reason in the user's face wearing quotation marks.
-      setError(indexFailure(scanError));
+      setError(describeFailure(scanError));
     } finally {
       running.current = false;
       setLoading(false);

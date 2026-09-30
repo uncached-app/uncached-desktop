@@ -174,5 +174,27 @@
     "secure_trash_aborted": "A movimentação do alvo para o Lixo foi interrompida.",
     "secure_trash_postcondition_failed": "O alvo não estava no Lixo depois da movimentação.",
     "target_in_use": "{{program}} está em execução. Feche-o e varra de novo — remover isto agora o quebraria."
+  },
+  "commandErrors": {
+    "unknown": "Algo deu errado.",
+    "internal": "Algo deu errado: {{detail}}",
+    "folder_gone": "Essa pasta não existe mais.",
+    "not_a_folder": "Isso não é uma pasta.",
+    "outside_workspace": "Essa pasta está fora do seu workspace.",
+    "no_folder_selected": "Escolha pelo menos uma pasta.",
+    "folder_unreadable": "Não foi possível abrir essa pasta: {{detail}}",
+    "app_not_installed": "Esse aplicativo não está instalado.",
+    "terminal_not_installed": "Esse terminal não está instalado.",
+    "terminal_refused": "O terminal não rodou o comando.",
+    "no_restore_recipe": "Nada neste projeto diz como reinstalá-lo.",
+    "script_unwritable": "Não há onde gravar o script de reinstalação.",
+    "git_failed": "O Git recusou: {{detail}}",
+    "requires_pro": "Rodar a manutenção exige o Uncached Pro.",
+    "settings_unreadable": "Não foi possível ler ou salvar as configurações: {{detail}}",
+    "io": "O disco recusou: {{detail}}",
+    "not_found": "Não encontrado: {{detail}}",
+    "permission_denied": "Permissão negada: {{detail}}",
+    "scan_cancelled": "O scan foi cancelado.",
+    "cleanup_cancelled": "A limpeza foi cancelada antes de remover qualquer coisa."
   }
 }

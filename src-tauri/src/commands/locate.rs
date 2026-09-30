@@ -24,6 +24,7 @@
 //! — an arbitrary string here would be an arbitrary process, which is a
 //! different kind of feature than the one being built.
 
+use crate::errors::command::CommandError;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tauri::AppHandle;
@@ -330,10 +331,11 @@ fn inside_a_root(path: &Path, roots: &[PathBuf]) -> bool {
 /// Shared with the Git commands: every command that takes a path from the
 /// interface goes through this one function, so "inside the workspace" has a
 /// single definition and a second command cannot quietly get a weaker one.
-pub(crate) fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, String> {
-    let requested = dunce::canonicalize(path).map_err(|_| "That folder is gone".to_string())?;
+pub(crate) fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, CommandError> {
+    let requested = dunce::canonicalize(path)
+        .map_err(|_| CommandError::new("folder_gone", "That folder is gone"))?;
     if !requested.is_dir() {
-        return Err("That is not a folder".to_string());
+        return Err(CommandError::new("not_a_folder", "That is not a folder"));
     }
     let settings = crate::commands::settings::load_settings(app)?;
     let roots: Vec<PathBuf> = settings
@@ -345,14 +347,17 @@ pub(crate) fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, String> 
     if inside_a_root(&requested, &roots) {
         Ok(requested)
     } else {
-        Err("That folder is outside your workspace".to_string())
+        Err(CommandError::new(
+            "outside_workspace",
+            "That folder is outside your workspace",
+        ))
     }
 }
 
 #[tauri::command]
-pub async fn reveal_project(app: AppHandle, path: String) -> Result<(), String> {
+pub async fn reveal_project(app: AppHandle, path: String) -> Result<(), CommandError> {
     let target = authorize(&app, &path)?;
-    tauri_plugin_opener::reveal_item_in_dir(target).map_err(|error| error.to_string())
+    tauri_plugin_opener::reveal_item_in_dir(target).map_err(|error| error.to_string().into())
 }
 
 /// Opens a project folder with one of the detected applications.
@@ -365,19 +370,21 @@ pub async fn open_project_with(
     app: AppHandle,
     path: String,
     program: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let target = authorize(&app, &path)?;
     let launcher = available_launchers()
         .await
         .into_iter()
         .find(|launcher| launcher.program == program)
-        .ok_or_else(|| "That application is not installed".to_string())?;
+        .ok_or_else(|| {
+            CommandError::new("app_not_installed", "That application is not installed")
+        })?;
 
     if launcher.kind == LauncherKind::Terminal {
-        return open_terminal_at(&launcher, &target);
+        return Ok(open_terminal_at(&launcher, &target)?);
     }
     tauri_plugin_opener::open_path(target.to_string_lossy().to_string(), Some(program))
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string().into())
 }
 
 /// Starts a terminal already sitting in the project.
@@ -448,16 +455,19 @@ pub async fn restore_project(
     app: AppHandle,
     path: String,
     program: String,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     let target = authorize(&app, &path)?;
-    let restore = crate::commands::workspace::restore_for(&target)
-        .ok_or_else(|| "Nothing here says how to reinstall".to_string())?;
+    let restore = crate::commands::workspace::restore_for(&target).ok_or_else(|| {
+        CommandError::new("no_restore_recipe", "Nothing here says how to reinstall")
+    })?;
 
     let launcher = available_launchers()
         .await
         .into_iter()
         .find(|launcher| launcher.program == program && launcher.kind == LauncherKind::Terminal)
-        .ok_or_else(|| "That terminal is not installed".to_string())?;
+        .ok_or_else(|| {
+            CommandError::new("terminal_not_installed", "That terminal is not installed")
+        })?;
 
     let script = write_script(&app, &target, &restore.command)?;
     run_in_terminal(&launcher, &target, &script, &restore.command)?;
@@ -473,13 +483,13 @@ pub async fn restore_project(
 ///
 /// One fixed name, overwritten each time. A directory that accumulates a script
 /// per restore is litter the user never asked for.
-fn write_script(app: &AppHandle, target: &Path, command: &str) -> Result<PathBuf, String> {
+fn write_script(app: &AppHandle, target: &Path, command: &str) -> Result<PathBuf, CommandError> {
     use tauri::Manager;
 
     let directory = app
         .path()
         .app_cache_dir()
-        .map_err(|_| "Nowhere to write the script".to_string())?;
+        .map_err(|_| CommandError::new("script_unwritable", "Nowhere to write the script"))?;
     std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
 
     #[cfg(windows)]
@@ -534,7 +544,7 @@ fn run_in_terminal(
     target: &Path,
     script: &Path,
     command: &str,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     #[cfg(target_os = "macos")]
     {
         // The script already carries both; `open` takes neither.
@@ -547,7 +557,12 @@ fn run_in_terminal(
             script.to_string_lossy().to_string(),
             Some(launcher.program.clone()),
         )
-        .map_err(|_| "That terminal would not run the command".to_string())
+        .map_err(|_| {
+            CommandError::new(
+                "terminal_refused",
+                "That terminal would not run the command",
+            )
+        })
     }
 
     #[cfg(not(target_os = "macos"))]

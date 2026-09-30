@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { EMPTY_ORPHANS, type OrphanReport } from "../types/orphans";
+import { describeFailure } from "../i18n/errors";
 
 /**
  * Regenerable directories under the chosen folders that no project claims.
@@ -25,7 +26,7 @@ export function useOrphanArtifacts(roots: string[]) {
     try {
       setReport(await invoke<OrphanReport>("orphan_artifacts", { paths: roots }));
     } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : String(scanError));
+      setError(describeFailure(scanError));
       setReport(EMPTY_ORPHANS);
     } finally {
       setRunning(false);

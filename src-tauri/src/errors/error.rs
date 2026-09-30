@@ -14,6 +14,12 @@ pub enum NukeError {
     #[error("Permission denied when accessing or deleting: {0}")]
     PermissionDenied(String),
 
+    #[error("No scan root selected")]
+    NoScanRoot,
+
+    #[error("Scan root must be a real directory: {0}")]
+    NotADirectory(String),
+
     #[error("Scan cancelled by user")]
     ScanCancelled,
 

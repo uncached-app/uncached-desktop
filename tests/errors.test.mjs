@@ -62,6 +62,35 @@ test("a licence refusal is translated by code and dated in the reader's calendar
   assert.equal(describeCommandError(new Error("x"), "settings.license.errors", "failed"), "failed");
   assert.equal(
     describeCommandError({ code: "internal", message: "disk full" }, "settings.license.errors", "failed"),
-    "disk full",
+    "Something went wrong: disk full",
   );
+  assert.equal(
+    describeCommandError({ code: "folder_gone", message: "That folder is gone" }, "settings.license.errors", "failed"),
+    "That folder no longer exists.",
+  );
+  assert.equal(
+    describeCommandError({ code: "never_heard_of_it", message: "raw" }, "settings.license.errors", "failed"),
+    "raw",
+  );
+});
+
+test("a command's refusal reaches the screen in the reader's language, with its detail", async () => {
+  const { describeFailure } = await import("../src/i18n/errors.ts");
+  await i18n.changeLanguage("pt-BR");
+  const gone = describeFailure({ code: "folder_gone", message: "That folder is gone", params: {} });
+  const git = describeFailure({
+    code: "git_failed",
+    message: "fatal: no remote",
+    params: { detail: "fatal: no remote" },
+  });
+  const inUse = describeFailure({ code: "target_in_use", message: "x", params: { program: "Xcode" } });
+  const unknown = describeFailure({ not: "an error" });
+  await i18n.changeLanguage("en");
+
+  assert.equal(gone, "Essa pasta não existe mais.");
+  assert.equal(git, "O Git recusou: fatal: no remote");
+  assert.match(inUse, /Xcode/);
+  assert.equal(unknown, "Algo deu errado.");
+  assert.equal(describeFailure(new Error("boom")), "boom");
+  assert.equal(describeFailure("already a sentence"), "already a sentence");
 });

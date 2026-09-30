@@ -11,6 +11,7 @@
 //! refuse a directory no manifest confirms.
 
 use crate::commands::locate::authorize;
+use crate::errors::command::CommandError;
 use crate::workspace::orphans::{self, Orphan, OrphanReport};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -78,7 +79,10 @@ fn walk(
 /// Free on every plan. It reports what cannot be acted on from inside the app,
 /// and a finding the product will not act on is not a capability to sell.
 #[tauri::command]
-pub async fn orphan_artifacts(app: AppHandle, paths: Vec<String>) -> Result<OrphanReport, String> {
+pub async fn orphan_artifacts(
+    app: AppHandle,
+    paths: Vec<String>,
+) -> Result<OrphanReport, CommandError> {
     let mut roots: Vec<PathBuf> = Vec::new();
     for path in &paths {
         roots.push(authorize(&app, path)?);
@@ -110,7 +114,7 @@ pub async fn orphan_artifacts(app: AppHandle, paths: Vec<String>) -> Result<Orph
         report
     })
     .await
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string().into())
 }
 
 #[cfg(test)]

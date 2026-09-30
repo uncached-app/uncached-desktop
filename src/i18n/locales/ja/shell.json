@@ -171,5 +171,27 @@
     "secure_trash_aborted": "対象のゴミ箱への移動が中断されました。",
     "secure_trash_postcondition_failed": "移動後、対象がゴミ箱にありませんでした。",
     "target_in_use": "{{program}} が実行中です。終了してからもう一度スキャンしてください。今削除すると動作しなくなります。"
+  },
+  "commandErrors": {
+    "unknown": "問題が発生しました。",
+    "internal": "問題が発生しました：{{detail}}",
+    "folder_gone": "そのフォルダは存在しなくなりました。",
+    "not_a_folder": "それはフォルダではありません。",
+    "outside_workspace": "そのフォルダはワークスペースの外にあります。",
+    "no_folder_selected": "フォルダを1つ以上選んでください。",
+    "folder_unreadable": "そのフォルダを開けません：{{detail}}",
+    "app_not_installed": "そのアプリケーションはインストールされていません。",
+    "terminal_not_installed": "そのターミナルはインストールされていません。",
+    "terminal_refused": "ターミナルがコマンドを実行しませんでした。",
+    "no_restore_recipe": "このプロジェクトには再インストール方法を示すものがありません。",
+    "script_unwritable": "再インストール用スクリプトを書き込む場所がありません。",
+    "git_failed": "Git が拒否しました：{{detail}}",
+    "requires_pro": "メンテナンスの実行には Uncached Pro が必要です。",
+    "settings_unreadable": "設定を読み込めないか保存できませんでした：{{detail}}",
+    "io": "ディスクが拒否しました：{{detail}}",
+    "not_found": "見つかりません：{{detail}}",
+    "permission_denied": "アクセスが拒否されました：{{detail}}",
+    "scan_cancelled": "スキャンはキャンセルされました。",
+    "cleanup_cancelled": "何も削除されないうちにクリーンアップはキャンセルされました。"
   }
 }

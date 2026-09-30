@@ -4,6 +4,7 @@ import { MenuRow } from "../../shared/MenuRow";
 import { ContextMenu } from "../../shared/ContextMenu";
 import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
 import type { WorkspaceProject } from "../../../types/workspace";
+import { describeFailure } from "../../../i18n/errors";
 
 /** Where the pointer was, in viewport coordinates. */
 export type MenuAnchor = { project: WorkspaceProject; x: number; y: number };
@@ -63,7 +64,7 @@ export function ProjectContextMenu({
                 onResult(
                   action.leaves ? null : t("workspace.actions.done", { action: action.title.toLowerCase() }),
                 ),
-              (error) => onResult(typeof error === "string" ? error : t("workspace.actions.failed")),
+              (error) => onResult(describeFailure(error, t("workspace.actions.failed"))),
             );
           }}
         />

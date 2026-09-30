@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { AppSettings } from "../types/settings";
+import { describeFailure } from "../i18n/errors";
 
 export function useSettings() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -22,7 +23,7 @@ export function useSettings() {
         }
         setSettings(data);
       })
-      .catch((settingsError) => setError(String(settingsError)))
+      .catch((settingsError) => setError(describeFailure(settingsError)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -39,7 +40,7 @@ export function useSettings() {
       });
       setSettings(updated);
     } catch (settingsError) {
-      setError(String(settingsError));
+      setError(describeFailure(settingsError));
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,7 @@ import { usePurgeFlow } from "../../hooks/usePurgeFlow";
 import { groupCommands, rankCommands } from "../../utils/palette.mjs";
 import type { AppModule } from "../../types/module";
 import type { WorkspaceProject } from "../../types/workspace";
+import { describeFailure } from "../../i18n/errors";
 
 const GROUP_LABELS = {
   actions: "shell.palette.groups.actions",
@@ -107,7 +108,7 @@ export function CommandPalette({
       // Said out loud rather than swallowed: a folder that moved since the scan
       // is the most likely failure here, and silence would read as a palette
       // that does nothing.
-      setFlash(typeof error === "string" ? error : t("shell.actions.failed"));
+      setFlash(describeFailure(error, t("shell.actions.failed")));
     }
   }
 

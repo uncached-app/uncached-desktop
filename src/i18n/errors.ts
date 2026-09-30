@@ -32,19 +32,33 @@ function isCommandError(value: unknown): value is CommandError {
 /**
  * A refusal from a native command, in the reader's language.
  *
- * `scope` is where that command's sentences live in the catalogue. A `date`
- * param arrives as `YYYY-MM-DD` and is written in the reader's calendar. Plain
- * strings and unknown codes are shown as the backend wrote them.
+ * `scope` is where that command's sentences live in the catalogue, then
+ * `shell.commandErrors` and `shell.errors`. A `date` param arrives as
+ * `YYYY-MM-DD` and is written in the reader's calendar; a missing `detail` is
+ * the backend's own message. Plain strings and unknown codes are shown as the
+ * backend wrote them.
  */
 export function describeCommandError(error: unknown, scope: string, fallback: string): string {
   if (typeof error === "string") return error;
   if (!isCommandError(error)) return fallback;
-  const params: Record<string, string> = { ...(error.params ?? {}) };
+  const params: Record<string, string> = { detail: error.message, ...(error.params ?? {}) };
   if (params.date) {
     const date = new Date(`${params.date}T00:00:00Z`);
     if (!Number.isNaN(date.getTime())) {
       params.date = date.toLocaleDateString(i18n.language, { timeZone: "UTC", dateStyle: "long" });
     }
   }
-  return i18n.t(`${scope}.${error.code}` as never, { ...params, defaultValue: error.message });
+  const keys = [`${scope}.${error.code}`, `shell.commandErrors.${error.code}`, `shell.errors.${error.code}`];
+  return i18n.t(keys as never, { ...params, defaultValue: error.message });
+}
+
+/**
+ * Any rejection from `invoke`, in the reader's language. A coded refusal is
+ * translated from `shell.commandErrors`, a plain string or an `Error` is shown
+ * as written, and anything else becomes `fallback`.
+ */
+export function describeFailure(error: unknown, fallback?: string): string {
+  const otherwise = fallback ?? i18n.t("shell.commandErrors.unknown");
+  if (error instanceof Error) return error.message || otherwise;
+  return describeCommandError(error, "shell.commandErrors", otherwise);
 }

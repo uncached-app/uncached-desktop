@@ -186,5 +186,27 @@
     "secure_trash_aborted": "انقطع نقل الهدف إلى سلة المهملات.",
     "secure_trash_postcondition_failed": "لم يكن الهدف في سلة المهملات بعد النقل.",
     "target_in_use": "{{program}} قيد التشغيل. أغلقه وأعد الفحص، فإزالة هذا الآن ستعطّله."
+  },
+  "commandErrors": {
+    "unknown": "حدث خطأ ما.",
+    "internal": "حدث خطأ ما: {{detail}}",
+    "folder_gone": "هذا المجلد لم يعد موجودًا.",
+    "not_a_folder": "هذا ليس مجلدًا.",
+    "outside_workspace": "هذا المجلد خارج مساحة عملك.",
+    "no_folder_selected": "اختر مجلدًا واحدًا على الأقل.",
+    "folder_unreadable": "تعذّر فتح هذا المجلد: {{detail}}",
+    "app_not_installed": "هذا التطبيق غير مثبّت.",
+    "terminal_not_installed": "هذه الطرفية غير مثبّتة.",
+    "terminal_refused": "لم تشغّل الطرفية الأمر.",
+    "no_restore_recipe": "لا شيء في هذا المشروع يوضّح كيفية إعادة تثبيته.",
+    "script_unwritable": "لا يوجد مكان لحفظ سكربت إعادة التثبيت.",
+    "git_failed": "رفض Git: {{detail}}",
+    "requires_pro": "تشغيل الصيانة يتطلب Uncached Pro.",
+    "settings_unreadable": "تعذّرت قراءة الإعدادات أو حفظها: {{detail}}",
+    "io": "رفض القرص: {{detail}}",
+    "not_found": "غير موجود: {{detail}}",
+    "permission_denied": "تم رفض الإذن: {{detail}}",
+    "scan_cancelled": "أُلغي الفحص.",
+    "cleanup_cancelled": "أُلغي التنظيف قبل إزالة أي شيء."
   }
 }

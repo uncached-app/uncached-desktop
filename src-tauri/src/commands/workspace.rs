@@ -1,3 +1,4 @@
+use crate::errors::command::CommandError;
 use crate::workspace::git::{self, GitContext};
 use crate::workspace::maintenance;
 use crate::workspace::restore;
@@ -114,23 +115,34 @@ pub async fn normalize_workspace_roots(paths: Vec<String>) -> Vec<String> {
 }
 
 #[tauri::command]
-pub async fn scan_workspace_index(paths: Vec<String>) -> Result<WorkspaceIndex, String> {
+pub async fn scan_workspace_index(paths: Vec<String>) -> Result<WorkspaceIndex, CommandError> {
     let limit = crate::commands::entitlements::root_limit();
     tauri::async_runtime::spawn_blocking(move || build_index(&paths, limit))
         .await
-        .map_err(|error| error.to_string())?
+        .map_err(|error| CommandError::from(error.to_string()))?
 }
 
-fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, String> {
+fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, CommandError> {
     if paths.is_empty() {
-        return Err("Select at least one folder".to_string());
+        return Err(CommandError::new(
+            "no_folder_selected",
+            "Select at least one folder",
+        ));
     }
     let mut canonical = Vec::new();
     for path in paths {
-        let root = dunce::canonicalize(Path::new(path))
-            .map_err(|error| format!("Cannot open workspace: {error}"))?;
+        let root = dunce::canonicalize(Path::new(path)).map_err(|error| {
+            CommandError::new(
+                "folder_unreadable",
+                format!("Cannot open workspace: {error}"),
+            )
+            .with("detail", error.to_string())
+        })?;
         if !root.is_dir() {
-            return Err("Workspace path is not a directory".to_string());
+            return Err(CommandError::new(
+                "not_a_folder",
+                "Workspace path is not a directory",
+            ));
         }
         canonical.push(root);
     }
@@ -560,9 +572,12 @@ pub async fn preview_maintenance(
 pub async fn maintenance_targets(
     candidates: Vec<maintenance::Candidate>,
     policy: maintenance::MaintenancePolicy,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, CommandError> {
     if !crate::commands::entitlements::current_status().pro_enabled {
-        return Err("Running maintenance requires Uncached Pro".to_string());
+        return Err(CommandError::new(
+            "requires_pro",
+            "Running maintenance requires Uncached Pro",
+        ));
     }
     let selected: Vec<std::path::PathBuf> = maintenance::select(&candidates, &policy)
         .selected
@@ -652,7 +667,8 @@ pub(crate) fn candidates_for(
     paths: &[String],
     settings: &crate::commands::settings::AppSettings,
 ) -> Result<Vec<maintenance::Candidate>, String> {
-    let index = build_index(paths, crate::commands::entitlements::root_limit())?;
+    let index = build_index(paths, crate::commands::entitlements::root_limit())
+        .map_err(|error| error.message)?;
 
     Ok(index
         .projects
@@ -1091,7 +1107,7 @@ mod tests {
 
     #[test]
     fn indexing_nothing_is_an_error_rather_than_an_empty_map() {
-        assert!(build_index(&[], 1).is_err());
+        assert_eq!(build_index(&[], 1).unwrap_err().code, "no_folder_selected");
     }
 
     /// Whole-disk scans cross folders the operating system withholds. Failing

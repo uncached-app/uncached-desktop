@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { ProjectDependencies } from "../types/dependencies";
+import { describeFailure } from "../i18n/errors";
 
 /**
  * Declared dependencies nothing in each project names.
@@ -25,7 +26,7 @@ export function useUnusedDependencies(projectPaths: string[]) {
     try {
       setProjects(await invoke<ProjectDependencies[]>("unused_dependencies", { paths: projectPaths }));
     } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : String(scanError));
+      setError(describeFailure(scanError));
       setProjects([]);
     } finally {
       setRunning(false);

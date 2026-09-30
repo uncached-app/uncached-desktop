@@ -43,6 +43,7 @@ import {
 } from "../utils/apiContract";
 import { describeError } from "../i18n/errors";
 import { shouldOpenReview } from "../utils/scanReview.mjs";
+import { describeFailure } from "../i18n/errors";
 
 export function useScanWorkspace(
   cleanMode: CleanMode = "Trash",
@@ -372,7 +373,7 @@ export function useScanWorkspace(
       events.forEach(handleScanEvent);
     } catch (scanError) {
       if (isCurrentScanGeneration(generation, scanGeneration.current, pendingScan.current)) {
-        failScan(String(scanError));
+        failScan(describeFailure(scanError));
       }
     }
   }
@@ -439,7 +440,7 @@ export function useScanWorkspace(
     } catch (cancelError) {
       if (isCurrentScanRequest(generation, scanGeneration.current, scanId, activeScanId.current)) {
         setCancelling(false);
-        setError(String(cancelError));
+        setError(describeFailure(cancelError));
       }
     }
   }
@@ -511,7 +512,7 @@ export function useScanWorkspace(
           target.id === targetId ? { ...target, sizePending: false, sizeHasErrors: true } : target,
         ),
       );
-      setError(String(sizeError));
+      setError(describeFailure(sizeError));
     }
   }
 

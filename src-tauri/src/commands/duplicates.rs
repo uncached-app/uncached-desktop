@@ -11,6 +11,7 @@
 //! depth of the tree to find installs npm chose rather than the user.
 
 use crate::commands::locate::authorize;
+use crate::errors::command::CommandError;
 use crate::workspace::duplicates::{self, DuplicateReport, Installed};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -123,7 +124,7 @@ fn read_project(project: &Path) -> Option<Vec<Installed>> {
 pub async fn duplicate_packages(
     app: AppHandle,
     paths: Vec<String>,
-) -> Result<DuplicateReport, String> {
+) -> Result<DuplicateReport, CommandError> {
     let mut projects: Vec<PathBuf> = Vec::new();
     for path in &paths {
         projects.push(authorize(&app, path)?);
@@ -171,7 +172,7 @@ pub async fn duplicate_packages(
         report
     })
     .await
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string().into())
 }
 
 #[cfg(test)]

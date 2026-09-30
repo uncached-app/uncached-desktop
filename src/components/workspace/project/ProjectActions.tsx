@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ActionButton } from "../../shared/ActionButton";
 import { useProjectActions, withOneEditor } from "../../../hooks/useProjectActions";
 import type { WorkspaceProject } from "../../../types/workspace";
+import { describeFailure } from "../../../i18n/errors";
 
 /**
  * The verbs, as buttons.
@@ -39,7 +40,7 @@ export function ProjectActions({
               () => onResult(
                   action.leaves ? null : t("workspace.actions.done", { action: action.title.toLowerCase() }),
                 ),
-              (error) => onResult(typeof error === "string" ? error : t("workspace.actions.failed")),
+              (error) => onResult(describeFailure(error, t("workspace.actions.failed"))),
             )
           }
         />

@@ -19,6 +19,7 @@ import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useMaintenancePreview } from "../hooks/useMaintenancePreview";
 import { useScheduleStatus } from "../hooks/useScheduleStatus";
 import type { MaintenancePolicy, Schedule } from "../types/maintenance";
+import { describeFailure } from "../i18n/errors";
 
 /**
  * What a maintenance policy would do, and — on Pro — doing it.
@@ -119,7 +120,7 @@ export function IntelligenceModule({
     } catch (runError) {
       setRun({
         kind: "failed",
-        message: runError instanceof Error ? runError.message : String(runError),
+        message: describeFailure(runError),
       });
     }
   }

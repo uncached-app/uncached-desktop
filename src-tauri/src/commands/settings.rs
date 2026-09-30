@@ -1,3 +1,4 @@
+use crate::errors::command::CommandError;
 use crate::models::action::CleanMode;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -320,13 +321,20 @@ pub async fn starts_hidden() -> bool {
 }
 
 #[tauri::command]
-pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
-    load_settings(&app)
+pub async fn get_settings(app: AppHandle) -> Result<AppSettings, CommandError> {
+    load_settings(&app).map_err(settings_unreadable)
+}
+
+fn settings_unreadable(detail: String) -> CommandError {
+    CommandError::new("settings_unreadable", detail.clone()).with("detail", detail)
 }
 
 #[tauri::command]
-pub async fn update_settings(app: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
-    persist_settings(&app, &settings)?;
+pub async fn update_settings(
+    app: AppHandle,
+    settings: AppSettings,
+) -> Result<AppSettings, CommandError> {
+    persist_settings(&app, &settings).map_err(settings_unreadable)?;
     // Applied after the write, so the login item follows what was stored rather
     // than what was asked for and might have failed to save.
     apply_autostart(&app);

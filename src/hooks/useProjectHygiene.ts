@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { EMPTY_HYGIENE, type FetchResult, type Hygiene, type PruneResult } from "../types/hygiene";
+import { describeFailure } from "../i18n/errors";
 
 type State = {
   hygiene: Hygiene;
@@ -50,7 +51,7 @@ export function useProjectHygiene(path: string | null) {
           hygiene: EMPTY_HYGIENE,
           loading: false,
           fetchedAt: null,
-          error: readError instanceof Error ? readError.message : String(readError),
+          error: describeFailure(readError),
           working: false,
         });
       });
@@ -77,7 +78,7 @@ export function useProjectHygiene(path: string | null) {
       setState((previous) => ({
         ...previous,
         working: false,
-        error: fetchError instanceof Error ? fetchError.message : String(fetchError),
+        error: describeFailure(fetchError),
       }));
     }
   }, [path]);
@@ -94,7 +95,7 @@ export function useProjectHygiene(path: string | null) {
         setState((previous) => ({
           ...previous,
           working: false,
-          error: pruneError instanceof Error ? pruneError.message : String(pruneError),
+          error: describeFailure(pruneError),
         }));
         return null;
       }

@@ -3,6 +3,7 @@ import { MenuRow } from "./MenuRow";
 import { ContextMenu } from "./ContextMenu";
 import { useFolderActions } from "../../hooks/useFolderActions";
 import { withOneEditor } from "../../hooks/useProjectActions";
+import { describeFailure } from "../../i18n/errors";
 
 /** The folder the menu is about, and where the pointer was. */
 export type FolderAnchor = { path: string; name: string; x: number; y: number };
@@ -37,7 +38,7 @@ export function FolderMenu({
             onClose();
             void action.perform().then(
               () => onResult(action.leaves ? null : t("shell.actions.done", { action: action.title.toLowerCase() })),
-              (error) => onResult(typeof error === "string" ? error : t("shell.actions.failed")),
+              (error) => onResult(describeFailure(error, t("shell.actions.failed"))),
             );
           }}
         />

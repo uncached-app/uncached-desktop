@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { EMPTY_PREVIEW, type MaintenanceCandidate, type MaintenancePolicy, type MaintenancePreview } from "../types/maintenance";
 import type { Footprint, Verdict, WorkspaceProject } from "../types/workspace";
+import { describeFailure } from "../i18n/errors";
 
 /**
  * What the policy would select, asked of Rust once the numbers have settled.
@@ -68,7 +69,7 @@ export function useMaintenancePreview({
         if (!current) return;
         // Left as the last good answer rather than replaced by an empty one: a
         // selection that vanishes on a failed call is a selection that lies.
-        setError(previewError instanceof Error ? previewError.message : String(previewError));
+        setError(describeFailure(previewError));
       });
     return () => {
       current = false;

@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { EMPTY_WORKSPACE_HYGIENE, type WorkspaceHygiene } from "../types/hygiene";
+import { describeFailure } from "../i18n/errors";
 
 /**
  * What every repository in the workspace is carrying that nothing uses.
@@ -26,7 +27,7 @@ export function useWorkspaceHygiene(projectPaths: string[]) {
     try {
       setReport(await invoke<WorkspaceHygiene>("workspace_hygiene", { paths: projectPaths }));
     } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : String(scanError));
+      setError(describeFailure(scanError));
       setReport(EMPTY_WORKSPACE_HYGIENE);
     } finally {
       setRunning(false);

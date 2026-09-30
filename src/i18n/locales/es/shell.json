@@ -174,5 +174,27 @@
     "secure_trash_aborted": "Se interrumpió el traslado del objetivo a la Papelera.",
     "secure_trash_postcondition_failed": "El objetivo no estaba en la Papelera después del traslado.",
     "target_in_use": "{{program}} está en ejecución. Ciérralo y vuelve a analizar — eliminar esto ahora lo rompería."
+  },
+  "commandErrors": {
+    "unknown": "Algo salió mal.",
+    "internal": "Algo salió mal: {{detail}}",
+    "folder_gone": "Esa carpeta ya no existe.",
+    "not_a_folder": "Eso no es una carpeta.",
+    "outside_workspace": "Esa carpeta está fuera de tu workspace.",
+    "no_folder_selected": "Elige al menos una carpeta.",
+    "folder_unreadable": "No se puede abrir esa carpeta: {{detail}}",
+    "app_not_installed": "Esa aplicación no está instalada.",
+    "terminal_not_installed": "Esa terminal no está instalada.",
+    "terminal_refused": "La terminal no ejecutó el comando.",
+    "no_restore_recipe": "Nada en este proyecto dice cómo reinstalarlo.",
+    "script_unwritable": "No hay dónde guardar el script de reinstalación.",
+    "git_failed": "Git lo rechazó: {{detail}}",
+    "requires_pro": "Ejecutar el mantenimiento requiere Uncached Pro.",
+    "settings_unreadable": "No se pudieron leer ni guardar los ajustes: {{detail}}",
+    "io": "El disco lo rechazó: {{detail}}",
+    "not_found": "No encontrado: {{detail}}",
+    "permission_denied": "Permiso denegado: {{detail}}",
+    "scan_cancelled": "El escaneo se canceló.",
+    "cleanup_cancelled": "La limpieza se canceló antes de quitar nada."
   }
 }

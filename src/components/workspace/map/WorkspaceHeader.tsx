@@ -8,6 +8,7 @@ import { ActionButton } from "../../shared/ActionButton";
 import { useFolderActions } from "../../../hooks/useFolderActions";
 import { withOneEditor } from "../../../hooks/useProjectActions";
 import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
+import { describeFailure } from "../../../i18n/errors";
 
 /** What the workspace adds up to, and the two ways to narrow or act on it. */
 export function WorkspaceHeader({
@@ -409,7 +410,7 @@ function FolderShortcuts({
                 onResult(
                   action.leaves ? null : t("workspace.actions.done", { action: action.title.toLowerCase() }),
                 ),
-              (error) => onResult(typeof error === "string" ? error : t("workspace.actions.failed")),
+              (error) => onResult(describeFailure(error, t("workspace.actions.failed"))),
             )
           }
         />
