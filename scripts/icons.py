@@ -70,8 +70,24 @@ def mark_placement(fill=MARK_FILL):
 # the row with a white plate, and it was the only one showing the system's
 # material treatment as a visible gradient: on blue, red or green the sheen has
 # somewhere to disappear into, and on white it does not.
-PLATE_RGB = (0x56, 0x7A, 0x3D)
-MARK_RGB = (255, 255, 255)
+def hex_rgb(value):
+    value = value.lstrip("#")
+    return tuple(int(value[i : i + 2], 16) for i in (0, 2, 4))
+
+
+# Each variant is a plate painted top to bottom from one colour to another (the
+# same colour twice is a flat plate) and a mark colour. `hazard` is the one the
+# bundle ships; the rest are what Pro can put in the Dock at runtime. The ids
+# are persisted in settings, so they are never renamed.
+VARIANTS = {
+    "hazard": ("#FFD83D", "#E8B400", "#14140F"),
+    "night": ("#3A3A2D", "#14140F", "#F5C518"),
+    "sunset": ("#FFD83D", "#FF7A4D", "#14140F"),
+    "olive": ("#5A5A3F", "#2E2E22", "#F5F3E8"),
+    "ultraviolet": ("#DCC7FF", "#9C6BFF", "#14140F"),
+    "evergreen": ("#567A3D", "#567A3D", "#FFFFFF"),
+}
+DEFAULT_VARIANT = "hazard"
 
 SAMPLES = 4  # per axis
 
@@ -224,13 +240,19 @@ def add_span(row, x0, x1, width, samples):
     row[last] += (x1 - last) * weight
 
 
-def compose(fill=MARK_FILL):
+def compose(variant=DEFAULT_VARIANT, fill=MARK_FILL):
+    top, bottom, mark = VARIANTS[variant]
+    plate_top, plate_bottom, mark_rgb = hex_rgb(top), hex_rgb(bottom), hex_rgb(mark)
     mark_scale, mark_offset = mark_placement(fill)
+
+    def plate_at(y):
+        t = min(1.0, max(0.0, (y - INSET) / PLATE))
+        return tuple(int(round(a + (b - a) * t)) for a, b in zip(plate_top, plate_bottom))
 
     pixels = [[(0, 0, 0, 0.0)] * CANVAS for _ in range(CANVAS)]
 
     layers = [
-        (rounded_rect(INSET, INSET, PLATE, RADIUS), PLATE_RGB),
+        (rounded_rect(INSET, INSET, PLATE, RADIUS), plate_at),
         (
             [
                 [
@@ -239,14 +261,15 @@ def compose(fill=MARK_FILL):
                 ]
                 for contour in parse_path(MARK)
             ],
-            MARK_RGB,
+            lambda _y: mark_rgb,
         ),
     ]
 
-    for contours, colour in layers:
+    for contours, paint in layers:
         coverage = rasterize(contours, CANVAS, CANVAS)
         for y in range(CANVAS):
             row, out = coverage[y], pixels[y]
+            colour = paint(y)
             for x in range(CANVAS):
                 alpha = min(1.0, row[x])
                 if alpha <= 0:
@@ -360,6 +383,16 @@ def write_ico(path, images):
 
 if __name__ == "__main__":
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    if "--variants" in sys.argv:
+        # One 512px PNG per variant, for the runtime Dock icon and the picker.
+        target = os.path.join(root, "src-tauri", "icons", "variants")
+        os.makedirs(target, exist_ok=True)
+        for name in VARIANTS:
+            write_png(os.path.join(target, f"{name}.png"), resize(compose(name), 512))
+        print(f"wrote {target}")
+        sys.exit(0)
+
     icons = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "src-tauri", "icons")
     iconset = sys.argv[2] if len(sys.argv) > 2 else os.path.join(icons, "Uncached.iconset")
     os.makedirs(iconset, exist_ok=True)

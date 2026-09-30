@@ -152,6 +152,19 @@
       "label": "إعداداتك وسماتك",
       "hint": "<mono>{{file}}</mono> ومجلد <mono>{{folder}}</mono>، في مجلد Library الخاص بك. عدّل أيًا منهما ثم عُد؛ تُعاد قراءتهما عند عودة التركيز إلى النافذة.",
       "open": "فتح المجلد"
+    },
+    "icon": {
+      "label": "أيقونة التطبيق",
+      "pro": "Pro",
+      "hint": "الأيقونة في Dock أثناء فتح Uncached. يحتفظ Finder وLaunchpad بالأيقونة القياسية.",
+      "variants": {
+        "hazard": "تحذير",
+        "night": "ليل",
+        "sunset": "غروب",
+        "olive": "زيتوني",
+        "ultraviolet": "بنفسجي",
+        "evergreen": "أخضر"
+      }
     }
   },
   "about": {

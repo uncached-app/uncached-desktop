@@ -142,6 +142,19 @@
       "label": "設定とテーマ",
       "hint": "ユーザの「ライブラリ」内にある <mono>{{file}}</mono> と <mono>{{folder}}</mono> フォルダです。どちらかを編集して戻ると、ウインドウを再表示したときに両方とも再読み込みされます。",
       "open": "フォルダを開く"
+    },
+    "icon": {
+      "label": "アプリアイコン",
+      "pro": "Pro",
+      "hint": "Uncached を開いている間の Dock のアイコンです。Finder と Launchpad は標準のままです。",
+      "variants": {
+        "hazard": "ハザード",
+        "night": "ナイト",
+        "sunset": "サンセット",
+        "olive": "オリーブ",
+        "ultraviolet": "ウルトラバイオレット",
+        "evergreen": "エバーグリーン"
+      }
     }
   },
   "about": {

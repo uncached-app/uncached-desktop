@@ -37,6 +37,8 @@ export type AppSettings = {
   shortcuts: Record<string, string>;
   /** A theme file in the config folder, by name without `.json`. */
   theme: string | null;
+  /** Dock or window icon variant; `null` is the bundle icon. */
+  appIcon: string | null;
   /**
    * Which detected editor and terminal a project opens in, by launcher id.
    *

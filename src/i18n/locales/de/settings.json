@@ -144,6 +144,19 @@
       "label": "Deine Einstellungen und Designs",
       "hint": "<mono>{{file}}</mono> und ein Ordner <mono>{{folder}}</mono> in deiner eigenen Library. Bearbeite eines davon und komm zurück — beide werden neu gelesen, sobald das Fenster wieder aktiv ist.",
       "open": "Ordner öffnen"
+    },
+    "icon": {
+      "label": "App-Symbol",
+      "pro": "Pro",
+      "hint": "Das Symbol im Dock, solange Uncached geöffnet ist. Finder und Launchpad behalten das Standardsymbol.",
+      "variants": {
+        "hazard": "Hazard",
+        "night": "Nacht",
+        "sunset": "Abendrot",
+        "olive": "Oliv",
+        "ultraviolet": "Ultraviolett",
+        "evergreen": "Immergrün"
+      }
     }
   },
   "about": {

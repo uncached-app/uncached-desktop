@@ -195,7 +195,9 @@
     "not_found": "Nicht gefunden: {{detail}}",
     "permission_denied": "Zugriff verweigert: {{detail}}",
     "scan_cancelled": "Der Scan wurde abgebrochen.",
-    "cleanup_cancelled": "Die Bereinigung wurde abgebrochen, bevor etwas entfernt wurde."
+    "cleanup_cancelled": "Die Bereinigung wurde abgebrochen, bevor etwas entfernt wurde.",
+    "requires_pro_icon": "Das App-Symbol zu ändern erfordert Uncached Pro.",
+    "unknown_icon": "Es gibt kein Symbol namens {{icon}}."
   },
   "list": {
     "showMore_one": "{{count}} weiteren von {{total}} zeigen",

@@ -192,7 +192,9 @@
     "not_found": "見つかりません：{{detail}}",
     "permission_denied": "アクセスが拒否されました：{{detail}}",
     "scan_cancelled": "スキャンはキャンセルされました。",
-    "cleanup_cancelled": "何も削除されないうちにクリーンアップはキャンセルされました。"
+    "cleanup_cancelled": "何も削除されないうちにクリーンアップはキャンセルされました。",
+    "requires_pro_icon": "アプリアイコンの変更には Uncached Pro が必要です。",
+    "unknown_icon": "{{icon}} という名前のアイコンはありません。"
   },
   "list": {
     "showMore_other": "さらに {{count}} 件表示（残り {{total}} 件）",

@@ -144,6 +144,19 @@
       "label": "Your settings and themes",
       "hint": "<mono>{{file}}</mono> and a <mono>{{folder}}</mono> folder, in your own Library. Edit either and come back — both are read again when the window is.",
       "open": "Open folder"
+    },
+    "icon": {
+      "label": "App icon",
+      "pro": "Pro",
+      "hint": "The icon in the Dock while Uncached is open. Finder and Launchpad keep the standard one.",
+      "variants": {
+        "hazard": "Hazard",
+        "night": "Night",
+        "sunset": "Sunset",
+        "olive": "Olive",
+        "ultraviolet": "Ultraviolet",
+        "evergreen": "Evergreen"
+      }
     }
   },
   "about": {

@@ -207,7 +207,9 @@
     "not_found": "غير موجود: {{detail}}",
     "permission_denied": "تم رفض الإذن: {{detail}}",
     "scan_cancelled": "أُلغي الفحص.",
-    "cleanup_cancelled": "أُلغي التنظيف قبل إزالة أي شيء."
+    "cleanup_cancelled": "أُلغي التنظيف قبل إزالة أي شيء.",
+    "requires_pro_icon": "يتطلب تغيير أيقونة التطبيق Uncached Pro.",
+    "unknown_icon": "لا توجد أيقونة باسم {{icon}}."
   },
   "list": {
     "showMore_zero": "عرض {{count}} من {{total}}",

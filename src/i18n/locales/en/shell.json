@@ -195,7 +195,9 @@
     "not_found": "Not found: {{detail}}",
     "permission_denied": "Permission denied: {{detail}}",
     "scan_cancelled": "The scan was cancelled.",
-    "cleanup_cancelled": "The cleanup was cancelled before anything was removed."
+    "cleanup_cancelled": "The cleanup was cancelled before anything was removed.",
+    "requires_pro_icon": "Changing the app icon requires Uncached Pro.",
+    "unknown_icon": "There is no icon named {{icon}}."
   },
   "list": {
     "showMore_one": "Show {{count}} more of {{total}}",

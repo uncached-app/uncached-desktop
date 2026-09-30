@@ -66,13 +66,6 @@ export function paintTheme(appearance: Appearance | undefined, custom: UserTheme
     localStorage.setItem("uncached_appearance", appearance);
   }
 
-  const favicon = document.getElementById("app-favicon") as HTMLLinkElement | null;
-  if (favicon) {
-    favicon.href =
-      theme === "dark"
-        ? "/brand/UNCACHED-ICON-LIGHT-BGDARK.svg"
-        : "/brand/UNCACHED-ICON-LIGHT-BGWHITE.svg";
-  }
 }
 
 /** The custom theme currently on screen, so a repaint of the same one is quiet. */

@@ -144,6 +144,19 @@
       "label": "Seus ajustes e temas",
       "hint": "<mono>{{file}}</mono> e uma pasta <mono>{{folder}}</mono>, na sua própria Biblioteca. Edite qualquer um e volte — os dois são relidos quando a janela recebe o foco.",
       "open": "Abrir pasta"
+    },
+    "icon": {
+      "label": "Ícone do app",
+      "pro": "Pro",
+      "hint": "O ícone no Dock enquanto o Uncached está aberto. O Finder e o Launchpad continuam com o padrão.",
+      "variants": {
+        "hazard": "Hazard",
+        "night": "Noite",
+        "sunset": "Pôr do sol",
+        "olive": "Oliva",
+        "ultraviolet": "Ultravioleta",
+        "evergreen": "Verde"
+      }
     }
   },
   "about": {

@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
 import { SupportActions } from "./SupportActions";
+import { AppIconPicker } from "./AppIconPicker";
 import type { UpdateState } from "../../hooks/useUpdate";
 import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
@@ -171,6 +172,7 @@ export function SettingsPanel({
                 settings={settings}
                 updateSettings={updateSettings}
                 themes={themes}
+                proEnabled={proEnabled}
                 onRequestPermanentDelete={() => setConfirmPermanent(true)}
               />
             )}
@@ -249,9 +251,11 @@ function SettingsContent({
   settings,
   updateSettings,
   themes,
+  proEnabled,
   onRequestPermanentDelete,
 }: {
   themes: UserTheme[];
+  proEnabled: boolean;
   section: Section;
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
@@ -281,7 +285,14 @@ function SettingsContent({
       />
     );
   }
-  return <AppearanceContent settings={settings} updateSettings={updateSettings} themes={themes} />;
+  return (
+    <AppearanceContent
+      settings={settings}
+      updateSettings={updateSettings}
+      themes={themes}
+      proEnabled={proEnabled}
+    />
+  );
 }
 
 function DeletionContent({
@@ -320,10 +331,12 @@ function AppearanceContent({
   settings,
   updateSettings,
   themes,
+  proEnabled,
 }: {
   settings: AppSettings;
   updateSettings: SettingsPanelProps["updateSettings"];
   themes: UserTheme[];
+  proEnabled: boolean;
 }) {
   const { t } = useTranslation();
   // Named rather than swallowed: a colour the app could not read is a line
@@ -448,6 +461,12 @@ function AppearanceContent({
           />
         </div>
 
+        <AppIconPicker
+          current={settings.appIcon ?? null}
+          proEnabled={proEnabled}
+          onApplied={(appIcon) => void updateSettings({ appIcon })}
+        />
+
         <div className="flex items-center justify-between gap-4 py-4 text-sm text-mist-300">
           <span className="flex min-w-0 flex-col gap-0.5">
             <span>{t("settings.appearance.files.label")}</span>
@@ -487,8 +506,7 @@ function AboutContent({
 
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <img src="/brand/UNCACHED-ICON-LIGHT-BGDARK.svg" alt="" className="theme-logo-light size-20" />
-      <img src="/brand/UNCACHED-ICON-DARK-NOBG.svg" alt="" className="theme-logo-dark size-20" />
+      <img src="/brand/UNCACHED-ICON-HAZARD.svg" alt="" className="size-20" />
       <h3 className="mt-6 text-2xl font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
       <p className="mt-2 text-sm text-mist-500">{t("settings.about.tagline")}</p>
       <p className="mt-6 font-mono text-xs text-mist-500">

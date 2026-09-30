@@ -1,3 +1,4 @@
+mod app_icon;
 pub mod commands;
 pub mod errors;
 pub mod filesystem;
@@ -87,6 +88,7 @@ pub fn run() {
             tray::watch_scans(handle);
             commands::settings::apply_autostart(handle);
             scheduler::install(handle);
+            app_icon::restore(handle);
             Ok(())
         })
         // Closing hides rather than quits when the user asked for that, so the
@@ -102,6 +104,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             menu::install_menu,
+            app_icon::set_app_icon,
             watch::watch_workspace,
             commands::theme::list_themes,
             commands::theme::reveal_config,

@@ -111,6 +111,10 @@ pub struct AppSettings {
     /// leaving the window half-painted.
     #[serde(default)]
     pub theme: Option<String>,
+    /// The Dock or window icon variant, by id in `app_icon::VARIANTS`. `None`
+    /// is the bundle's own icon. Applied only on Pro.
+    #[serde(default)]
+    pub app_icon: Option<String>,
     /// Which detected editor and terminal a project opens in.
     ///
     /// A launcher id, or `None` for "whichever detection ranks first". Stored
@@ -220,6 +224,7 @@ impl Default for AppSettings {
             insights_grain: default_grain(),
             shortcuts: std::collections::HashMap::new(),
             theme: None,
+            app_icon: None,
             preferred_editor: None,
             preferred_terminal: None,
             last_cleanup: None,
@@ -257,7 +262,7 @@ fn load_settings_from_path(path: &std::path::Path) -> Result<AppSettings, String
     serde_json::from_str(&contents).map_err(|error| error.to_string())
 }
 
-fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
+pub(crate) fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
     let path = settings_path(app)?;
     let parent = path
         .parent()
