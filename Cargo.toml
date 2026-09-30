@@ -1,3 +1,11 @@
 [workspace]
 members = ["src-tauri"]
+exclude = ["vendor"]
 resolver = "2"
+
+# tauri-plugin-updater 2.10.1 with one change: the macOS installer stages the
+# new bundle beside the `.app` instead of in $TMPDIR, whose `rename` fails with
+# EXDEV (os error 18) when the app is on another volume. Unfixed upstream as of
+# 2.13.1 (`src/updater.rs`, macOS `install_inner`).
+[patch.crates-io]
+tauri-plugin-updater = { path = "vendor/tauri-plugin-updater" }
