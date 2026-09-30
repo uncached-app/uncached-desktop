@@ -22,6 +22,7 @@
   },
   "delete": {
     "button": "Apagar",
+    "buttonTrash": "Mover para o Lixo",
     "unsupported": "O Uncached não conseguiu ler o que este sistema permite remover, então nada é oferecido."
   },
   "notice": {
@@ -62,6 +63,7 @@
     "heldByRunning_other": "{{count}} em projetos em execução — não serão removidos"
   },
   "age": {
+    "label": "Idade",
     "any": "Qualquer idade",
     "anyHint": "Tudo o que a varredura encontrou",
     "olderThan": "{{days}}d+",
@@ -69,6 +71,7 @@
     "threeMonthsHint": "Nada grava neles há três meses"
   },
   "order": {
+    "label": "Ordem",
     "confidence": {
       "label": "Menos certos",
       "hint": "Alvos de que a varredura tem menos certeza vêm primeiro",

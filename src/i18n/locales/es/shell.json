@@ -62,9 +62,9 @@
   },
   "titlebar": {
     "title": {
-      "insights": "Insights de Uncached",
-      "maintenance": "Mantenimiento de Uncached",
-      "workspace": "Workspace de Uncached"
+      "insights": "Insights",
+      "maintenance": "Mantenimiento",
+      "workspace": "Workspace"
     },
     "pipeline": "Etapas del proceso",
     "steps": {
@@ -196,5 +196,10 @@
     "permission_denied": "Permiso denegado: {{detail}}",
     "scan_cancelled": "El escaneo se canceló.",
     "cleanup_cancelled": "La limpieza se canceló antes de quitar nada."
+  },
+  "list": {
+    "showMore_one": "Ver {{count}} más de {{total}}",
+    "showMore_other": "Ver {{count}} más de {{total}}",
+    "showLess": "Ver menos"
   }
 }

@@ -205,7 +205,6 @@
       "body": "Free recupera todos los artefactos de todos los proyectos, sin límites. Pro añade las lecturas que abarcan todo el workspace:"
     },
     "features": {
-      "map": "Mapa 2D interactivo del workspace",
       "schedule": "Limpiezas automáticas en segundo plano",
       "duplicates": "Insights de duplicados entre proyectos",
       "analytics": "Estadísticas de todo lo recuperado"
@@ -255,10 +254,6 @@
       "settings": {
         "label": "Ajustes",
         "detail": "El panel. macOS lo pone en el propio menú de la app."
-      },
-      "toggleMap": {
-        "label": "Mapa",
-        "detail": "Alterna entre la lista y el mapa."
       },
       "toggleSidebar": {
         "label": "Filtros",

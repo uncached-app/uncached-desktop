@@ -80,20 +80,11 @@ pub struct AppSettings {
     /// The interface language, or the operating system's.
     #[serde(default)]
     pub language: Language,
-    /// Which reading of the workspace opens: the list, or the map.
-    ///
-    /// A preference rather than a control in the header. The header toggle was
-    /// a decision offered on every visit for a question answered once, and the
-    /// answer did not survive the window closing. `List` for an old
-    /// `settings.json` and for every new one, and on Free, where there is no
-    /// map to open.
-    #[serde(default)]
-    pub workspace_view: WorkspaceView,
     /// Whether the workspace's filter column is folded away.
     ///
     /// A view preference rather than a setting anyone goes looking for, and
-    /// kept here for the same reason the view is: it is a decision made once,
-    /// and a window that forgets it is a window that asks again every time.
+    /// kept here because it is a decision made once, and a window that forgets
+    /// it is a window that asks again every time.
     #[serde(default)]
     pub workspace_sidebar_hidden: bool,
     /// Which span the Insights report is read over, by grain id.
@@ -192,16 +183,6 @@ pub enum Language {
     Arabic,
 }
 
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum WorkspaceView {
-    /// Every project, readable by keyboard, on any plan and at any size.
-    #[default]
-    List,
-    /// The same workspace as one picture. Pro, and only up to a size.
-    Map,
-}
-
 fn enabled() -> bool {
     true
 }
@@ -235,7 +216,6 @@ impl Default for AppSettings {
             // default that had never been reconsidered.
             appearance: Appearance::System,
             language: Language::System,
-            workspace_view: WorkspaceView::default(),
             workspace_sidebar_hidden: false,
             insights_grain: default_grain(),
             shortcuts: std::collections::HashMap::new(),
@@ -416,7 +396,7 @@ pub fn record_maintenance_run(app: &AppHandle, at: i64) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_settings_from_path, AppSettings, Appearance, Language, WorkspaceView};
+    use super::{load_settings_from_path, AppSettings, Appearance, Language};
     use crate::models::action::CleanMode;
 
     #[test]
@@ -504,11 +484,6 @@ mod tests {
             settings.keep_running_in_background,
             "a field the file predates arrives at its default"
         );
-        assert_eq!(
-            settings.workspace_view,
-            WorkspaceView::List,
-            "and the workspace opens as a list, which is what it did before the map existed"
-        );
         assert!(
             !settings.workspace_sidebar_hidden,
             "the filters are there to begin with"
@@ -536,6 +511,20 @@ mod tests {
             (None, None),
             "an upgrade inherits automatic, not a choice it never made"
         );
+        let _ = std::fs::remove_file(path);
+    }
+
+    /// Unknown keys are ignored: `AppSettings` is not `deny_unknown_fields`.
+    #[test]
+    fn settings_with_a_retired_field_still_load() {
+        let path =
+            std::env::temp_dir().join(format!("uncached-retired-{}.json", std::process::id()));
+        std::fs::write(&path, br#"{"openAtStartup":false,"workspaceView":"map"}"#).unwrap();
+
+        let settings = load_settings_from_path(&path).expect("a retired field must not fail");
+        assert!(!settings.open_at_startup);
+        let value = serde_json::to_value(&settings).unwrap();
+        assert!(value.get("workspaceView").is_none());
         let _ = std::fs::remove_file(path);
     }
 

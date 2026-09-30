@@ -62,9 +62,9 @@
   },
   "titlebar": {
     "title": {
-      "insights": "Uncached Insights",
-      "maintenance": "Uncached Maintenance",
-      "workspace": "Uncached Workspace"
+      "insights": "Insights",
+      "maintenance": "Maintenance",
+      "workspace": "Workspace"
     },
     "pipeline": "Progress pipeline",
     "steps": {
@@ -196,5 +196,10 @@
     "permission_denied": "Permission denied: {{detail}}",
     "scan_cancelled": "The scan was cancelled.",
     "cleanup_cancelled": "The cleanup was cancelled before anything was removed."
+  },
+  "list": {
+    "showMore_one": "Show {{count}} more of {{total}}",
+    "showMore_other": "Show {{count}} more of {{total}}",
+    "showLess": "Show less"
   }
 }

@@ -302,7 +302,16 @@
     "shared_few": "{{count}} مشاريع تربط حزمها بمخزن مشترك بدلًا من نسخها.",
     "shared_many": "{{count}} مشروعًا تربط حزمها بمخزن مشترك بدلًا من نسخها.",
     "shared_other": "{{count}} مشروع تربط حزمها بمخزن مشترك بدلًا من نسخها.",
-    "note": "تُقاس نسخة واحدة من كل حزمة والباقي حساب. قد تختلف الحزم التي تتضمن ثنائيات أصلية مُصرَّفة بين المشاريع."
+    "note": "تُقاس نسخة واحدة من كل حزمة والباقي حساب. قد تختلف الحزم التي تتضمن ثنائيات أصلية مُصرَّفة بين المشاريع.",
+    "inProjects": "في {{names}}",
+    "inProjectsMore_zero": "في {{names}} و{{count}} غيرها",
+    "inProjectsMore_one": "في {{names}} ومشروع آخر",
+    "inProjectsMore_two": "في {{names}} ومشروعين آخرين",
+    "inProjectsMore_few": "في {{names}} و{{count}} مشاريع أخرى",
+    "inProjectsMore_many": "في {{names}} و{{count}} مشروعًا آخر",
+    "inProjectsMore_other": "في {{names}} و{{count}} مشروع آخر",
+    "showProjects": "المشاريع",
+    "showProjectsLabel": "عرض المشاريع التي تحتفظ بنسخة من {{name}}"
   },
   "repositories": {
     "title": "نظافة المستودعات",

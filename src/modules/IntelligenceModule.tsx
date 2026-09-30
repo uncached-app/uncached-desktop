@@ -147,7 +147,11 @@ export function IntelligenceModule({
           <div className="flex flex-wrap items-center gap-2">
             <StatCard
               value={`${preview.selected.length}`}
-              label={t("maintenance.header.eligible", { count: preview.selected.length })}
+              label={
+                preview.selected.length === 0
+                  ? t("maintenance.header.eligibleNone")
+                  : t("maintenance.header.eligible", { count: preview.selected.length })
+              }
             />
             <StatCard
               value={formatBytes(preview.bytes)}

@@ -39,7 +39,9 @@ export function WorkspaceForm({
   const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
 
-  const lastRun = cleanupSummary.removed > 0 ? cleanupSummary : lastCleanup;
+  // This session's cleanup is a last run; the stored counter is every cleanup
+  // since install, so it is labelled as a running total.
+  const lastRun = cleanupSummary.removed > 0 ? cleanupSummary : null;
   // A cancellation outranks the last run: it is what just happened, and it used
   // to be hidden by it — the previous cleanup is remembered across restarts, so
   // "Last run" was almost always there to mask it.
@@ -50,7 +52,12 @@ export function WorkspaceForm({
       : t("workspace.form.cancelled")
     : lastRun
       ? t("workspace.form.lastRun", { count: lastRun.removed, size: formatBytes(lastRun.freedBytes) })
-      : null;
+      : lastCleanup
+        ? t("workspace.form.soFar", {
+            count: lastCleanup.removed,
+            size: formatBytes(lastCleanup.freedBytes),
+          })
+        : null;
 
   if (step !== 1) return null;
 

@@ -6,6 +6,7 @@
     "subtitle": "Automatize a higiene de projetos parados sem arriscar trabalho local ou sem commit.",
     "eligible_one": "projeto elegível",
     "eligible_other": "projetos elegíveis",
+    "eligibleNone": "projetos elegíveis",
     "reclaimable": "a liberar"
   },
   "scheduleNote": "O agendamento roda dentro do Uncached, então fechar para a barra de menus o mantém ativo e Encerrar o interrompe. Ele faz qualquer execução perdida na próxima vez que o app abrir.",

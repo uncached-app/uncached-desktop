@@ -205,7 +205,6 @@
       "body": "Free gibt jedes Artefakt jedes Projekts frei, ohne Limits. Pro ergänzt die Auswertungen über den ganzen Workspace:"
     },
     "features": {
-      "map": "Interaktive 2D-Karte des Workspace",
       "schedule": "Automatische Bereinigung im Hintergrund",
       "duplicates": "Duplikate über Projekte hinweg",
       "analytics": "Gesamtstatistik des freigegebenen Speichers"
@@ -255,10 +254,6 @@
       "settings": {
         "label": "Einstellungen",
         "detail": "Das Panel. macOS legt es direkt ins App-Menü."
-      },
-      "toggleMap": {
-        "label": "Karte",
-        "detail": "Wechselt zwischen Liste und Bild, und zurück."
       },
       "toggleSidebar": {
         "label": "Filter",

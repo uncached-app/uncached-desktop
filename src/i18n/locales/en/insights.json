@@ -194,7 +194,12 @@
     "hidden_other": "{{count}} more packages are duplicated. Pro lists them.",
     "shared_one": "{{count}} project already links their packages into a shared store instead of copying them.",
     "shared_other": "{{count}} projects already link their packages into a shared store instead of copying them.",
-    "note": "One copy of each package is measured and the rest is arithmetic. Packages with native compiled binaries may vary across projects."
+    "note": "One copy of each package is measured and the rest is arithmetic. Packages with native compiled binaries may vary across projects.",
+    "inProjects": "In {{names}}",
+    "inProjectsMore_one": "In {{names}} and {{count}} more",
+    "inProjectsMore_other": "In {{names}} and {{count}} more",
+    "showProjects": "Projects",
+    "showProjectsLabel": "Show the projects keeping a copy of {{name}}"
   },
   "repositories": {
     "title": "Repository hygiene",

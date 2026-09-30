@@ -5,6 +5,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { useCallback, useLayoutEffect, useRef, useState, type UIEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { rootName } from "./naming";
 import { ProLockButton } from "../../shared/ProLockButton";
@@ -69,6 +70,21 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
   const { t } = useTranslation();
   const singleRoot = chosenRoots.length === 1;
+  const scroller = useRef<HTMLDivElement>(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+  const measure = useCallback((element: HTMLDivElement | null) => {
+    if (!element) return;
+    // 1px of slack: fractional scroll positions never quite reach the end.
+    setMoreBelow(element.scrollTop + element.clientHeight < element.scrollHeight - 1);
+  }, []);
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    measure(element);
+    if (!element) return;
+    const observer = new ResizeObserver(() => measure(element));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [measure, index, chosenRoots]);
 
   return (
     // `h-full min-h-0` and not just `overflow-y-auto`: a column with no height
@@ -159,7 +175,13 @@ export function WorkspaceSidebar({
           being read is the question every one of these answers within, so
           scrolling the filters out of reach of it would be scrolling away the
           thing that gives them their meaning. */}
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pe-1 scrollbar-gutter-stable">
+      <div
+        ref={scroller}
+        onScroll={(event: UIEvent<HTMLDivElement>) => measure(event.currentTarget)}
+        className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden pe-1 scrollbar-gutter-stable ${
+          moreBelow ? "[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)]" : ""
+        }`}
+      >
 
       {/* 2. Verdict Filter Section */}
       {/* Or while one is on: a section that vanishes because the filter inside

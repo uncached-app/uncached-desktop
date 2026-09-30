@@ -6,6 +6,7 @@
     "subtitle": "Automatisiert veraltete Projekte bereinigen, ohne nicht committete oder lokale Arbeit zu gefährden.",
     "eligible_one": "Projekt geeignet",
     "eligible_other": "Projekte geeignet",
+    "eligibleNone": "Projekte geeignet",
     "reclaimable": "freigebbar"
   },
   "scheduleNote": "Der Zeitplan läuft in Uncached. Schließen in die Menüleiste lässt ihn weiterlaufen, Beenden stoppt ihn. Verpasste Läufe holt er beim nächsten Öffnen der App nach.",

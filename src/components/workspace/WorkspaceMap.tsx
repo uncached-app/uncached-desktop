@@ -13,15 +13,10 @@ import { useFocusedProject } from "./map/useFocusedProject";
 import { rootName } from "./map/naming";
 import { VERDICT_ORDER } from "./verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
-import { workspaceGraph } from "../../utils/graph.mjs";
-import { WorkspaceCanvas } from "./map/WorkspaceCanvas";
-import { useDrawingAspect } from "./map/useDrawingAspect";
 import { useShortcuts } from "../../hooks/useShortcuts";
-import type { DuplicatePackage } from "../../types/duplicates";
-import type { View as MapViewState } from "../../utils/viewport.mjs";
-import type { WorkspaceView } from "../../types/settings";
-import type { CleanupTotals, WorkspaceChange } from "../../hooks/useWorkspaceHistory";
+import type { WorkspaceChange } from "../../hooks/useWorkspaceHistory";
 import type { Footprint, RunningProject, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
+import type { PackageFilter } from "../../types/duplicates";
 
 type WorkspaceMapProps = {
   index: WorkspaceIndex;
@@ -29,7 +24,6 @@ type WorkspaceMapProps = {
   onQueryChange: (query: string) => void;
   proEnabled: boolean;
   footprints: Record<string, Footprint>;
-  measuring: boolean;
   /**
    * The projects something is working inside, by path.
    *
@@ -53,7 +47,8 @@ type WorkspaceMapProps = {
   onReclaim: () => void;
   /** Absent until a visit has been recorded, and always absent on Free. */
   change: WorkspaceChange | null;
-  reclaimed: CleanupTotals | null;
+  /** Everything Uncached has reclaimed on this machine, the one lifetime figure. */
+  reclaimedBytes: number | null;
   /** Lifted so Insights can send the user to a narrowed list. */
   activeVerdict: Verdict | null;
   setActiveVerdict: (verdict: Verdict | null) => void;
@@ -61,36 +56,23 @@ type WorkspaceMapProps = {
   setActiveCategory: (category: string | null) => void;
   clonesOnly: boolean;
   setClonesOnly: (only: boolean) => void;
+  activePackage: PackageFilter | null;
+  setActivePackage: (filter: PackageFilter | null) => void;
   /** A project someone asked to be shown. The list is what makes it visible. */
   focusPath: string | null;
   onFocusHandled: () => void;
-  /** Which reading opens, from Settings. */
-  view: WorkspaceView;
-  /**
-   * Where the reader is looking on the map, held above this screen.
-   *
-   * The drawing unmounts when the list is showing, so a view kept inside it is
-   * lost every time somebody looks at the list — and the map is the one thing
-   * here you navigate to a place in.
-   */
-  mapView: [MapViewState, (next: MapViewState | ((current: MapViewState) => MapViewState)) => void];
   /**
    * Whether the filter column is folded away.
    *
    * Kept in settings rather than here: it is a decision made once, and a window
    * that forgets it asks again on every visit.
    */
-  onViewChange: (view: WorkspaceView) => void;
   sidebarHidden: boolean;
   onSidebarHiddenChange: (hidden: boolean) => void;
   /** Keys the user bound differently. The defaults live in `actions.ts`. */
   shortcuts: Record<string, string> | undefined;
   /** Reads the chosen folders again, which is a scan and not a filter. */
   onRescan: () => void;
-  /** Shared packages, for the map. The list has no place to say this. */
-  packages: DuplicatePackage[];
-  /** That reading has not finished, so the middle of the map is not final. */
-  analysing: boolean;
   /** A row is the way into a project's own page. */
   onOpenProject: (path: string) => void;
 };
@@ -108,7 +90,6 @@ export function WorkspaceMap({
   onQueryChange,
   proEnabled,
   footprints,
-  measuring,
   running,
   verdicts,
   chosenRoots,
@@ -118,21 +99,18 @@ export function WorkspaceMap({
   targetCount,
   onReclaim,
   change,
-  reclaimed,
+  reclaimedBytes,
   activeVerdict,
   setActiveVerdict,
   activeCategory,
   setActiveCategory,
   clonesOnly,
   setClonesOnly,
+  activePackage,
+  setActivePackage,
   focusPath,
   onFocusHandled,
   onOpenProject,
-  packages,
-  analysing,
-  view,
-  mapView,
-  onViewChange,
   sidebarHidden,
   onSidebarHiddenChange,
   shortcuts,
@@ -154,18 +132,13 @@ export function WorkspaceMap({
     setActiveVerdict(null);
     setActiveCategory(null);
     setClonesOnly(false);
-  }, [onQueryChange, setActiveVerdict, setActiveCategory, setClonesOnly]);
+    setActivePackage(null);
+  }, [onQueryChange, setActiveVerdict, setActiveCategory, setClonesOnly, setActivePackage]);
   // Verdict first by default, because what a project holds decides whether its
   // size is worth acting on at all. Size is the other reading, and until now it
   // was unreachable: grouping runs before sorting, so the heaviest project on
   // the machine could sit below three groups of smaller ones.
   const [order, setOrder] = useState<"verdict" | "size" | "folder">("verdict");
-  // Which reading opens is a preference, kept in Settings — the header used to
-  // ask it on every visit and forget the answer on every close. Pro decides
-  // whether the map exists at all, so a preference set before a licence lapsed
-  // reads as the list rather than as an empty screen.
-  const onMap = view === "map" && proEnabled;
-  const { ref: drawing, aspect, height: drawingHeight } = useDrawingAspect();
 
   // The verbs that only mean something on this screen. These were two `keydown`
   // handlers written beside what they operate, with the sidebar's `⌘B` closing
@@ -175,7 +148,6 @@ export function WorkspaceMap({
     {
       focusFilter: () => searchRef.current?.focus(),
       toggleSidebar: () => onSidebarHiddenChange(!sidebarHidden),
-      toggleMap: () => proEnabled && onViewChange(view === "map" ? "list" : "map"),
       rescan: onRescan,
       quickClean: onReclaim,
     },
@@ -183,8 +155,8 @@ export function WorkspaceMap({
   );
   const [menu, setMenu] = useState<MenuAnchor | null>(null);
   // A folder was the one thing on this screen you could look at and not act on:
-  // named in the map, named above a group in the list, and openable from
-  // neither. The verbs are a project's minus the ones a directory cannot mean.
+  // named above a group in the list, and openable from nowhere. The verbs are
+  // a project's minus the ones a directory cannot mean.
   const [folderMenu, setFolderMenu] = useState<FolderAnchor | null>(null);
   const [flash, report] = useFlash();
 
@@ -243,9 +215,13 @@ export function WorkspaceMap({
       if (clonesOnly && except !== "clones") {
         narrowed = narrowed.filter((project) => project.duplicateOf.length > 0);
       }
+      if (activePackage) {
+        const holding = new Set(activePackage.projects);
+        narrowed = narrowed.filter((project) => holding.has(project.path));
+      }
       return narrowed;
     },
-    [activeVerdict, verdicts, activeCategory, footprints, clonesOnly],
+    [activeVerdict, verdicts, activeCategory, footprints, clonesOnly, activePackage],
   );
 
   const visible = useMemo(() => narrow(scoped, null), [narrow, scoped]);
@@ -414,20 +390,6 @@ export function WorkspaceMap({
   const atRisk = index.projects.filter(
     (project) => (verdicts[project.path] ?? "unknown") === "protect",
   ).length;
-  // Built here rather than inside the canvas, because whether it can be drawn
-  // at all is what decides which view renders — and the answer to "no" is the
-  // list, not an empty frame where a picture would have been.
-  const graph = useMemo(
-    () =>
-      onMap
-        ? workspaceGraph({ projects: visible, footprints, verdicts, packages, families, aspect })
-        : null,
-    [onMap, visible, footprints, verdicts, packages, families, aspect],
-  );
-  // There is no size the map refuses now that it can be navigated: it packs
-  // outward at a constant node size and the view is what moves. Only an empty
-  // set has nothing to draw.
-  const drawable = graph !== null && visible.length > 0;
 
   /**
    * Every filter that is on, as a label and the way to lift it.
@@ -457,6 +419,13 @@ export function WorkspaceMap({
     if (clonesOnly) {
       chips.push({ id: "clones", label: t("workspace.filters.clones"), onClear: () => setClonesOnly(false) });
     }
+    if (activePackage) {
+      chips.push({
+        id: "package",
+        label: t("workspace.filters.package", { name: `${activePackage.name}@${activePackage.version}` }),
+        onClear: () => setActivePackage(null),
+      });
+    }
     return chips;
   }, [
     activeRoot,
@@ -469,6 +438,8 @@ export function WorkspaceMap({
     setActiveCategory,
     clonesOnly,
     setClonesOnly,
+    activePackage,
+    setActivePackage,
     t,
   ]);
 
@@ -477,7 +448,8 @@ export function WorkspaceMap({
     activeRoot !== null ||
     activeVerdict !== null ||
     activeCategory !== null ||
-    clonesOnly;
+    clonesOnly ||
+    activePackage !== null;
 
   return (
     <div className="flex min-h-0 w-full flex-1 gap-5 overflow-hidden">
@@ -517,10 +489,11 @@ export function WorkspaceMap({
           totalBytes={totals.totalBytes}
           reclaimableBytes={totals.reclaimableBytes}
           atRisk={atRisk}
+          onShowAtRisk={() => setActiveVerdict("protect")}
           targetCount={targetCount}
           onReclaim={onReclaim}
           change={change}
-          reclaimed={reclaimed}
+          reclaimedBytes={reclaimedBytes}
           query={query}
           onQueryChange={onQueryChange}
           searchRef={searchRef}
@@ -530,50 +503,17 @@ export function WorkspaceMap({
           order={order}
           onOrderChange={setOrder}
           hasFamilies={families.length > 0}
-          view={onMap ? "map" : "list"}
-          onViewChange={onViewChange}
-          canMap={proEnabled}
           active={active}
           onClearAll={clearEveryFilter}
           sidebarCollapsed={sidebarHidden}
           onToggleSidebar={() => onSidebarHiddenChange(!sidebarHidden)}
         />
 
-        {/* The map reads the same narrowed set as the list. A filter is a
-            question about the workspace, and switching view is not answering a
-            different one. */}
-        {drawable && graph && (
-          <div ref={drawing} className="min-h-0 flex-1 overflow-hidden pt-3.5 pe-2 pb-2">
-            <WorkspaceCanvas
-              graph={graph}
-              projects={visible}
-              footprints={footprints}
-              verdicts={verdicts}
-              analysing={analysing}
-              measuring={measuring}
-              viewportHeight={drawingHeight}
-              viewState={mapView}
-              onOpenProject={onOpenProject}
-              onContextMenu={openMenu}
-              onFolderMenu={(label, event) => openFolderMenu(label.path, label.text, event)}
-              focusPath={focusPath}
-            />
-          </div>
-        )}
-
         {/* The only scroller on the screen: the header holds still while the
             list moves under it, and each verdict keeps its title in view. The
             gutter is reserved whether or not the list overflows, so the cards
             keep their width instead of widening when a filter empties the list. */}
-        <div className={`flex min-h-0 flex-1 flex-col overflow-hidden pt-3.5 ${drawable ? "hidden" : ""}`}>
-          {/* The map was asked for and there is nothing in it. Saying so beside
-              the list that replaced it is the difference between a view that
-              fell back and a setting that appears not to have been saved. */}
-          {onMap && !drawable && (
-            <p className="mb-3 shrink-0 rounded-xl border border-forest-800 bg-forest-900 px-3.5 py-2.5 text-xs leading-5 text-mist-500">
-              {t("workspace.map.nothingToDraw")}
-            </p>
-          )}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-3.5">
           <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pe-2 pb-6 scrollbar-gutter-stable">
             {order === "folder" &&
               byFamily.map((group) => (

@@ -17,7 +17,6 @@ export type ActionId =
   | "workspace"
   | "maintenance"
   | "insights"
-  | "toggleMap"
   | "toggleSidebar"
   | "focusFilter"
   | "rescan"
@@ -56,12 +55,6 @@ export const ACTIONS: Action[] = [
     label: "Settings",
     menu: null,
     binding: "cmd+,",
-  },
-  {
-    id: "toggleMap",
-    label: "Map",
-    menu: "View",
-    binding: "cmd+m",
   },
   {
     id: "toggleSidebar",

@@ -28,3 +28,10 @@ export const EMPTY_REPORT: DuplicateReport = {
   sharedProjects: 0,
   distinctPackages: 0,
 };
+
+/** A package the workspace list is narrowed to: the projects keeping a copy of it. */
+export type PackageFilter = {
+  name: string;
+  version: string;
+  projects: string[];
+};

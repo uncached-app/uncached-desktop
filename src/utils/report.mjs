@@ -207,9 +207,13 @@ export function buildReport({ events = [], now = Date.now(), grain = "month", fi
       averageBytes: filtered.length > 0 ? Math.round(bytes / filtered.length) : 0,
     },
     previous: { freedBytes: previousBytes, cleanups: previousEvents.length },
-    // Null rather than zero when there is no previous window to compare with:
-    // "no change" and "nothing to compare" are different answers.
-    trend: chosen.buckets === null || previousBytes === 0 ? null : (bytes - previousBytes) / previousBytes,
+    // Null rather than zero when either window is empty: "no change" and
+    // "nothing to compare" are different answers, and an empty window after a
+    // busy one is a quiet month, not a decline of a hundred percent.
+    trend:
+      chosen.buckets === null || previousBytes === 0 || bytes === 0
+        ? null
+        : (bytes - previousBytes) / previousBytes,
     series: series(filtered, from, to, bucket),
     breakdowns,
     events: [...filtered].sort((left, right) => timeOf(right) - timeOf(left)),

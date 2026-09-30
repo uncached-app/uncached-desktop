@@ -22,6 +22,7 @@
   },
   "delete": {
     "button": "Löschen",
+    "buttonTrash": "In den Papierkorb",
     "unsupported": "Uncached konnte nicht lesen, was dieses System entfernen lässt, daher wird nichts angeboten."
   },
   "notice": {
@@ -62,6 +63,7 @@
     "heldByRunning_other": "{{count}} in laufenden Projekten — werden nicht entfernt"
   },
   "age": {
+    "label": "Alter",
     "any": "Jedes Alter",
     "anyHint": "Alles, was der Scan gefunden hat",
     "olderThan": "{{days}}+ Tg.",
@@ -69,6 +71,7 @@
     "threeMonthsHint": "Seit drei Monaten nicht beschrieben"
   },
   "order": {
+    "label": "Reihenfolge",
     "confidence": {
       "label": "Unsicherste",
       "hint": "Ziele, bei denen der Scanner am unsichersten ist, zuerst",

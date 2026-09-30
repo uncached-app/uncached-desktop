@@ -2,7 +2,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useScanWorkspace } from "./useScanWorkspace";
 import { useWorkspaceIndex } from "./useWorkspaceIndex";
 import { useWorkspaceWatch } from "./useWorkspaceWatch";
-import { RESET, type View as MapViewState } from "../utils/viewport.mjs";
 import { isInside } from "../utils/paths.mjs";
 import { useRunningProjects } from "./useRunningProjects";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
@@ -44,9 +43,10 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
   /** Narrowed to projects that are a second copy of a repository. */
   clonesOnly: boolean;
   setClonesOnly: (only: boolean) => void;
+  /** Narrowed to the projects keeping their own copy of one package. */
+  activePackage: import("../types/duplicates").PackageFilter | null;
+  setActivePackage: (filter: import("../types/duplicates").PackageFilter | null) => void;
   /** A project the user asked to be shown, until the list has shown it. */
-  mapView: MapViewState;
-  setMapView: (next: MapViewState | ((current: MapViewState) => MapViewState)) => void;
   focusPath: string | null;
   focusProject: (path: string) => void;
   clearFocus: () => void;
@@ -145,14 +145,13 @@ export function PurgeFlowProvider({
   // buttons when the map could not filter for them; these are the filters.
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [clonesOnly, setClonesOnly] = useState(false);
+  const [activePackage, setActivePackage] = useState<
+    import("../types/duplicates").PackageFilter | null
+  >(null);
   // A request, not a selection. Anywhere in the app can ask for a project to
   // be put in front of the user; only the list knows what is currently hiding
   // it, so the list is what answers and then clears the request.
   const [focusPath, setFocusPath] = useState<string | null>(null);
-  // Where the reader is looking on the map. Up here with the other view state,
-  // because the drawing unmounts whenever the list is showing and a place you
-  // navigated to is not a property of the component that drew it.
-  const [mapView, setMapView] = useState<MapViewState>(RESET);
   const [detailPath, setDetailPath] = useState<string | null>(null);
 
   // Reopening the app lands on the folders the user last chose, already being
@@ -257,8 +256,8 @@ export function PurgeFlowProvider({
         setActiveCategory,
         clonesOnly,
         setClonesOnly,
-        mapView,
-        setMapView,
+        activePackage,
+        setActivePackage,
         focusPath,
         focusProject: setFocusPath,
         clearFocus: () => setFocusPath(null),

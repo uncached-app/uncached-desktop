@@ -6,6 +6,7 @@
     "subtitle": "Automate hygiene on stale projects without risking uncommitted or local work.",
     "eligible_one": "project eligible",
     "eligible_other": "projects eligible",
+    "eligibleNone": "projects eligible",
     "reclaimable": "reclaimable"
   },
   "scheduleNote": "The schedule runs inside Uncached, so closing to the menu bar keeps it going and Quit stops it. It picks up any run it missed the next time the app opens.",

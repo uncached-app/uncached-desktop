@@ -1,10 +1,20 @@
-import { Copy, Layers, Link2, Loader2 } from "lucide-react";
+import { ArrowRight, Copy, Layers, Link2, Loader2 } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
-import type { DuplicateReport } from "../../types/duplicates";
+import type { DuplicatePackage, DuplicateReport } from "../../types/duplicates";
 import { formatBytes } from "../../utils/format.mjs";
+import { ShowMore } from "../../components/shared/ShowMore";
+import { useShowMore } from "../../hooks/useShowMore";
 
 /** How many rows a Free reader gets. The total is never one of the hidden ones. */
 const FREE_ROWS = 3;
+const SHOWN_AT_FIRST = 8;
+const SHOWN_PER_STEP = 20;
+/** Project names printed on a row before the rest are counted. */
+const NAMED_PROJECTS = 3;
+
+function projectName(path: string): string {
+  return path.replace(/\\/g, "/").replace(/\/+$/, "").split("/").pop() ?? path;
+}
 
 /**
  * The same package, installed once per project.
@@ -23,15 +33,19 @@ export function Duplicates({
   running,
   error,
   proEnabled,
+  onShowProjects,
 }: {
   report: DuplicateReport | null;
   running: boolean;
   error: string | null;
   proEnabled: boolean;
+  /** Opens the workspace list narrowed to the projects holding this package. */
+  onShowProjects: (entry: DuplicatePackage) => void;
 }) {
   const { t } = useTranslation();
   const rows = report ? (proEnabled ? report.packages : report.packages.slice(0, FREE_ROWS)) : [];
   const hidden = report && !proEnabled ? Math.max(0, report.packages.length - FREE_ROWS) : 0;
+  const more = useShowMore(rows.length, SHOWN_AT_FIRST, SHOWN_PER_STEP);
 
   return (
     <div className="rounded-2xl border border-forest-800 bg-forest-900 p-5 shadow-xs transition-all">
@@ -80,7 +94,7 @@ export function Duplicates({
 
           {rows.length > 0 && (
             <ul className="mt-3 divide-y divide-forest-800">
-              {rows.map((entry) => (
+              {rows.slice(0, more.visible).map((entry) => (
                 <li
                   key={`${entry.name}@${entry.version}`}
                   className="flex items-center justify-between gap-4 py-2.5 px-1 rounded-lg transition-colors hover:bg-forest-850/30"
@@ -97,15 +111,46 @@ export function Duplicates({
                         {entry.bytesEach !== null &&
                           ` · ${t("insights.duplicates.each", { size: formatBytes(entry.bytesEach) })}`}
                       </span>
+                      <span className="mt-0.5 block truncate text-[11px] text-mist-500" title={entry.projects.join("\n")}>
+                        {entry.projects.length > NAMED_PROJECTS
+                          ? t("insights.duplicates.inProjectsMore", {
+                              names: entry.projects.slice(0, NAMED_PROJECTS).map(projectName).join(", "),
+                              count: entry.projects.length - NAMED_PROJECTS,
+                            })
+                          : t("insights.duplicates.inProjects", {
+                              names: entry.projects.map(projectName).join(", "),
+                            })}
+                      </span>
                     </div>
                   </div>
-                  <span className="shrink-0 font-mono text-xs font-bold text-mist-100">
-                    {formatBytes(entry.wastedBytes)}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="font-mono text-xs font-bold text-mist-100">
+                      {formatBytes(entry.wastedBytes)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onShowProjects(entry)}
+                      aria-label={t("insights.duplicates.showProjectsLabel", { name: entry.name })}
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-mist-500 transition-colors hover:bg-forest-850 hover:text-sage-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400"
+                    >
+                      {t("insights.duplicates.showProjects")}
+                      <ArrowRight size={11} className="rtl:-scale-x-100" aria-hidden="true" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
+
+          <div className="mt-2">
+            <ShowMore
+              remaining={more.remaining}
+              step={SHOWN_PER_STEP}
+              canCollapse={more.canCollapse}
+              onShowMore={more.showMore}
+              onCollapse={more.collapse}
+            />
+          </div>
 
           {hidden > 0 && (
             <p className="mt-3 border-t border-forest-800 pt-3 text-xs text-mist-500">

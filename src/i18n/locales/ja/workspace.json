@@ -8,10 +8,8 @@
   "filters": {
     "query": "「{{query}}」",
     "clones": "リポジトリのコピー",
+    "package": "{{name}} を含む",
     "clearAll": "すべてのフィルタをクリア"
-  },
-  "map": {
-    "nothingToDraw": "フィルタに一致するものがないため、描画するものがありません。"
   },
   "list": {
     "rankedLabel": "サイズ順のプロジェクト",
@@ -26,6 +24,7 @@
     "cancelledFound_other": "スキャンをキャンセル · 停止前に {{count}} 件の対象を検出",
     "cancelled": "スキャンをキャンセルしました",
     "lastRun_other": "前回の実行：{{count}} 件の対象を削除、{{size}} を回収",
+    "soFar_other": "これまで: {{count}} 件の対象を削除、Uncached で {{size}} を回収",
     "title": "ビルド成果物からディスク容量を回収。",
     "subtitle": "ツールチェーンで再生成できる依存関係、ビルド、キャッシュのディレクトリを検出します。",
     "open": "ワークスペースを開く"
@@ -208,13 +207,11 @@
     "byVerdict": "判定順",
     "bySize": "サイズ順",
     "byFolder": "フォルダ順",
-    "listTitle": "リスト表示 — キーボードで操作可能",
-    "list": "リスト",
-    "mapTitle": "マップ表示 — インタラクティブなワークスペースグラフ",
-    "map": "マップ",
     "showing": "表示中",
     "stopFiltering": "「{{label}}」での絞り込みを解除",
-    "clearAll": "すべてクリア"
+    "clearAll": "すべてクリア",
+    "openFolder": "フォルダを開く…",
+    "atRiskShow": "リスクのある {{count}} 件のプロジェクトを表示"
   },
   "history": {
     "moved": "前回の表示から <delta>{{sign}}{{size}}</delta>",
@@ -232,50 +229,13 @@
     "addFolder": "フォルダを追加",
     "rootLimit_other": "このプランでは一度に {{count}} 個のフォルダまで扱えます。",
     "skipped_other": "{{count}} 個のフォルダをスキップしました。",
-    "capped_other": "マップは {{count}} 件のプロジェクトまでに制限されています。",
+    "capped_other": "リストは {{count}} 件のプロジェクトまでに制限されています。",
     "verdict": "判定",
     "everyVerdict": "すべての判定",
     "artifact": "成果物",
     "everyKind": "すべての種類",
     "clonesTitle": "別の場所にもチェックアウトされているリポジトリを持つプロジェクト",
     "remove": "{{label}} をワークスペースから外す"
-  },
-  "graph": {
-    "copiesHere_other": "{{count}} 個中 {{drawn}} 個のコピーがここに",
-    "copies_other": "{{count}} 個のコピー",
-    "declared": "{{tool}} ワークスペース",
-    "oneFolder": "1 つのフォルダ"
-  },
-  "canvas": {
-    "label_other": "{{count}} 件のプロジェクトと {{packages}} 個の共有パッケージ。リストも同じワークスペースを表示します。",
-    "workspaceTag": "ワークスペース",
-    "folderTag": "フォルダ",
-    "projects": "プロジェクト：",
-    "onDisk": "ディスク上：",
-    "atLeast": "{{size}} 以上",
-    "reclaimable": "回収可能：",
-    "heldBy": "共通点：",
-    "packageTag": "パッケージ",
-    "projectTag": "プロジェクト",
-    "sharedAcross": "共有先：",
-    "status": "状態：",
-    "footprint": "ディスク使用量：",
-    "measuring": "計測中…",
-    "clickToOpen": "クリックして開く",
-    "rightClick": "右クリックでオプション",
-    "packageStatus": "{{detail}} · {{size}} を共有",
-    "hint": "ドラッグで移動、スクロールでズーム",
-    "weighing": "計測中…",
-    "readingPackages": "パッケージを読み取り中…",
-    "omitted_other": "小さいパッケージ {{count}} 個を省略",
-    "legend": {
-      "package": "複数のプロジェクトがそれぞれコピーを持つパッケージ",
-      "folder": "複数のプロジェクトを含む 1 つのディレクトリ",
-      "clone": "2 回チェックアウトされた 1 つのリポジトリ"
-    },
-    "zoomIn": "拡大",
-    "zoomOut": "縮小",
-    "fit": "ワークスペース全体を表示"
   },
   "verdicts": {
     "protect": {

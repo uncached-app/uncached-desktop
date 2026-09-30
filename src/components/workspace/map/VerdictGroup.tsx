@@ -48,7 +48,11 @@ export function VerdictGroup({
         </div>
 
         {reclaimable > 0 && (
-          <span className="shrink-0 rounded-md bg-forest-900 border border-forest-800 px-2 py-0.5 font-mono text-[11px] font-medium text-sage-300">
+          <span
+            className={`shrink-0 rounded-md bg-forest-900 border border-forest-800 px-2 py-0.5 font-mono text-[11px] font-medium ${
+              verdict === "protect" ? "text-mist-300" : "text-sage-300"
+            }`}
+          >
             {t("workspace.list.reclaimable", { size: formatBytes(reclaimable) })}
           </span>
         )}

@@ -19,6 +19,7 @@
   },
   "delete": {
     "button": "削除",
+    "buttonTrash": "ゴミ箱に移動",
     "unsupported": "このシステムで削除できる範囲を読み取れなかったため、何も提示しません。"
   },
   "notice": {
@@ -53,6 +54,7 @@
     "heldByRunning_other": "{{count}} 件は実行中のプロジェクト内にあるため削除しません"
   },
   "age": {
+    "label": "経過期間",
     "any": "すべての期間",
     "anyHint": "スキャンで見つかったものすべて",
     "olderThan": "{{days}} 日以上",
@@ -60,6 +62,7 @@
     "threeMonthsHint": "3 か月間書き込みのないもの"
   },
   "order": {
+    "label": "並び順",
     "confidence": {
       "label": "確度の低い順",
       "hint": "スキャナの確度が最も低い対象を先頭に表示",

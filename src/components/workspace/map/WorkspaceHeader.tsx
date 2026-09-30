@@ -1,14 +1,13 @@
-import { AlertTriangle, ArrowRight, ArrowUpDown, List, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sparkles, Waypoints, X } from "lucide-react";
-import type { RefObject } from "react";
+import { AlertTriangle, ArrowRight, ArrowUpDown, FolderOpen, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sparkles, X } from "lucide-react";
+import { useState, type RefObject } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { formatBytes } from "../../../utils/format.mjs";
 import { Select } from "../../shared/Select";
 import { StatCard } from "../../shared/StatCard";
 import { ActionButton } from "../../shared/ActionButton";
-import { useFolderActions } from "../../../hooks/useFolderActions";
-import { withOneEditor } from "../../../hooks/useProjectActions";
-import type { CleanupTotals, WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
-import { describeFailure } from "../../../i18n/errors";
+import { FolderMenu, type FolderAnchor } from "../../shared/FolderMenu";
+import { rootName } from "./naming";
+import type { WorkspaceChange } from "../../../hooks/useWorkspaceHistory";
 
 /** What the workspace adds up to, and the two ways to narrow or act on it. */
 export function WorkspaceHeader({
@@ -16,19 +15,17 @@ export function WorkspaceHeader({
   totalBytes,
   reclaimableBytes,
   atRisk,
+  onShowAtRisk,
   targetCount,
   onReclaim,
   change,
-  reclaimed,
+  reclaimedBytes,
   query,
   onQueryChange,
   searchRef,
   order,
   onOrderChange,
   hasFamilies,
-  view,
-  onViewChange,
-  canMap,
   active,
   onClearAll,
   sidebarCollapsed = false,
@@ -42,11 +39,13 @@ export function WorkspaceHeader({
   reclaimableBytes: number;
   /** Counted over the whole index, never over what is on screen. */
   atRisk: number;
+  /** Narrows the list to the projects holding work that exists only on this disk. */
+  onShowAtRisk: () => void;
   /** Null until the artifact walk has been run for these folders. */
   targetCount: number | null;
   onReclaim: () => void;
   change: WorkspaceChange | null;
-  reclaimed: CleanupTotals | null;
+  reclaimedBytes: number | null;
   query: string;
   onQueryChange: (query: string) => void;
   searchRef: RefObject<HTMLInputElement | null>;
@@ -54,11 +53,6 @@ export function WorkspaceHeader({
   onOrderChange: (order: "verdict" | "size" | "folder") => void;
   /** Only offered when something here actually shares a directory. */
   hasFamilies: boolean;
-  /** Which reading is open, and how to change it. Persisted either way. */
-  view: "list" | "map";
-  onViewChange: (view: "list" | "map") => void;
-  /** The map is Pro. Free reads the same workspace as a list. */
-  canMap: boolean;
   /**
    * What is narrowing the list right now, and how to stop it.
    *
@@ -149,14 +143,17 @@ export function WorkspaceHeader({
           )}
 
           {atRisk > 0 && (
-            <div
+            <button
+              type="button"
+              onClick={onShowAtRisk}
               title={t("workspace.header.atRiskTitle", { count: atRisk })}
-              className="inline-flex items-baseline gap-1.5 rounded-xl border border-coral-300/30 bg-coral-300/10 px-3 py-1.5 text-coral-300"
+              aria-label={t("workspace.header.atRiskShow", { count: atRisk })}
+              className="inline-flex cursor-pointer items-baseline gap-1.5 rounded-xl border border-coral-300/30 bg-coral-300/10 px-3 py-1.5 text-coral-300 transition-colors hover:border-coral-300/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-coral-300"
             >
               <AlertTriangle size={13} className="self-center shrink-0" aria-hidden="true" />
               <span className="font-mono text-sm font-semibold tracking-tight">{atRisk}</span>
               <span className="text-[11px] font-medium uppercase tracking-wider text-coral-300/80">{t("workspace.header.atRisk")}</span>
-            </div>
+            </button>
           )}
 
         </div>
@@ -186,9 +183,9 @@ export function WorkspaceHeader({
         )}
       </div>
 
-      <HistoryLine change={change} reclaimed={reclaimed} />
+      <HistoryLine change={change} reclaimedBytes={reclaimedBytes} />
 
-      {/* Filter, Order and View controls bar - Native Uncached Design Language */}
+      {/* Filter and Order controls bar - Native Uncached Design Language */}
       <div className="mt-3.5 flex items-center gap-2.5">
         <label className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-forest-800 bg-forest-900 px-3.5 shadow-2xs transition-all focus-within:border-sage-400/60 focus-within:ring-1 focus-within:ring-sage-400/30">
           <Search size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
@@ -223,62 +220,19 @@ export function WorkspaceHeader({
         </label>
 
         {/* Order Dropdown */}
-        {view === "list" && (
-          <Select
-            label={t("workspace.header.order")}
-            size="sm"
-            icon={<ArrowUpDown size={13} />}
-            value={order}
-            onChange={(value) => onOrderChange(value as "verdict" | "size" | "folder")}
-            options={[
-              { value: "verdict", label: t("workspace.header.byVerdict") },
-              { value: "size", label: t("workspace.header.bySize") },
-              ...(hasFamilies ? [{ value: "folder", label: t("workspace.header.byFolder") }] : []),
-            ]}
-            className="w-36 shrink-0 shadow-2xs"
-          />
-        )}
-
-        {/* Segmented View Switcher (List / Map) */}
-        {canMap && (
-          <div className="flex h-9 shrink-0 items-center gap-0.5 rounded-xl border border-forest-800 bg-forest-900 p-1">
-            <button
-              type="button"
-              onClick={() => onViewChange("list")}
-              title={t("workspace.header.listTitle")}
-              className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all cursor-pointer ${
-                view === "list"
-                  ? "bg-forest-850 text-mist-100"
-                  : "text-mist-500 hover:text-mist-300"
-              }`}
-            >
-              <List
-                size={13}
-                className={view === "list" ? "text-sage-300" : "text-mist-500"}
-                aria-hidden="true"
-              />
-              <span>{t("workspace.header.list")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onViewChange("map")}
-              title={t("workspace.header.mapTitle")}
-              className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all cursor-pointer ${
-                view === "map"
-                  ? "bg-forest-850 text-mist-100"
-                  : "text-mist-500 hover:text-mist-300"
-              }`}
-            >
-              <Waypoints
-                size={13}
-                className={view === "map" ? "text-sage-300" : "text-mist-500"}
-                aria-hidden="true"
-              />
-              <span>{t("workspace.header.map")}</span>
-            </button>
-          </div>
-        )}
-
+        <Select
+          label={t("workspace.header.order")}
+          size="sm"
+          icon={<ArrowUpDown size={13} />}
+          value={order}
+          onChange={(value) => onOrderChange(value as "verdict" | "size" | "folder")}
+          options={[
+            { value: "verdict", label: t("workspace.header.byVerdict") },
+            { value: "size", label: t("workspace.header.bySize") },
+            ...(hasFamilies ? [{ value: "folder", label: t("workspace.header.byFolder") }] : []),
+          ]}
+          className="w-44 shrink-0 shadow-2xs"
+        />
       </div>
 
       {/* Only when something is on, so an untouched screen carries no row for a
@@ -322,13 +276,13 @@ export function WorkspaceHeader({
  */
 function HistoryLine({
   change,
-  reclaimed,
+  reclaimedBytes,
 }: {
   change: WorkspaceChange | null;
-  reclaimed: CleanupTotals | null;
+  reclaimedBytes: number | null;
 }) {
   const { t } = useTranslation();
-  const lifetime = reclaimed && reclaimed.allTimeBytes > 0 ? reclaimed : null;
+  const lifetime = reclaimedBytes && reclaimedBytes > 0 ? reclaimedBytes : null;
   if (!change && !lifetime) return null;
 
   const grew = change ? change.totalDelta > 0 : false;
@@ -364,7 +318,7 @@ function HistoryLine({
           <span>
             <Trans
               i18nKey="workspace.history.lifetime"
-              values={{ size: formatBytes(lifetime.allTimeBytes) }}
+              values={{ size: formatBytes(lifetime) }}
               components={{ size: <span className="font-mono font-medium text-sage-300" /> }}
             />
           </span>
@@ -384,6 +338,7 @@ function HistoryLine({
  * which is the one gesture that makes an app like this stop being where you
  * work.
  */
+/** The chosen folder's verbs, behind one button: the palette and the folder list offer the same ones. */
 function FolderShortcuts({
   folder,
   onResult,
@@ -392,29 +347,21 @@ function FolderShortcuts({
   onResult: (message: string | null) => void;
 }) {
   const { t } = useTranslation();
-  const actions = withOneEditor(useFolderActions(folder));
-  if (actions.length === 0) return null;
+  const [anchor, setAnchor] = useState<FolderAnchor | null>(null);
+  if (!folder) return null;
 
   return (
     <>
-      {actions.map((action) => (
-        <ActionButton
-          key={action.id}
-          icon={action.icon}
-          label={action.title}
-          detail={action.detail}
-          align="right"
-          onClick={() =>
-            void action.perform().then(
-              () =>
-                onResult(
-                  action.leaves ? null : t("workspace.actions.done", { action: action.title.toLowerCase() }),
-                ),
-              (error) => onResult(describeFailure(error, t("workspace.actions.failed"))),
-            )
-          }
-        />
-      ))}
+      <ActionButton
+        icon={FolderOpen}
+        label={t("workspace.header.openFolder")}
+        align="right"
+        onClick={(event) => {
+          const box = event.currentTarget.getBoundingClientRect();
+          setAnchor({ path: folder, name: rootName(folder), x: box.left, y: box.bottom + 6 });
+        }}
+      />
+      {anchor && <FolderMenu anchor={anchor} onResult={onResult} onClose={() => setAnchor(null)} />}
     </>
   );
 }

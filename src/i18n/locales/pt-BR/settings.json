@@ -205,7 +205,6 @@
       "body": "O Free limpa todos os artefatos de todos os projetos, sem limites. O Pro adiciona as leituras que abrangem o workspace inteiro:"
     },
     "features": {
-      "map": "Mapa 2D interativo do workspace",
       "schedule": "Limpezas automáticas em segundo plano",
       "duplicates": "Análise de duplicatas entre projetos",
       "analytics": "Histórico completo do espaço liberado"
@@ -255,10 +254,6 @@
       "settings": {
         "label": "Ajustes",
         "detail": "O painel. O macOS coloca este no próprio menu do app."
-      },
-      "toggleMap": {
-        "label": "Mapa",
-        "detail": "Alterna entre a lista e o mapa, e volta."
       },
       "toggleSidebar": {
         "label": "Filtros",

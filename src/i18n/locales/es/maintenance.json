@@ -6,6 +6,7 @@
     "subtitle": "Automatiza la limpieza de proyectos inactivos sin arriesgar trabajo local o sin commit.",
     "eligible_one": "proyecto elegible",
     "eligible_other": "proyectos elegibles",
+    "eligibleNone": "proyectos elegibles",
     "reclaimable": "recuperable"
   },
   "scheduleNote": "La programación se ejecuta dentro de Uncached, así que cerrar a la barra de menús la mantiene activa y Salir la detiene. Retoma cualquier ejecución perdida la próxima vez que se abre la app.",

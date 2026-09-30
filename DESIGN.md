@@ -45,6 +45,16 @@ typography:
     fontSize: "0.75rem"
     fontWeight: 500
     lineHeight: 1.4
+  caption:
+    fontFamily: "Hanken Grotesk, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 500
+    lineHeight: 1.4
+  micro:
+    fontFamily: "Geist Mono, monospace"
+    fontSize: "0.625rem"
+    fontWeight: 500
+    lineHeight: 1.3
   mono:
     fontFamily: "Geist Mono, monospace"
     fontSize: "0.875rem"
@@ -153,6 +163,8 @@ Coral in particular is a promise that something can be cancelled or destroyed. A
 - **Title** (600, `1.25rem`, 1.25): Dialog and settings headings.
 - **Body** (400, `1rem`, 1.6): Explanatory copy and empty states.
 - **Label** (500, `0.75rem`, 1.4): Metadata, progress steps, and quiet status text.
+- **Caption** (500, `0.6875rem`, 1.4): Secondary lines under a row's name, tooltips, filter and choice chips.
+- **Micro** (500, `0.625rem`, 1.3): Uppercase mono section labels, counts inside badges, and keyboard hints. Never prose: at this size a sentence stops being readable.
 - **Mono** (400, `0.875rem`, 1.5): Paths, numeric counts, categories, and version information.
 
 ### Named Rules

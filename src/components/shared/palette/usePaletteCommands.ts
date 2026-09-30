@@ -83,7 +83,7 @@ export function usePaletteCommands({
         id: "focus",
         group: "actions",
         title: t("shell.palette.commands.showInWorkspace"),
-        keywords: ["find", "list", "map", "locate", "scroll"],
+        keywords: ["find", "list", "locate", "scroll"],
         icon: Compass,
         closes: true,
         // Asking rather than navigating. Getting to the right screen is the
@@ -150,7 +150,7 @@ export function usePaletteCommands({
         id: "go-workspace",
         group: "commands",
         title: t("shell.palette.commands.goWorkspace"),
-        keywords: ["projects", "map"],
+        keywords: ["projects"],
         icon: Compass,
         closes: true,
         // The reading is named as well as the module. Without this it lands on

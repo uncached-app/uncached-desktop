@@ -8,10 +8,8 @@
   "filters": {
     "query": "\"{{query}}\"",
     "clones": "Copies of a repo",
+    "package": "With {{name}}",
     "clearAll": "Clear all filters"
-  },
-  "map": {
-    "nothingToDraw": "Nothing matches the filters, so there is no picture to draw."
   },
   "list": {
     "rankedLabel": "Projects ranked by size",
@@ -29,6 +27,8 @@
     "cancelled": "Scan cancelled",
     "lastRun_one": "Last run: {{count}} target removed, {{size}} reclaimed",
     "lastRun_other": "Last run: {{count}} targets removed, {{size}} reclaimed",
+    "soFar_one": "So far: {{count}} target removed, {{size}} reclaimed with Uncached",
+    "soFar_other": "So far: {{count}} targets removed, {{size}} reclaimed with Uncached",
     "title": "Reclaim disk from build artifacts.",
     "subtitle": "Finds dependency, build, and cache directories your toolchains can regenerate.",
     "open": "Open workspace"
@@ -90,8 +90,8 @@
     "noTerminal": "no terminal found on this machine — the command is copied",
     "running": "{{started}} — running in {{terminal}}",
     "failed": "That terminal did not open",
-    "pinned": "<strong>Restoring:</strong> <code>{{command}}</code> — <mono>{{pinnedBy}}</mono> fixes which versions come back.",
-    "unpinned": "<strong>Restoring:</strong> <code>{{command}}</code> — nothing here pins the versions, so a reinstall resolves current ones. The space returns; this exact set of dependencies does not.",
+    "pinned": "<strong>To restore:</strong> <code>{{command}}</code> — <mono>{{pinnedBy}}</mono> fixes which versions come back.",
+    "unpinned": "<strong>To restore:</strong> <code>{{command}}</code> — nothing here pins the versions, so a reinstall resolves current ones. The space returns; this exact set of dependencies does not.",
     "runTitle": "Run {{command}} in {{terminal}}, here",
     "copyTitle": "Copy {{command}}",
     "action": "Restore now"
@@ -232,13 +232,11 @@
     "byVerdict": "By verdict",
     "bySize": "By size",
     "byFolder": "By folder",
-    "listTitle": "List view — readable by keyboard",
-    "list": "List",
-    "mapTitle": "Map view — interactive workspace graph",
-    "map": "Map",
     "showing": "Showing",
     "stopFiltering": "Stop filtering by {{label}}",
-    "clearAll": "Clear all"
+    "clearAll": "Clear all",
+    "openFolder": "Open folder in…",
+    "atRiskShow": "Show the {{count}} projects at risk"
   },
   "history": {
     "moved": "<delta>{{sign}}{{size}}</delta> since your last visit",
@@ -260,55 +258,14 @@
     "rootLimit_other": "This plan covers {{count}} folders at a time.",
     "skipped_one": "{{count}} folder was skipped.",
     "skipped_other": "{{count}} folders were skipped.",
-    "capped_one": "Map capped at {{count}} project.",
-    "capped_other": "Map capped at {{count}} projects.",
+    "capped_one": "List capped at {{count}} project.",
+    "capped_other": "List capped at {{count}} projects.",
     "verdict": "Verdict",
     "everyVerdict": "Every verdict",
     "artifact": "Artifact",
     "everyKind": "Every kind",
     "clonesTitle": "Projects holding a repository that is also checked out somewhere else",
     "remove": "Remove {{label}} from the workspace"
-  },
-  "graph": {
-    "copiesHere_one": "{{drawn}} of {{count}} copy here",
-    "copiesHere_other": "{{drawn}} of {{count}} copies here",
-    "copies_one": "{{count}} copy",
-    "copies_other": "{{count}} copies",
-    "declared": "{{tool}} workspace",
-    "oneFolder": "one folder"
-  },
-  "canvas": {
-    "label_one": "{{count}} project and {{packages}} shared packages. The list reads the same workspace.",
-    "label_other": "{{count}} projects and {{packages}} shared packages. The list reads the same workspace.",
-    "workspaceTag": "workspace",
-    "folderTag": "folder",
-    "projects": "Projects:",
-    "onDisk": "On disk:",
-    "atLeast": "at least {{size}}",
-    "reclaimable": "Reclaimable:",
-    "heldBy": "Held together by:",
-    "packageTag": "package",
-    "projectTag": "project",
-    "sharedAcross": "Shared across:",
-    "status": "Status:",
-    "footprint": "Disk footprint:",
-    "measuring": "measuring...",
-    "clickToOpen": "Click to open",
-    "rightClick": "Right-click for options",
-    "packageStatus": "{{detail}} · {{size}} shared",
-    "hint": "Drag to move, scroll to zoom",
-    "weighing": "Weighing...",
-    "readingPackages": "Reading packages...",
-    "omitted_one": "{{count}} lighter package omitted",
-    "omitted_other": "{{count}} lighter packages omitted",
-    "legend": {
-      "package": "a package more than one project keeps its own copy of",
-      "folder": "one directory holding several projects",
-      "clone": "one repository checked out twice"
-    },
-    "zoomIn": "Zoom in",
-    "zoomOut": "Zoom out",
-    "fit": "Fit whole workspace"
   },
   "verdicts": {
     "protect": {

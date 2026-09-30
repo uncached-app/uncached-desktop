@@ -118,11 +118,17 @@ export function InsightsModule({
   // Each one clears the others: arriving on a list narrowed by a filter the
   // previous sentence set would show fewer projects than the sentence just
   // claimed, or none at all.
-  function follow(insight: Insight) {
-    if (!insight.action) return;
+  function clearWorkspaceFilters() {
     flow.setActiveVerdict(null);
     flow.setActiveCategory(null);
     flow.setClonesOnly(false);
+    flow.setActivePackage(null);
+    flow.setView("projects");
+  }
+
+  function follow(insight: Insight) {
+    if (!insight.action) return;
+    clearWorkspaceFilters();
 
     if (insight.action.kind === "verdict") flow.setActiveVerdict(insight.action.verdict as Verdict);
     if (insight.action.kind === "project") flow.focusProject(insight.action.path);
@@ -250,6 +256,11 @@ export function InsightsModule({
             running={duplicates.running}
             error={duplicates.error}
             proEnabled={proEnabled}
+            onShowProjects={(entry) => {
+              clearWorkspaceFilters();
+              flow.setActivePackage({ name: entry.name, version: entry.version, projects: entry.projects });
+              onOpenWorkspace();
+            }}
           />
 
           <Repositories

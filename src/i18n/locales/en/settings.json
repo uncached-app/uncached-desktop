@@ -205,7 +205,6 @@
       "body": "Free reclaims every artifact of every project, with no limits. Pro adds the readings that span the whole workspace:"
     },
     "features": {
-      "map": "Interactive 2D workspace map",
       "schedule": "Automated background cleanups",
       "duplicates": "Cross-project duplicate insights",
       "analytics": "Lifetime reclaimed analytics"
@@ -255,10 +254,6 @@
       "settings": {
         "label": "Settings",
         "detail": "The panel. macOS puts this one under the app menu itself."
-      },
-      "toggleMap": {
-        "label": "Map",
-        "detail": "Switches between the list and the picture, and back."
       },
       "toggleSidebar": {
         "label": "Filters",

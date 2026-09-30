@@ -194,7 +194,12 @@
     "hidden_other": "{{count}} paquetes más están duplicados. Pro los muestra.",
     "shared_one": "{{count}} proyecto ya enlaza sus paquetes a un almacén compartido en lugar de copiarlos.",
     "shared_other": "{{count}} proyectos ya enlazan sus paquetes a un almacén compartido en lugar de copiarlos.",
-    "note": "Se mide una copia de cada paquete y el resto es aritmética. Los paquetes con binarios nativos compilados pueden variar entre proyectos."
+    "note": "Se mide una copia de cada paquete y el resto es aritmética. Los paquetes con binarios nativos compilados pueden variar entre proyectos.",
+    "inProjects": "En {{names}}",
+    "inProjectsMore_one": "En {{names}} y {{count}} más",
+    "inProjectsMore_other": "En {{names}} y {{count}} más",
+    "showProjects": "Proyectos",
+    "showProjectsLabel": "Mostrar los proyectos que guardan una copia de {{name}}"
   },
   "repositories": {
     "title": "Higiene de repositorios",

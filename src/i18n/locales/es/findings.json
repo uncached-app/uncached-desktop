@@ -22,6 +22,7 @@
   },
   "delete": {
     "button": "Eliminar",
+    "buttonTrash": "Mover a la Papelera",
     "unsupported": "Uncached no pudo leer qué le permite eliminar este sistema, así que no se ofrece nada."
   },
   "notice": {
@@ -62,6 +63,7 @@
     "heldByRunning_other": "{{count}} en proyectos en ejecución — no se eliminarán"
   },
   "age": {
+    "label": "Antigüedad",
     "any": "Todos",
     "anyHint": "Todo lo que encontró el análisis",
     "olderThan": "{{days}}d+",
@@ -69,6 +71,7 @@
     "threeMonthsHint": "Nada ha escrito en ellos desde hace tres meses"
   },
   "order": {
+    "label": "Orden",
     "confidence": {
       "label": "Menor certeza",
       "hint": "Primero los objetivos de los que el analizador está menos seguro",

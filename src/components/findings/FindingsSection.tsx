@@ -286,7 +286,7 @@ export function FindingsSection({
               ) : (
                 <Trash2 size={14} aria-hidden="true" />
               )}
-              <span>{t("findings.delete.button")}</span>
+              <span>{permanent ? t("findings.delete.button") : t("findings.delete.buttonTrash")}</span>
               <span className="grid size-4.5 place-items-center rounded bg-forest-950/20 font-mono text-[11px] font-bold text-forest-950">
                 {selectedTargets.length}
               </span>
@@ -453,7 +453,8 @@ export function FindingsSection({
                 {/* The order was the product's opinion and nothing said so,
                     which left the least certain target at the top for no
                     visible reason and the heaviest one unreachable. */}
-                <div className="pe-3">
+                <div role="group" aria-label={t("findings.age.label")} className="flex items-center gap-2 pe-3">
+                  <span className="text-[11px] text-mist-500">{t("findings.age.label")}</span>
                   <ChoiceRow
                     active={minAgeDays}
                     onChange={setMinAgeDays}
@@ -466,7 +467,8 @@ export function FindingsSection({
                 </div>
 
                 {targets.length > 1 && (
-                  <div className="pe-3">
+                  <div role="group" aria-label={t("findings.order.label")} className="flex items-center gap-2 pe-3">
+                    <span className="text-[11px] text-mist-500">{t("findings.order.label")}</span>
                     <ChoiceRow
                       active={order}
                       onChange={setOrder}

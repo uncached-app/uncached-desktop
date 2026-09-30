@@ -66,9 +66,9 @@
   },
   "titlebar": {
     "title": {
-      "insights": "إحصاءات Uncached",
-      "maintenance": "صيانة Uncached",
-      "workspace": "مساحة عمل Uncached"
+      "insights": "الإحصاءات",
+      "maintenance": "الصيانة",
+      "workspace": "مساحة العمل"
     },
     "pipeline": "مسار التقدم",
     "steps": {
@@ -208,5 +208,14 @@
     "permission_denied": "تم رفض الإذن: {{detail}}",
     "scan_cancelled": "أُلغي الفحص.",
     "cleanup_cancelled": "أُلغي التنظيف قبل إزالة أي شيء."
+  },
+  "list": {
+    "showMore_zero": "عرض {{count}} من {{total}}",
+    "showMore_one": "عرض واحد آخر من {{total}}",
+    "showMore_two": "عرض اثنين آخرين من {{total}}",
+    "showMore_few": "عرض {{count}} أخرى من {{total}}",
+    "showMore_many": "عرض {{count}} أخرى من {{total}}",
+    "showMore_other": "عرض {{count}} أخرى من {{total}}",
+    "showLess": "عرض أقل"
   }
 }

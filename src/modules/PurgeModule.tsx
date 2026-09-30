@@ -8,14 +8,11 @@ import { WorkspaceMap } from "../components/workspace/WorkspaceMap";
 import { WorkspaceUnavailable } from "../components/workspace/WorkspaceUnavailable";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useWorkspaceHistory } from "../hooks/useWorkspaceHistory";
-import type { CleanMode, LastCleanup, WorkspaceView } from "../types/settings";
+import type { CleanMode, LastCleanup } from "../types/settings";
 
 type PurgeModuleProps = {
   proEnabled: boolean;
   cleanMode: CleanMode;
-  /** Which reading of the workspace opens. A preference, not a control. */
-  workspaceView: WorkspaceView;
-  onWorkspaceViewChange: (view: WorkspaceView) => void;
   /** Whether the filter column is folded away, and how to say it changed. */
   sidebarHidden: boolean;
   onSidebarHiddenChange: (hidden: boolean) => void;
@@ -34,8 +31,6 @@ type PurgeModuleProps = {
 export function PurgeModule({
   proEnabled,
   cleanMode,
-  workspaceView,
-  onWorkspaceViewChange,
   sidebarHidden,
   onSidebarHiddenChange,
   shortcuts,
@@ -148,7 +143,6 @@ export function PurgeModule({
           onQueryChange={setQuery}
           proEnabled={proEnabled}
           footprints={flow.footprints}
-          measuring={flow.measuring}
           running={flow.running.running}
           verdicts={flow.verdicts}
           chosenRoots={flow.extraRoots}
@@ -158,25 +152,22 @@ export function PurgeModule({
           targetCount={flow.scanTaken ? flow.targets.length : null}
           onReclaim={() => setView("artifacts")}
           change={history.change}
-          reclaimed={history.totals}
+          reclaimedBytes={lastCleanup?.freedBytes ?? null}
           activeVerdict={flow.activeVerdict as never}
           setActiveVerdict={flow.setActiveVerdict as never}
           activeCategory={flow.activeCategory}
           setActiveCategory={flow.setActiveCategory}
           clonesOnly={flow.clonesOnly}
           setClonesOnly={flow.setClonesOnly}
+          activePackage={flow.activePackage}
+          setActivePackage={flow.setActivePackage}
           focusPath={flow.focusPath}
           onFocusHandled={flow.clearFocus}
           onOpenProject={flow.openProject}
-          view={workspaceView}
-          onViewChange={onWorkspaceViewChange}
-          mapView={[flow.mapView, flow.setMapView]}
           sidebarHidden={sidebarHidden}
           onSidebarHiddenChange={onSidebarHiddenChange}
           shortcuts={shortcuts}
           onRescan={() => void flow.startScan()}
-          packages={flow.analysis.duplicates.report?.packages ?? []}
-          analysing={flow.analysis.stage === "duplicates" || !flow.analysis.taken}
         />
       )}
 

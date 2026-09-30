@@ -72,8 +72,6 @@ function App() {
         <PurgeModule
           proEnabled={entitlement.proEnabled}
           cleanMode={cleanMode}
-          workspaceView={settings.settings?.workspaceView ?? "list"}
-          onWorkspaceViewChange={(workspaceView) => void settings.updateSettings({ workspaceView })}
           shortcuts={settings.settings?.shortcuts}
           sidebarHidden={settings.settings?.workspaceSidebarHidden ?? false}
           onSidebarHiddenChange={(workspaceSidebarHidden) =>

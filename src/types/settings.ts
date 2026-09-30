@@ -3,8 +3,6 @@ import type { MaintenancePolicy, Schedule } from "./maintenance";
 
 export type CleanMode = "Trash" | "Permanent";
 export type Appearance = "dark" | "light" | "system";
-/** Which reading of the workspace opens. `map` needs Pro and a workspace small enough to draw. */
-export type WorkspaceView = "list" | "map";
 
 export type AppSettings = {
   openAtStartup: boolean;
@@ -31,7 +29,6 @@ export type AppSettings = {
   appearance: Appearance;
   /** A supported BCP 47 tag, or follow the operating system. */
   language: LanguagePreference;
-  workspaceView: WorkspaceView;
   /** Whether the workspace's filter column is folded away. */
   workspaceSidebarHidden: boolean;
   /** Which span the Insights report is read over, by grain id. */

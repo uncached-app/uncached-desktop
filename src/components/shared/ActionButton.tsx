@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { MouseEvent } from "react";
 
 /**
  * One verb, reduced to its icon.
@@ -26,7 +27,7 @@ export function ActionButton({
   icon: LucideIcon;
   label: string;
   detail?: string;
-  onClick: () => void;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
   /** Which edge the tooltip grows from — the one the row is not ending at. */
   align?: "left" | "right";
 }) {
@@ -36,7 +37,7 @@ export function ActionButton({
         type="button"
         onClick={onClick}
         aria-label={label}
-        className="group grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl border border-forest-800 bg-forest-900 text-mist-300 shadow-xs transition-all hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 active:scale-[0.97]"
+        className="group grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl border border-forest-800 bg-forest-900 text-mist-300 shadow-xs transition-all hover:border-sage-400/60 hover:bg-forest-850 hover:text-mist-100 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-400"
       >
         <Icon
           size={15}
@@ -50,7 +51,7 @@ export function ActionButton({
           the first button hangs half of itself outside and gets cut in two. */}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute top-full z-20 mt-2 scale-95 rounded-md border border-forest-800 bg-forest-950 px-2 py-1 text-[11px] font-medium text-mist-100 opacity-0 shadow-xl transition-all duration-200 group-hover/action:scale-100 group-hover/action:opacity-100 ${
+        className={`pointer-events-none absolute top-full z-20 mt-2 scale-95 rounded-md border border-forest-800 bg-forest-950 px-2 py-1 text-[11px] font-medium text-mist-100 opacity-0 shadow-xl transition-all duration-200 group-hover/action:scale-100 group-hover/action:opacity-100 group-focus-within/action:scale-100 group-focus-within/action:opacity-100 ${
           align === "right" ? "end-0 origin-top-right" : "start-0 origin-top-left"
         }`}
       >

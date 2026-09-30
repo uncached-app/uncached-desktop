@@ -58,6 +58,13 @@ test("the previous window is the same length, immediately before", () => {
   assert.equal(result.trend, 2, "three times as much is a doubling of the difference");
 });
 
+test("a window with nothing in it is not a hundred percent decrease", () => {
+  const result = report([event(35, GB)]);
+
+  assert.equal(result.totals.freedBytes, 0);
+  assert.equal(result.trend, null, "an empty window has no rate to compare");
+});
+
 test("no previous activity is not a hundred percent increase", () => {
   const result = report([event(1, GB)]);
 

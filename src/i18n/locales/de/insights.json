@@ -194,7 +194,12 @@
     "hidden_other": "{{count}} weitere Pakete sind doppelt. Pro listet sie auf.",
     "shared_one": "{{count}} Projekt verlinkt seine Pakete bereits in einen gemeinsamen Store, statt sie zu kopieren.",
     "shared_other": "{{count}} Projekte verlinken ihre Pakete bereits in einen gemeinsamen Store, statt sie zu kopieren.",
-    "note": "Eine Kopie jedes Pakets wird gemessen, der Rest wird hochgerechnet. Pakete mit nativ kompilierten Binärdateien können zwischen Projekten abweichen."
+    "note": "Eine Kopie jedes Pakets wird gemessen, der Rest wird hochgerechnet. Pakete mit nativ kompilierten Binärdateien können zwischen Projekten abweichen.",
+    "inProjects": "In {{names}}",
+    "inProjectsMore_one": "In {{names}} und {{count}} weiterem",
+    "inProjectsMore_other": "In {{names}} und {{count}} weiteren",
+    "showProjects": "Projekte",
+    "showProjectsLabel": "Die Projekte zeigen, die eine Kopie von {{name}} behalten"
   },
   "repositories": {
     "title": "Repository-Hygiene",

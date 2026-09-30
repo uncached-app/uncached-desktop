@@ -166,11 +166,11 @@ export function ProjectRow({
                     aria-hidden="true"
                   >
                     <div
-                      className="h-full rounded-full bg-sage-400 transition-all duration-300"
+                      className={`h-full rounded-full transition-all duration-300 ${isAtRisk ? "bg-mist-500" : "bg-sage-400"}`}
                       style={{ width: `${Math.max(8, share * 100)}%` }}
                     />
                   </div>
-                  <span className="font-mono text-[11px] font-semibold text-sage-300">
+                  <span className={`font-mono text-[11px] font-semibold ${isAtRisk ? "text-mist-300" : "text-sage-300"}`}>
                     {formatBytes(footprint.reclaimableBytes)}
                   </span>
                   <span className="font-mono text-[10px] text-mist-500">{t("workspace.row.reclaimable")}</span>

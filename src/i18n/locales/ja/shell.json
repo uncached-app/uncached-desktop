@@ -61,9 +61,9 @@
   },
   "titlebar": {
     "title": {
-      "insights": "Uncached インサイト",
-      "maintenance": "Uncached メンテナンス",
-      "workspace": "Uncached ワークスペース"
+      "insights": "インサイト",
+      "maintenance": "メンテナンス",
+      "workspace": "ワークスペース"
     },
     "pipeline": "進行状況",
     "steps": {
@@ -193,5 +193,9 @@
     "permission_denied": "アクセスが拒否されました：{{detail}}",
     "scan_cancelled": "スキャンはキャンセルされました。",
     "cleanup_cancelled": "何も削除されないうちにクリーンアップはキャンセルされました。"
+  },
+  "list": {
+    "showMore_other": "さらに {{count}} 件表示（残り {{total}} 件）",
+    "showLess": "表示を減らす"
   }
 }

@@ -8,10 +8,8 @@
   "filters": {
     "query": "\"{{query}}\"",
     "clones": "Cópias de um repositório",
+    "package": "Com {{name}}",
     "clearAll": "Limpar todos os filtros"
-  },
-  "map": {
-    "nothingToDraw": "Nada corresponde aos filtros, então não há mapa para desenhar."
   },
   "list": {
     "rankedLabel": "Projetos ordenados por tamanho",
@@ -29,6 +27,8 @@
     "cancelled": "Varredura cancelada",
     "lastRun_one": "Última execução: {{count}} alvo removido, {{size}} liberados",
     "lastRun_other": "Última execução: {{count}} alvos removidos, {{size}} liberados",
+    "soFar_one": "Até agora: {{count}} alvo removido, {{size}} liberados com o Uncached",
+    "soFar_other": "Até agora: {{count}} alvos removidos, {{size}} liberados com o Uncached",
     "title": "Libere o espaço em disco ocupado por artefatos de build.",
     "subtitle": "Encontra diretórios de dependências, build e cache que suas toolchains conseguem regenerar.",
     "open": "Abrir workspace"
@@ -90,8 +90,8 @@
     "noTerminal": "nenhum terminal encontrado nesta máquina — o comando foi copiado",
     "running": "{{started}} — rodando em {{terminal}}",
     "failed": "Esse terminal não abriu",
-    "pinned": "<strong>Restaurando:</strong> <code>{{command}}</code> — <mono>{{pinnedBy}}</mono> fixa quais versões voltam.",
-    "unpinned": "<strong>Restaurando:</strong> <code>{{command}}</code> — nada aqui fixa as versões, então uma reinstalação resolve as atuais. O espaço volta; este conjunto exato de dependências, não.",
+    "pinned": "<strong>Para restaurar:</strong> <code>{{command}}</code> — <mono>{{pinnedBy}}</mono> fixa quais versões voltam.",
+    "unpinned": "<strong>Para restaurar:</strong> <code>{{command}}</code> — nada aqui fixa as versões, então uma reinstalação resolve as atuais. O espaço volta; este conjunto exato de dependências, não.",
     "runTitle": "Executar {{command}} em {{terminal}}, aqui",
     "copyTitle": "Copiar {{command}}",
     "action": "Restaurar agora"
@@ -232,13 +232,11 @@
     "byVerdict": "Por veredito",
     "bySize": "Por tamanho",
     "byFolder": "Por pasta",
-    "listTitle": "Visualização em lista — navegável pelo teclado",
-    "list": "Lista",
-    "mapTitle": "Visualização em mapa — grafo interativo do workspace",
-    "map": "Mapa",
     "showing": "Mostrando",
     "stopFiltering": "Parar de filtrar por {{label}}",
-    "clearAll": "Limpar tudo"
+    "clearAll": "Limpar tudo",
+    "openFolder": "Abrir pasta em…",
+    "atRiskShow": "Mostrar os {{count}} projetos em risco"
   },
   "history": {
     "moved": "<delta>{{sign}}{{size}}</delta> desde sua última visita",
@@ -260,55 +258,14 @@
     "rootLimit_other": "Este plano cobre {{count}} pastas por vez.",
     "skipped_one": "{{count}} pasta foi pulada.",
     "skipped_other": "{{count}} pastas foram puladas.",
-    "capped_one": "Mapa limitado a {{count}} projeto.",
-    "capped_other": "Mapa limitado a {{count}} projetos.",
+    "capped_one": "Lista limitada a {{count}} projeto.",
+    "capped_other": "Lista limitada a {{count}} projetos.",
     "verdict": "Veredito",
     "everyVerdict": "Todos os vereditos",
     "artifact": "Artefato",
     "everyKind": "Todos os tipos",
     "clonesTitle": "Projetos com um repositório que também tem checkout em outro lugar",
     "remove": "Remover {{label}} do workspace"
-  },
-  "graph": {
-    "copiesHere_one": "{{drawn}} de {{count}} cópia aqui",
-    "copiesHere_other": "{{drawn}} de {{count}} cópias aqui",
-    "copies_one": "{{count}} cópia",
-    "copies_other": "{{count}} cópias",
-    "declared": "Workspace {{tool}}",
-    "oneFolder": "uma pasta"
-  },
-  "canvas": {
-    "label_one": "{{count}} projeto e {{packages}} pacotes compartilhados. A lista lê o mesmo workspace.",
-    "label_other": "{{count}} projetos e {{packages}} pacotes compartilhados. A lista lê o mesmo workspace.",
-    "workspaceTag": "workspace",
-    "folderTag": "pasta",
-    "projects": "Projetos:",
-    "onDisk": "Em disco:",
-    "atLeast": "pelo menos {{size}}",
-    "reclaimable": "A liberar:",
-    "heldBy": "Unidos por:",
-    "packageTag": "pacote",
-    "projectTag": "projeto",
-    "sharedAcross": "Compartilhado entre:",
-    "status": "Status:",
-    "footprint": "Espaço em disco:",
-    "measuring": "medindo...",
-    "clickToOpen": "Clique para abrir",
-    "rightClick": "Clique com o botão direito para ver opções",
-    "packageStatus": "{{detail}} · {{size}} compartilhados",
-    "hint": "Arraste para mover, role para dar zoom",
-    "weighing": "Pesando...",
-    "readingPackages": "Lendo pacotes...",
-    "omitted_one": "{{count}} pacote mais leve omitido",
-    "omitted_other": "{{count}} pacotes mais leves omitidos",
-    "legend": {
-      "package": "um pacote do qual mais de um projeto mantém a própria cópia",
-      "folder": "um diretório com vários projetos",
-      "clone": "um repositório com dois checkouts"
-    },
-    "zoomIn": "Aproximar",
-    "zoomOut": "Afastar",
-    "fit": "Ajustar o workspace inteiro"
   },
   "verdicts": {
     "protect": {
