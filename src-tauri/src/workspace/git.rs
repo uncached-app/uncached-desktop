@@ -36,7 +36,44 @@ pub struct GitContext {
     /// `None` means it never has.
     pub last_fetch_at: Option<i64>,
     pub recoverability: Recoverability,
+    /// Env files Git would carry to the remote. At most `MAX_EXPOSED_ENV`.
+    pub exposed_env: Vec<ExposedEnv>,
 }
+
+/// An env file that is committed, or untracked and not ignored so the next
+/// `git add .` takes it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExposedEnv {
+    /// Relative to the repository root, `/`-separated as Git prints it.
+    pub path: String,
+    /// In the index, so already in the history of every clone.
+    pub committed: bool,
+}
+
+const MAX_EXPOSED_ENV: usize = 50;
+
+/// Name parts that mark an env file meant to be committed.
+const ENV_TEMPLATE_PARTS: [&str; 7] = [
+    "example", "sample", "template", "dist", "defaults", "schema", "tpl",
+];
+
+/// `-t` tags committed paths `H` (or another index state) and untracked ones
+/// `?`. `--directory` stops the walk at untracked directories, which may be an
+/// unignored `node_modules`; the pathspecs keep the output to env names.
+const ENV_LISTING: [&str; 11] = [
+    "ls-files",
+    "-z",
+    "-t",
+    "--cached",
+    "--others",
+    "--exclude-standard",
+    "--directory",
+    "--",
+    ":(glob)**/.env",
+    ":(glob)**/.env.*",
+    ":(glob)**/*.env",
+];
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -101,6 +138,7 @@ pub fn read(path: &Path) -> GitContext {
         list.lines().filter(|line| !line.is_empty()).count() as u32
     });
     let (last_commit_summary, last_commit_at) = parse_log(log.as_deref());
+    let exposed_env = parse_exposed_env(run(path, &ENV_LISTING).as_deref());
 
     // `off_machine`, not `remote.is_some()`. "Everything is on a remote" is the
     // sentence that lets an unattended cleanup touch a project, and a bare
@@ -131,7 +169,39 @@ pub fn read(path: &Path) -> GitContext {
             untracked_files,
             level,
         },
+        exposed_env,
     }
+}
+
+/// Whether a path is named like an env file that holds real values:
+/// `.env`, `.env.local`, `.env.production`, `prod.env`. Templates such as
+/// `.env.example` or `example.env` are not.
+pub fn is_secret_env(path: &str) -> bool {
+    let name = path.rsplit('/').next().unwrap_or(path).to_ascii_lowercase();
+    let named_env =
+        name == ".env" || name.starts_with(".env.") || (name.len() > 4 && name.ends_with(".env"));
+    named_env
+        && !name
+            .split('.')
+            .any(|part| ENV_TEMPLATE_PARTS.contains(&part))
+}
+
+/// Reads `git ls-files -z -t` output restricted to env pathspecs.
+fn parse_exposed_env(listing: Option<&str>) -> Vec<ExposedEnv> {
+    let Some(listing) = listing else {
+        return Vec::new();
+    };
+    listing
+        .split('\0')
+        .filter_map(|entry| {
+            let (tag, path) = entry.split_once(' ')?;
+            is_secret_env(path).then(|| ExposedEnv {
+                path: path.to_owned(),
+                committed: tag != "?",
+            })
+        })
+        .take(MAX_EXPOSED_ENV)
+        .collect()
 }
 
 fn run(path: &Path, args: &[&str]) -> Option<String> {
@@ -318,8 +388,111 @@ pub fn normalise_remote(url: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        normalise_remote, parse_log, parse_status, parse_tracking, remote_leaves_the_machine,
+        is_secret_env, normalise_remote, parse_exposed_env, parse_log, parse_status,
+        parse_tracking, read, remote_leaves_the_machine, ExposedEnv,
     };
+    use std::path::Path;
+
+    #[test]
+    fn env_files_with_values_are_recognised() {
+        for path in [
+            ".env",
+            ".env.local",
+            ".env.production",
+            "apps/web/.env.development.local",
+            "prod.env",
+            "config/.ENV",
+        ] {
+            assert!(is_secret_env(path), "{path}");
+        }
+    }
+
+    #[test]
+    fn env_templates_and_lookalikes_are_not() {
+        for path in [
+            ".env.example",
+            ".env.sample",
+            ".env.template",
+            ".env.dist",
+            ".env.defaults",
+            ".env.local.example",
+            "example.env",
+            ".envrc",
+            "environment.ts",
+            "env",
+            ".env/",
+            "packages/",
+        ] {
+            assert!(!is_secret_env(path), "{path}");
+        }
+    }
+
+    #[test]
+    fn committed_and_unignored_env_files_are_told_apart() {
+        let listing = "H .env.production\0? .env.local\0? node_modules/\0H .env.example\0";
+        assert_eq!(
+            parse_exposed_env(Some(listing)),
+            vec![
+                ExposedEnv {
+                    path: ".env.production".into(),
+                    committed: true
+                },
+                ExposedEnv {
+                    path: ".env.local".into(),
+                    committed: false
+                },
+            ]
+        );
+        assert!(parse_exposed_env(None).is_empty());
+    }
+
+    /// Against a real repository: the pathspecs and the `-t` tags are Git's
+    /// format, which a fixture cannot vouch for.
+    #[test]
+    fn a_real_repository_reports_its_exposed_env_files() {
+        let root = std::env::temp_dir().join(format!("uncached-env-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("apps/web")).unwrap();
+        let git = |args: &[&str]| {
+            crate::process::quiet("git")
+                .arg("-C")
+                .arg(&root)
+                .args(args)
+                .env("GIT_AUTHOR_NAME", "t")
+                .env("GIT_AUTHOR_EMAIL", "t@t")
+                .env("GIT_COMMITTER_NAME", "t")
+                .env("GIT_COMMITTER_EMAIL", "t@t")
+                .output()
+                .expect("git")
+        };
+
+        git(&["init", "--initial-branch=main"]);
+        std::fs::write(root.join(".gitignore"), ".env.local\n").unwrap();
+        std::fs::write(root.join(".env"), "KEY=committed").unwrap();
+        std::fs::write(root.join(".env.example"), "KEY=").unwrap();
+        git(&["add", "."]);
+        git(&["commit", "-m", "first"]);
+        std::fs::write(root.join(".env.local"), "KEY=ignored").unwrap();
+        std::fs::write(root.join("apps/web/.env.production"), "KEY=exposed").unwrap();
+
+        let mut exposed = read(Path::new(&root)).exposed_env;
+        exposed.sort_by(|left, right| left.path.cmp(&right.path));
+        let _ = std::fs::remove_dir_all(&root);
+
+        assert_eq!(
+            exposed,
+            vec![
+                ExposedEnv {
+                    path: ".env".into(),
+                    committed: true
+                },
+                ExposedEnv {
+                    path: "apps/web/.env.production".into(),
+                    committed: false
+                },
+            ]
+        );
+    }
 
     /// The distinction the `safe` verdict rests on. Everything below is a
     /// remote Git will happily push to; only some of them are somewhere else.

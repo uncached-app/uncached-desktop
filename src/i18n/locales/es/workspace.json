@@ -56,7 +56,18 @@
       "reclaimable": "caché recuperable",
       "source": "código fuente"
     },
-    "partial": "No se pudieron leer algunas carpetas de este proyecto. Cada cifra de arriba es un mínimo, no la medición."
+    "partial": "No se pudieron leer algunas carpetas de este proyecto. Cada cifra de arriba es un mínimo, no la medición.",
+    "env": {
+      "title": "Archivos de entorno",
+      "introCommitted": "Git tiene un archivo de entorno en su historial. Cualquiera con un clon puede leerlo: cambia los secretos que contenía y deja de versionarlo.",
+      "introUnignored": "Un archivo de entorno no está en .gitignore, así que el próximo git add . lo incluiría.",
+      "committed": "Versionado",
+      "unignored": "No ignorado",
+      "committedHint": "Está en el historial de este repositorio. Cambia los secretos que contiene.",
+      "unignoredHint": "Todavía no se ha versionado. Ignorarlo lo mantiene así.",
+      "copy": "Copiar el comando para {{path}}",
+      "runFromRoot": "Ejecútalo en la carpeta del proyecto. Uncached solo muestra el comando."
+    }
   },
   "actions": {
     "done": "{{action}} — hecho",
@@ -207,7 +218,9 @@
       "several_other": "{{command}} está trabajando dentro de este proyecto ({{count}} procesos). Sus artefactos no se pueden recuperar hasta que se detengan."
     },
     "running": "en ejecución · {{command}}",
-    "measuring": "midiendo..."
+    "measuring": "midiendo...",
+    "envExposed_one": "{{count}} .env expuesto",
+    "envExposed_other": "{{count}} .env expuestos"
   },
   "menu": {
     "label": "Acciones de {{name}}",

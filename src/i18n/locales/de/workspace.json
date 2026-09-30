@@ -56,7 +56,18 @@
       "reclaimable": "freigebbarer Cache",
       "source": "Quellcode"
     },
-    "partial": "Einige Ordner in diesem Projekt konnten nicht gelesen werden. Jeder Wert oben ist eine Untergrenze, keine Messung."
+    "partial": "Einige Ordner in diesem Projekt konnten nicht gelesen werden. Jeder Wert oben ist eine Untergrenze, keine Messung.",
+    "env": {
+      "title": "Env-Dateien",
+      "introCommitted": "Git hat eine Env-Datei in seiner Historie. Jeder mit einem Klon kann sie lesen: Tausche die Geheimnisse darin aus und versioniere sie nicht mehr.",
+      "introUnignored": "Eine Env-Datei steht nicht in der .gitignore, also würde das nächste git add . sie committen.",
+      "committed": "Committet",
+      "unignored": "Nicht ignoriert",
+      "committedHint": "Liegt in der Historie dieses Repositorys. Tausche ihre Geheimnisse aus.",
+      "unignoredHint": "Noch nicht committet. Sie zu ignorieren, hält das so.",
+      "copy": "Befehl für {{path}} kopieren",
+      "runFromRoot": "Im Projektordner ausführen. Uncached zeigt den Befehl nur an."
+    }
   },
   "actions": {
     "done": "{{action}} — erledigt",
@@ -207,7 +218,9 @@
       "several_other": "{{command}} arbeitet in diesem Projekt ({{count}} Prozesse). Seine Artefakte können erst freigegeben werden, wenn es stoppt."
     },
     "running": "läuft · {{command}}",
-    "measuring": "wird gemessen..."
+    "measuring": "wird gemessen...",
+    "envExposed_one": "{{count}} .env ungeschützt",
+    "envExposed_other": "{{count}} .env-Dateien ungeschützt"
   },
   "menu": {
     "label": "Aktionen für {{name}}",

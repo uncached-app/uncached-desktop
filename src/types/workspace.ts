@@ -34,6 +34,15 @@ export type GitContext = {
   /** When this repository last spoke to its remote. `null` means never. */
   lastFetchAt: number | null;
   recoverability: Recoverability;
+  /** Env files Git would publish. Mirrors `src-tauri/src/workspace/git.rs`. */
+  exposedEnv: ExposedEnv[];
+};
+
+export type ExposedEnv = {
+  /** Relative to the repository root, `/`-separated. */
+  path: string;
+  /** In the index, so already in the history of every clone. */
+  committed: boolean;
 };
 
 export type Activity = {

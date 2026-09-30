@@ -56,7 +56,18 @@
       "reclaimable": "reclaimable cache",
       "source": "source code"
     },
-    "partial": "Some folders under this project could not be read. Every figure above is the smallest it could be, not the measurement."
+    "partial": "Some folders under this project could not be read. Every figure above is the smallest it could be, not the measurement.",
+    "env": {
+      "title": "Env files",
+      "introCommitted": "Git has an env file in its history. Anyone with a clone can read it: rotate any secret it held, then stop tracking it.",
+      "introUnignored": "An env file is not in .gitignore, so the next git add . would commit it.",
+      "committed": "Committed",
+      "unignored": "Not ignored",
+      "committedHint": "In the history of this repository. Rotate any secret it holds.",
+      "unignoredHint": "Not committed yet. Ignoring it keeps it that way.",
+      "copy": "Copy the command for {{path}}",
+      "runFromRoot": "Run it in the project folder. Uncached only shows the command."
+    }
   },
   "actions": {
     "done": "{{action}} — done",
@@ -207,7 +218,9 @@
       "several_other": "{{command}} is working inside this project ({{count}} processes). Its artifacts cannot be reclaimed until it stops."
     },
     "running": "running · {{command}}",
-    "measuring": "measuring..."
+    "measuring": "measuring...",
+    "envExposed_one": "{{count}} .env exposed",
+    "envExposed_other": "{{count}} .env files exposed"
   },
   "menu": {
     "label": "{{name}} actions",
