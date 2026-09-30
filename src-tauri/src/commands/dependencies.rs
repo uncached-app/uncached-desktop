@@ -27,7 +27,9 @@ pub async fn unused_dependencies(
             .iter()
             .map(|project| {
                 let mut found = uncached_core::analyse_project(project);
-                found.reports.retain(|report| seen.insert(report.manifest.clone()));
+                found
+                    .reports
+                    .retain(|report| seen.insert(report.manifest.clone()));
                 found
             })
             .filter(|found| !found.reports.is_empty() || !found.unreadable.is_empty())
