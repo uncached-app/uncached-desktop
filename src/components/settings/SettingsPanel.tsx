@@ -506,7 +506,7 @@ function AboutContent({
 
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <img src="/brand/UNCACHED-ICON-HAZARD.svg" alt="" className="size-20" />
+      <img src="/brand/UNCACHED-ICON-NIGHT.svg" alt="" className="size-20" />
       <h3 className="mt-6 text-2xl font-semibold text-mist-100">{appInfo?.name ?? "Uncached"}</h3>
       <p className="mt-2 text-sm text-mist-500">{t("settings.about.tagline")}</p>
       <p className="mt-6 font-mono text-xs text-mist-500">

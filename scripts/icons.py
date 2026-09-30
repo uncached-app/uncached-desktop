@@ -76,18 +76,18 @@ def hex_rgb(value):
 
 
 # Each variant is a plate painted top to bottom from one colour to another (the
-# same colour twice is a flat plate) and a mark colour. `hazard` is the one the
+# same colour twice is a flat plate) and a mark colour. `night` is the one the
 # bundle ships; the rest are what Pro can put in the Dock at runtime. The ids
 # are persisted in settings, so they are never renamed.
 VARIANTS = {
-    "hazard": ("#FFD83D", "#E8B400", "#14140F"),
     "night": ("#3A3A2D", "#14140F", "#F5C518"),
+    "hazard": ("#FFD83D", "#E8B400", "#14140F"),
     "sunset": ("#FFD83D", "#FF7A4D", "#14140F"),
     "olive": ("#5A5A3F", "#2E2E22", "#F5F3E8"),
     "ultraviolet": ("#DCC7FF", "#9C6BFF", "#14140F"),
     "evergreen": ("#567A3D", "#567A3D", "#FFFFFF"),
 }
-DEFAULT_VARIANT = "hazard"
+DEFAULT_VARIANT = "night"
 
 SAMPLES = 4  # per axis
 

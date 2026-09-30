@@ -8,8 +8,8 @@ use tauri::AppHandle;
 /// Id and 512px PNG of every variant `scripts/icons.py --variants` renders.
 /// Ids are persisted in settings.
 pub const VARIANTS: &[(&str, &[u8])] = &[
-    ("hazard", include_bytes!("../icons/variants/hazard.png")),
     ("night", include_bytes!("../icons/variants/night.png")),
+    ("hazard", include_bytes!("../icons/variants/hazard.png")),
     ("sunset", include_bytes!("../icons/variants/sunset.png")),
     ("olive", include_bytes!("../icons/variants/olive.png")),
     ("ultraviolet", include_bytes!("../icons/variants/ultraviolet.png")),
@@ -17,7 +17,7 @@ pub const VARIANTS: &[(&str, &[u8])] = &[
 ];
 
 /// The variant the bundle ships as its icon.
-pub const DEFAULT: &str = "hazard";
+pub const DEFAULT: &str = "night";
 
 fn bytes_of(variant: &str) -> Option<&'static [u8]> {
     VARIANTS

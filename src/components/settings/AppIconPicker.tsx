@@ -10,8 +10,8 @@ const previews = import.meta.glob<string>("../../../src-tauri/icons/variants/*.p
   import: "default",
 });
 
-const VARIANTS = ["hazard", "night", "sunset", "olive", "ultraviolet", "evergreen"] as const;
-const DEFAULT = "hazard";
+const VARIANTS = ["night", "hazard", "sunset", "olive", "ultraviolet", "evergreen"] as const;
+const DEFAULT = "night";
 
 function previewOf(id: string): string | undefined {
   return Object.entries(previews).find(([path]) => path.endsWith(`/${id}.png`))?.[1];
