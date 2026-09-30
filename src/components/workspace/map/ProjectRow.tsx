@@ -137,12 +137,12 @@ export function ProjectRow({
               {t("workspace.row.copies", { count: project.duplicateOf.length })}
             </span>
           )}
-          {project.git.exposedEnv.length > 0 && (
+          {project.git.exposedSecrets.length > 0 && (
             <span
-              title={project.git.exposedEnv.map((file) => file.path).join("\n")}
+              title={project.git.exposedSecrets.map((file) => file.path).join("\n")}
               className="shrink-0 rounded border border-coral-300/40 bg-coral-surface px-1.5 py-0.5 font-mono text-[10px] text-coral-300"
             >
-              {t("workspace.row.envExposed", { count: project.git.exposedEnv.length })}
+              {t("workspace.row.secretsExposed", { count: project.git.exposedSecrets.length })}
             </span>
           )}
         </div>

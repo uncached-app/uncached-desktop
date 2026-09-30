@@ -57,22 +57,28 @@
       "source": "Quellcode"
     },
     "partial": "Einige Ordner in diesem Projekt konnten nicht gelesen werden. Jeder Wert oben ist eine Untergrenze, keine Messung.",
-    "env": {
-      "title": "Env-Dateien",
-      "introCommitted": "Git hat eine Env-Datei in seiner Historie. Jeder mit einem Klon kann sie lesen: Tausche die Geheimnisse darin aus und versioniere sie nicht mehr.",
-      "introUnignored": "Eine Env-Datei steht nicht in der .gitignore, also würde das nächste git add . sie committen.",
-      "committed": "Committet",
-      "unignored": "Nicht ignoriert",
-      "committedHint": "Liegt in der Historie dieses Repositorys. Tausche ihre Geheimnisse aus.",
-      "unignoredHint": "Noch nicht committet. Sie zu ignorieren, hält das so.",
-      "copy": "Befehl für {{path}} kopieren",
-      "runFromRoot": "Im Projektordner ausführen. Uncached zeigt den Befehl nur an."
-    },
     "maintenance": {
       "excluded": "Die Wartung fasst dieses Projekt nie an.",
       "included": "Die Wartung kann dieses Projekt bereinigen, wenn es deiner Richtlinie entspricht.",
       "exclude": "Nie anfassen",
       "include": "Wieder erlauben"
+    },
+    "secrets": {
+      "title": "Geheimnisse, die Git veröffentlichen würde",
+      "introCommitted": "Git hat Zugangsdaten in seiner Historie. Jeder mit einem Klon kann sie lesen: Widerrufe oder tausche sie aus und versioniere die Dateien nicht mehr.",
+      "introUnignored": "Zugangsdaten stehen nicht in der .gitignore, also würde das nächste git add . sie committen.",
+      "committed": "Committet",
+      "unignored": "Nicht ignoriert",
+      "committedHint": "Liegt in der Historie dieses Repositorys. Widerrufe oder tausche aus, was darin steht.",
+      "unignoredHint": "Noch nicht committet. Sie zu ignorieren, hält das so.",
+      "kinds": {
+        "env": "Env-Datei",
+        "privateKey": "Privater Schlüssel",
+        "credentials": "Zugangsdaten",
+        "token": "Registry-Token"
+      },
+      "copy": "Befehl für {{path}} kopieren",
+      "runFromRoot": "Im Projektordner ausführen. Uncached zeigt den Befehl nur an."
     }
   },
   "actions": {
@@ -225,8 +231,8 @@
     },
     "running": "läuft · {{command}}",
     "measuring": "wird gemessen...",
-    "envExposed_one": "{{count}} .env ungeschützt",
-    "envExposed_other": "{{count}} .env-Dateien ungeschützt"
+    "secretsExposed_one": "{{count}} Geheimnis ungeschützt",
+    "secretsExposed_other": "{{count}} Geheimnisse ungeschützt"
   },
   "menu": {
     "label": "Aktionen für {{name}}",

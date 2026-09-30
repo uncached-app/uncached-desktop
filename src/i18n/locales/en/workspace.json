@@ -57,22 +57,28 @@
       "source": "source code"
     },
     "partial": "Some folders under this project could not be read. Every figure above is the smallest it could be, not the measurement.",
-    "env": {
-      "title": "Env files",
-      "introCommitted": "Git has an env file in its history. Anyone with a clone can read it: rotate any secret it held, then stop tracking it.",
-      "introUnignored": "An env file is not in .gitignore, so the next git add . would commit it.",
-      "committed": "Committed",
-      "unignored": "Not ignored",
-      "committedHint": "In the history of this repository. Rotate any secret it holds.",
-      "unignoredHint": "Not committed yet. Ignoring it keeps it that way.",
-      "copy": "Copy the command for {{path}}",
-      "runFromRoot": "Run it in the project folder. Uncached only shows the command."
-    },
     "maintenance": {
       "excluded": "Maintenance never touches this project.",
       "included": "Maintenance can clean this project when it matches your policy.",
       "exclude": "Never touch",
       "include": "Allow again"
+    },
+    "secrets": {
+      "title": "Secrets Git would publish",
+      "introCommitted": "Git has credentials in its history. Anyone with a clone can read them: revoke or rotate them, then stop tracking the files.",
+      "introUnignored": "Credentials are not in .gitignore, so the next git add . would commit them.",
+      "committed": "Committed",
+      "unignored": "Not ignored",
+      "committedHint": "In the history of this repository. Revoke or rotate what it holds.",
+      "unignoredHint": "Not committed yet. Ignoring it keeps it that way.",
+      "kinds": {
+        "env": "Env file",
+        "privateKey": "Private key",
+        "credentials": "Credentials",
+        "token": "Registry token"
+      },
+      "copy": "Copy the command for {{path}}",
+      "runFromRoot": "Run it in the project folder. Uncached only shows the command."
     }
   },
   "actions": {
@@ -225,8 +231,8 @@
     },
     "running": "running · {{command}}",
     "measuring": "measuring...",
-    "envExposed_one": "{{count}} .env exposed",
-    "envExposed_other": "{{count}} .env files exposed"
+    "secretsExposed_one": "{{count}} secret exposed",
+    "secretsExposed_other": "{{count}} secrets exposed"
   },
   "menu": {
     "label": "{{name}} actions",

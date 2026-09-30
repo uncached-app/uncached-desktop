@@ -52,22 +52,28 @@
       "source": "ソースコード"
     },
     "partial": "このプロジェクト内の一部のフォルダを読み取れませんでした。上の数値はすべて計測値ではなく下限値です。",
-    "env": {
-      "title": "環境ファイル",
-      "introCommitted": "Git の履歴に環境ファイルが含まれています。クローンを持つ人なら誰でも読めます。含まれていたシークレットを変更し、追跡をやめてください。",
-      "introUnignored": "環境ファイルが .gitignore に含まれていないため、次の git add . でコミットされます。",
-      "committed": "コミット済み",
-      "unignored": "無視されていない",
-      "committedHint": "このリポジトリの履歴に含まれています。シークレットを変更してください。",
-      "unignoredHint": "まだコミットされていません。無視すればそのままにできます。",
-      "copy": "{{path}} のコマンドをコピー",
-      "runFromRoot": "プロジェクトのフォルダーで実行してください。Uncached はコマンドを表示するだけです。"
-    },
     "maintenance": {
       "excluded": "メンテナンスはこのプロジェクトに触れません。",
       "included": "ポリシーに一致すれば、メンテナンスはこのプロジェクトをクリーンアップできます。",
       "exclude": "触れない",
       "include": "再び許可"
+    },
+    "secrets": {
+      "title": "Git が公開してしまうシークレット",
+      "introCommitted": "Git の履歴に認証情報が含まれています。クローンを持つ人なら誰でも読めます。失効または変更し、ファイルの追跡をやめてください。",
+      "introUnignored": "認証情報が .gitignore に含まれていないため、次の git add . でコミットされます。",
+      "committed": "コミット済み",
+      "unignored": "無視されていない",
+      "committedHint": "このリポジトリの履歴に含まれています。中身を失効または変更してください。",
+      "unignoredHint": "まだコミットされていません。無視すればそのままにできます。",
+      "kinds": {
+        "env": "環境ファイル",
+        "privateKey": "秘密鍵",
+        "credentials": "認証情報",
+        "token": "レジストリトークン"
+      },
+      "copy": "{{path}} のコマンドをコピー",
+      "runFromRoot": "プロジェクトのフォルダーで実行してください。Uncached はコマンドを表示するだけです。"
     }
   },
   "actions": {
@@ -202,7 +208,7 @@
     },
     "running": "実行中 · {{command}}",
     "measuring": "計測中…",
-    "envExposed_other": "{{count}} 個の .env が公開状態"
+    "secretsExposed_other": "{{count}} 件のシークレットが公開状態"
   },
   "menu": {
     "label": "{{name}} の操作",

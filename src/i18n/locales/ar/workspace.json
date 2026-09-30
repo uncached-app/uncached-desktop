@@ -77,22 +77,28 @@
       "source": "الشيفرة المصدرية"
     },
     "partial": "تعذّرت قراءة بعض المجلدات ضمن هذا المشروع. كل رقم أعلاه هو أصغر قيمة ممكنة، لا القياس الفعلي.",
-    "env": {
-      "title": "ملفات البيئة",
-      "introCommitted": "يحتفظ Git بملف بيئة في سجله. يستطيع أي شخص لديه نسخة قراءته: غيّر الأسرار التي كان يحملها وتوقف عن تتبعه.",
-      "introUnignored": "ملف بيئة غير مدرج في .gitignore، لذا سيضيفه الأمر git add . التالي إلى الإيداع.",
-      "committed": "مُودَع",
-      "unignored": "غير متجاهَل",
-      "committedHint": "موجود في سجل هذا المستودع. غيّر الأسرار التي يحملها.",
-      "unignoredHint": "لم يُودَع بعد. تجاهله يبقيه كذلك.",
-      "copy": "نسخ الأمر لـ {{path}}",
-      "runFromRoot": "شغّله في مجلد المشروع. يكتفي Uncached بعرض الأمر."
-    },
     "maintenance": {
       "excluded": "لا تلمس الصيانة هذا المشروع أبدًا.",
       "included": "يمكن للصيانة تنظيف هذا المشروع عندما يطابق سياستك.",
       "exclude": "عدم اللمس أبدًا",
       "include": "السماح مجددًا"
+    },
+    "secrets": {
+      "title": "أسرار سينشرها Git",
+      "introCommitted": "يحتفظ Git ببيانات اعتماد في سجله. يستطيع أي شخص لديه نسخة قراءتها: ألغها أو غيّرها وتوقف عن تتبع الملفات.",
+      "introUnignored": "بيانات اعتماد غير مدرجة في .gitignore، لذا سيضيفها الأمر git add . التالي إلى الإيداع.",
+      "committed": "مُودَع",
+      "unignored": "غير متجاهَل",
+      "committedHint": "موجود في سجل هذا المستودع. ألغِ ما يحمله أو غيّره.",
+      "unignoredHint": "لم يُودَع بعد. تجاهله يبقيه كذلك.",
+      "kinds": {
+        "env": "ملف بيئة",
+        "privateKey": "مفتاح خاص",
+        "credentials": "بيانات اعتماد",
+        "token": "رمز السجل"
+      },
+      "copy": "نسخ الأمر لـ {{path}}",
+      "runFromRoot": "شغّله في مجلد المشروع. يكتفي Uncached بعرض الأمر."
     }
   },
   "actions": {
@@ -317,12 +323,12 @@
     },
     "running": "قيد التشغيل · {{command}}",
     "measuring": "جارٍ القياس...",
-    "envExposed_zero": "{{count}} ملف .env مكشوف",
-    "envExposed_one": "{{count}} ملف .env مكشوف",
-    "envExposed_two": "{{count}} ملفا .env مكشوفان",
-    "envExposed_few": "{{count}} ملفات .env مكشوفة",
-    "envExposed_many": "{{count}} ملفًا .env مكشوفًا",
-    "envExposed_other": "{{count}} ملف .env مكشوف"
+    "secretsExposed_zero": "{{count}} سر مكشوف",
+    "secretsExposed_one": "{{count}} سر مكشوف",
+    "secretsExposed_two": "{{count}} سرّان مكشوفان",
+    "secretsExposed_few": "{{count}} أسرار مكشوفة",
+    "secretsExposed_many": "{{count}} سرًا مكشوفًا",
+    "secretsExposed_other": "{{count}} سر مكشوف"
   },
   "menu": {
     "label": "إجراءات {{name}}",

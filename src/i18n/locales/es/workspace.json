@@ -57,22 +57,28 @@
       "source": "código fuente"
     },
     "partial": "No se pudieron leer algunas carpetas de este proyecto. Cada cifra de arriba es un mínimo, no la medición.",
-    "env": {
-      "title": "Archivos de entorno",
-      "introCommitted": "Git tiene un archivo de entorno en su historial. Cualquiera con un clon puede leerlo: cambia los secretos que contenía y deja de versionarlo.",
-      "introUnignored": "Un archivo de entorno no está en .gitignore, así que el próximo git add . lo incluiría.",
-      "committed": "Versionado",
-      "unignored": "No ignorado",
-      "committedHint": "Está en el historial de este repositorio. Cambia los secretos que contiene.",
-      "unignoredHint": "Todavía no se ha versionado. Ignorarlo lo mantiene así.",
-      "copy": "Copiar el comando para {{path}}",
-      "runFromRoot": "Ejecútalo en la carpeta del proyecto. Uncached solo muestra el comando."
-    },
     "maintenance": {
       "excluded": "El mantenimiento nunca toca este proyecto.",
       "included": "El mantenimiento puede limpiar este proyecto cuando encaja con tu política.",
       "exclude": "No tocar nunca",
       "include": "Permitir de nuevo"
+    },
+    "secrets": {
+      "title": "Secretos que Git publicaría",
+      "introCommitted": "Git tiene credenciales en su historial. Cualquiera con un clon puede leerlas: revócalas o cámbialas y deja de versionar los archivos.",
+      "introUnignored": "Hay credenciales fuera de .gitignore, así que el próximo git add . las incluiría.",
+      "committed": "Versionado",
+      "unignored": "No ignorado",
+      "committedHint": "Está en el historial de este repositorio. Revoca o cambia lo que contiene.",
+      "unignoredHint": "Todavía no se ha versionado. Ignorarlo lo mantiene así.",
+      "kinds": {
+        "env": "Archivo de entorno",
+        "privateKey": "Clave privada",
+        "credentials": "Credenciales",
+        "token": "Token de registro"
+      },
+      "copy": "Copiar el comando para {{path}}",
+      "runFromRoot": "Ejecútalo en la carpeta del proyecto. Uncached solo muestra el comando."
     }
   },
   "actions": {
@@ -225,8 +231,8 @@
     },
     "running": "en ejecución · {{command}}",
     "measuring": "midiendo...",
-    "envExposed_one": "{{count}} .env expuesto",
-    "envExposed_other": "{{count}} .env expuestos"
+    "secretsExposed_one": "{{count}} secreto expuesto",
+    "secretsExposed_other": "{{count}} secretos expuestos"
   },
   "menu": {
     "label": "Acciones de {{name}}",

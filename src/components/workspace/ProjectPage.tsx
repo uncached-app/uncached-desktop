@@ -10,7 +10,7 @@ import { HygienePanel } from "./project/HygienePanel";
 import { ProjectActions } from "./project/ProjectActions";
 import { ProjectHeader } from "./project/ProjectHeader";
 import { VerdictPanel } from "./project/VerdictPanel";
-import { EnvPanel } from "./project/EnvPanel";
+import { SecretsPanel } from "./project/SecretsPanel";
 import { useProjectHygiene } from "../../hooks/useProjectHygiene";
 import { useFlash } from "../../hooks/useFlash";
 import type { ScanTarget } from "../../types/scan";
@@ -144,7 +144,7 @@ export function ProjectPage({
             onResult={handleResult}
           />
 
-          {project.git.exposedEnv.length > 0 && <EnvPanel files={project.git.exposedEnv} />}
+          {project.git.exposedSecrets.length > 0 && <SecretsPanel files={project.git.exposedSecrets} />}
 
           {/* Above Git and Activity: "why is this so big" is the question the
               page is opened with, and the answer was computed all along. */}

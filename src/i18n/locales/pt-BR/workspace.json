@@ -57,22 +57,28 @@
       "source": "código-fonte"
     },
     "partial": "Algumas pastas deste projeto não puderam ser lidas. Todos os números acima são valores mínimos, não medições.",
-    "env": {
-      "title": "Arquivos de ambiente",
-      "introCommitted": "O Git tem um arquivo de ambiente no histórico. Quem tiver um clone consegue lê-lo: troque os segredos que ele guardava e pare de versioná-lo.",
-      "introUnignored": "Um arquivo de ambiente não está no .gitignore, então o próximo git add . vai commitá-lo.",
-      "committed": "Commitado",
-      "unignored": "Não ignorado",
-      "committedHint": "Está no histórico deste repositório. Troque os segredos que ele guarda.",
-      "unignoredHint": "Ainda não foi commitado. Ignorá-lo mantém assim.",
-      "copy": "Copiar o comando para {{path}}",
-      "runFromRoot": "Rode na pasta do projeto. O Uncached só mostra o comando."
-    },
     "maintenance": {
       "excluded": "A manutenção nunca mexe neste projeto.",
       "included": "A manutenção pode limpar este projeto quando ele se encaixa na sua política.",
       "exclude": "Nunca mexer",
       "include": "Permitir de novo"
+    },
+    "secrets": {
+      "title": "Segredos que o Git publicaria",
+      "introCommitted": "O Git tem credenciais no histórico. Quem tiver um clone consegue lê-las: revogue ou troque essas credenciais e pare de versionar os arquivos.",
+      "introUnignored": "Há credenciais fora do .gitignore, então o próximo git add . vai commitá-las.",
+      "committed": "Commitado",
+      "unignored": "Não ignorado",
+      "committedHint": "Está no histórico deste repositório. Revogue ou troque o que ele guarda.",
+      "unignoredHint": "Ainda não foi commitado. Ignorá-lo mantém assim.",
+      "kinds": {
+        "env": "Arquivo de ambiente",
+        "privateKey": "Chave privada",
+        "credentials": "Credenciais",
+        "token": "Token de registro"
+      },
+      "copy": "Copiar o comando para {{path}}",
+      "runFromRoot": "Rode na pasta do projeto. O Uncached só mostra o comando."
     }
   },
   "actions": {
@@ -225,8 +231,8 @@
     },
     "running": "em execução · {{command}}",
     "measuring": "medindo...",
-    "envExposed_one": "{{count}} .env exposto",
-    "envExposed_other": "{{count}} .env expostos"
+    "secretsExposed_one": "{{count}} segredo exposto",
+    "secretsExposed_other": "{{count}} segredos expostos"
   },
   "menu": {
     "label": "Ações de {{name}}",

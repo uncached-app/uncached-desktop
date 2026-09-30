@@ -7,4 +7,5 @@ pub mod orphans;
 pub mod restore;
 pub mod running;
 pub mod schedule;
+pub mod secrets;
 pub mod verdict;

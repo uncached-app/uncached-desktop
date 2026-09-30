@@ -34,15 +34,18 @@ export type GitContext = {
   /** When this repository last spoke to its remote. `null` means never. */
   lastFetchAt: number | null;
   recoverability: Recoverability;
-  /** Env files Git would publish. Mirrors `src-tauri/src/workspace/git.rs`. */
-  exposedEnv: ExposedEnv[];
+  /** Credentials Git would publish. Mirrors `src-tauri/src/workspace/secrets.rs`. */
+  exposedSecrets: ExposedSecret[];
 };
 
-export type ExposedEnv = {
+export type SecretKind = "env" | "privateKey" | "credentials" | "token";
+
+export type ExposedSecret = {
   /** Relative to the repository root, `/`-separated. */
   path: string;
   /** In the index, so already in the history of every clone. */
   committed: boolean;
+  kind: SecretKind;
 };
 
 export type Activity = {
