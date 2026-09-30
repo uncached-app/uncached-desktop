@@ -160,6 +160,14 @@
       "whatsNew": "Ver novidades",
       "restart": "Reiniciar agora",
       "check": "Procurar atualizações"
+    },
+    "support": {
+      "title": "Suporte",
+      "hint": "Copie um relatório para colar num pedido de suporte: versão, sistema, plano, as principais configurações e o fim do log, com sua pasta pessoal mostrada como ~. Nada é enviado sozinho.",
+      "copy": "Copiar diagnóstico",
+      "copied": "Copiado",
+      "failed": "Não foi possível montar o relatório.",
+      "openLogs": "Abrir pasta de logs"
     }
   },
   "license": {

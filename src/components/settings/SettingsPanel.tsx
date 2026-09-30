@@ -3,6 +3,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { LicenseSection } from "./LicenseSection";
+import { SupportActions } from "./SupportActions";
 import type { UpdateState } from "../../hooks/useUpdate";
 import { Select } from "../shared/Select";
 import { useLaunchers, type Launcher } from "../../hooks/useLaunchers";
@@ -511,6 +512,7 @@ function AboutContent({
           {t("settings.about.eula")}
         </a>
       </div>
+      <SupportActions />
     </div>
   );
 }

@@ -160,6 +160,14 @@
       "whatsNew": "Neuerungen ansehen",
       "restart": "Jetzt neu starten",
       "check": "Nach Updates suchen"
+    },
+    "support": {
+      "title": "Support",
+      "hint": "Kopiere einen Bericht für eine Support-Anfrage: Version, System, Plan, die wichtigsten Einstellungen und das Ende des Protokolls, dein Benutzerordner als ~. Es wird nichts automatisch gesendet.",
+      "copy": "Diagnosebericht kopieren",
+      "copied": "Kopiert",
+      "failed": "Der Bericht konnte nicht erstellt werden.",
+      "openLogs": "Protokollordner öffnen"
     }
   },
   "license": {

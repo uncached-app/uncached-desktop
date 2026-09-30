@@ -53,7 +53,7 @@ fn build(path: PathBuf, report: VolumeReport) -> StorageReport {
 /// exists on every Mac and is readable under no other permission. A missing
 /// directory answers nothing rather than answering no.
 #[cfg(target_os = "macos")]
-fn full_disk_access() -> Option<bool> {
+pub(crate) fn full_disk_access() -> Option<bool> {
     let home = uncached_core::home_directory()?;
     let probe = home.join("Library/Application Support/com.apple.TCC");
     if !probe.exists() {
@@ -63,7 +63,7 @@ fn full_disk_access() -> Option<bool> {
 }
 
 #[cfg(not(target_os = "macos"))]
-fn full_disk_access() -> Option<bool> {
+pub(crate) fn full_disk_access() -> Option<bool> {
     None
 }
 

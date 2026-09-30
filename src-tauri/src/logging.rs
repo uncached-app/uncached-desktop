@@ -40,14 +40,49 @@ impl Logger {
     }
 }
 
+/// The log file every `info`/`warn`/`error` call appends to.
+pub fn log_file() -> PathBuf {
+    log_directory().join("uncached.log")
+}
+
+/// Under the temp dir in tests, which exercise code that logs and must not
+/// write into the user's own log.
+#[cfg(test)]
+fn log_directory() -> PathBuf {
+    std::env::temp_dir().join(format!("uncached-test-logs-{}", std::process::id()))
+}
+
+#[cfg(not(test))]
+fn log_directory() -> PathBuf {
+    platform_log_directory(std::env::consts::OS, |name| std::env::var_os(name))
+        .unwrap_or_else(|| std::env::temp_dir().join("Uncached").join("logs"))
+}
+
+/// Where each platform keeps an application's logs: `~/Library/Logs`, which
+/// Console.app lists, on macOS; `$XDG_STATE_HOME` (else `~/.local/state`) on
+/// Linux; `%LOCALAPPDATA%` on Windows. `None` when the variable it needs is
+/// unset.
+fn platform_log_directory(
+    os: &str,
+    variable: impl Fn(&str) -> Option<std::ffi::OsString>,
+) -> Option<PathBuf> {
+    let from = |name: &str| {
+        variable(name)
+            .filter(|value| !value.is_empty())
+            .map(PathBuf::from)
+    };
+    match os {
+        "macos" => Some(from("HOME")?.join("Library").join("Logs").join("Uncached")),
+        "windows" => Some(from("LOCALAPPDATA")?.join("Uncached").join("logs")),
+        _ => from("XDG_STATE_HOME")
+            .or_else(|| Some(from("HOME")?.join(".local").join("state")))
+            .map(|state| state.join("uncached")),
+    }
+}
+
 fn global() -> &'static Logger {
     static LOGGER: OnceLock<Logger> = OnceLock::new();
-    LOGGER.get_or_init(|| {
-        let base = std::env::var_os("LOCALAPPDATA")
-            .map(PathBuf::from)
-            .unwrap_or_else(std::env::temp_dir);
-        Logger::at_path(base.join("Uncached").join("logs").join("uncached.log"))
-    })
+    LOGGER.get_or_init(|| Logger::at_path(log_file()))
 }
 
 pub fn info(component: &str, message: &str) {
@@ -64,9 +99,50 @@ pub fn error(component: &str, message: &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::Logger;
+    use super::{platform_log_directory, Logger};
+    use std::ffi::OsString;
     use std::fs;
     use std::path::PathBuf;
+
+    fn environment(pairs: &[(&str, &str)]) -> impl Fn(&str) -> Option<OsString> {
+        let pairs: Vec<(String, String)> = pairs
+            .iter()
+            .map(|(name, value)| (name.to_string(), value.to_string()))
+            .collect();
+        move |name| {
+            pairs
+                .iter()
+                .find(|(key, _)| key == name)
+                .map(|(_, value)| OsString::from(value))
+        }
+    }
+
+    #[test]
+    fn logs_live_where_each_platform_keeps_them_not_in_the_temp_dir() {
+        assert_eq!(
+            platform_log_directory("macos", environment(&[("HOME", "/Users/a")])),
+            Some(PathBuf::from("/Users/a/Library/Logs/Uncached"))
+        );
+        assert_eq!(
+            platform_log_directory("linux", environment(&[("HOME", "/home/a")])),
+            Some(PathBuf::from("/home/a/.local/state/uncached"))
+        );
+        assert_eq!(
+            platform_log_directory(
+                "linux",
+                environment(&[("HOME", "/home/a"), ("XDG_STATE_HOME", "/s")])
+            ),
+            Some(PathBuf::from("/s/uncached"))
+        );
+        assert_eq!(
+            platform_log_directory(
+                "windows",
+                environment(&[("LOCALAPPDATA", "C:/Users/a/AppData/Local")])
+            ),
+            Some(PathBuf::from("C:/Users/a/AppData/Local/Uncached/logs"))
+        );
+        assert_eq!(platform_log_directory("macos", environment(&[])), None);
+    }
 
     fn temp_log_path(name: &str) -> PathBuf {
         std::env::temp_dir()

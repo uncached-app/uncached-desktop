@@ -160,6 +160,14 @@
       "whatsNew": "Ver novedades",
       "restart": "Reiniciar ahora",
       "check": "Buscar actualizaciones"
+    },
+    "support": {
+      "title": "Soporte",
+      "hint": "Copia un informe para pegarlo en una solicitud de soporte: versión, sistema, plan, los ajustes principales y el final del registro, con tu carpeta personal mostrada como ~. No se envía nada automáticamente.",
+      "copy": "Copiar diagnóstico",
+      "copied": "Copiado",
+      "failed": "No se pudo generar el informe.",
+      "openLogs": "Abrir carpeta de registros"
     }
   },
   "license": {

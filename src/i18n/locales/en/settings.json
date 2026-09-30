@@ -160,6 +160,14 @@
       "whatsNew": "See what's new",
       "restart": "Restart now",
       "check": "Check for updates"
+    },
+    "support": {
+      "title": "Support",
+      "hint": "Copy a report to paste into a support request: version, system, plan, the main settings and the end of the log, with your home folder shown as ~. Nothing is sent automatically.",
+      "copy": "Copy diagnostic report",
+      "copied": "Copied",
+      "failed": "The report could not be built.",
+      "openLogs": "Open log folder"
     }
   },
   "license": {
