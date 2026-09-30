@@ -87,7 +87,8 @@
       "unmeasured": "<strong>{{total}}</strong> لم يُقس بعد",
       "unknownActivity": "<strong>{{total}}</strong> نشاطه غير مقروء",
       "tooRecent": "<strong>{{total}}</strong> نشط مؤخرًا",
-      "tooSmall": "<strong>{{total}}</strong> دون الحد الأدنى للحجم"
+      "tooSmall": "<strong>{{total}}</strong> دون الحد الأدنى للحجم",
+      "excluded": "<strong>{{total}}</strong> استبعدتها أنت"
     },
     "running": "جارٍ استعادة {{done}} من {{total}}...",
     "run": "تشغيل الصيانة ({{total}})",
@@ -117,7 +118,9 @@
     "idle_two": "خامل منذ {{count}} يومين",
     "idle_few": "خامل منذ {{count}} أيام",
     "idle_many": "خامل منذ {{count}} يومًا",
-    "idle_other": "خامل منذ {{count}} يوم"
+    "idle_other": "خامل منذ {{count}} يوم",
+    "exclude": "استبعاد",
+    "excludeLabel": "لا تسمح للصيانة أبدًا بلمس {{name}}"
   },
   "states": {
     "noFolders": {
@@ -156,5 +159,11 @@
       "body": "التحديد أدناه هو ما يعمل عليه التشغيل، وهو نفسه في كل الخطط. يُنفّذ Pro التشغيل، ويكرره وفق جدول دونك، ويسجّل ما أزاله كل تشغيل.",
       "cta": "احصل على Uncached Pro"
     }
+  },
+  "excluded": {
+    "title": "خارج الصيانة",
+    "subtitle": "تتخطى عمليات التشغيل هذه المشاريع مهما طابقت السياسة.",
+    "include": "تضمين مجددًا",
+    "includeLabel": "اسمح للصيانة بمراعاة {{name}} مجددًا"
   }
 }

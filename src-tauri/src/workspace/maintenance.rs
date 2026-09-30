@@ -29,11 +29,14 @@ const DEFAULT_MIN_BYTES: u64 = 500 * 1024 * 1024;
 /// What the user gets to choose. Everything absent from here is absent on
 /// purpose: the eligible verdict and the removal mode are safety properties,
 /// and a safety property with a control beside it is a setting.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MaintenancePolicy {
     pub min_idle_days: u32,
     pub min_bytes: u64,
+    /// Project paths maintenance never selects, whatever else they match.
+    #[serde(default)]
+    pub excluded: Vec<String>,
 }
 
 impl Default for MaintenancePolicy {
@@ -41,6 +44,7 @@ impl Default for MaintenancePolicy {
         Self {
             min_idle_days: DEFAULT_MIN_IDLE_DAYS,
             min_bytes: DEFAULT_MIN_BYTES,
+            excluded: Vec::new(),
         }
     }
 }
@@ -53,6 +57,9 @@ impl Default for MaintenancePolicy {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SkipReason {
+    /// The user excluded the project. Checked first: it is a decision, not a
+    /// reading, and no other rule may be reported in its place.
+    Excluded,
     Verdict,
     Unmeasured,
     UnknownActivity,
@@ -114,6 +121,9 @@ pub enum Outcome {
 
 /// Applies the rules to one project, in the order that decides the reason.
 pub fn evaluate(candidate: &Candidate, policy: &MaintenancePolicy) -> Outcome {
+    if policy.excluded.iter().any(|path| *path == candidate.path) {
+        return Outcome::Skipped(SkipReason::Excluded);
+    }
     if !candidate.verdict.allows_automation() {
         return Outcome::Skipped(SkipReason::Verdict);
     }
@@ -436,5 +446,41 @@ mod tests {
 
         assert_eq!(value["minIdleDays"], 90);
         assert_eq!(value["minBytes"], 500 * 1024 * 1024);
+    }
+
+    #[test]
+    fn an_excluded_project_is_never_selected() {
+        let policy = MaintenancePolicy {
+            excluded: vec!["/w/keep-me".to_owned()],
+            ..MaintenancePolicy::default()
+        };
+        let keep = candidate("keep-me", Verdict::Safe, 400, 40 * GB);
+        let other = candidate("other", Verdict::Safe, 400, 40 * GB);
+
+        assert_eq!(reason(&keep, &policy), Some(SkipReason::Excluded));
+        assert_eq!(reason(&other, &policy), None);
+
+        let preview = select(&[keep, other], &policy);
+        assert_eq!(preview.selected.len(), 1);
+        assert_eq!(preview.selected[0].name, "other");
+    }
+
+    /// The exclusion is the user's decision, so it is the reason reported even
+    /// when another rule would also have skipped the project.
+    #[test]
+    fn exclusion_is_reported_before_any_other_rule() {
+        let policy = MaintenancePolicy {
+            excluded: vec!["/w/busy".to_owned()],
+            ..MaintenancePolicy::default()
+        };
+        let busy = candidate("busy", Verdict::Protect, 1, 0);
+        assert_eq!(reason(&busy, &policy), Some(SkipReason::Excluded));
+    }
+
+    #[test]
+    fn a_policy_saved_before_exclusions_still_loads() {
+        let policy: MaintenancePolicy =
+            serde_json::from_str(r#"{"minIdleDays":90,"minBytes":524288000}"#).unwrap();
+        assert!(policy.excluded.is_empty());
     }
 }

@@ -67,6 +67,12 @@
       "unignoredHint": "Todavía no se ha versionado. Ignorarlo lo mantiene así.",
       "copy": "Copiar el comando para {{path}}",
       "runFromRoot": "Ejecútalo en la carpeta del proyecto. Uncached solo muestra el comando."
+    },
+    "maintenance": {
+      "excluded": "El mantenimiento nunca toca este proyecto.",
+      "included": "El mantenimiento puede limpiar este proyecto cuando encaja con tu política.",
+      "exclude": "No tocar nunca",
+      "include": "Permitir de nuevo"
     }
   },
   "actions": {

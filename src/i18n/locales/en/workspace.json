@@ -67,6 +67,12 @@
       "unignoredHint": "Not committed yet. Ignoring it keeps it that way.",
       "copy": "Copy the command for {{path}}",
       "runFromRoot": "Run it in the project folder. Uncached only shows the command."
+    },
+    "maintenance": {
+      "excluded": "Maintenance never touches this project.",
+      "included": "Maintenance can clean this project when it matches your policy.",
+      "exclude": "Never touch",
+      "include": "Allow again"
     }
   },
   "actions": {

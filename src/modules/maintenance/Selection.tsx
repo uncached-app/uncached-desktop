@@ -20,6 +20,7 @@ export function Selection({
   run,
   onRun,
   onShowProtected,
+  onExclude,
 }: {
   preview: MaintenancePreview;
   proEnabled: boolean;
@@ -28,6 +29,8 @@ export function Selection({
   run: RunState;
   onRun: () => void;
   onShowProtected: (() => void) | null;
+  /** Keeps a project out of every run; absent where exclusions are not offered. */
+  onExclude?: (path: string) => void;
 }) {
   const { t } = useTranslation();
   const selected = preview.selected;
@@ -92,9 +95,21 @@ export function Selection({
                 </div>
               </div>
 
-              <span className="shrink-0 font-mono text-xs font-bold text-mist-100">
-                {formatBytes(entry.bytes)}
-              </span>
+              <div className="flex shrink-0 items-center gap-3">
+                {onExclude && (
+                  <button
+                    type="button"
+                    onClick={() => onExclude(entry.path)}
+                    aria-label={t("maintenance.selection.excludeLabel", { name: entry.name })}
+                    className="rounded-md px-2 py-1 text-[11px] font-medium text-mist-500 transition-colors hover:bg-forest-850 hover:text-mist-100"
+                  >
+                    {t("maintenance.selection.exclude")}
+                  </button>
+                )}
+                <span className="font-mono text-xs font-bold text-mist-100">
+                  {formatBytes(entry.bytes)}
+                </span>
+              </div>
             </li>
           ))}
         </ul>

@@ -67,6 +67,12 @@
       "unignoredHint": "Noch nicht committet. Sie zu ignorieren, hält das so.",
       "copy": "Befehl für {{path}} kopieren",
       "runFromRoot": "Im Projektordner ausführen. Uncached zeigt den Befehl nur an."
+    },
+    "maintenance": {
+      "excluded": "Die Wartung fasst dieses Projekt nie an.",
+      "included": "Die Wartung kann dieses Projekt bereinigen, wenn es deiner Richtlinie entspricht.",
+      "exclude": "Nie anfassen",
+      "include": "Wieder erlauben"
     }
   },
   "actions": {

@@ -71,7 +71,8 @@
       "unmeasured": "<strong>{{total}}</strong> noch nicht gemessen",
       "unknownActivity": "<strong>{{total}}</strong> Aktivität nicht lesbar",
       "tooRecent": "<strong>{{total}}</strong> kürzlich aktiv",
-      "tooSmall": "<strong>{{total}}</strong> unter Mindestgröße"
+      "tooSmall": "<strong>{{total}}</strong> unter Mindestgröße",
+      "excluded": "<strong>{{total}}</strong> von dir ausgeschlossen"
     },
     "running": "{{done}} von {{total}} wird freigegeben...",
     "run": "Wartung ausführen ({{total}})",
@@ -85,7 +86,9 @@
     "protected_other": "{{count}} Projekte enthalten nicht committete/nicht gepushte Arbeit auf dieser Festplatte (geschützt)",
     "viewInWorkspace": "Im Workspace ansehen →",
     "idle_one": "{{count}} Tag inaktiv",
-    "idle_other": "{{count}} Tage inaktiv"
+    "idle_other": "{{count}} Tage inaktiv",
+    "exclude": "Ausschließen",
+    "excludeLabel": "Wartung {{name}} nie anfassen lassen"
   },
   "states": {
     "noFolders": {
@@ -116,5 +119,11 @@
       "body": "Die Auswahl unten ist die, auf die ein Lauf wirkt, und sie ist in jedem Plan gleich. Pro führt den Lauf aus, wiederholt ihn ohne dich nach Zeitplan und erfasst, was jeder Lauf entfernt hat.",
       "cta": "Uncached Pro holen"
     }
+  },
+  "excluded": {
+    "title": "Von der Wartung ausgenommen",
+    "subtitle": "Durchläufe überspringen diese Projekte, egal was die Richtlinie erfasst.",
+    "include": "Wieder aufnehmen",
+    "includeLabel": "Wartung {{name}} wieder berücksichtigen lassen"
   }
 }

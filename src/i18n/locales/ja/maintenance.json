@@ -67,7 +67,8 @@
       "unmeasured": "<strong>{{total}}</strong> 件は未計測",
       "unknownActivity": "<strong>{{total}}</strong> 件はアクティビティを読み取れない",
       "tooRecent": "<strong>{{total}}</strong> 件は最近更新された",
-      "tooSmall": "<strong>{{total}}</strong> 件はサイズの下限未満"
+      "tooSmall": "<strong>{{total}}</strong> 件はサイズの下限未満",
+      "excluded": "除外済み <strong>{{total}}</strong> 件"
     },
     "running": "{{total}} 件中 {{done}} 件を回収中…",
     "run": "メンテナンスを実行（{{total}}）",
@@ -77,7 +78,9 @@
     "doneWithFailures_other": "✓ {{count}} 件の対象から {{size}} を回収しました（{{failed}} 件失敗）。",
     "protected_other": "{{count}} 件のプロジェクトがこのディスク上に未コミットまたは未プッシュの作業を保持しています（保護）",
     "viewInWorkspace": "ワークスペースで表示 →",
-    "idle_other": "{{count}} 日間更新なし"
+    "idle_other": "{{count}} 日間更新なし",
+    "exclude": "除外",
+    "excludeLabel": "{{name}} をメンテナンスの対象にしない"
   },
   "states": {
     "noFolders": {
@@ -106,5 +109,11 @@
       "body": "下の選択内容は実行時の対象そのもので、どのプランでも同じです。Pro は実行を行い、スケジュールに従って自動で繰り返し、各回で削除した内容を記録します。",
       "cta": "Uncached Pro を入手"
     }
+  },
+  "excluded": {
+    "title": "メンテナンスの対象外",
+    "subtitle": "ポリシーに一致しても、実行時にこれらのプロジェクトはスキップされます。",
+    "include": "再び含める",
+    "includeLabel": "{{name}} を再びメンテナンスの対象にする"
   }
 }

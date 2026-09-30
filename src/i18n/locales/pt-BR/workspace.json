@@ -67,6 +67,12 @@
       "unignoredHint": "Ainda não foi commitado. Ignorá-lo mantém assim.",
       "copy": "Copiar o comando para {{path}}",
       "runFromRoot": "Rode na pasta do projeto. O Uncached só mostra o comando."
+    },
+    "maintenance": {
+      "excluded": "A manutenção nunca mexe neste projeto.",
+      "included": "A manutenção pode limpar este projeto quando ele se encaixa na sua política.",
+      "exclude": "Nunca mexer",
+      "include": "Permitir de novo"
     }
   },
   "actions": {

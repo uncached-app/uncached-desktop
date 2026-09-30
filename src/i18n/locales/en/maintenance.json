@@ -71,7 +71,8 @@
       "unmeasured": "<strong>{{total}}</strong> not measured yet",
       "unknownActivity": "<strong>{{total}}</strong> activity unreadable",
       "tooRecent": "<strong>{{total}}</strong> recently active",
-      "tooSmall": "<strong>{{total}}</strong> below size floor"
+      "tooSmall": "<strong>{{total}}</strong> below size floor",
+      "excluded": "<strong>{{total}}</strong> excluded by you"
     },
     "running": "Reclaiming {{done}} of {{total}}...",
     "run": "Run Maintenance ({{total}})",
@@ -85,7 +86,9 @@
     "protected_other": "{{count}} projects hold uncommitted/unpushed work on this disk (Protected)",
     "viewInWorkspace": "View in workspace →",
     "idle_one": "idle {{count}} day",
-    "idle_other": "idle {{count}} days"
+    "idle_other": "idle {{count}} days",
+    "exclude": "Exclude",
+    "excludeLabel": "Never let maintenance touch {{name}}"
   },
   "states": {
     "noFolders": {
@@ -116,5 +119,11 @@
       "body": "The selection below is the one a run acts on, and it is the same on every plan. Pro performs the run, repeats it on a schedule without you, and records what each one removed.",
       "cta": "Get Uncached Pro"
     }
+  },
+  "excluded": {
+    "title": "Never touched by maintenance",
+    "subtitle": "Runs skip these projects whatever the policy matches.",
+    "include": "Include again",
+    "includeLabel": "Let maintenance consider {{name}} again"
   }
 }

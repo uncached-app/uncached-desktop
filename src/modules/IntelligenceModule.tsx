@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { StatCard } from "../components/shared/StatCard";
 import { formatBytes } from "../utils/format.mjs";
+import { ExcludedProjects } from "./maintenance/ExcludedProjects";
 import { PolicyCard } from "./maintenance/PolicyCard";
 import { Selection, type RunState } from "./maintenance/Selection";
 import {
@@ -173,6 +174,16 @@ export function IntelligenceModule({
             matchBytes={preview.bytes}
           />
 
+          {policy.excluded.length > 0 && (
+            <ExcludedProjects
+              excluded={policy.excluded}
+              projects={projects}
+              onInclude={(path) =>
+                onPolicyChange({ ...policy, excluded: policy.excluded.filter((entry) => entry !== path) })
+              }
+            />
+          )}
+
           {/* Pro only, and absent rather than disabled: a switch that cannot be
               flipped is a control with no operation behind it. */}
           {proEnabled && (
@@ -207,6 +218,11 @@ export function IntelligenceModule({
               run={run}
               onRun={runNow}
               onShowProtected={showProtected}
+              onExclude={
+                proEnabled
+                  ? (path) => onPolicyChange({ ...policy, excluded: [...policy.excluded, path] })
+                  : undefined
+              }
             />
           </PolicyResult>
 

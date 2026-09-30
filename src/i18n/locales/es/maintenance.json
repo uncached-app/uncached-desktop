@@ -71,7 +71,8 @@
       "unmeasured": "<strong>{{total}}</strong> sin medir aún",
       "unknownActivity": "<strong>{{total}}</strong> con actividad ilegible",
       "tooRecent": "<strong>{{total}}</strong> activos recientemente",
-      "tooSmall": "<strong>{{total}}</strong> bajo el tamaño mínimo"
+      "tooSmall": "<strong>{{total}}</strong> bajo el tamaño mínimo",
+      "excluded": "<strong>{{total}}</strong> excluidos por ti"
     },
     "running": "Recuperando {{done}} de {{total}}...",
     "run": "Ejecutar mantenimiento ({{total}})",
@@ -85,7 +86,9 @@
     "protected_other": "{{count}} proyectos tienen trabajo sin commit o sin subir en este disco (Protegidos)",
     "viewInWorkspace": "Ver en el workspace →",
     "idle_one": "inactivo {{count}} día",
-    "idle_other": "inactivo {{count}} días"
+    "idle_other": "inactivo {{count}} días",
+    "exclude": "Excluir",
+    "excludeLabel": "No dejar nunca que el mantenimiento toque {{name}}"
   },
   "states": {
     "noFolders": {
@@ -116,5 +119,11 @@
       "body": "La selección de abajo es la que usa una ejecución, y es la misma en todos los planes. Pro realiza la ejecución, la repite de forma programada sin ti y registra lo que eliminó cada una.",
       "cta": "Obtener Uncached Pro"
     }
+  },
+  "excluded": {
+    "title": "Fuera del mantenimiento",
+    "subtitle": "Las ejecuciones omiten estos proyectos, sea cual sea la política.",
+    "include": "Incluir de nuevo",
+    "includeLabel": "Dejar que el mantenimiento vuelva a considerar {{name}}"
   }
 }

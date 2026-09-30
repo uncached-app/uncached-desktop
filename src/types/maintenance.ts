@@ -11,6 +11,8 @@ import type { Verdict } from "./workspace";
 export type MaintenancePolicy = {
   minIdleDays: number;
   minBytes: number;
+  /** Project paths maintenance never selects. */
+  excluded: string[];
 };
 
 /**
@@ -21,9 +23,11 @@ export type MaintenancePolicy = {
 export const DEFAULT_POLICY: MaintenancePolicy = {
   minIdleDays: 90,
   minBytes: 500 * 1024 * 1024,
+  excluded: [],
 };
 
 export type SkipReason =
+  | "excluded"
   | "verdict"
   | "unmeasured"
   | "unknownActivity"

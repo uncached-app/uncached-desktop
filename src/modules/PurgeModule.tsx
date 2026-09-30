@@ -8,6 +8,7 @@ import { WorkspaceMap } from "../components/workspace/WorkspaceMap";
 import { WorkspaceUnavailable } from "../components/workspace/WorkspaceUnavailable";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { useWorkspaceHistory } from "../hooks/useWorkspaceHistory";
+import type { MaintenancePolicy } from "../types/maintenance";
 import type { CleanMode, LastCleanup } from "../types/settings";
 
 type PurgeModuleProps = {
@@ -20,6 +21,9 @@ type PurgeModuleProps = {
   shortcuts: Record<string, string> | undefined;
   lastCleanup: LastCleanup | null;
   activeIgnoreRules: number;
+  /** For the project page's exclusion switch; `null` where maintenance is not Pro. */
+  maintenancePolicy: MaintenancePolicy | null;
+  onMaintenancePolicyChange: (policy: MaintenancePolicy) => void;
 };
 
 /**
@@ -36,6 +40,8 @@ export function PurgeModule({
   shortcuts,
   lastCleanup,
   activeIgnoreRules,
+  maintenancePolicy,
+  onMaintenancePolicyChange,
 }: PurgeModuleProps) {
   const flow = usePurgeFlow();
   const { view, setView } = flow;
@@ -133,6 +139,15 @@ export function PurgeModule({
             flow.focusProject(openProject.path);
           }}
           onOpenProject={flow.openProject}
+          maintenanceExcluded={maintenancePolicy ? maintenancePolicy.excluded.includes(openProject.path) : null}
+          onMaintenanceExcludedChange={(excluded) => {
+            if (!maintenancePolicy) return;
+            const others = maintenancePolicy.excluded.filter((path) => path !== openProject.path);
+            onMaintenancePolicyChange({
+              ...maintenancePolicy,
+              excluded: excluded ? [...others, openProject.path] : others,
+            });
+          }}
         />
       )}
 

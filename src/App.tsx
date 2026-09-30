@@ -79,6 +79,8 @@ function App() {
           }
           lastCleanup={settings.settings?.lastCleanup ?? null}
           activeIgnoreRules={activeIgnoreRules}
+          maintenancePolicy={entitlement.proEnabled ? (settings.settings?.maintenance ?? DEFAULT_POLICY) : null}
+          onMaintenancePolicyChange={(maintenance) => void settings.updateSettings({ maintenance })}
         />
         )}
       </AppLayout>
