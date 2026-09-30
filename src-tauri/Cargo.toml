@@ -1,6 +1,6 @@
 [package]
 name = "uncached"
-version = "0.1.1-alpha.12"
+version = "0.2.0"
 description = "Reclaim disk from build artifacts."
 authors = ["you"]
 edition = "2021"
