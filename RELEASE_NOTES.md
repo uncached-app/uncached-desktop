@@ -1,6 +1,8 @@
-## 0.2.1
+## 0.2.2
 
-Uncached has a new look: Garbage Man, hazard yellow on a warm near-black. It
-is the default now, in dark and in a new light version on warm paper, and it
-follows your system unless Settings > Appearance says otherwise. The green
-palette is retired; the other shipped themes are still there.
+Updates now install when Uncached is kept on a disk other than the one macOS
+runs from, such as an external drive. They stopped with "Cross-device link
+(os error 18)". If you are on 0.2.1 there, install this one from the dmg once;
+updates after it arrive as usual.
+
+On macOS and Linux, Uncached now calls it the Trash, not the Recycle Bin.
