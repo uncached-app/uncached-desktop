@@ -4830,13 +4830,16 @@ dependencies = [
 [[package]]
 name = "uncached-core"
 version = "0.1.0"
+source = "git+ssh://git@github.com/uncached-app/uncached-core.git?rev=2a0b71fb1e2f05e3a3eda80e59a4a5c83b8afdae#2a0b71fb1e2f05e3a3eda80e59a4a5c83b8afdae"
 dependencies = [
  "dunce",
  "globset",
  "jwalk",
  "libc",
  "serde",
+ "serde_json",
  "thiserror 2.0.19",
+ "toml 1.1.4+spec-1.1.0",
  "trash",
  "windows-sys 0.59.0",
 ]

@@ -7,6 +7,10 @@
     "name": "容量回収",
     "label": "ディスク容量を回収"
   },
+  "dependencies": {
+    "name": "依存関係",
+    "label": "未使用の依存関係"
+  },
   "maintenance": {
     "name": "メンテナンス",
     "label": "Uncached メンテナンス",

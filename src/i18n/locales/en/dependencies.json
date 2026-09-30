@@ -1,0 +1,44 @@
+{
+  "module": {
+    "title": "Dependencies",
+    "intro": "Packages declared in package.json or Cargo.toml that nothing in their project names: no import, no configuration file, no script. Uncached only reports them. Removing one is a command you run yourself.",
+    "readAgain": "Read again",
+    "reading": "Reading",
+    "readAgainLabel": "Read every project's dependencies again",
+    "readingLabel": "Reading dependencies",
+    "progress_one": "Reading the dependencies of {{count}} project…",
+    "progress_other": "Reading the dependencies of {{count}} projects…",
+    "noWorkspace": "Choose a folder in Workspace first. Dependencies are read from the projects it finds there.",
+    "openWorkspace": "Open Workspace",
+    "failed": "The dependencies could not be read.",
+    "none": "Every declared dependency is named somewhere in its project.",
+    "noneAtThisLevel": "Nothing at high confidence. Show every level to see the ones a tool may load without naming them.",
+    "found_one": "{{count}} dependency nothing names",
+    "found_other": "{{count}} dependencies nothing names",
+    "projects_one": "in {{count}} project",
+    "projects_other": "in {{count}} projects",
+    "unreadable": "Could not read {{path}}",
+    "copyCommand": "Copy the command that removes {{name}}",
+    "runFrom": "Run in {{path}}"
+  },
+  "scope": {
+    "high": "High confidence",
+    "highHint": "Only the ones nothing in the project explains",
+    "all": "Every level",
+    "allHint": "Also the ones a tool may load without naming them"
+  },
+  "kinds": {
+    "development": "dev",
+    "build": "build",
+    "optional": "optional"
+  },
+  "reasons": {
+    "notReferenced": "Nothing in the project names it.",
+    "conventionLoaded": "A tool may load it by a short name, the way ESLint loads plugins.",
+    "commandOnly": "It installs a command no script runs. It may be run by hand.",
+    "typesOnly": "Type definitions, which the compiler can use without an import.",
+    "featuresOrLinkage": "It may be declared only to turn on features or link a native library.",
+    "notInstalled": "Not installed here, so the commands it provides and the packages that expect it could not be checked.",
+    "incompleteScan": "The project has more files than one reading covers."
+  }
+}

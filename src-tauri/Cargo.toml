@@ -46,7 +46,7 @@ base64 = "0.22"
 # decide what gets compiled — CI builds whatever `uncached-core` main is at. It
 # decides what a build without that sibling would resolve, and it is what the
 # drift warning compares against before a release.
-uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "075bad5934a182b3a620f80f0a2181e57b26cd97", package = "uncached-core" }
+uncached-core = { git = "ssh://git@github.com/uncached-app/uncached-core.git", rev = "2a0b71fb1e2f05e3a3eda80e59a4a5c83b8afdae", package = "uncached-core" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

@@ -1,1 +1,1 @@
-export type AppModule = "reclaim" | "intelligence" | "insights";
+export type AppModule = "reclaim" | "dependencies" | "intelligence" | "insights";

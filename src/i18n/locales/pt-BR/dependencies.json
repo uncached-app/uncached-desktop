@@ -1,0 +1,44 @@
+{
+  "module": {
+    "title": "Dependências",
+    "intro": "Pacotes declarados no package.json ou no Cargo.toml que nada no projeto cita: nenhum import, nenhum arquivo de configuração, nenhum script. O Uncached só aponta. Remover um é um comando que você mesmo roda.",
+    "readAgain": "Ler de novo",
+    "reading": "Lendo...",
+    "readAgainLabel": "Ler de novo as dependências de todos os projetos",
+    "readingLabel": "Lendo as dependências",
+    "progress_one": "Lendo as dependências de {{count}} projeto…",
+    "progress_other": "Lendo as dependências de {{count}} projetos…",
+    "noWorkspace": "Escolha uma pasta no Workspace primeiro. As dependências são lidas dos projetos que ele encontra lá.",
+    "openWorkspace": "Abrir o Workspace",
+    "failed": "Não foi possível ler as dependências.",
+    "none": "Toda dependência declarada é citada em algum lugar do projeto.",
+    "noneAtThisLevel": "Nada com confiança alta. Mostre todos os níveis para ver as que uma ferramenta pode carregar sem citar.",
+    "found_one": "{{count}} dependência que nada cita",
+    "found_other": "{{count}} dependências que nada cita",
+    "projects_one": "em {{count}} projeto",
+    "projects_other": "em {{count}} projetos",
+    "unreadable": "Não foi possível ler {{path}}",
+    "copyCommand": "Copiar o comando que remove {{name}}",
+    "runFrom": "Rode em {{path}}"
+  },
+  "scope": {
+    "high": "Confiança alta",
+    "highHint": "Só as que nada no projeto explica",
+    "all": "Todos os níveis",
+    "allHint": "Inclui as que uma ferramenta pode carregar sem citar"
+  },
+  "kinds": {
+    "development": "dev",
+    "build": "build",
+    "optional": "opcional"
+  },
+  "reasons": {
+    "notReferenced": "Nada no projeto cita esse pacote.",
+    "conventionLoaded": "Uma ferramenta pode carregá-lo por um nome curto, como o ESLint faz com plugins.",
+    "commandOnly": "Instala um comando que nenhum script roda. Pode ser usado à mão.",
+    "typesOnly": "Definições de tipos, que o compilador usa sem import.",
+    "featuresOrLinkage": "Pode estar declarado só para ativar features ou ligar uma biblioteca nativa.",
+    "notInstalled": "Não está instalado aqui, então não deu para checar os comandos que ele fornece nem os pacotes que dependem dele.",
+    "incompleteScan": "O projeto tem mais arquivos do que uma leitura cobre."
+  }
+}

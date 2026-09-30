@@ -1,4 +1,4 @@
-import { Bot, Folders, HardDrive, Settings, Sparkles } from "lucide-react";
+import { Bot, Folders, HardDrive, PackageSearch, Settings, Sparkles } from "lucide-react";
 import type React from "react";
 import { useTranslation } from "react-i18next";
 import type { AppModule } from "../../types/module";
@@ -68,6 +68,14 @@ export function ModuleBar({
       >
         <HardDrive size={15} strokeWidth={1.8} className={inWorkspace && view === "artifacts" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
         <span>{t("modules.reclaim.name")}</span>
+      </ModuleButton>
+      <ModuleButton
+        active={activeModule === "dependencies"}
+        label={t("modules.dependencies.label")}
+        onClick={() => onChange("dependencies")}
+      >
+        <PackageSearch size={15} strokeWidth={1.8} className={activeModule === "dependencies" ? "text-sage-300" : "text-mist-500"} aria-hidden="true" />
+        <span className="hidden sm:inline">{t("modules.dependencies.name")}</span>
       </ModuleButton>
       <ModuleButton
         active={activeModule === "intelligence"}

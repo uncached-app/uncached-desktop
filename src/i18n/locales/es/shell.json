@@ -53,6 +53,7 @@
       "goWorkspace": "Ir a Workspace",
       "reclaim": "Recuperar espacio",
       "goInsights": "Ir a Insights",
+      "goDependencies": "Ir a Dependencias",
       "goMaintenance": "Ir a Mantenimiento",
       "addFolder": "Añadir carpeta",
       "rescan": "Analizar workspace",

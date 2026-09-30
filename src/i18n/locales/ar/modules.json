@@ -7,6 +7,10 @@
     "name": "استعادة",
     "label": "استعادة المساحة"
   },
+  "dependencies": {
+    "name": "التبعيات",
+    "label": "التبعيات غير المستخدمة"
+  },
   "maintenance": {
     "name": "الصيانة",
     "label": "صيانة Uncached",

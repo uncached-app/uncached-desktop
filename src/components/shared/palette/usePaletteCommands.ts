@@ -183,6 +183,15 @@ export function usePaletteCommands({
         run: () => onModuleChange("insights"),
       },
       {
+        id: "go-dependencies",
+        group: "commands",
+        title: t("shell.palette.commands.goDependencies"),
+        keywords: ["packages", "unused", "npm", "cargo"],
+        icon: Compass,
+        closes: true,
+        run: () => onModuleChange("dependencies"),
+      },
+      {
         id: "go-maintenance",
         group: "commands",
         title: t("shell.palette.commands.goMaintenance"),

@@ -7,6 +7,10 @@
     "name": "Liberar",
     "label": "Liberar espaço"
   },
+  "dependencies": {
+    "name": "Dependências",
+    "label": "Dependências não usadas"
+  },
   "maintenance": {
     "name": "Manutenção",
     "label": "Manutenção do Uncached",

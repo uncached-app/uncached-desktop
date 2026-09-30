@@ -20,6 +20,7 @@ use tauri::Manager;
 use commands::cancel::{cancel_cleanup, cancel_scan};
 use commands::clean::clean_target;
 use commands::cleanup_capabilities;
+use commands::dependencies::unused_dependencies;
 use commands::duplicates::duplicate_packages;
 use commands::entitlements::get_entitlement_status;
 use commands::git::{fetch_project, project_hygiene, prune_branches, workspace_hygiene};
@@ -144,6 +145,7 @@ pub fn run() {
             prune_branches,
             duplicate_packages,
             orphan_artifacts,
+            unused_dependencies,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

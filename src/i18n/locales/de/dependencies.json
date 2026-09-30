@@ -1,0 +1,44 @@
+{
+  "module": {
+    "title": "Abhängigkeiten",
+    "intro": "Pakete aus package.json oder Cargo.toml, die im Projekt nirgends vorkommen: kein Import, keine Konfigurationsdatei, kein Skript. Uncached meldet sie nur. Entfernen ist ein Befehl, den du selbst ausführst.",
+    "readAgain": "Erneut lesen",
+    "reading": "Wird gelesen...",
+    "readAgainLabel": "Die Abhängigkeiten aller Projekte erneut lesen",
+    "readingLabel": "Abhängigkeiten werden gelesen",
+    "progress_one": "Die Abhängigkeiten von {{count}} Projekt werden gelesen…",
+    "progress_other": "Die Abhängigkeiten von {{count}} Projekten werden gelesen…",
+    "noWorkspace": "Wähle zuerst einen Ordner im Workspace. Die Abhängigkeiten werden aus den Projekten gelesen, die er dort findet.",
+    "openWorkspace": "Workspace öffnen",
+    "failed": "Die Abhängigkeiten konnten nicht gelesen werden.",
+    "none": "Jede deklarierte Abhängigkeit kommt irgendwo in ihrem Projekt vor.",
+    "noneAtThisLevel": "Nichts mit hoher Sicherheit. Zeige alle Stufen, um die zu sehen, die ein Tool laden kann, ohne sie zu nennen.",
+    "found_one": "{{count}} Abhängigkeit, die nirgends vorkommt",
+    "found_other": "{{count}} Abhängigkeiten, die nirgends vorkommen",
+    "projects_one": "in {{count}} Projekt",
+    "projects_other": "in {{count}} Projekten",
+    "unreadable": "{{path}} konnte nicht gelesen werden",
+    "copyCommand": "Befehl zum Entfernen von {{name}} kopieren",
+    "runFrom": "In {{path}} ausführen"
+  },
+  "scope": {
+    "high": "Hohe Sicherheit",
+    "highHint": "Nur die, die nichts im Projekt erklärt",
+    "all": "Alle Stufen",
+    "allHint": "Auch die, die ein Tool laden kann, ohne sie zu nennen"
+  },
+  "kinds": {
+    "development": "dev",
+    "build": "build",
+    "optional": "optional"
+  },
+  "reasons": {
+    "notReferenced": "Nichts im Projekt nennt es.",
+    "conventionLoaded": "Ein Tool kann es über einen Kurznamen laden, wie ESLint seine Plugins.",
+    "commandOnly": "Es installiert einen Befehl, den kein Skript ausführt. Vielleicht wird er von Hand benutzt.",
+    "typesOnly": "Typdefinitionen, die der Compiler ohne Import nutzen kann.",
+    "featuresOrLinkage": "Vielleicht nur deklariert, um Features einzuschalten oder eine native Bibliothek zu linken.",
+    "notInstalled": "Hier nicht installiert, daher ließen sich seine Befehle und die Pakete, die es erwarten, nicht prüfen.",
+    "incompleteScan": "Das Projekt hat mehr Dateien, als ein Lesedurchgang abdeckt."
+  }
+}

@@ -5,6 +5,7 @@ import { bidiIsolateFormatter } from "./bidi.mjs";
 import { directionOf, FALLBACK_LOCALE, resolveLocale } from "./locales.mjs";
 import { pushNativeStrings } from "./native";
 import type { LanguagePreference, LocaleTag } from "./locales.d.mts";
+import dependencies from "./locales/en/dependencies.json";
 import findings from "./locales/en/findings.json";
 import insights from "./locales/en/insights.json";
 import maintenance from "./locales/en/maintenance.json";
@@ -16,7 +17,7 @@ import workspace from "./locales/en/workspace.json";
 export const defaultNS = "translation";
 
 /** English, imported by name so its shape types every key. */
-const english = { findings, insights, maintenance, modules, settings, shell, workspace };
+const english = { dependencies, findings, insights, maintenance, modules, settings, shell, workspace };
 
 /**
  * `./locales/<tag>/<area>.json`, one file per area so each can be edited on its

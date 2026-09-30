@@ -52,6 +52,7 @@
       "goWorkspace": "ワークスペースへ移動",
       "reclaim": "ディスク容量を回収",
       "goInsights": "インサイトへ移動",
+      "goDependencies": "依存関係へ移動",
       "goMaintenance": "メンテナンスへ移動",
       "addFolder": "フォルダを追加",
       "rescan": "ワークスペースをスキャン",

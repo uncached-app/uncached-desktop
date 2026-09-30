@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { applyLanguage } from "./i18n";
 import { AppLayout } from "./layouts/AppLayout";
+import { DependenciesModule } from "./modules/DependenciesModule";
 import { InsightsModule } from "./modules/InsightsModule";
 import { IntelligenceModule } from "./modules/IntelligenceModule";
 import { PurgeModule } from "./modules/PurgeModule";
@@ -54,6 +55,8 @@ function App() {
             grain={settings.settings?.insightsGrain ?? "month"}
             onGrainChange={(insightsGrain) => void settings.updateSettings({ insightsGrain })}
           />
+        ) : activeModule === "dependencies" ? (
+          <DependenciesModule onOpenWorkspace={() => setActiveModule("reclaim")} />
         ) : activeModule === "intelligence" ? (
           <IntelligenceModule
             proEnabled={entitlement.proEnabled}

@@ -53,6 +53,7 @@
       "goWorkspace": "Go to Workspace",
       "reclaim": "Reclaim disk",
       "goInsights": "Go to Insights",
+      "goDependencies": "Go to Dependencies",
       "goMaintenance": "Go to Maintenance",
       "addFolder": "Add folder",
       "rescan": "Scan workspace",

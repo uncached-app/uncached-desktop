@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Check, Copy, Eye, LoaderCircle, LockKeyhole, Radio, RefreshCw, ShieldCheck, ShieldQuestion, TriangleAlert } from "lucide-react";
+import { Check, Copy, Eye, LoaderCircle, LockKeyhole, Radio, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatAge, formatBytes } from "../../utils/format.mjs";
 import { translatedCategoryPresentation } from "./categoryPresentation";
-import type { ConfidenceLevel, ScanTarget } from "../../types/scan";
+import { CONFIDENCE_PRESENTATION } from "./confidencePresentation";
+import type { ScanTarget } from "../../types/scan";
 
 // Reason codes as Rust sends them. An unknown code renders as itself rather
 // than disappearing.
@@ -26,30 +27,6 @@ type ConfidenceReason = (typeof CONFIDENCE_REASONS)[number];
 function isKnownReason(signal: string): signal is ConfidenceReason {
   return (CONFIDENCE_REASONS as readonly string[]).includes(signal);
 }
-
-const CONFIDENCE_PRESENTATION: Record<
-  ConfidenceLevel,
-  { className: string; textClassName: string; arrowClassName: string; icon: typeof ShieldCheck }
-> = {
-  high: {
-    className: "border-confidence-high/25 bg-confidence-high-surface text-confidence-high",
-    textClassName: "text-confidence-high",
-    arrowClassName: "border-t-confidence-high-surface",
-    icon: ShieldCheck,
-  },
-  medium: {
-    className: "border-confidence-medium/30 bg-confidence-medium-surface text-confidence-medium",
-    textClassName: "text-confidence-medium",
-    arrowClassName: "border-t-confidence-medium-surface",
-    icon: TriangleAlert,
-  },
-  review: {
-    className: "border-confidence-review/25 bg-confidence-review-surface text-confidence-review",
-    textClassName: "text-confidence-review",
-    arrowClassName: "border-t-confidence-review-surface",
-    icon: ShieldQuestion,
-  },
-};
 
 interface TargetCardProps {
   target: ScanTarget;

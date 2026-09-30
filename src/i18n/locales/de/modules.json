@@ -7,6 +7,10 @@
     "name": "Freigeben",
     "label": "Speicher freigeben"
   },
+  "dependencies": {
+    "name": "Abhängigkeiten",
+    "label": "Ungenutzte Abhängigkeiten"
+  },
   "maintenance": {
     "name": "Wartung",
     "label": "Uncached Wartung",

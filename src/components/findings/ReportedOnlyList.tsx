@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { Check, Copy, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { ScanTarget } from "../../types/scan";
 import { formatBytes } from "../../utils/format.mjs";
-import { copyText } from "../../utils/clipboard";
+import { CommandLine } from "../shared/CommandLine";
 
 export function ReportedOnlyList({ targets }: { targets: ScanTarget[] }) {
   const { t } = useTranslation();
@@ -33,19 +32,7 @@ export function ReportedOnlyList({ targets }: { targets: ScanTarget[] }) {
 
 function ReportedOnlyRow({ target, first }: { target: ScanTarget; first: boolean }) {
   const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
   const command = target.reclaimWith;
-
-  async function copyCommand() {
-    if (!command) return;
-    try {
-      await copyText(command);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  }
 
   return (
     <div className={`flex flex-col gap-2 px-4 py-3 ${first ? "" : "border-t border-forest-800"}`}>
@@ -67,17 +54,11 @@ function ReportedOnlyRow({ target, first }: { target: ScanTarget; first: boolean
         <strong className="shrink-0 text-sm font-semibold text-mist-300">{formatBytes(target.sizeBytes)}</strong>
       </div>
       {command && (
-        <div className="ms-8.5 flex min-w-0 items-center gap-2 rounded-lg border border-forest-800 bg-forest-950 py-1 ps-3 pe-1">
-          <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-mist-300 select-text">{command}</code>
-          <button
-            type="button"
-            onClick={copyCommand}
-            aria-label={t("findings.reportedOnly.copyCommand", { name: target.label ?? target.name })}
-            className="grid size-7 shrink-0 place-items-center rounded-md text-mist-500 transition-colors hover:bg-forest-800 hover:text-mist-100"
-          >
-            {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-          </button>
-        </div>
+        <CommandLine
+          command={command}
+          copyLabel={t("findings.reportedOnly.copyCommand", { name: target.label ?? target.name })}
+          className="ms-8.5"
+        />
       )}
     </div>
   );

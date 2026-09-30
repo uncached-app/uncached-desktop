@@ -8,6 +8,7 @@ import { useRunningProjects } from "./useRunningProjects";
 import { useWorkspaceFootprints } from "./useWorkspaceFootprints";
 import { useWorkspaceVerdicts } from "./useWorkspaceVerdicts";
 import { useWorkspaceAnalysis } from "./useWorkspaceAnalysis";
+import { useUnusedDependencies } from "./useUnusedDependencies";
 import type { CleanMode } from "../types/settings";
 import type { WorkspaceProject } from "../types/workspace";
 
@@ -30,6 +31,8 @@ type PurgeFlow = ReturnType<typeof useScanWorkspace> & {
    * switching tabs does not pay for them again.
    */
   analysis: ReturnType<typeof useWorkspaceAnalysis>;
+  /** Held here so leaving the module does not throw the answer away. */
+  dependencies: ReturnType<typeof useUnusedDependencies>;
   view: ResultsView;
   setView: (view: ResultsView) => void;
   /** The verdict the workspace list is narrowed to, if any. */
@@ -93,6 +96,7 @@ export function PurgeFlowProvider({
     // footprint pass, and those are the numbers the user is watching.
     settled: !measuring && projects.length > 0,
   });
+  const dependencies = useUnusedDependencies(projectPaths);
   // Artifacts that belong to a project something is working inside.
   //
   // The catalogued caches carry their own `blockedBy` — the backend names the
@@ -244,6 +248,7 @@ export function PurgeFlowProvider({
         remeasureProject: remeasure,
         verdicts,
         analysis,
+        dependencies,
         view,
         setView: changeView,
         activeVerdict,

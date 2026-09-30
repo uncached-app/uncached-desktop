@@ -7,6 +7,10 @@
     "name": "Reclaim",
     "label": "Reclaim disk"
   },
+  "dependencies": {
+    "name": "Dependencies",
+    "label": "Unused dependencies"
+  },
   "maintenance": {
     "name": "Maintenance",
     "label": "Uncached Maintenance",

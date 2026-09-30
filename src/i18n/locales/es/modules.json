@@ -7,6 +7,10 @@
     "name": "Recuperar",
     "label": "Recuperar espacio"
   },
+  "dependencies": {
+    "name": "Dependencias",
+    "label": "Dependencias sin usar"
+  },
   "maintenance": {
     "name": "Mantenimiento",
     "label": "Mantenimiento de Uncached",

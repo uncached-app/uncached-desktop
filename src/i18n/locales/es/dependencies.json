@@ -1,0 +1,44 @@
+{
+  "module": {
+    "title": "Dependencias",
+    "intro": "Paquetes declarados en package.json o Cargo.toml que nada en su proyecto menciona: ningún import, ningún archivo de configuración, ningún script. Uncached solo los informa. Quitar uno es un comando que ejecutas tú.",
+    "readAgain": "Volver a leer",
+    "reading": "Leyendo...",
+    "readAgainLabel": "Volver a leer las dependencias de todos los proyectos",
+    "readingLabel": "Leyendo las dependencias",
+    "progress_one": "Leyendo las dependencias de {{count}} proyecto…",
+    "progress_other": "Leyendo las dependencias de {{count}} proyectos…",
+    "noWorkspace": "Primero elige una carpeta en Workspace. Las dependencias se leen de los proyectos que encuentra allí.",
+    "openWorkspace": "Abrir Workspace",
+    "failed": "No se pudieron leer las dependencias.",
+    "none": "Cada dependencia declarada se menciona en algún lugar de su proyecto.",
+    "noneAtThisLevel": "Nada con confianza alta. Muestra todos los niveles para ver las que una herramienta puede cargar sin mencionarlas.",
+    "found_one": "{{count}} dependencia que nada menciona",
+    "found_other": "{{count}} dependencias que nada menciona",
+    "projects_one": "en {{count}} proyecto",
+    "projects_other": "en {{count}} proyectos",
+    "unreadable": "No se pudo leer {{path}}",
+    "copyCommand": "Copiar el comando que quita {{name}}",
+    "runFrom": "Ejecútalo en {{path}}"
+  },
+  "scope": {
+    "high": "Confianza alta",
+    "highHint": "Solo las que nada en el proyecto explica",
+    "all": "Todos los niveles",
+    "allHint": "También las que una herramienta puede cargar sin mencionarlas"
+  },
+  "kinds": {
+    "development": "dev",
+    "build": "build",
+    "optional": "opcional"
+  },
+  "reasons": {
+    "notReferenced": "Nada en el proyecto lo menciona.",
+    "conventionLoaded": "Una herramienta puede cargarlo por un nombre corto, como hace ESLint con los plugins.",
+    "commandOnly": "Instala un comando que ningún script ejecuta. Puede usarse a mano.",
+    "typesOnly": "Definiciones de tipos, que el compilador usa sin import.",
+    "featuresOrLinkage": "Puede estar declarado solo para activar features o enlazar una biblioteca nativa.",
+    "notInstalled": "No está instalado aquí, así que no se pudieron comprobar los comandos que aporta ni los paquetes que lo esperan.",
+    "incompleteScan": "El proyecto tiene más archivos de los que cubre una lectura."
+  }
+}
