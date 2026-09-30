@@ -134,7 +134,10 @@
     "noRemote": "Kein Remote konfiguriert",
     "lastCommit": "Letzter Commit",
     "unknownDate": "unbekannt",
-    "notRepository": "Kein Git-Repository. Keine Remote-Sicherung nachverfolgbar."
+    "notRepository": "Kein Git-Repository. Keine Remote-Sicherung nachverfolgbar.",
+    "objectStore": "Repository-Daten",
+    "gcHint": "{{size}} liegen lose oder sind Müll. git gc würde sie packen; Uncached zeigt den Befehl nur an.",
+    "gcCopy": "Befehl git gc kopieren"
   },
   "activity": {
     "title": "Aktivität",

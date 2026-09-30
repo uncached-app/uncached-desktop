@@ -2,7 +2,8 @@ import { GitBranch } from "lucide-react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Field, Panel } from "./panels";
-import { formatAge } from "../../../utils/format.mjs";
+import { CommandLine } from "../../shared/CommandLine";
+import { formatAge, formatBytes } from "../../../utils/format.mjs";
 import { remoteLabel } from "../../../utils/remoteUrl.mjs";
 import type { Activity, GitContext } from "../../../types/workspace";
 
@@ -82,6 +83,26 @@ export function GitPanel({ git }: { git: GitContext }) {
               <span className="text-mist-500">{t("workspace.git.noRemote")}</span>
             )}
           </Field>
+
+          {git.objectStore && (
+            <Field label={t("workspace.git.objectStore")}>
+              <div className="min-w-0">
+                <span className="font-mono text-mist-300">
+                  {formatBytes(git.objectStore.packBytes + git.objectStore.looseBytes + git.objectStore.garbageBytes)}
+                </span>
+                {git.objectStore.gcRecommended && (
+                  <>
+                    <span className="mt-0.5 block text-[10px] text-confidence-medium">
+                      {t("workspace.git.gcHint", {
+                        size: formatBytes(git.objectStore.looseBytes + git.objectStore.garbageBytes),
+                      })}
+                    </span>
+                    <CommandLine className="mt-1.5" command="git gc" copyLabel={t("workspace.git.gcCopy")} />
+                  </>
+                )}
+              </div>
+            </Field>
+          )}
 
           {git.lastCommitSummary && (
             <Field label={t("workspace.git.lastCommit")}>

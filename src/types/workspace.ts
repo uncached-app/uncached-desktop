@@ -36,6 +36,19 @@ export type GitContext = {
   recoverability: Recoverability;
   /** Credentials Git would publish. Mirrors `src-tauri/src/workspace/secrets.rs`. */
   exposedSecrets: ExposedSecret[];
+  /** What `.git` holds; `null` when Git would not say. */
+  objectStore: ObjectStore | null;
+};
+
+/** `git count-objects -v`, in bytes. Mirrors `src-tauri/src/workspace/git.rs`. */
+export type ObjectStore = {
+  looseObjects: number;
+  looseBytes: number;
+  packs: number;
+  packBytes: number;
+  garbageBytes: number;
+  /** Past a limit at which Git would repack on its own. */
+  gcRecommended: boolean;
 };
 
 export type SecretKind = "env" | "privateKey" | "credentials" | "token";

@@ -134,7 +134,10 @@
     "noRemote": "No remote configured",
     "lastCommit": "Last commit",
     "unknownDate": "unknown",
-    "notRepository": "Not a git repository. No remote backup tracking available."
+    "notRepository": "Not a git repository. No remote backup tracking available.",
+    "objectStore": "Repository data",
+    "gcHint": "{{size}} is loose or garbage. Git gc would pack it; Uncached only shows the command.",
+    "gcCopy": "Copy the git gc command"
   },
   "activity": {
     "title": "Activity",

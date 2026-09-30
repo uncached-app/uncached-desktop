@@ -178,7 +178,10 @@
     "noRemote": "لا مستودع بعيد مُعدّ",
     "lastCommit": "آخر إيداع",
     "unknownDate": "غير معروف",
-    "notRepository": "ليس مستودع Git. لا يتوفر تتبع للنسخ الاحتياطي البعيد."
+    "notRepository": "ليس مستودع Git. لا يتوفر تتبع للنسخ الاحتياطي البعيد.",
+    "objectStore": "بيانات المستودع",
+    "gcHint": "{{size}} غير مضغوطة أو مهملة. سيضغطها git gc؛ يكتفي Uncached بعرض الأمر.",
+    "gcCopy": "نسخ الأمر git gc"
   },
   "activity": {
     "title": "النشاط",

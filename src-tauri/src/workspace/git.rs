@@ -39,7 +39,29 @@ pub struct GitContext {
     pub recoverability: Recoverability,
     /// Credentials Git would carry to the remote. At most `secrets::MAX_EXPOSED`.
     pub exposed_secrets: Vec<ExposedSecret>,
+    /// What `.git` holds. `None` when Git would not say.
+    pub object_store: Option<ObjectStore>,
 }
+
+/// `git count-objects -v`, in bytes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObjectStore {
+    pub loose_objects: u64,
+    pub loose_bytes: u64,
+    pub packs: u64,
+    pub pack_bytes: u64,
+    pub garbage_bytes: u64,
+    /// Past a limit at which Git would repack on its own, or holding garbage or
+    /// `GC_LOOSE_BYTES` of loose objects.
+    pub gc_recommended: bool,
+}
+
+/// `gc.auto`'s default.
+const GC_LOOSE_OBJECTS: u64 = 6_700;
+/// `gc.autoPackLimit`'s default.
+const GC_PACKS: u64 = 50;
+const GC_LOOSE_BYTES: u64 = 100 * 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -105,6 +127,7 @@ pub fn read(path: &Path) -> GitContext {
     });
     let (last_commit_summary, last_commit_at) = parse_log(log.as_deref());
     let exposed_secrets = secrets::exposed(path, run(path, &secrets::LISTING).as_deref());
+    let object_store = parse_count_objects(run(path, &["count-objects", "-v"]).as_deref());
 
     // `off_machine`, not `remote.is_some()`. "Everything is on a remote" is the
     // sentence that lets an unattended cleanup touch a project, and a bare
@@ -136,7 +159,36 @@ pub fn read(path: &Path) -> GitContext {
             level,
         },
         exposed_secrets,
+        object_store,
     }
+}
+
+/// Reads `git count-objects -v`, whose sizes are KiB.
+fn parse_count_objects(output: Option<&str>) -> Option<ObjectStore> {
+    let mut store = ObjectStore::default();
+    let mut read_any = false;
+    for line in output?.lines() {
+        let Some((key, value)) = line.split_once(": ") else {
+            continue;
+        };
+        let Ok(value) = value.trim().parse::<u64>() else {
+            continue;
+        };
+        read_any = true;
+        match key {
+            "count" => store.loose_objects = value,
+            "size" => store.loose_bytes = value * 1024,
+            "packs" => store.packs = value,
+            "size-pack" => store.pack_bytes = value * 1024,
+            "size-garbage" => store.garbage_bytes = value * 1024,
+            _ => {}
+        }
+    }
+    store.gc_recommended = store.loose_objects > GC_LOOSE_OBJECTS
+        || store.packs > GC_PACKS
+        || store.garbage_bytes > 0
+        || store.loose_bytes >= GC_LOOSE_BYTES;
+    read_any.then_some(store)
 }
 
 fn run(path: &Path, args: &[&str]) -> Option<String> {
@@ -323,8 +375,45 @@ pub fn normalise_remote(url: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        normalise_remote, parse_log, parse_status, parse_tracking, read, remote_leaves_the_machine,
+        normalise_remote, parse_count_objects, parse_log, parse_status, parse_tracking, read,
+        remote_leaves_the_machine,
     };
+
+    const TIDY: &str = "count: 37\nsize: 180\nin-pack: 5212\npacks: 5\nsize-pack: 3624\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0\n";
+
+    #[test]
+    fn a_tidy_repository_needs_nothing() {
+        let store = parse_count_objects(Some(TIDY)).unwrap();
+        assert_eq!(store.loose_objects, 37);
+        assert_eq!(store.loose_bytes, 180 * 1024);
+        assert_eq!(store.packs, 5);
+        assert_eq!(store.pack_bytes, 3624 * 1024);
+        assert!(!store.gc_recommended);
+    }
+
+    #[test]
+    fn past_git_s_own_limits_gc_is_recommended() {
+        for output in [
+            "count: 6701\nsize: 1000\npacks: 1\nsize-pack: 1\nsize-garbage: 0\n",
+            "count: 1\nsize: 1\npacks: 51\nsize-pack: 1\nsize-garbage: 0\n",
+            "count: 1\nsize: 1\npacks: 1\nsize-pack: 1\nsize-garbage: 12\n",
+            "count: 10\nsize: 102400\npacks: 1\nsize-pack: 1\nsize-garbage: 0\n",
+        ] {
+            assert!(
+                parse_count_objects(Some(output)).unwrap().gc_recommended,
+                "{output}"
+            );
+        }
+    }
+
+    #[test]
+    fn unreadable_output_reports_no_store() {
+        assert_eq!(parse_count_objects(None), None);
+        assert_eq!(
+            parse_count_objects(Some("fatal: not a git repository")),
+            None
+        );
+    }
     use crate::workspace::secrets::{ExposedSecret, SecretKind};
     use std::path::Path;
 

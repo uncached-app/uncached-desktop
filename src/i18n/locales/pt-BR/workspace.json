@@ -134,7 +134,10 @@
     "noRemote": "Nenhum remoto configurado",
     "lastCommit": "Último commit",
     "unknownDate": "desconhecido",
-    "notRepository": "Não é um repositório git. Sem acompanhamento de backup remoto."
+    "notRepository": "Não é um repositório git. Sem acompanhamento de backup remoto.",
+    "objectStore": "Dados do repositório",
+    "gcHint": "{{size}} estão soltos ou são lixo. O git gc compactaria isso; o Uncached só mostra o comando.",
+    "gcCopy": "Copiar o comando git gc"
   },
   "activity": {
     "title": "Atividade",

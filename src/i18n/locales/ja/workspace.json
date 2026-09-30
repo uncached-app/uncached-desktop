@@ -123,7 +123,10 @@
     "noRemote": "リモートが設定されていません",
     "lastCommit": "最終コミット",
     "unknownDate": "不明",
-    "notRepository": "Git リポジトリではありません。リモートバックアップを追跡できません。"
+    "notRepository": "Git リポジトリではありません。リモートバックアップを追跡できません。",
+    "objectStore": "リポジトリのデータ",
+    "gcHint": "{{size}} が未圧縮またはゴミです。git gc でまとめられます。Uncached はコマンドを表示するだけです。",
+    "gcCopy": "git gc コマンドをコピー"
   },
   "activity": {
     "title": "アクティビティ",

@@ -134,7 +134,10 @@
     "noRemote": "Sin remoto configurado",
     "lastCommit": "Último commit",
     "unknownDate": "desconocido",
-    "notRepository": "No es un repositorio git. No hay seguimiento de copia remota."
+    "notRepository": "No es un repositorio git. No hay seguimiento de copia remota.",
+    "objectStore": "Datos del repositorio",
+    "gcHint": "{{size}} están sueltos o son basura. git gc los compactaría; Uncached solo muestra el comando.",
+    "gcCopy": "Copiar el comando git gc"
   },
   "activity": {
     "title": "Actividad",
