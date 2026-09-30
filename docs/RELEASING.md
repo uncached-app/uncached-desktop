@@ -12,10 +12,14 @@ it, compares versions, verifies a signature, and asks. Nothing else is involved
 | **Updater key** (minisign) | This update came from us | Uncached itself | Every update is refused |
 | **Apple / Windows certificate** | The app is not malware | The operating system | It installs, behind a warning |
 
-They fail differently and are configured separately. **The updater works today;
-the certificates are still outstanding.**
+They fail differently and are configured separately. **Both are configured for
+macOS:** the release signs the app and the dmg with the Developer ID, notarises
+both and staples the tickets. **Windows is not released.** It is to ship through
+the Microsoft Store, which signs and updates it, so it has no build in the
+release and no entry in `latest.json`.
 
-Until they exist, macOS bundles are signed **ad-hoc** — `APPLE_SIGNING_IDENTITY=-`.
+Without the Apple secrets, macOS bundles fall back to **ad-hoc** signing —
+`APPLE_SIGNING_IDENTITY=-`.
 That is not cosmetic. An unsigned bundle on Apple Silicon is not merely
 untrusted: Gatekeeper calls it *damaged* and offers no way through, and the only
 escape is `xattr -cr /Applications/Uncached.app` in a terminal — which is not
@@ -24,8 +28,7 @@ something to ask of somebody who just downloaded an app. Ad-hoc makes it say
 offers a way past (right-click → Open).
 
 An ad-hoc signature cannot be notarised, so this is the floor rather than a
-substitute. Windows still shows "Unknown publisher"; there is no equivalent
-half-measure there.
+substitute.
 
 ### The updater key cannot be rotated
 
@@ -113,8 +116,8 @@ gh workflow run ci.yml                                  # desktop, Linux
 gh workflow run ci.yml --repo uncached-app/uncached-core
 ```
 
-Windows is compiled for the first time by the release either way. That is the
-standing gap, and it is written here rather than hoped about.
+Nothing compiles the desktop crate for Windows any more: neither workflow has a
+Windows job. Expect fixes the first time the Store package is built.
 
 The rest of the checks live where you are:The rest of the checks live where you are:
 

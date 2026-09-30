@@ -44,10 +44,6 @@ const COMPLETE = {
     "Uncached_0.1.1-alpha.3_amd64.deb": "sig-deb",
     "Uncached-0.1.1-alpha.3-1.x86_64.rpm": "sig-rpm",
   },
-  // Tauri 2 signs the installer itself and reports exactly this pair.
-  "x86_64-pc-windows-msvc": {
-    "Uncached_0.1.1-alpha.3_x64-setup.exe": "sig-windows",
-  },
 };
 
 function build(from, extra = []) {
@@ -75,7 +71,6 @@ test("every platform the app ships gets an entry", () => {
     "darwin-aarch64",
     "darwin-x86_64",
     "linux-x86_64",
-    "windows-x86_64",
   ]);
   assert.equal(manifest.version, "0.1.2");
 });
@@ -96,7 +91,7 @@ test("the two macOS builds never resolve to one file", () => {
 test("the signature is carried through, not invented", () => {
   const manifest = build(staged(COMPLETE));
   assert.equal(manifest.platforms["darwin-aarch64"].signature, "sig-arm");
-  assert.equal(manifest.platforms["windows-x86_64"].signature, "sig-windows");
+  assert.equal(manifest.platforms["linux-x86_64"].signature, "sig-linux");
 });
 
 test("a missing platform fails the release rather than shrinking the manifest", () => {
@@ -104,9 +99,9 @@ test("a missing platform fails the release rather than shrinking the manifest", 
   // an update looks exactly like one that is current, so those users would
   // simply never update again and nothing anywhere would say so.
   const partial = { ...COMPLETE };
-  delete partial["x86_64-pc-windows-msvc"];
+  delete partial["x86_64-unknown-linux-gnu"];
   const said = refuses(staged(partial));
-  assert.match(said ?? "", /windows-x86_64/);
+  assert.match(said ?? "", /linux-x86_64/);
 });
 
 test("an unsigned bundle is not published", () => {
@@ -121,13 +116,13 @@ test("an unsigned bundle is not published", () => {
 test("two signed bundles for one platform is a question the script may not answer", () => {
   const ambiguous = {
     ...COMPLETE,
-    "x86_64-pc-windows-msvc": {
-      "Uncached_0.1.1-alpha.3_x64-setup.exe": "a",
-      "Uncached_0.1.1-alpha.3_x64-setup.nsis.zip": "b",
+    "x86_64-unknown-linux-gnu": {
+      "Uncached_0.1.1-alpha.3_amd64.AppImage": "a",
+      "Uncached.AppImage.tar.gz": "b",
     },
   };
   const said = refuses(staged(ambiguous));
-  assert.match(said ?? "", /windows-x86_64/);
+  assert.match(said ?? "", /linux-x86_64/);
 });
 
 test("a signed installer is still not the thing that updates", () => {
@@ -157,5 +152,4 @@ test("an installer with no signature is ignored rather than mistaken for one", (
   // and not in the manifest.
   const manifest = build(staged(COMPLETE));
   assert.match(manifest.platforms["darwin-aarch64"].url, /Uncached\.app\.tar\.gz$/);
-  assert.match(manifest.platforms["windows-x86_64"].url, /-setup\.exe$/);
 });
