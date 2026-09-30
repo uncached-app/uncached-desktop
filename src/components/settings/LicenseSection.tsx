@@ -4,17 +4,12 @@ import { describeCommandError } from "../../i18n/errors";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import {
   AlertCircle,
-  Calendar,
   Check,
   Copy,
   ExternalLink,
-  Hash,
-  KeyRound,
-  Laptop,
   Loader2,
   Lock,
   Sparkles,
-  User,
 } from "lucide-react";
 import { openExternalUrl } from "../../utils/externalLink";
 
@@ -160,14 +155,9 @@ export function LicenseSection({
         {/* Pro Header Card */}
         <div className="rounded-2xl border border-pro-200/30 bg-pro-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="grid size-8 place-items-center rounded-xl border border-pro-200/20 bg-forest-950 text-pro-100">
-                <Sparkles size={15} aria-hidden="true" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-mist-100">Uncached Pro</h3>
-                <p className="text-xs text-mist-500">{t("settings.license.active.tagline")}</p>
-              </div>
+            <div>
+              <h3 className="text-sm font-bold text-mist-100">Uncached Pro</h3>
+              <p className="text-xs text-mist-500">{t("settings.license.active.tagline")}</p>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-sage-300/40 bg-forest-950 px-2.5 py-1 font-mono text-[10px] font-bold uppercase text-sage-300">
               <Check size={11} strokeWidth={3} /> {t("settings.license.active.badge")}
@@ -187,14 +177,12 @@ export function LicenseSection({
           )}
 
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Detail icon={User} label={t("settings.license.active.holder")} value={license.holder} />
+            <Detail label={t("settings.license.active.holder")} value={license.holder} />
             <Detail
-              icon={Laptop}
               label={t("settings.license.active.seats")}
               value={t("settings.license.active.machines", { count: license.seats })}
             />
             <Detail
-              icon={Calendar}
               label={t("settings.license.active.expiration")}
               value={
                 license.expiresAt
@@ -211,7 +199,6 @@ export function LicenseSection({
                 by Uncached. The key itself is offered below, next to the button
                 that makes needing it urgent. */}
             <Detail
-              icon={Hash}
               label={t("settings.license.active.reference")}
               value={license.id}
               mono
@@ -246,7 +233,6 @@ export function LicenseSection({
                   </>
                 ) : (
                   <>
-                    <KeyRound size={13} aria-hidden="true" />
                     <span>{t("settings.license.active.copyKey")}</span>
                   </>
                 )}
@@ -459,13 +445,11 @@ export function LicenseSection({
 
 /** One fact about the licence, and optionally a way to copy it. */
 function Detail({
-  icon: Icon,
   label,
   value,
   mono = false,
   action,
 }: {
-  icon: typeof User;
   label: string;
   value: string;
   mono?: boolean;
@@ -473,14 +457,11 @@ function Detail({
 }) {
   return (
     <div className="flex items-center justify-between gap-2.5 rounded-xl border border-forest-800 bg-forest-950 p-3">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Icon size={14} className="shrink-0 text-mist-500" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-mist-500">{label}</p>
-          <p className={`truncate text-xs font-semibold text-mist-100 ${mono ? "font-mono" : ""}`}>
-            {value}
-          </p>
-        </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-mist-500">{label}</p>
+        <p className={`truncate text-xs font-semibold text-mist-100 ${mono ? "font-mono" : ""}`}>
+          {value}
+        </p>
       </div>
       {action && (
         <button
