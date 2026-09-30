@@ -13,6 +13,7 @@ pub mod scan;
 pub mod settings;
 pub mod storage;
 pub mod theme;
+pub mod toolchains;
 pub mod window;
 pub mod workspace;
 

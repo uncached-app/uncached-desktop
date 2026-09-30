@@ -40,5 +40,19 @@
     "featuresOrLinkage": "Puede estar declarado solo para activar features o enlazar una biblioteca nativa.",
     "notInstalled": "No está instalado aquí, así que no se pudieron comprobar los comandos que aporta ni los paquetes que lo esperan.",
     "incompleteScan": "El proyecto tiene más archivos de los que cubre una lectura."
+  },
+  "toolchains": {
+    "title": "Versiones de toolchain que ningún proyecto usa",
+    "intro": "Versiones instaladas por nvm, fnm, rustup, pyenv o SDKMAN que ningún proyecto de aquí fija y que ningún gestor usa por defecto. Cada una viene con el comando de desinstalación del propio gestor.",
+    "reading": "Leyendo las toolchains instaladas…",
+    "none": "Toda versión de toolchain instalada la fija algún proyecto o es la predeterminada.",
+    "failed": "No se pudieron leer las toolchains instaladas.",
+    "locked_one": "{{count}} versión que ningún proyecto usa, {{size}}.",
+    "locked_other": "{{count}} versiones que ningún proyecto usa, {{size}} en total.",
+    "lockedHint": "Uncached Pro enumera cada una con el comando que la elimina.",
+    "cta": "Ver Uncached Pro",
+    "found_one": "{{count}} versión que ningún proyecto usa, {{size}}",
+    "found_other": "{{count}} versiones que ningún proyecto usa, {{size}} en total",
+    "copy": "Copiar el comando que elimina {{version}}"
   }
 }

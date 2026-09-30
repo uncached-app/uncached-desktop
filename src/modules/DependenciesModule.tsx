@@ -3,6 +3,8 @@ import { FileWarning, Loader2, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ChoiceRow } from "../components/shared/ChoiceRow";
 import { ProjectDependencyGroup } from "./dependencies/ProjectDependencyGroup";
+import { ToolchainSection } from "./dependencies/ToolchainSection";
+import { useToolchainReport } from "../hooks/useToolchainReport";
 import { usePurgeFlow } from "../hooks/usePurgeFlow";
 import { visibleDependencies, type Scope } from "../utils/dependencies.mjs";
 import type { ProjectDependencies } from "../types/dependencies";
@@ -20,6 +22,11 @@ export function DependenciesModule({ onOpenWorkspace }: { onOpenWorkspace: () =>
   const projectCount = flow.index.index?.projects.length ?? 0;
   const { projects, running, error, scan, current } = flow.dependencies;
   const [scope, setScope] = useState<Scope>("high");
+  const projectPaths = useMemo(
+    () => (flow.index.index?.projects ?? []).map((project) => project.path),
+    [flow.index.index],
+  );
+  const toolchains = useToolchainReport(projectPaths);
 
   useEffect(() => {
     if (projectCount > 0 && !current && !running) void scan();
@@ -43,7 +50,10 @@ export function DependenciesModule({ onOpenWorkspace }: { onOpenWorkspace: () =>
           <h1 className="text-2xl font-bold tracking-tight text-mist-100 sm:text-3xl">{t("dependencies.module.title")}</h1>
           <button
             type="button"
-            onClick={() => void scan()}
+            onClick={() => {
+              void scan();
+              void toolchains.read();
+            }}
             disabled={running || projectCount === 0}
             aria-label={running ? t("dependencies.module.readingLabel") : t("dependencies.module.readAgainLabel")}
             className="group inline-flex min-h-8.5 shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-sage-400 px-3.5 text-xs font-semibold text-forest-950 shadow-xs transition-all hover:bg-sage-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
@@ -108,6 +118,8 @@ export function DependenciesModule({ onOpenWorkspace }: { onOpenWorkspace: () =>
                 ))}
               </div>
             )}
+
+            <ToolchainSection report={toolchains.report} loading={toolchains.loading} failed={toolchains.failed} />
 
             {unreadable.length > 0 && (
               <ul className="mt-4 grid gap-1">

@@ -9,6 +9,7 @@ mod native_strings;
 mod process;
 pub mod scanner;
 mod scheduler;
+mod shell_env;
 pub mod services;
 pub mod tray;
 pub mod watch;
@@ -125,6 +126,7 @@ pub fn run() {
             commands::storage::storage_report,
             native_strings::set_native_strings,
             tray::set_tray_summary,
+            commands::toolchains::toolchain_report,
             commands::storage::open_full_disk_access,
             reveal_project,
             open_project_with,
