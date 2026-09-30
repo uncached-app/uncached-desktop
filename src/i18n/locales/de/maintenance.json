@@ -48,7 +48,13 @@
     "nextRunWithLast": "Nächster Lauf <strong>{{next}}</strong> · zuletzt {{last}}",
     "dueNow": "Jetzt fällig. Startet in den nächsten Minuten.",
     "safety": "Ein geplanter Lauf folgt derselben Richtlinie und verschiebt in den Papierkorb. Er wird in Insights als <strong>Zeitplan</strong> erfasst.",
-    "quitWarning": "Das Schließen des Fensters beendet Uncached, daher läuft dieser Zeitplan nur bei geöffnetem Fenster. Aktiviere <strong>Im Hintergrund weiterlaufen</strong> in den Einstellungen, damit Uncached beim Schließen stattdessen in die Menüleiste wechselt."
+    "quitWarning": "Das Schließen des Fensters beendet Uncached, daher läuft dieser Zeitplan nur bei geöffnetem Fenster. Aktiviere <strong>Im Hintergrund weiterlaufen</strong> in den Einstellungen, damit Uncached beim Schließen stattdessen in die Menüleiste wechselt.",
+    "lowDisk": {
+      "label": "Auch bei freiem Speicher unter",
+      "off": "Aus",
+      "gb": "{{value}} GB",
+      "now": "Gerade {{size}} frei auf dem Laufwerk deiner Ordner."
+    }
   },
   "selection": {
     "emptyTitle": "Keine Projekte entsprechen dieser Regel",

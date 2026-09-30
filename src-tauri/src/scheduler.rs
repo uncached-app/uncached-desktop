@@ -88,6 +88,7 @@ fn tick(app: &AppHandle) {
         scan_in_progress: ScanService::active_scan_count() > 0,
         last_run_at: settings.maintenance_last_run_at,
         now,
+        free_bytes: least_free_bytes(&settings.workspace_roots),
     };
 
     match schedule::due(&conditions) {
@@ -104,6 +105,15 @@ fn tick(app: &AppHandle) {
             }
         }
         Due::Now => {
+            if schedule::low_on_space(&conditions) {
+                crate::logging::info(
+                    "schedule",
+                    &format!(
+                        "low on space free_bytes={}",
+                        conditions.free_bytes.unwrap_or(0)
+                    ),
+                );
+            }
             // Stamped before the work, not after. A run that takes the process
             // down with it — or a machine that loses power mid-scan — must not
             // come back and immediately attempt the same thing again. The cost
@@ -119,6 +129,16 @@ fn tick(app: &AppHandle) {
             run(app, &settings);
         }
     }
+}
+
+/// Free bytes on the fullest volume holding a workspace root: cleaning frees
+/// space on the workspace's disk, which need not be the one holding home.
+pub(crate) fn least_free_bytes(roots: &[String]) -> Option<u64> {
+    roots
+        .iter()
+        .filter_map(|root| crate::filesystem::volume::report_for(std::path::Path::new(root)))
+        .map(|report| report.free_bytes)
+        .min()
 }
 
 /// What one due run does, start to finish.

@@ -48,7 +48,13 @@
     "nextRunWithLast": "Próxima ejecución <strong>{{next}}</strong> · última {{last}}",
     "dueNow": "Pendiente. Empieza en los próximos minutos.",
     "safety": "Una ejecución programada sigue la misma política y mueve a la Papelera. Se registra en Insights como <strong>Programación</strong>.",
-    "quitWarning": "Cerrar la ventana cierra Uncached, así que esta programación solo se ejecuta con la ventana abierta. Activa <strong>Seguir en segundo plano</strong> en Ajustes para que se cierre a la barra de menús."
+    "quitWarning": "Cerrar la ventana cierra Uncached, así que esta programación solo se ejecuta con la ventana abierta. Activa <strong>Seguir en segundo plano</strong> en Ajustes para que se cierre a la barra de menús.",
+    "lowDisk": {
+      "label": "También cuando el espacio libre baje de",
+      "off": "Desactivado",
+      "gb": "{{value}} GB",
+      "now": "{{size}} libres ahora en el disco de tus carpetas."
+    }
   },
   "selection": {
     "emptyTitle": "Ningún proyecto cumple esta regla",

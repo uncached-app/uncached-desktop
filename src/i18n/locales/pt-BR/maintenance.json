@@ -48,7 +48,13 @@
     "nextRunWithLast": "Próxima execução <strong>{{next}}</strong> · última em {{last}}",
     "dueNow": "Pendente. Começa nos próximos minutos.",
     "safety": "Uma execução agendada segue a mesma política e move para o Lixo. Ela fica registrada em Insights como <strong>Um agendamento</strong>.",
-    "quitWarning": "Fechar a janela encerra o Uncached, então este agendamento só roda com a janela aberta. Ative <strong>Continuar em segundo plano</strong> em Ajustes para que ela feche para a barra de menus."
+    "quitWarning": "Fechar a janela encerra o Uncached, então este agendamento só roda com a janela aberta. Ative <strong>Continuar em segundo plano</strong> em Ajustes para que ela feche para a barra de menus.",
+    "lowDisk": {
+      "label": "Também quando o espaço livre cair abaixo de",
+      "off": "Desligado",
+      "gb": "{{value}} GB",
+      "now": "{{size}} livres agora no disco das suas pastas."
+    }
   },
   "selection": {
     "emptyTitle": "Nenhum projeto corresponde a esta regra",

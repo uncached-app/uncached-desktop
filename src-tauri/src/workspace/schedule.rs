@@ -25,6 +25,13 @@ pub const MIN_EVERY_HOURS: u32 = 24;
 pub const MAX_EVERY_HOURS: u32 = 24 * 30;
 const DEFAULT_EVERY_HOURS: u32 = 24 * 7;
 
+/// Least time between two runs the low-space trigger starts. A disk that stays
+/// full once everything eligible is gone would otherwise be rescanned on every
+/// tick.
+pub const LOW_DISK_GAP_HOURS: u32 = 6;
+
+const BYTES_PER_GB: u64 = 1_000_000_000;
+
 /// The schedule, which is the only part of maintenance that runs without a
 /// person present.
 ///
@@ -35,6 +42,10 @@ const DEFAULT_EVERY_HOURS: u32 = 24 * 7;
 pub struct Schedule {
     pub enabled: bool,
     pub every_hours: u32,
+    /// Also run when the workspace's disk has less than this many gigabytes
+    /// free. `None` or `0` turns the trigger off.
+    #[serde(default)]
+    pub low_disk_gb: Option<u32>,
 }
 
 impl Default for Schedule {
@@ -42,6 +53,7 @@ impl Default for Schedule {
         Self {
             enabled: false,
             every_hours: DEFAULT_EVERY_HOURS,
+            low_disk_gb: None,
         }
     }
 }
@@ -54,6 +66,13 @@ impl Schedule {
     /// rejecting keeps a damaged value from disabling maintenance silently.
     pub fn interval_hours(&self) -> u32 {
         self.every_hours.clamp(MIN_EVERY_HOURS, MAX_EVERY_HOURS)
+    }
+
+    /// The free-space threshold in bytes, `None` when the trigger is off.
+    pub fn low_disk_bytes(&self) -> Option<u64> {
+        self.low_disk_gb
+            .filter(|gigabytes| *gigabytes > 0)
+            .map(|gigabytes| u64::from(gigabytes) * BYTES_PER_GB)
     }
 }
 
@@ -95,6 +114,9 @@ pub struct Conditions {
     /// tick forever.
     pub last_run_at: Option<i64>,
     pub now: i64,
+    /// Least free space across the volumes holding the workspace roots. `None`
+    /// when no volume could be read.
+    pub free_bytes: Option<u64>,
 }
 
 /// Whether a run may start, or the first reason it may not.
@@ -113,7 +135,7 @@ pub fn due(conditions: &Conditions) -> Due {
     if !conditions.has_workspace {
         return Due::Held(Held::NoWorkspace);
     }
-    if !elapsed(conditions) {
+    if !elapsed(conditions) && !low_on_space(conditions) {
         return Due::Held(Held::TooSoon);
     }
     if conditions.scan_in_progress {
@@ -141,6 +163,24 @@ fn elapsed(conditions: &Conditions) -> bool {
     conditions.now.saturating_sub(last) >= interval
 }
 
+/// Whether free space is under the threshold and the last run is at least
+/// `LOW_DISK_GAP_HOURS` old. The same clock rules as `elapsed` apply.
+pub fn low_on_space(conditions: &Conditions) -> bool {
+    let (Some(threshold), Some(free)) =
+        (conditions.schedule.low_disk_bytes(), conditions.free_bytes)
+    else {
+        return false;
+    };
+    if free >= threshold {
+        return false;
+    }
+    match conditions.last_run_at {
+        None => true,
+        Some(last) if last > conditions.now => true,
+        Some(last) => conditions.now.saturating_sub(last) >= i64::from(LOW_DISK_GAP_HOURS) * 3_600,
+    }
+}
+
 /// Unix seconds of the next run, for the interface to name a date.
 ///
 /// `None` when the schedule is off or has never run — neither has a next time
@@ -155,7 +195,10 @@ pub fn next_run_at(schedule: &Schedule, last_run_at: Option<i64>) -> Option<i64>
 
 #[cfg(test)]
 mod tests {
-    use super::{due, next_run_at, Conditions, Due, Held, Schedule, MAX_EVERY_HOURS};
+    use super::{
+        due, low_on_space, next_run_at, Conditions, Due, Held, Schedule, LOW_DISK_GAP_HOURS,
+        MAX_EVERY_HOURS,
+    };
 
     const HOUR: i64 = 3_600;
     const DAY: i64 = 24 * HOUR;
@@ -165,13 +208,104 @@ mod tests {
             schedule: Schedule {
                 enabled: true,
                 every_hours: 24 * 7,
+                low_disk_gb: None,
             },
             pro_enabled: true,
             has_workspace: true,
             scan_in_progress: false,
             last_run_at: None,
             now: 1_000 * DAY,
+            free_bytes: None,
         }
+    }
+
+    const GB: u64 = 1_000_000_000;
+
+    /// A week-long schedule that ran an hour ago, on a disk with `free` bytes
+    /// left and a 20 GB threshold.
+    fn low_disk(free: u64, last_run_ago: i64) -> Conditions {
+        let base = ready();
+        Conditions {
+            schedule: Schedule {
+                low_disk_gb: Some(20),
+                ..base.schedule
+            },
+            last_run_at: Some(base.now - last_run_ago),
+            free_bytes: Some(free),
+            ..base
+        }
+    }
+
+    #[test]
+    fn a_disk_below_the_threshold_runs_before_the_interval() {
+        assert_eq!(due(&low_disk(5 * GB, 7 * HOUR)), Due::Now);
+    }
+
+    #[test]
+    fn a_disk_above_the_threshold_waits_for_the_interval() {
+        assert_eq!(due(&low_disk(50 * GB, 7 * HOUR)), Due::Held(Held::TooSoon));
+    }
+
+    /// Once nothing eligible is left, the disk stays full; the gap is what stops
+    /// a rescan every fifteen minutes.
+    #[test]
+    fn low_space_waits_for_its_gap_after_a_run() {
+        let gap = i64::from(LOW_DISK_GAP_HOURS) * HOUR;
+        assert_eq!(due(&low_disk(5 * GB, gap - HOUR)), Due::Held(Held::TooSoon));
+        assert_eq!(due(&low_disk(5 * GB, gap)), Due::Now);
+    }
+
+    #[test]
+    fn low_space_never_overrides_the_switch_or_the_licence() {
+        let off = Conditions {
+            schedule: Schedule {
+                enabled: false,
+                ..low_disk(GB, DAY).schedule
+            },
+            ..low_disk(GB, DAY)
+        };
+        assert_eq!(due(&off), Due::Held(Held::Disabled));
+
+        let free_plan = Conditions {
+            pro_enabled: false,
+            ..low_disk(GB, DAY)
+        };
+        assert_eq!(due(&free_plan), Due::Held(Held::NotLicensed));
+    }
+
+    #[test]
+    fn no_threshold_or_no_reading_is_never_low() {
+        let unset = Conditions {
+            schedule: Schedule {
+                low_disk_gb: None,
+                ..low_disk(GB, DAY).schedule
+            },
+            ..low_disk(GB, DAY)
+        };
+        assert!(!low_on_space(&unset));
+
+        let zero = Conditions {
+            schedule: Schedule {
+                low_disk_gb: Some(0),
+                ..low_disk(GB, DAY).schedule
+            },
+            ..low_disk(GB, DAY)
+        };
+        assert!(!low_on_space(&zero));
+
+        let unread = Conditions {
+            free_bytes: None,
+            ..low_disk(GB, DAY)
+        };
+        assert!(!low_on_space(&unread));
+    }
+
+    /// Settings written before the trigger existed have no `lowDiskGb`.
+    #[test]
+    fn a_schedule_saved_before_the_trigger_still_loads() {
+        let schedule: Schedule =
+            serde_json::from_str(r#"{"enabled":true,"everyHours":168}"#).unwrap();
+        assert_eq!(schedule.low_disk_gb, None);
     }
 
     /// The default has to be off. The first unattended deletion on a machine is
@@ -274,6 +408,7 @@ mod tests {
         let schedule = Schedule {
             enabled: true,
             every_hours: 0,
+            low_disk_gb: None,
         };
         assert_eq!(schedule.interval_hours(), super::MIN_EVERY_HOURS);
 
@@ -294,6 +429,7 @@ mod tests {
         let schedule = Schedule {
             enabled: true,
             every_hours: u32::MAX,
+            low_disk_gb: None,
         };
         assert_eq!(schedule.interval_hours(), MAX_EVERY_HOURS);
     }
@@ -315,6 +451,7 @@ mod tests {
         let schedule = Schedule {
             enabled: true,
             every_hours: 48,
+            low_disk_gb: None,
         };
         assert_eq!(next_run_at(&schedule, None), None);
         assert_eq!(next_run_at(&schedule, Some(1_000)), Some(1_000 + 48 * HOUR));

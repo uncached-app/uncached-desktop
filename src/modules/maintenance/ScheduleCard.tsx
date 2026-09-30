@@ -1,8 +1,9 @@
-import { CalendarClock, Repeat, ShieldCheck, TriangleAlert } from "lucide-react";
+import { CalendarClock, HardDrive, Repeat, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { ChoiceRow } from "../../components/shared/ChoiceRow";
 import type { Held, Schedule, ScheduleStatus } from "../../types/maintenance";
+import { formatBytes } from "../../utils/format.mjs";
 
 const INTERVAL_CHOICES = [
   { hours: 24, key: "daily" },
@@ -10,6 +11,9 @@ const INTERVAL_CHOICES = [
   { hours: 24 * 14, key: "fortnightly" },
   { hours: 24 * 30, key: "monthly" },
 ] as const;
+
+/** Free-space thresholds in GB; `0` stands for off and is stored as `null`. */
+const LOW_DISK_CHOICES = [0, 10, 25, 50] as const;
 
 /**
  * What the screen says instead of a next run, per reason.
@@ -63,6 +67,7 @@ export function ScheduleCard({
   onChange: (schedule: Schedule) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const number = new Intl.NumberFormat(i18n.language);
   const lastRun = when(status?.lastRunAt ?? null, t, i18n.language);
   const nextRun = when(status?.nextRunAt ?? null, t, i18n.language);
   const heldCopy = (held: HeldCopy) => t(`maintenance.schedule.held.${held}`);
@@ -118,6 +123,32 @@ export function ScheduleCard({
             ({ hours, key }) => [hours, t(`maintenance.schedule.intervals.${key}`)] as const,
           )}
         />
+      </div>
+
+      <div className="mt-4">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-mist-300">
+          <HardDrive size={13} className="text-mist-500" aria-hidden="true" />
+          <span>{t("maintenance.schedule.lowDisk.label")}</span>
+        </div>
+        <ChoiceRow
+          active={schedule.lowDiskGb ?? 0}
+          disabled={!schedule.enabled}
+          onChange={(gigabytes) => onChange({ ...schedule, lowDiskGb: gigabytes === 0 ? null : gigabytes })}
+          options={LOW_DISK_CHOICES.map(
+            (gigabytes) =>
+              [
+                gigabytes,
+                gigabytes === 0
+                  ? t("maintenance.schedule.lowDisk.off")
+                  : t("maintenance.schedule.lowDisk.gb", { value: number.format(gigabytes) }),
+              ] as const,
+          )}
+        />
+        {status?.freeBytes != null && (
+          <p className="mt-2 text-[11px] text-mist-500">
+            {t("maintenance.schedule.lowDisk.now", { size: formatBytes(status.freeBytes) })}
+          </p>
+        )}
       </div>
 
       <div className="mt-4 grid gap-2 border-t border-forest-800 pt-3 text-xs text-mist-500">

@@ -48,7 +48,13 @@
     "nextRunWithLast": "Next run <strong>{{next}}</strong> · last ran {{last}}",
     "dueNow": "Due now. It starts within the next few minutes.",
     "safety": "A scheduled run obeys the same policy and moves to the Trash. It is recorded in Insights as <strong>A schedule</strong>.",
-    "quitWarning": "Closing the window quits Uncached, so this schedule only runs while the window is open. Turn on <strong>Keep running in the background</strong> in Settings to let it close to the menu bar instead."
+    "quitWarning": "Closing the window quits Uncached, so this schedule only runs while the window is open. Turn on <strong>Keep running in the background</strong> in Settings to let it close to the menu bar instead.",
+    "lowDisk": {
+      "label": "Also when free space drops below",
+      "off": "Off",
+      "gb": "{{value}} GB",
+      "now": "{{size}} free on the disk holding your folders right now."
+    }
   },
   "selection": {
     "emptyTitle": "No Projects Match This Rule",

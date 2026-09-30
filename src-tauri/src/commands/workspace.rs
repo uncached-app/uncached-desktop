@@ -620,12 +620,16 @@ pub struct ScheduleStatus {
     /// the one combination the product can promise and not deliver, so it is
     /// reported rather than left for the user to discover by it not happening.
     pub keeps_running_in_background: bool,
+    /// Least free space across the workspace's volumes, the figure the
+    /// low-space trigger compares against.
+    pub free_bytes: Option<u64>,
 }
 
 #[tauri::command]
 pub async fn maintenance_schedule_status(app: tauri::AppHandle) -> Result<ScheduleStatus, String> {
     let settings = crate::commands::settings::load_settings(&app)?;
     let stored = settings.maintenance_schedule;
+    let free_bytes = crate::scheduler::least_free_bytes(&settings.workspace_roots);
 
     let held = match schedule::due(&schedule::Conditions {
         schedule: stored,
@@ -634,6 +638,7 @@ pub async fn maintenance_schedule_status(app: tauri::AppHandle) -> Result<Schedu
         scan_in_progress: crate::services::scan_service::ScanService::active_scan_count() > 0,
         last_run_at: settings.maintenance_last_run_at,
         now: chrono::Utc::now().timestamp(),
+        free_bytes,
     }) {
         schedule::Due::Now => None,
         schedule::Due::Held(reason) => Some(reason),
@@ -648,6 +653,7 @@ pub async fn maintenance_schedule_status(app: tauri::AppHandle) -> Result<Schedu
         min_every_hours: schedule::MIN_EVERY_HOURS,
         max_every_hours: schedule::MAX_EVERY_HOURS,
         keeps_running_in_background: settings.keep_running_in_background,
+        free_bytes,
     })
 }
 
