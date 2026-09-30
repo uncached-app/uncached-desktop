@@ -131,22 +131,17 @@ fn system_version() -> String {
     format!("macOS {version}")
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(not(target_os = "macos"))]
 fn system_version() -> String {
-    std::fs::read_to_string("/etc/os-release")
+    let release = std::fs::read_to_string("/etc/os-release")
         .ok()
         .and_then(|release| {
             release
                 .lines()
                 .find_map(|line| line.strip_prefix("PRETTY_NAME="))
                 .map(|name| name.trim_matches('"').to_owned())
-        })
-        .unwrap_or_else(|| "Linux".to_owned())
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
-fn system_version() -> String {
-    std::env::consts::OS.to_owned()
+        });
+    release.unwrap_or_else(|| std::env::consts::OS.to_owned())
 }
 
 #[cfg(test)]

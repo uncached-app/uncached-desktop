@@ -581,14 +581,19 @@ fn run_in_terminal(
         if arguments.is_empty() {
             // Nothing known about how to hand this one a command, so it gets
             // what it always got: a terminal, in the right place.
-            return open_terminal_at(launcher, target);
+            return Ok(open_terminal_at(launcher, target)?);
         }
 
         std::process::Command::new(&launcher.program)
             .args(&arguments)
             .spawn()
             .map(|_| ())
-            .map_err(|error| error.to_string())
+            .map_err(|_| {
+                CommandError::new(
+                    "terminal_refused",
+                    "That terminal would not run the command",
+                )
+            })
     }
 }
 
