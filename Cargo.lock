@@ -4809,7 +4809,6 @@ dependencies = [
  "chrono",
  "dunce",
  "ed25519-dalek",
- "jwalk",
  "libc",
  "notify",
  "objc2-foundation",
@@ -4824,7 +4823,6 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-updater",
  "thiserror 2.0.19",
- "trash",
  "uncached-core",
  "windows-sys 0.61.2",
 ]
