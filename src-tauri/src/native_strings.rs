@@ -16,7 +16,7 @@ use std::sync::RwLock;
 pub type Forms = HashMap<String, String>;
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", default)]
 pub struct NativeStrings {
     /// BCP 47 tag the templates are written in.
     pub locale: String,
@@ -25,6 +25,11 @@ pub struct NativeStrings {
     pub tray_open: String,
     pub tray_scan: String,
     pub tray_quit: String,
+    /// Placeholder: `{{size}}`.
+    pub tray_free: String,
+    /// Placeholder: `{{size}}`.
+    pub tray_reclaimable: String,
+    pub tray_run_maintenance: String,
     /// Placeholders: `{{count}}` targets, `{{size}}`.
     pub scan_finished: Forms,
     pub maintenance_title: String,
@@ -46,6 +51,9 @@ impl Default for NativeStrings {
             tray_open: "Open Uncached".to_owned(),
             tray_scan: "Scan workspace".to_owned(),
             tray_quit: "Quit Uncached".to_owned(),
+            tray_free: "{{size}} free".to_owned(),
+            tray_reclaimable: "{{size}} reclaimable".to_owned(),
+            tray_run_maintenance: "Run maintenance now".to_owned(),
             scan_finished: forms(
                 "{{count}} target found, {{size}} reclaimable.",
                 "{{count}} targets found, {{size}} reclaimable.",
@@ -121,6 +129,16 @@ pub fn render(forms: &Forms, locale: &str, count: u64, size: &str) -> String {
         .replace("{{size}}", &format!("{open}{size}{close}"))
 }
 
+/// Fills `{{size}}` in a template with no count, isolated as `render` does.
+pub fn fill_size(template: &str, locale: &str, size: &str) -> String {
+    let (open, close) = if locale == "ar" {
+        ("\u{2068}", "\u{2069}")
+    } else {
+        ("", "")
+    };
+    template.replace("{{size}}", &format!("{open}{size}{close}"))
+}
+
 /// A size the way the locale writes it. Only the decimal separator changes;
 /// the unit symbols are the same everywhere, as in the interface.
 pub fn localized_size(bytes: u64, strings: &NativeStrings) -> String {
@@ -136,7 +154,30 @@ pub fn set_native_strings(app: tauri::AppHandle, strings: NativeStrings) {
 
 #[cfg(test)]
 mod tests {
-    use super::{plural_category, render, Forms};
+    use super::{fill_size, plural_category, render, Forms};
+
+    #[test]
+    fn a_size_is_filled_and_isolated_in_arabic() {
+        assert_eq!(
+            fill_size("{{size}} free", "en", "42.00 GB"),
+            "42.00 GB free"
+        );
+        assert_eq!(
+            fill_size("{{size}} حرة", "ar", "1 GB"),
+            "\u{2068}1 GB\u{2069} حرة"
+        );
+    }
+
+    /// Strings pushed by an interface older than the tray summary still load.
+    #[test]
+    fn strings_without_the_tray_summary_fall_back_to_english() {
+        let strings: super::NativeStrings = serde_json::from_str(
+            r#"{"locale":"de","decimalSeparator":",","trayOpen":"Öffnen","trayScan":"Scannen","trayQuit":"Beenden","scanFinished":{"other":"x"},"maintenanceTitle":"t","maintenanceBody":{"other":"y"}}"#,
+        )
+        .unwrap();
+        assert_eq!(strings.tray_open, "Öffnen");
+        assert_eq!(strings.tray_free, "{{size}} free");
+    }
 
     /// Produced by `Intl.PluralRules(locale).select(n)` in Node 26.
     #[test]

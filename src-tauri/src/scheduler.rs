@@ -25,6 +25,7 @@ use crate::models::action::{CleanMode, CleanRequest, CleanupTrigger};
 use crate::services::scan_service::ScanService;
 use crate::workspace::schedule::{self, Conditions, Due};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::time::Duration;
 use tauri::{AppHandle, Listener};
@@ -53,6 +54,19 @@ const STARTUP_GRACE: Duration = Duration::from_secs(5 * 60);
 /// process ends and silently stop maintenance for good.
 const SCAN_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 
+/// Set while a run is in progress, so a tick and the tray's Run Now never
+/// overlap: two runs would scan the same folders and claim the same targets.
+static RUNNING: AtomicBool = AtomicBool::new(false);
+
+/// Clears `RUNNING` on every way out of a run, including an early return.
+struct RunGuard;
+
+impl Drop for RunGuard {
+    fn drop(&mut self) {
+        RUNNING.store(false, Ordering::SeqCst);
+    }
+}
+
 /// Starts the schedule watcher. Called once, from `setup`.
 pub fn install(app: &AppHandle) {
     let handle = app.clone();
@@ -67,6 +81,9 @@ pub fn install(app: &AppHandle) {
 
 /// One examination of the schedule.
 fn tick(app: &AppHandle) {
+    // The tray shows free space, which only changes between its rebuilds.
+    crate::tray::relabel(app);
+
     let settings = match crate::commands::settings::load_settings(app) {
         Ok(settings) => settings,
         // A settings file that cannot be read is not a reason to guess at a
@@ -141,8 +158,46 @@ pub(crate) fn least_free_bytes(roots: &[String]) -> Option<u64> {
         .min()
 }
 
-/// What one due run does, start to finish.
+/// Runs the policy now, for the tray: the gates of a tick except the clock.
+pub fn run_now(app: &AppHandle) {
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        let Ok(settings) = crate::commands::settings::load_settings(&handle) else {
+            return;
+        };
+        let pro_enabled = crate::commands::entitlements::current_status().pro_enabled;
+        if !pro_enabled
+            || settings.workspace_roots.is_empty()
+            || ScanService::active_scan_count() > 0
+        {
+            crate::logging::info("schedule", "run now declined");
+            return;
+        }
+        let now = chrono::Utc::now().timestamp();
+        if let Err(error) = crate::commands::settings::record_maintenance_run(&handle, now) {
+            crate::logging::warn(
+                "schedule",
+                &format!("could not stamp the run, holding error=\"{error}\""),
+            );
+            return;
+        }
+        run(&handle, &settings);
+    });
+}
+
+/// One run, unless another is in progress.
 fn run(app: &AppHandle, settings: &AppSettings) {
+    if RUNNING.swap(true, Ordering::SeqCst) {
+        crate::logging::info("schedule", "a run is already in progress, skipping");
+        return;
+    }
+    let _guard = RunGuard;
+    perform(app, settings);
+    crate::tray::relabel(app);
+}
+
+/// What one run does, start to finish.
+fn perform(app: &AppHandle, settings: &AppSettings) {
     crate::logging::info(
         "schedule",
         &format!("run started roots={}", settings.workspace_roots.len()),

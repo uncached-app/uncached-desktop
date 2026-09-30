@@ -25,6 +25,11 @@ function forms(tag: LocaleTag, base: string): Record<string, string> {
   );
 }
 
+/** A template with its placeholders left in, for the native side to fill. */
+function template(tag: LocaleTag, key: string): string {
+  return resource(tag, key) ?? resource(FALLBACK_LOCALE, key) ?? "";
+}
+
 function decimalSeparator(tag: LocaleTag): string {
   return new Intl.NumberFormat(tag).formatToParts(1.5).find((part) => part.type === "decimal")?.value ?? ".";
 }
@@ -39,6 +44,9 @@ export function pushNativeStrings(tag: LocaleTag): void {
     trayOpen: t("shell.native.trayOpen"),
     trayScan: t("shell.native.trayScan"),
     trayQuit: t("shell.native.trayQuit"),
+    trayFree: template(tag, "shell.native.trayFree"),
+    trayReclaimable: template(tag, "shell.native.trayReclaimable"),
+    trayRunMaintenance: t("shell.native.trayRunMaintenance"),
     scanFinished: forms(tag, "shell.native.scanFinished"),
     maintenanceTitle: t("shell.native.maintenanceTitle"),
     maintenanceBody: forms(tag, "shell.native.maintenanceBody"),

@@ -145,7 +145,10 @@
     "scanFinished_other": "{{count}} alvos encontrados, {{size}} a liberar.",
     "maintenanceTitle": "Manutenção do Uncached",
     "maintenanceBody_one": "{{size}} liberados de {{count}} projeto ocioso. Tudo foi para o Lixo.",
-    "maintenanceBody_other": "{{size}} liberados de {{count}} projetos ociosos. Tudo foi para o Lixo."
+    "maintenanceBody_other": "{{size}} liberados de {{count}} projetos ociosos. Tudo foi para o Lixo.",
+    "trayFree": "{{size}} livres",
+    "trayReclaimable": "{{size}} recuperáveis",
+    "trayRunMaintenance": "Rodar manutenção agora"
   },
   "errors": {
     "invalid_workspace": "Esta pasta não pode ser varrida.",

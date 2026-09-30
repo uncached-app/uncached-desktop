@@ -124,6 +124,7 @@ pub fn run() {
             available_launchers,
             commands::storage::storage_report,
             native_strings::set_native_strings,
+            tray::set_tray_summary,
             commands::storage::open_full_disk_access,
             reveal_project,
             open_project_with,

@@ -157,7 +157,10 @@
     "maintenanceBody_two": "استُعيد {{size}} من {{count}} مشروعين خاملين. نُقل كل شيء إلى سلة المهملات.",
     "maintenanceBody_few": "استُعيد {{size}} من {{count}} مشاريع خاملة. نُقل كل شيء إلى سلة المهملات.",
     "maintenanceBody_many": "استُعيد {{size}} من {{count}} مشروعًا خاملًا. نُقل كل شيء إلى سلة المهملات.",
-    "maintenanceBody_other": "استُعيد {{size}} من {{count}} مشروع خامل. نُقل كل شيء إلى سلة المهملات."
+    "maintenanceBody_other": "استُعيد {{size}} من {{count}} مشروع خامل. نُقل كل شيء إلى سلة المهملات.",
+    "trayFree": "{{size}} متاحة",
+    "trayReclaimable": "{{size}} قابلة للاسترداد",
+    "trayRunMaintenance": "تشغيل الصيانة الآن"
   },
   "errors": {
     "invalid_workspace": "لا يمكن فحص هذا المجلد.",

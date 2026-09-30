@@ -145,7 +145,10 @@
     "scanFinished_other": "{{count}} Ziele gefunden, {{size}} freigebbar.",
     "maintenanceTitle": "Uncached Wartung",
     "maintenanceBody_one": "{{size}} aus {{count}} inaktiven Projekt freigegeben. Alles wurde in den Papierkorb verschoben.",
-    "maintenanceBody_other": "{{size}} aus {{count}} inaktiven Projekten freigegeben. Alles wurde in den Papierkorb verschoben."
+    "maintenanceBody_other": "{{size}} aus {{count}} inaktiven Projekten freigegeben. Alles wurde in den Papierkorb verschoben.",
+    "trayFree": "{{size}} frei",
+    "trayReclaimable": "{{size}} freigebbar",
+    "trayRunMaintenance": "Wartung jetzt ausführen"
   },
   "errors": {
     "invalid_workspace": "Dieser Ordner kann nicht gescannt werden.",

@@ -14,6 +14,7 @@ import { UpdateToast } from "../components/layout/UpdateToast";
 import { UpdateDialog } from "../components/layout/UpdateDialog";
 import { useNativeMenu } from "../hooks/useNativeMenu";
 import { useShortcuts } from "../hooks/useShortcuts";
+import { useTraySummary } from "../hooks/useTraySummary";
 import { useWindowFill } from "../hooks/useWindowFill";
 import type { useSettings } from "../hooks/useSettings";
 import type { AppModule } from "../types/module";
@@ -59,6 +60,7 @@ export function AppLayout({
   const [updateOpen, setUpdateOpen] = useState(false);
   useSplashScreen(!settings.loading && listenersReady);
   useWindowFill();
+  useTraySummary(flow.footprints, flow.measuring);
   // Stable, because it is handed to every screen through a context.
   const openPalette = useCallback((project?: WorkspaceProject) => {
     setPaletteProject(project ?? null);

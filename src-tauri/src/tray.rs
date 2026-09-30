@@ -9,6 +9,7 @@
 //! Nothing here scans, decides or deletes. It reports what the scan already
 //! found and reopens the window that shows it.
 
+use std::sync::RwLock;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Listener, Manager, WindowEvent};
@@ -102,15 +103,90 @@ pub fn hide_dock_on_silent_start(app: &AppHandle) {
 
 const TRAY_ID: &str = "uncached";
 
+/// Reclaimable bytes across the workspace, as the window last measured them.
+static RECLAIMABLE: RwLock<Option<u64>> = RwLock::new(None);
+
+/// Free space where cleaning would free it: the workspace's disk, or home's
+/// when no folder is chosen.
+fn free_bytes(roots: &[String]) -> Option<u64> {
+    if roots.is_empty() {
+        return crate::filesystem::volume::report_for(&uncached_core::home_directory()?)
+            .map(|report| report.free_bytes);
+    }
+    crate::scheduler::least_free_bytes(roots)
+}
+
 fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let strings = crate::native_strings::current();
+    let settings = crate::commands::settings::load_settings(app).unwrap_or_default();
+    let size = |bytes: u64| crate::native_strings::localized_size(bytes, &strings);
+    let fill = |template: &str, bytes: u64| {
+        crate::native_strings::fill_size(template, &strings.locale, &size(bytes))
+    };
+
+    let mut status = Vec::new();
+    if let Some(bytes) = free_bytes(&settings.workspace_roots) {
+        status.push(MenuItem::with_id(
+            app,
+            "free",
+            fill(&strings.tray_free, bytes),
+            false,
+            None::<&str>,
+        )?);
+    }
+    if let Some(bytes) = RECLAIMABLE.read().ok().and_then(|guard| *guard) {
+        status.push(MenuItem::with_id(
+            app,
+            "reclaimable",
+            fill(&strings.tray_reclaimable, bytes),
+            false,
+            None::<&str>,
+        )?);
+    }
+
     let open = MenuItem::with_id(app, "open", &strings.tray_open, true, None::<&str>)?;
     let scan = MenuItem::with_id(app, "scan", &strings.tray_scan, true, None::<&str>)?;
+    let maintenance = (crate::commands::entitlements::current_status().pro_enabled
+        && !settings.workspace_roots.is_empty())
+    .then(|| {
+        MenuItem::with_id(
+            app,
+            "maintenance",
+            &strings.tray_run_maintenance,
+            true,
+            None::<&str>,
+        )
+    })
+    .transpose()?;
     let quit = MenuItem::with_id(app, "quit", &strings.tray_quit, true, None::<&str>)?;
-    Menu::with_items(
-        app,
-        &[&open, &scan, &PredefinedMenuItem::separator(app)?, &quit],
-    )
+    let separator = PredefinedMenuItem::separator(app)?;
+    let closing = PredefinedMenuItem::separator(app)?;
+
+    let mut items: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = Vec::new();
+    for item in &status {
+        items.push(item);
+    }
+    if !status.is_empty() {
+        items.push(&separator);
+    }
+    items.push(&open);
+    items.push(&scan);
+    if let Some(item) = &maintenance {
+        items.push(item);
+    }
+    items.push(&closing);
+    items.push(&quit);
+    Menu::with_items(app, &items)
+}
+
+/// What the window measured as reclaimable, for the tray to show. `None`
+/// until a workspace has been measured.
+#[tauri::command]
+pub fn set_tray_summary(app: AppHandle, reclaimable_bytes: Option<u64>) {
+    if let Ok(mut guard) = RECLAIMABLE.write() {
+        *guard = reclaimable_bytes;
+    }
+    relabel(&app);
 }
 
 /// Rebuilds the tray menu in the current interface language.
@@ -152,6 +228,7 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
                 // flow instead of a second one that skips its state.
                 let _ = app.emit("tray://scan", ());
             }
+            "maintenance" => crate::scheduler::run_now(app),
             "quit" => app.exit(0),
             _ => {}
         })

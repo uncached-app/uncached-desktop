@@ -145,7 +145,10 @@
     "scanFinished_other": "{{count}} objetivos encontrados, {{size}} recuperables.",
     "maintenanceTitle": "Mantenimiento de Uncached",
     "maintenanceBody_one": "{{size}} recuperados de {{count}} proyecto inactivo. Todo se movió a la Papelera.",
-    "maintenanceBody_other": "{{size}} recuperados de {{count}} proyectos inactivos. Todo se movió a la Papelera."
+    "maintenanceBody_other": "{{size}} recuperados de {{count}} proyectos inactivos. Todo se movió a la Papelera.",
+    "trayFree": "{{size}} libres",
+    "trayReclaimable": "{{size}} recuperables",
+    "trayRunMaintenance": "Ejecutar mantenimiento ahora"
   },
   "errors": {
     "invalid_workspace": "Esta carpeta no se puede analizar.",
