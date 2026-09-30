@@ -33,6 +33,12 @@ export function filterByAge<T extends { sizePending: boolean; lastUsedAt?: numbe
   now?: number,
 ): T[];
 
+/** `ids` itself when every one is in `available`. */
+export function keepAvailableIds(ids: Set<string>, available: ReadonlySet<string>): Set<string>;
+
+/** `targets` itself when every one is in `available`. */
+export function keepAvailableTargets<T extends { id: string }>(targets: T[], available: ReadonlySet<string>): T[];
+
 export type ConfidenceRankedTarget = {
   confidence?: { level?: string };
 };

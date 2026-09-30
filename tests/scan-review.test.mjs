@@ -5,6 +5,8 @@ import {
   getCleanupReadyTargets,
   filterByAge,
   holdsNothing,
+  keepAvailableIds,
+  keepAvailableTargets,
   listReportedOnly,
   shouldOpenReview,
   sortForListing,
@@ -282,4 +284,29 @@ test("a target whose owner is running is never offered for cleanup", () => {
     ["free"],
     "the backend refuses a blocked target, so nothing may select it",
   );
+});
+
+// The review prunes its selection on every render. A pruning that always
+// returns a fresh object re-renders forever, so nothing changed must mean the
+// same reference back.
+test("keepAvailableIds returns the same set when every id is still listed", () => {
+  const selected = new Set(["a", "b"]);
+  assert.equal(keepAvailableIds(selected, new Set(["a", "b", "c"])), selected);
+});
+
+test("keepAvailableIds drops ids that are no longer listed", () => {
+  const selected = new Set(["a", "b"]);
+  const kept = keepAvailableIds(selected, new Set(["b"]));
+  assert.notEqual(kept, selected);
+  assert.deepEqual([...kept], ["b"]);
+});
+
+test("keepAvailableTargets returns the same array when every target is still listed", () => {
+  const failed = [target({ id: "a" })];
+  assert.equal(keepAvailableTargets(failed, new Set(["a"])), failed);
+});
+
+test("keepAvailableTargets drops targets that are no longer listed", () => {
+  const failed = [target({ id: "a" }), target({ id: "b" })];
+  assert.deepEqual(keepAvailableTargets(failed, new Set(["b"])).map((entry) => entry.id), ["b"]);
 });

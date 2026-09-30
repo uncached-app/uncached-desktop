@@ -11,6 +11,8 @@ import {
   filterByAge,
   getCleanupReadyTargets,
   holdsNothing,
+  keepAvailableIds,
+  keepAvailableTargets,
   listReportedOnly,
   sortForListing,
 } from "../../utils/scanReview.mjs";
@@ -121,10 +123,10 @@ export function FindingsSection({
 
   useEffect(() => {
     const available = new Set(targets.map((target) => target.id));
-    setSelectedIds((current) => new Set([...current].filter((id) => available.has(id))));
+    setSelectedIds((current) => keepAvailableIds(current, available));
     // A target that is gone is one that was removed, so a refusal about it is
     // no longer true.
-    setFailed((current) => current.filter((target) => available.has(target.id)));
+    setFailed((current) => keepAvailableTargets(current, available));
   }, [targets]);
 
   useEffect(() => {

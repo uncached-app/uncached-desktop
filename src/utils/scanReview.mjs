@@ -109,6 +109,18 @@ export function filterByAge(targets, days, now = Date.now()) {
   );
 }
 
+/** `ids` itself when every one is in `available`, so a state setter can bail out. */
+export function keepAvailableIds(ids, available) {
+  const kept = [...ids].filter((id) => available.has(id));
+  return kept.length === ids.size ? ids : new Set(kept);
+}
+
+/** `targets` itself when every one is in `available`, so a state setter can bail out. */
+export function keepAvailableTargets(targets, available) {
+  const kept = targets.filter((target) => available.has(target.id));
+  return kept.length === targets.length ? targets : kept;
+}
+
 export function sortForListing(targets, proEnabled, order = "confidence") {
   return [...targets].filter((target) => target.cleanable !== false).sort((left, right) => {
     if (!proEnabled) {
