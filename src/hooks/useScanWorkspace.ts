@@ -43,6 +43,7 @@ import {
 } from "../utils/apiContract";
 import { describeError } from "../i18n/errors";
 import { shouldOpenReview } from "../utils/scanReview.mjs";
+import { applyScanEvents, type BatchableScanEvent } from "../utils/scanBatch.mjs";
 import { describeFailure } from "../i18n/errors";
 
 export function useScanWorkspace(
@@ -86,6 +87,62 @@ export function useScanWorkspace(
   const pendingScan = useRef(false);
   const pendingEvents = useRef<PendingScanEvent[]>([]);
   const pendingSizeUpdates = useRef<Map<string, TargetSized>>(new Map());
+  /** The list as last committed, so a batch can be applied once and outside React. */
+  const targetsRef = useRef<ScanTarget[]>([]);
+  /** Target, size and progress events waiting for the next frame. */
+  const queuedEvents = useRef<BatchableScanEvent[]>([]);
+  const queuedFrame = useRef<number | null>(null);
+
+  /**
+   * The one way the list changes. The ref is what a batch reads and the state is
+   * what the screen renders, so they are written together.
+   */
+  function commitTargets(next: ScanTarget[] | ((current: ScanTarget[]) => ScanTarget[])) {
+    const value = typeof next === "function" ? next(targetsRef.current) : next;
+    targetsRef.current = value;
+    setTargets(value);
+  }
+
+  function cancelQueuedFrame() {
+    if (queuedFrame.current !== null) {
+      window.cancelAnimationFrame(queuedFrame.current);
+      queuedFrame.current = null;
+    }
+  }
+
+  /** For a scan that is over or replaced: what it had queued is not wanted. */
+  function discardQueuedEvents() {
+    cancelQueuedFrame();
+    queuedEvents.current = [];
+  }
+
+  /**
+   * Applies everything queued as a single change.
+   *
+   * Targets, sizes and progress used to be applied one event at a time, each as
+   * its own render. The sizing workers finish in bursts, so a few hundred events
+   * arrived together and the screen spent seconds catching up; applied once per
+   * frame they cost one render. See `applyScanEvents`.
+   */
+  function flushQueuedEvents() {
+    cancelQueuedFrame();
+    const events = queuedEvents.current;
+    if (events.length === 0) return;
+    queuedEvents.current = [];
+    const applied = applyScanEvents(targetsRef.current, pendingSizeUpdates.current, events);
+    if (applied.targets !== targetsRef.current) commitTargets(applied.targets);
+    if (applied.progress) setProgress(applied.progress);
+  }
+
+  function queueScanEvent(event: BatchableScanEvent) {
+    queuedEvents.current.push(event);
+    if (queuedFrame.current === null) {
+      queuedFrame.current = window.requestAnimationFrame(() => {
+        queuedFrame.current = null;
+        flushQueuedEvents();
+      });
+    }
+  }
 
   function acceptsScanEvent(scanId: string) {
     return activeScanId.current === scanId;
@@ -96,10 +153,11 @@ export function useScanWorkspace(
     activeScanId.current = null;
     pendingScan.current = false;
     pendingEvents.current = [];
+    discardQueuedEvents();
     pendingSizeUpdates.current.clear();
     setScanning(false);
     setCancelling(false);
-    setTargets([]);
+    commitTargets([]);
     setProgress(null);
     setScanFinished(false);
     setScanTargetCount(null);
@@ -117,44 +175,15 @@ export function useScanWorkspace(
     }
     if (!acceptsScanEvent(event.payload.scanId)) return;
 
-    if (event.kind === "target") {
-      const sizeUpdate = pendingSizeUpdates.current.get(event.payload.target.id);
-      pendingSizeUpdates.current.delete(event.payload.target.id);
-      setTargets((current) => {
-        const target = sizeUpdate
-          ? {
-              ...event.payload.target,
-              sizeBytes: sizeUpdate.sizeBytes,
-              lastUsedAt: sizeUpdate.lastUsedAt ?? null,
-              sizeHasErrors: sizeUpdate.sizeHasErrors,
-              sizePending: sizeUpdate.sizePending,
-              formattedSize: sizeUpdate.formattedSize,
-            }
-          : event.payload.target;
-        return current.some((item) => item.id === target.id) ? current : [...current, target];
-      });
-    } else if (event.kind === "sized") {
-      setTargets((current) => {
-        if (!current.some((target) => target.id === event.payload.targetId)) {
-          pendingSizeUpdates.current.set(event.payload.targetId, event.payload);
-          return current;
-        }
-        return current.map((target) =>
-          target.id === event.payload.targetId
-            ? {
-                ...target,
-                sizeBytes: event.payload.sizeBytes,
-                lastUsedAt: event.payload.lastUsedAt ?? null,
-                sizeHasErrors: event.payload.sizeHasErrors,
-                sizePending: event.payload.sizePending,
-                formattedSize: event.payload.formattedSize,
-              }
-            : target,
-        );
-      });
-    } else if (event.kind === "progress") {
-      setProgress(event.payload);
-    } else if (event.kind === "finished") {
+    if (event.kind === "target" || event.kind === "sized" || event.kind === "progress") {
+      queueScanEvent(event);
+      return;
+    }
+
+    // Whatever ends the scan sees the list as it stood when it ended.
+    flushQueuedEvents();
+
+    if (event.kind === "finished") {
       pendingScan.current = false;
       setScanning(false);
       setScanFinished(true);
@@ -164,10 +193,11 @@ export function useScanWorkspace(
     } else if (event.kind === "cancelled") {
       pendingScan.current = false;
       pendingEvents.current = [];
+      discardQueuedEvents();
       activeScanId.current = null;
       setScanning(false);
       setCancelling(false);
-      setTargets([]);
+      commitTargets([]);
       setProgress(null);
       setScannedRoots(null);
       // What it had already found when it stopped. The backend sends real
@@ -253,6 +283,7 @@ export function useScanWorkspace(
 
     return () => {
       disposed = true;
+      cancelQueuedFrame();
       listeners.then((unlisten) => unlisten.forEach((stop) => stop()));
     };
   }, []);
@@ -343,7 +374,7 @@ export function useScanWorkspace(
     void indexRoots(roots);
 
     setError(null);
-    setTargets([]);
+    commitTargets([]);
     setCleanupSummary({ removed: 0, freedBytes: 0 });
     setScanFinished(false);
     setScanTargetCount(null);
@@ -359,6 +390,7 @@ export function useScanWorkspace(
     activeScanId.current = null;
     pendingScan.current = true;
     pendingEvents.current = [];
+    discardQueuedEvents();
 
     try {
       const rawResult = await invoke<RawCommandResult<ScanStartResult>>("start_scan", {
@@ -419,7 +451,8 @@ export function useScanWorkspace(
         activeScanId.current = null;
         pendingScan.current = false;
         pendingEvents.current = [];
-        setTargets([]);
+        discardQueuedEvents();
+        commitTargets([]);
         pendingSizeUpdates.current.clear();
         setProgress(null);
         setScanning(false);
@@ -472,7 +505,7 @@ export function useScanWorkspace(
         },
       });
        const result = unwrapV1(envelope, validateCleanResult);
-      setTargets((current) => current.filter((target) => target.id !== targetId));
+      commitTargets((current) => current.filter((target) => target.id !== targetId));
       setCleanupSummary((current) => ({
         removed: current.removed + 1,
         freedBytes: current.freedBytes + result.freedBytes,
@@ -498,7 +531,7 @@ export function useScanWorkspace(
       return;
     }
     setError(null);
-    setTargets((current) =>
+    commitTargets((current) =>
       current.map((target) =>
         target.id === targetId ? { ...target, sizePending: true, sizeHasErrors: false } : target,
       ),
@@ -507,7 +540,7 @@ export function useScanWorkspace(
       const result = await invoke<RawCommandResult<TargetSized>>("retry_target_size", { targetId });
       validateRetryTargetSizeResult(result);
     } catch (sizeError) {
-      setTargets((current) =>
+      commitTargets((current) =>
         current.map((target) =>
           target.id === targetId ? { ...target, sizePending: false, sizeHasErrors: true } : target,
         ),
@@ -521,7 +554,8 @@ export function useScanWorkspace(
     activeScanId.current = null;
     pendingScan.current = false;
     pendingEvents.current = [];
-    setTargets([]);
+    discardQueuedEvents();
+    commitTargets([]);
     setStep(1);
     setScanFinished(false);
     setScanTargetCount(null);
