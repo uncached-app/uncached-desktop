@@ -83,6 +83,7 @@ impl ScanService {
 
             // One session, one root at a time. Each target keeps the root it
             // was found under, so cleanup still validates against its own.
+            let progress_throttle = Arc::new(Mutex::new(ProgressThrottle::new(PROGRESS_INTERVAL)));
             let mut walk_result = Ok(uncached_core::TraversalOutcome::Completed { unreadable: 0 });
             for scan_root in &scan_roots {
                 let callback_sizing_submitter = sizing_submitter.clone();
@@ -94,6 +95,7 @@ impl ScanService {
                 let callback_cancel_token = Arc::clone(&cancel_token);
                 let callback_providers = Arc::clone(&providers);
                 let target_event_sink = Arc::clone(&target_event_sink);
+                let throttle_for_callback = Arc::clone(&progress_throttle);
 
                 let core_cancel_token = Arc::clone(&cancel_token);
                 walk_result = uncached_core::traverse_workspace(
@@ -164,6 +166,11 @@ impl ScanService {
                             return uncached_core::TraversalControl::Prune;
                         }
 
+                        // Counted above for every directory; only the report is
+                        // limited. See `PROGRESS_INTERVAL`.
+                        if !lock(&throttle_for_callback).ready_at(Instant::now()) {
+                            return uncached_core::TraversalControl::Continue;
+                        }
                         let snapshot = serde_json::json!({
                             "scanId": callback_event_scan_id,
                             "directoriesScanned": stats.directories_scanned,

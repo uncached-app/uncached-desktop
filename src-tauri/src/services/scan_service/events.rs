@@ -126,6 +126,47 @@ pub fn scan_finished_event(
     )
 }
 
+/// The most often a walk reports how far it has got.
+///
+/// The walker visits on the order of a hundred thousand directories a second,
+/// and each one used to send an event across the process boundary: serialized
+/// here, parsed there, and answered with a render of the whole screen. The
+/// interface absorbs a little over a thousand of those a second, so a long scan
+/// queued minutes of "N directories checked" behind it and the finish arrived
+/// after all of them. The counters themselves are updated for every directory;
+/// only how often they are *shown* is limited, and ten times a second reads as
+/// continuous.
+pub(super) const PROGRESS_INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
+
+/// Lets one report through per interval and drops the rest.
+///
+/// The window restarts from the last report that was let through, not from the
+/// last call, so a steady stream is sampled at the interval rather than starved.
+pub(super) struct ProgressThrottle {
+    interval: std::time::Duration,
+    last: Option<Instant>,
+}
+
+impl ProgressThrottle {
+    pub(super) fn new(interval: std::time::Duration) -> Self {
+        Self {
+            interval,
+            last: None,
+        }
+    }
+
+    /// Whether a report may be sent at `now`. The first one always may.
+    pub(super) fn ready_at(&mut self, now: Instant) -> bool {
+        match self.last {
+            Some(last) if now.duration_since(last) < self.interval => false,
+            _ => {
+                self.last = Some(now);
+                true
+            }
+        }
+    }
+}
+
 pub(super) fn emit_progress(event_sink: &EventSink, scan_id: &str, stats: &Arc<Mutex<ScanStats>>) {
     let stats = lock(stats);
     event_sink(

@@ -1735,3 +1735,38 @@ fn ending_session_removes_terminal_state() {
     assert!(!ScanService::end_session(&scan_id));
     assert!(!ScanService::cancel_scan(&scan_id).unwrap().cancelled);
 }
+
+#[test]
+fn the_first_progress_report_always_goes_out() {
+    let mut throttle = super::ProgressThrottle::new(std::time::Duration::from_millis(100));
+    assert!(throttle.ready_at(std::time::Instant::now()));
+}
+
+#[test]
+fn progress_inside_the_interval_is_dropped_and_after_it_goes_out() {
+    let interval = std::time::Duration::from_millis(100);
+    let start = std::time::Instant::now();
+    let mut throttle = super::ProgressThrottle::new(interval);
+
+    assert!(throttle.ready_at(start));
+    assert!(!throttle.ready_at(start + std::time::Duration::from_millis(1)));
+    assert!(!throttle.ready_at(start + std::time::Duration::from_millis(99)));
+    assert!(throttle.ready_at(start + interval));
+}
+
+/// The window restarts from the report that was let through. Measured from
+/// the last *call* instead, a stream faster than the interval would never be
+/// let through again after the first report.
+#[test]
+fn a_steady_fast_stream_is_sampled_at_the_interval_not_starved() {
+    let interval = std::time::Duration::from_millis(100);
+    let start = std::time::Instant::now();
+    let mut throttle = super::ProgressThrottle::new(interval);
+
+    let sent = (0..1000u64)
+        .filter(|tick| throttle.ready_at(start + std::time::Duration::from_millis(*tick)))
+        .count();
+
+    // 1000 ms of one-per-millisecond reports: one at 0, then every 100 ms.
+    assert_eq!(sent, 10);
+}
