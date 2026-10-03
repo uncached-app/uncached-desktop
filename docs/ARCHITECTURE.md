@@ -47,7 +47,7 @@ Cancellation invalidates the session and removes its targets after publication b
 
 1. Frontend invokes `clean_target` with `targetId`, `mode`, and optional confirmation.
 2. Backend claims the registered target; the frontend never supplies an authoritative path.
-3. Backend canonicalizes again, rejects links, roots, critical directories, outside-root targets, invalid provider context, missing identity, and identity changes.
+3. Core's `validate_clean_target` runs again at the moment of removal: it canonicalizes, rejects links, protected system directories, outside-root targets, invalid provider context, missing identity and identity changes. Desktop adds the checks only it can make: a running owner of the target, the confirmation phrase, and cancellation.
 4. `CleanService` calls uncached-core `clean_to_trash` or `clean_permanently` in a blocking worker after policy checks; both go through Core's platform secure cleanup backend.
 5. Backend records the removal in history and answers the invoke. Cleanup emits no events: the only party that needs the outcome is the caller, and it is holding the result.
 
@@ -55,12 +55,15 @@ Cancellation invalidates the session and removes its targets after publication b
 
 ## Platform safety
 
-- `canonicalize_target` rejects symlinks and non-real directories.
-- `is_within_root` prevents escaping the scan root.
-- Volume roots and critical directories are blocked.
-- Windows uses the extended path prefix after canonicalization where required.
-- Read-only attributes are removed with propagated errors.
+Path safety is enforced by `uncached-core`, and Desktop does not repeat it:
+
+- `canonical_workspace` refuses a scan root that is a system location, on Linux; the rule is not yet enforced on macOS or Windows.
+- The table of protected roots (`uncached_core::filesystem::protected`) decides which directories may never be deleted, which may not be a scan root, and which demote a candidate's confidence. On Unix the deletion gate refuses the protected directory itself; on Windows it refuses the whole tree.
+- `validate_clean_target`, `clean_to_trash` and `clean_permanently` re-check containment, links, provider context and recorded identity. Permanent removal then works through a pinned target (a descriptor on Unix, handles on Windows); the Unix Trash move is by path, with the residual window described in Core's `CONTRACT_V1.md`.
+- On Windows, removal ignores the read-only attribute, and the path Core reports uses the ordinary form rather than the extended `\\?\` one wherever one exists.
 - Public errors map to stable Core codes and omit native source details.
+
+What Desktop keeps in `filesystem/paths.rs` is presentation, not safety: `strip_extended_prefix` removes the Windows `\\?\` prefix so a path reads as the user knows it. An earlier copy of the safety checks lived there with no caller, and was removed; the single source of truth is Core.
 
 ## How the app presents itself to the operating system
 

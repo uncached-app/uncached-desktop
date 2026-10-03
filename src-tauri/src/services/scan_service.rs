@@ -251,6 +251,7 @@ pub(crate) fn public_error_info(error: &NukeError) -> uncached_core::CoreErrorIn
     core_error.public_info()
 }
 
+#[cfg(test)]
 pub fn error_event(
     error: &NukeError,
 ) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
@@ -868,6 +869,7 @@ impl ScanService {
         })
     }
 
+    #[cfg(test)]
     pub fn get_target(target_id: &str) -> NukeResult<RegisteredTarget> {
         registry()
             .lock()
@@ -1027,28 +1029,6 @@ impl ScanService {
             .is_some()
     }
 
-    pub fn claim_target(target_id: &str) -> NukeResult<RegisteredTarget> {
-        let mut registry = registry().lock().unwrap();
-        if registry.in_flight.contains(target_id) {
-            return Err(NukeError::PermissionDenied(
-                "Target cleanup is already in progress".to_string(),
-            ));
-        }
-
-        let target = registry
-            .targets
-            .get(target_id)
-            .cloned()
-            .ok_or_else(|| NukeError::NotFound(format!("Target {target_id}")))?;
-        if target.target.size_pending || target.target.size_has_errors {
-            return Err(NukeError::PermissionDenied(
-                "Target size is not ready".to_string(),
-            ));
-        }
-        registry.in_flight.insert(target_id.to_string());
-        Ok(target)
-    }
-
     pub fn claim_target_for_cleanup(
         target_id: &str,
     ) -> NukeResult<(RegisteredTarget, Arc<CleanupControl>)> {
@@ -1101,11 +1081,7 @@ impl ScanService {
         release_claim(&mut registry, target_id);
     }
 
-    pub fn release_target(target_id: &str) {
-        let mut registry = registry().lock().unwrap();
-        release_claim(&mut registry, target_id);
-    }
-
+    #[cfg(test)]
     pub fn remove_target(target_id: &str) -> NukeResult<RegisteredTarget> {
         let mut registry = registry().lock().unwrap();
         release_claim(&mut registry, target_id);
@@ -2315,10 +2291,10 @@ mod tests {
             },
         );
 
-        ScanService::claim_target(&target_id).unwrap();
-        assert!(ScanService::claim_target(&target_id).is_err());
-        ScanService::release_target(&target_id);
-        ScanService::claim_target(&target_id).unwrap();
+        ScanService::claim_target_for_cleanup(&target_id).unwrap();
+        assert!(ScanService::claim_target_for_cleanup(&target_id).is_err());
+        ScanService::release_cleanup(&target_id);
+        ScanService::claim_target_for_cleanup(&target_id).unwrap();
         ScanService::remove_target(&target_id).unwrap();
     }
 
@@ -2444,26 +2420,27 @@ mod tests {
     }
 
     #[test]
-    fn legacy_release_target_clears_active_cleanup_control() {
-        let target_id = format!("legacy-release-cleanup-{}", std::process::id());
+    fn release_cleanup_clears_active_cleanup_control() {
+        let target_id = format!("release-cleanup-{}", std::process::id());
         insert_test_target(&target_id);
 
         ScanService::claim_target_for_cleanup(&target_id).unwrap();
-        ScanService::release_target(&target_id);
+        ScanService::release_cleanup(&target_id);
 
         assert!(!ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
         ScanService::remove_target(&target_id).unwrap();
     }
 
     #[test]
-    fn legacy_remove_target_clears_active_cleanup_control() {
-        let target_id = format!("legacy-remove-cleanup-{}", std::process::id());
+    fn finish_cleanup_clears_active_cleanup_control_and_removes_the_target() {
+        let target_id = format!("finish-cleanup-{}", std::process::id());
         insert_test_target(&target_id);
 
         ScanService::claim_target_for_cleanup(&target_id).unwrap();
-        ScanService::remove_target(&target_id).unwrap();
+        ScanService::finish_cleanup(&target_id);
 
         assert!(!ScanService::cancel_cleanup(&target_id).unwrap().cancelled);
+        assert!(ScanService::get_target(&target_id).is_err());
     }
 
     #[test]
@@ -2574,7 +2551,7 @@ mod tests {
             },
         );
 
-        let registered = ScanService::claim_target(&target_id).unwrap();
+        let (registered, _) = ScanService::claim_target_for_cleanup(&target_id).unwrap();
         assert!(CleanService::clean_registered_target(
             registered,
             Arc::new(CleanupControl::new()),
@@ -2583,7 +2560,7 @@ mod tests {
             None,
         )
         .is_err());
-        ScanService::release_target(&target_id);
+        ScanService::release_cleanup(&target_id);
         assert!(ScanService::get_target(&target_id).is_ok());
         ScanService::remove_target(&target_id).unwrap();
     }
@@ -2621,7 +2598,7 @@ mod tests {
 
         assert!(ScanService::cancel_scan(&scan_id).unwrap().cancelled);
         assert!(ScanService::get_target(&target_id).is_err());
-        assert!(ScanService::claim_target(&target_id).is_err());
+        assert!(ScanService::claim_target_for_cleanup(&target_id).is_err());
         assert!(!ScanService::cancel_scan(&scan_id).unwrap().cancelled);
     }
 

@@ -172,16 +172,6 @@ impl ScanTarget {
         self.size_pending = false;
         self.formatted_size = format_size(size_bytes);
     }
-
-    pub fn to_core_dto(&self) -> uncached_core::contract::v1::ScanTargetDto {
-        uncached_core::contract::v1::ScanTargetDto {
-            path: self.path.to_string_lossy().into_owned(),
-            category: self.category.clone(),
-            size_bytes: self.size_bytes,
-            size_pending: self.size_pending,
-            size_has_errors: self.size_has_errors,
-        }
-    }
 }
 
 fn simple_hash(input: &str) -> String {
