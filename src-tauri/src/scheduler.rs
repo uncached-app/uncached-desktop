@@ -256,7 +256,7 @@ fn perform(app: &AppHandle, settings: &AppSettings) {
     let mut failed = 0usize;
 
     for target_id in targets {
-        let envelope = tauri::async_runtime::block_on(crate::commands::clean::perform_clean(
+        let envelope = tauri::async_runtime::block_on(crate::services::clean_flow::perform_clean(
             app,
             CleanRequest {
                 target_id: target_id.clone(),
