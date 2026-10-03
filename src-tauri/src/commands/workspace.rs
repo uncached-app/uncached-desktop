@@ -152,18 +152,19 @@ fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, Command
     let (accepted, over_limit) = canonical.split_at(canonical.len().min(limit));
 
     let mut roots = Vec::new();
-    let mut projects = Vec::new();
+    let mut found = Vec::new();
     let mut truncated = false;
     let mut skipped = Skipped::default();
 
     for root in accepted {
-        let before = projects.len();
-        discover_projects(root, root, 0, &mut projects, &mut skipped)?;
+        let before = found.len();
+        discover_projects(root, root, 0, &mut found, &mut skipped)?;
         // The cap is shared across roots, so it is reported once for the whole index.
-        truncated = truncated || projects.len() >= MAX_PROJECTS && projects.len() > before;
+        truncated = truncated || found.len() >= MAX_PROJECTS && found.len() > before;
         roots.push(root.to_string_lossy().into_owned());
     }
 
+    let mut projects = inspect_projects(&found);
     mark_duplicates(&mut projects);
     projects.sort_by_cached_key(|project| project.name.to_lowercase());
 
@@ -221,20 +222,86 @@ fn detect_families(
 /// the operating system withholds is counted and stepped over. Scanning a whole
 /// disk crosses plenty of those, and one of them ending the walk would leave the
 /// user with an error instead of the projects the walk had already found.
+/// A directory discovery decided is a project, and the root it was found under.
+///
+/// Discovery only walks folders and looks for markers; reading what is *in* a
+/// project (git state, activity, restore) is `inspect_projects`. They used to be
+/// one recursion, which made the slow half serial: each project cost seven `git`
+/// processes in a row before the walk moved on to the next folder.
+struct Found {
+    path: PathBuf,
+    root: PathBuf,
+}
+
+impl Found {
+    fn new(path: &Path, root: &Path) -> Self {
+        Self {
+            path: path.to_path_buf(),
+            root: root.to_path_buf(),
+        }
+    }
+}
+
+/// Upper bound on projects read at once. Each one starts `git` processes, so
+/// the limit is about not flooding the machine, not about what it could run.
+const MAX_INSPECTION_WORKERS: usize = 8;
+
+/// Reads every discovered project, several at a time, and returns them in the
+/// order discovery found them.
+///
+/// The order matters: the caller sorts by name afterwards and that sort is
+/// stable, so two projects with the same name keep the order they were found
+/// in, exactly as when this ran one after another.
+fn inspect_projects(found: &[Found]) -> Vec<WorkspaceProject> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Mutex, PoisonError};
+
+    let workers = std::thread::available_parallelism()
+        .map_or(1, |count| count.get())
+        .min(MAX_INSPECTION_WORKERS)
+        .min(found.len());
+    if workers <= 1 {
+        return found
+            .iter()
+            .map(|project| project_from_directory(&project.path, &project.root))
+            .collect();
+    }
+
+    let next = AtomicUsize::new(0);
+    let slots: Vec<Mutex<Option<WorkspaceProject>>> =
+        found.iter().map(|_| Mutex::new(None)).collect();
+    std::thread::scope(|scope| {
+        for _ in 0..workers {
+            scope.spawn(|| loop {
+                let index = next.fetch_add(1, Ordering::Relaxed);
+                let Some(project) = found.get(index) else {
+                    break;
+                };
+                let inspected = project_from_directory(&project.path, &project.root);
+                *slots[index].lock().unwrap_or_else(PoisonError::into_inner) = Some(inspected);
+            });
+        }
+    });
+    slots
+        .into_iter()
+        .filter_map(|slot| slot.into_inner().unwrap_or_else(PoisonError::into_inner))
+        .collect()
+}
+
 fn discover_projects(
     root: &Path,
     directory: &Path,
     depth: usize,
-    projects: &mut Vec<WorkspaceProject>,
+    found: &mut Vec<Found>,
     skipped: &mut Skipped,
 ) -> Result<(), String> {
-    if depth > MAX_DEPTH || projects.len() >= MAX_PROJECTS {
+    if depth > MAX_DEPTH || found.len() >= MAX_PROJECTS {
         return Ok(());
     }
 
     let is_project = directory.join(".git").is_dir();
     if is_project {
-        projects.push(project_from_directory(directory, root));
+        found.push(Found::new(directory, root));
         return Ok(());
     }
 
@@ -247,7 +314,7 @@ fn discover_projects(
         }
     };
     for entry in entries {
-        if projects.len() >= MAX_PROJECTS {
+        if found.len() >= MAX_PROJECTS {
             break;
         }
         let Ok(entry) = entry else {
@@ -269,10 +336,10 @@ fn discover_projects(
             continue;
         }
         if path != root && looks_like_project(&path) {
-            projects.push(project_from_directory(&path, root));
+            found.push(Found::new(&path, root));
             continue;
         }
-        discover_projects(root, &path, depth + 1, projects, skipped)?;
+        discover_projects(root, &path, depth + 1, found, skipped)?;
     }
     Ok(())
 }
@@ -812,8 +879,55 @@ fn measure_footprint(
 
 #[cfg(test)]
 mod tests {
-    use super::build_index;
+    use super::{build_index, inspect_projects, project_from_directory, Found};
     use std::fs;
+
+    /// Reading projects several at a time must change when the answer arrives,
+    /// never what it is: same projects, same order as one after another. The
+    /// caller's name sort is stable, so the order here decides ties.
+    #[test]
+    fn inspecting_projects_in_parallel_matches_doing_it_one_at_a_time() {
+        let root = std::env::temp_dir().join(format!(
+            "uncached-inspect-order-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        // Found out of alphabetical order, so a result that came back sorted,
+        // or in the order the workers finished, would not match.
+        let found: Vec<Found> = [7, 1, 22, 3, 15, 9, 30, 2, 18, 11, 5, 26, 13, 4, 20, 8]
+            .iter()
+            .map(|n| {
+                let directory = root.join(format!("project-{n:02}"));
+                std::fs::create_dir_all(&directory).unwrap();
+                std::fs::write(directory.join("package.json"), "{}").unwrap();
+                Found::new(&directory, &root)
+            })
+            .collect();
+
+        let one_at_a_time: Vec<_> = found
+            .iter()
+            .map(|project| project_from_directory(&project.path, &project.root))
+            .collect();
+        let in_parallel = inspect_projects(&found);
+
+        assert_eq!(in_parallel.len(), found.len());
+        assert_eq!(
+            serde_json::to_string(&in_parallel).unwrap(),
+            serde_json::to_string(&one_at_a_time).unwrap()
+        );
+        assert_eq!(
+            in_parallel
+                .iter()
+                .map(|p| p.path.clone())
+                .collect::<Vec<_>>(),
+            found
+                .iter()
+                .map(|p| p.path.to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn discovers_project_and_ignores_regenerable_directories() {
