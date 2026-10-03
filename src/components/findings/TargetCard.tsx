@@ -169,7 +169,12 @@ export const TargetCard = memo(function TargetCard({
       // box, so the row's padding and border (29px) are added to it, and 78px
       // here made every unrendered row 107px and the scrollbar 27 per cent too
       // long. Ignored where unsupported.
-      className={`group grid select-none gap-3 px-4 py-3.5 transition-colors duration-200 [content-visibility:auto] [contain-intrinsic-size:auto_48px] sm:grid-cols-[1fr_auto] sm:items-center ${
+      //
+      // The value implies paint containment, which clips what hangs outside the
+      // row: the confidence tooltip above it and the copy confirmation below. A
+      // row being pointed at or focused is on screen by definition, so it is
+      // rendered in full and the tooltips are whole; its size does not change.
+      className={`group grid select-none gap-3 px-4 py-3.5 transition-colors duration-200 [content-visibility:auto] [contain-intrinsic-size:auto_48px] hover:[content-visibility:visible] focus-within:[content-visibility:visible] sm:grid-cols-[1fr_auto] sm:items-center ${
         first ? "" : "border-t border-forest-800"
       } ${
         proLocked

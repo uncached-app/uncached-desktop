@@ -146,8 +146,10 @@ export function applyLanguage(preference: LanguagePreference): LocaleTag {
       if (i18n.language !== tag) void i18n.changeLanguage(tag);
       pushNativeStrings(tag);
     },
-    () => {
+    (error) => {
       // Nothing was loaded, so nothing is applied: the current language stays.
+      // Said once, because otherwise a choice that does nothing leaves no trace.
+      console.warn(`Could not load the "${tag}" translations; keeping the current language.`, error);
     },
   );
   return tag;

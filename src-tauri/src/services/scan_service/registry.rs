@@ -73,6 +73,11 @@ pub(super) static NEXT_SCAN_ID: std::sync::atomic::AtomicU64 = std::sync::atomic
 /// maps and sets, each updated in small steps, so the last state is a better
 /// place to carry on from than a dead application. The panic itself is still
 /// reported by the panicking thread, and this logs that it was recovered from.
+///
+/// The cost is that a session whose worker panicked part-way may never settle
+/// the job it held, so it never finishes and stays counted as active until the
+/// app restarts. That is one stuck scan, against an
+/// application where every command panics.
 pub(super) fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(|poisoned| {
         crate::logging::warn(

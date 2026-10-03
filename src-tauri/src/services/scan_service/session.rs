@@ -105,8 +105,11 @@ impl ScanService {
                         if callback_cancel_token.load(Ordering::Acquire) {
                             return uncached_core::TraversalControl::Cancel;
                         }
-                        let mut stats = lock(&stats_for_callback);
-                        stats.directories_scanned += 1;
+                        // The guard never outlives a counter update or a snapshot:
+                        // `submit` below waits for a free worker, and a worker
+                        // settling a job needs these stats, so holding them
+                        // across it could stall the walk for good.
+                        lock(&stats_for_callback).directories_scanned += 1;
 
                         if let Some(category) = entry.category.clone() {
                             let core_target =
@@ -116,7 +119,7 @@ impl ScanService {
                             if callback_cancel_token.load(Ordering::Acquire) {
                                 return uncached_core::TraversalControl::Cancel;
                             }
-                            stats.targets_found += 1;
+                            lock(&stats_for_callback).targets_found += 1;
 
                             let mut registry = lock(&registry_for_callback);
                             let accepted = {
@@ -170,14 +173,16 @@ impl ScanService {
                         if !lock(&throttle_for_callback).ready_at(Instant::now()) {
                             return uncached_core::TraversalControl::Continue;
                         }
-                        let snapshot = serde_json::json!({
-                            "scanId": callback_event_scan_id,
-                            "directoriesScanned": stats.directories_scanned,
-                            "targetsFound": stats.targets_found,
-                            "totalBytesFound": stats.total_bytes_found,
-                            "phase": stats.phase.as_wire()
-                        });
-                        drop(stats);
+                        let snapshot = {
+                            let stats = lock(&stats_for_callback);
+                            serde_json::json!({
+                                "scanId": callback_event_scan_id,
+                                "directoriesScanned": stats.directories_scanned,
+                                "targetsFound": stats.targets_found,
+                                "totalBytesFound": stats.total_bytes_found,
+                                "phase": stats.phase.as_wire()
+                            })
+                        };
                         target_event_sink(
                             "scan:progress",
                             serde_json::to_value(value_event(snapshot)).unwrap(),
