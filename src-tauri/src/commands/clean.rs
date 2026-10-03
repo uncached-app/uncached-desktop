@@ -272,9 +272,9 @@ pub(crate) async fn perform_clean(
             // in settings is tied to the Trash flow; the history answers "what
             // has this product removed for me", and a permanent delete removed
             // it just as much.
-            if let Err(error) = crate::commands::history::record_cleanup(
+            if let Err(error) = crate::history::record_cleanup(
                 app,
-                crate::commands::history::CleanupRecord {
+                crate::history::CleanupRecord {
                     freed_bytes: clean_result.freed_bytes,
                     category: &category,
                     path: &cleaned_path,

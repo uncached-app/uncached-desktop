@@ -71,7 +71,7 @@ pub fn tick(app: &AppHandle, settings: &crate::settings::AppSettings, now: i64) 
 
 fn send(app: &AppHandle, now: i64) {
     let since = chrono::DateTime::from_timestamp(now - WEEK_SECONDS, 0).unwrap_or_default();
-    let freed = crate::commands::history::freed_since(app, since);
+    let freed = crate::history::freed_since(app, since);
     let Some(message) = message(freed, crate::tray::reclaimable()) else {
         return;
     };

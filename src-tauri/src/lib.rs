@@ -4,6 +4,7 @@ pub mod commands;
 pub mod errors;
 pub mod entitlements;
 pub mod filesystem;
+pub mod history;
 pub mod license;
 pub mod logging;
 pub mod menu;
