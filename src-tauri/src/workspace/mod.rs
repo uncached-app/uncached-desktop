@@ -2,6 +2,7 @@ pub mod duplicates;
 pub mod family;
 pub mod git;
 pub mod hygiene;
+pub mod index;
 pub mod maintenance;
 pub mod orphans;
 pub mod restore;

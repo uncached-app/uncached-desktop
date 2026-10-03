@@ -457,7 +457,7 @@ pub async fn restore_project(
     program: String,
 ) -> Result<String, CommandError> {
     let target = authorize(&app, &path)?;
-    let restore = crate::commands::workspace::restore_for(&target).ok_or_else(|| {
+    let restore = crate::workspace::index::restore_for(&target).ok_or_else(|| {
         CommandError::new("no_restore_recipe", "Nothing here says how to reinstall")
     })?;
 
