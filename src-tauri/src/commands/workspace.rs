@@ -627,7 +627,16 @@ pub struct ScheduleStatus {
 
 #[tauri::command]
 pub async fn maintenance_schedule_status(app: tauri::AppHandle) -> Result<ScheduleStatus, String> {
-    let settings = crate::commands::settings::load_settings(&app)?;
+    // Off the async runtime: asking a volume how much room it has can stall for
+    // seconds when a workspace root is on a network share that went away, and
+    // an async command waiting on that holds a runtime thread the whole time.
+    tauri::async_runtime::spawn_blocking(move || schedule_status(&app))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+fn schedule_status(app: &tauri::AppHandle) -> Result<ScheduleStatus, String> {
+    let settings = crate::commands::settings::load_settings(app)?;
     let stored = settings.maintenance_schedule;
     let free_bytes = crate::scheduler::least_free_bytes(&settings.workspace_roots);
 

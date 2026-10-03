@@ -408,7 +408,7 @@ impl SizingController {
             let event_sink = Arc::clone(&event_sink);
             let cancel_token = Arc::clone(&cancel_token);
             worker_handles.push(std::thread::spawn(move || loop {
-                let job = receiver.lock().unwrap().recv();
+                let job = lock(&receiver).recv();
                 let Ok(job) = job else {
                     break;
                 };
@@ -571,6 +571,26 @@ struct ScanStats {
 static REGISTRY: OnceLock<Arc<Mutex<ScanRegistry>>> = OnceLock::new();
 static NEXT_SCAN_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
+/// Locks a mutex, carrying on when another thread panicked while holding it.
+///
+/// A panic in one worker must not turn into a panic in every command after it:
+/// with `lock().unwrap()` a single failed invariant in the sizing code poisons
+/// the registry for good, and from then on every scan, cleanup and cancel call
+/// panics until the app is restarted. The data behind these locks is counters,
+/// maps and sets, each updated in small steps, so the last state is a better
+/// place to carry on from than a dead application. The panic itself is still
+/// reported by the panicking thread, and this logs that it was recovered from.
+fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(|poisoned| {
+        crate::logging::warn(
+            "scan",
+            "a lock was poisoned by a panic on another thread; continuing with its last state",
+        );
+        mutex.clear_poison();
+        poisoned.into_inner()
+    })
+}
+
 fn registry() -> &'static Arc<Mutex<ScanRegistry>> {
     REGISTRY.get_or_init(|| Arc::new(Mutex::new(ScanRegistry::default())))
 }
@@ -632,11 +652,7 @@ impl ScanService {
         );
         let session = ScanSession::new();
         let cancel_token = Arc::clone(&session.cancel_token);
-        registry()
-            .lock()
-            .unwrap()
-            .sessions
-            .insert(scan_id.clone(), session);
+        lock(registry()).sessions.insert(scan_id.clone(), session);
         let app_handle = app.clone();
         let _ = app.emit(
             "scan:started",
@@ -688,7 +704,7 @@ impl ScanService {
                         if callback_cancel_token.load(Ordering::Acquire) {
                             return uncached_core::TraversalControl::Cancel;
                         }
-                        let mut stats = stats_for_callback.lock().unwrap();
+                        let mut stats = lock(&stats_for_callback);
                         stats.directories_scanned += 1;
 
                         if let Some(category) = entry.category.clone() {
@@ -701,7 +717,7 @@ impl ScanService {
                             }
                             stats.targets_found += 1;
 
-                            let mut registry = registry_for_callback.lock().unwrap();
+                            let mut registry = lock(&registry_for_callback);
                             let accepted = {
                                 let Some(session) = registry.sessions.get_mut(&callback_scan_id)
                                 else {
@@ -829,7 +845,7 @@ impl ScanService {
                 }
                 Ok(uncached_core::TraversalOutcome::Completed { unreadable }) => {
                     if unreadable > 0 {
-                        stats.lock().unwrap().unreadable += unreadable as u64;
+                        lock(&stats).unreadable += unreadable as u64;
                         crate::logging::warn(
                             "walker",
                             &format!(
@@ -850,7 +866,7 @@ impl ScanService {
                 return;
             }
             sizing.finish();
-            let stats = stats.lock().unwrap();
+            let stats = lock(&stats);
             crate::logging::info(
                 "scan",
                 &format!(
@@ -871,9 +887,7 @@ impl ScanService {
 
     #[cfg(test)]
     pub fn get_target(target_id: &str) -> NukeResult<RegisteredTarget> {
-        registry()
-            .lock()
-            .unwrap()
+        lock(registry())
             .targets
             .get(target_id)
             .cloned()
@@ -893,7 +907,7 @@ impl ScanService {
     /// run that hands back errors for work it was never going to do is a run
     /// that cannot be read.
     pub fn targets_under(paths: &[PathBuf]) -> Vec<String> {
-        let registry = registry().lock().unwrap();
+        let registry = lock(registry());
         let mut ids: Vec<String> = registry
             .targets
             .iter()
@@ -924,12 +938,12 @@ impl ScanService {
     ///
     /// So the caller that has no user behind it asks first and waits its turn.
     pub fn active_scan_count() -> usize {
-        registry().lock().unwrap().sessions.len()
+        lock(registry()).sessions.len()
     }
 
     pub fn refresh_target_size(target_id: &str) -> NukeResult<TargetSizeUpdate> {
         let path = {
-            let mut registry = registry().lock().unwrap();
+            let mut registry = lock(registry());
             let registered = registry
                 .targets
                 .get_mut(target_id)
@@ -946,7 +960,7 @@ impl ScanService {
         target_id: &str,
         report: crate::filesystem::size::DirSize,
     ) -> Option<TargetSizeUpdate> {
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         let registered = registry.targets.get_mut(target_id)?;
         registered.target.set_size(report.bytes, report.errors > 0);
         registered.target.last_used_at = report.newest_modified;
@@ -968,7 +982,7 @@ impl ScanService {
         started_at: Instant,
     ) -> bool {
         let should_finish = {
-            let mut registry = registry().lock().unwrap();
+            let mut registry = lock(registry());
             let Some(session) = registry.sessions.get_mut(scan_id) else {
                 return false;
             };
@@ -992,7 +1006,7 @@ impl ScanService {
     }
 
     pub fn cancel_scan(scan_id: &str) -> NukeResult<CancelScanResult> {
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         let target_ids = {
             let Some(session) = registry.sessions.get_mut(scan_id) else {
                 return Ok(CancelScanResult { cancelled: false });
@@ -1021,18 +1035,13 @@ impl ScanService {
     }
 
     fn end_session(scan_id: &str) -> bool {
-        registry()
-            .lock()
-            .unwrap()
-            .sessions
-            .remove(scan_id)
-            .is_some()
+        lock(registry()).sessions.remove(scan_id).is_some()
     }
 
     pub fn claim_target_for_cleanup(
         target_id: &str,
     ) -> NukeResult<(RegisteredTarget, Arc<CleanupControl>)> {
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         if registry.in_flight.contains(target_id) {
             return Err(NukeError::PermissionDenied(
                 "Target cleanup is already in progress".to_string(),
@@ -1059,7 +1068,7 @@ impl ScanService {
     }
 
     pub fn cancel_cleanup(target_id: &str) -> NukeResult<CancelCleanupResult> {
-        let registry = registry().lock().unwrap();
+        let registry = lock(registry());
         let cancelled = registry
             .cleanup_controls
             .get(target_id)
@@ -1068,7 +1077,7 @@ impl ScanService {
     }
 
     pub fn finish_cleanup(target_id: &str) {
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         if let Some(control) = registry.cleanup_controls.get(target_id) {
             control.finish();
         }
@@ -1077,13 +1086,13 @@ impl ScanService {
     }
 
     pub fn release_cleanup(target_id: &str) {
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         release_claim(&mut registry, target_id);
     }
 
     #[cfg(test)]
     pub fn remove_target(target_id: &str) -> NukeResult<RegisteredTarget> {
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         release_claim(&mut registry, target_id);
         registry
             .targets
@@ -1103,7 +1112,7 @@ fn apply_target_size_and_emit_for_session(
     event_sink: &EventSink,
 ) -> Option<TargetSizeUpdate> {
     let update = {
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         let accepted = registry
             .sessions
             .get(scan_id)
@@ -1157,7 +1166,7 @@ fn apply_target_size_for_session(
     target_id: &str,
     report: crate::filesystem::size::DirSize,
 ) -> Option<TargetSizeUpdate> {
-    let mut registry = registry().lock().unwrap();
+    let mut registry = lock(registry());
     let session = registry.sessions.get(scan_id)?;
     if !session.target_ids.contains(target_id) {
         return None;
@@ -1185,7 +1194,7 @@ fn settle_size_job(
     measured_bytes: Option<u64>,
 ) {
     let (cancelled, should_finish) = {
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         let Some(session) = registry.sessions.get_mut(scan_id) else {
             return;
         };
@@ -1205,7 +1214,7 @@ fn settle_size_job(
         return;
     }
     if let Some(bytes) = measured_bytes {
-        let mut stats = stats.lock().unwrap();
+        let mut stats = lock(stats);
         stats.total_bytes_found = stats.total_bytes_found.saturating_add(bytes);
     }
     emit_progress(event_sink, scan_id, stats);
@@ -1215,7 +1224,7 @@ fn settle_size_job(
 }
 
 fn complete_target_publication(scan_id: &str, target_id: &str) {
-    let mut registry = registry().lock().unwrap();
+    let mut registry = lock(registry());
     let target_ids = {
         let Some(session) = registry.sessions.get_mut(scan_id) else {
             return;
@@ -1237,7 +1246,7 @@ fn complete_target_publication(scan_id: &str, target_id: &str) {
 }
 
 fn emit_progress(event_sink: &EventSink, scan_id: &str, stats: &Arc<Mutex<ScanStats>>) {
-    let stats = stats.lock().unwrap();
+    let stats = lock(stats);
     event_sink(
         "scan:progress",
         serde_json::to_value(value_event(serde_json::json!({
@@ -1262,7 +1271,7 @@ fn cancelled_event(
     scan_id: &str,
     stats: &Arc<Mutex<ScanStats>>,
 ) -> uncached_core::contract::v1::ApiEnvelope<serde_json::Value> {
-    let stats = stats.lock().unwrap();
+    let stats = lock(stats);
     value_event(serde_json::json!({
         "scanId": scan_id,
         "totalTargets": stats.targets_found,
@@ -1276,7 +1285,7 @@ fn emit_finished(
     stats: &Arc<Mutex<ScanStats>>,
     started_at: Instant,
 ) {
-    let stats = stats.lock().unwrap();
+    let stats = lock(stats);
     event_sink(
         "scan:finished",
         serde_json::to_value(scan_finished_event(
@@ -1327,7 +1336,7 @@ fn discover_home_locations(
     // stopped and the paths about to arrive are in the home directory rather
     // than under anything the user picked, so the screen is told the phase
     // changed instead of being left to present this as more of the same walk.
-    run.stats.lock().unwrap().phase = ScanPhase::Caches;
+    lock(run.stats).phase = ScanPhase::Caches;
     emit_progress(run.events, scan_id, run.stats);
     // The same rules that prune the walk apply here. A catalogued location the
     // user excluded is not reported at all: offering it and then refusing to
@@ -1357,7 +1366,7 @@ fn discover_home_locations(
         }
         let target = ScanTarget::from_discovery(scan_id, discovery, &running);
 
-        let mut registry = registry().lock().unwrap();
+        let mut registry = lock(registry());
         let Some(session) = registry.sessions.get_mut(scan_id) else {
             return;
         };
@@ -1384,7 +1393,7 @@ fn discover_home_locations(
         );
         drop(registry);
 
-        run.stats.lock().unwrap().targets_found += 1;
+        lock(run.stats).targets_found += 1;
         emit_target_found(run.events, scan_id, &target);
         emit_progress(run.events, scan_id, run.stats);
         if !run.sizing.submit(SizingJob {
@@ -1415,7 +1424,7 @@ fn scan_id_from_target_id(target_id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        error_event, platform, providers_for_scan, registry, scan_failed_event,
+        error_event, lock, platform, providers_for_scan, registry, scan_failed_event,
         scan_finished_event, target_found_event, target_sized_event, CleanupControl, EventSink,
         RegisteredTarget, ScanService, ScanStartResult, ScanStats, SizingController, SizingJob,
         NEXT_SCAN_ID,
@@ -1434,6 +1443,42 @@ mod tests {
 
     /// The interface translates a refusal by its code, so the running
     /// program has to arrive as data rather than inside an English sentence.
+    /// One panic must not become a panic in every command after it. Poisoning
+    /// is what `lock().unwrap()` turned a single failed invariant into.
+    #[test]
+    fn lock_carries_on_with_the_last_state_after_a_panic_while_held() {
+        let shared = Arc::new(Mutex::new(vec![1, 2, 3]));
+        let poisoner = Arc::clone(&shared);
+        let _ = thread::spawn(move || {
+            let mut guard = poisoner.lock().unwrap();
+            guard.push(4);
+            panic!("a worker failed while holding the lock");
+        })
+        .join();
+        assert!(shared.is_poisoned(), "the fixture must really be poisoned");
+
+        assert_eq!(*lock(&shared), vec![1, 2, 3, 4]);
+        assert!(
+            !shared.is_poisoned(),
+            "recovered once, not on every later call"
+        );
+    }
+
+    /// The case that matters: the registry every scan, cleanup and cancel goes
+    /// through, poisoned by a panic on another thread.
+    #[test]
+    fn the_registry_keeps_answering_after_a_panic_while_it_was_held() {
+        let _ = thread::spawn(|| {
+            let _guard = registry().lock().unwrap_or_else(|e| e.into_inner());
+            panic!("a worker failed while holding the registry");
+        })
+        .join();
+
+        // Neither of these may panic.
+        let _ = ScanService::active_scan_count();
+        assert!(ScanService::claim_target_for_cleanup("no-such-target").is_err());
+    }
+
     #[test]
     fn a_target_held_by_a_running_program_is_refused_with_its_name() {
         let info = super::public_error_info(&crate::errors::NukeError::InUse("Xcode".to_owned()));
