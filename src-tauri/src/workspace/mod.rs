@@ -1,5 +1,7 @@
+pub mod candidates;
 pub mod duplicates;
 pub mod family;
+pub mod footprint;
 pub mod git;
 pub mod hygiene;
 pub mod index;

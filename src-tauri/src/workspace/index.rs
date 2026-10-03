@@ -192,6 +192,21 @@ fn detect_families(
 /// the operating system withholds is counted and stepped over. Scanning a whole
 /// disk crosses plenty of those, and one of them ending the walk would leave the
 /// user with an error instead of the projects the walk had already found.
+impl std::fmt::Display for IndexError {
+    /// The same wording the interface is shown: this is what the unattended
+    /// maintenance run records when its index cannot be built.
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoFolderSelected => write!(formatter, "Select at least one folder"),
+            Self::FolderUnreadable { detail } => {
+                write!(formatter, "Cannot open workspace: {detail}")
+            }
+            Self::NotAFolder => write!(formatter, "Workspace path is not a directory"),
+            Self::Discovery(message) => write!(formatter, "{message}"),
+        }
+    }
+}
+
 /// A directory discovery decided is a project, and the root it was found under.
 ///
 /// Discovery only walks folders and looks for markers; reading what is *in* a

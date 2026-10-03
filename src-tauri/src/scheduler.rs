@@ -205,7 +205,7 @@ fn perform(app: &AppHandle, settings: &AppSettings) {
     );
 
     let candidates =
-        match crate::commands::workspace::candidates_for(&settings.workspace_roots, settings) {
+        match crate::workspace::candidates::candidates_for(&settings.workspace_roots, settings) {
             Ok(candidates) => candidates,
             Err(error) => {
                 crate::logging::warn("schedule", &format!("index failed error=\"{error}\""));

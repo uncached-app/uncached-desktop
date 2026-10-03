@@ -285,11 +285,7 @@ fn cancellation_discards_late_updates() {
     let mut session = super::ScanSession::new();
     session.target_ids.insert(target_id.clone());
     session.register_size_job(target_id.clone());
-    registry()
-        .lock()
-        .unwrap()
-        .sessions
-        .insert(scan_id.clone(), session);
+    lock(registry()).sessions.insert(scan_id.clone(), session);
     insert_test_target(&target_id);
 
     ScanService::cancel_scan(&scan_id).unwrap();
@@ -303,7 +299,7 @@ fn cancellation_discards_late_updates() {
         },
     )
     .is_none());
-    assert!(!registry().lock().unwrap().targets.contains_key(&target_id));
+    assert!(!lock(registry()).targets.contains_key(&target_id));
 }
 
 #[test]
@@ -334,9 +330,7 @@ fn discovery_registers_catalogued_locations_as_cleanable_targets() {
     std::fs::create_dir_all(&path).unwrap();
 
     let scan_id = format!("discovery-{}", std::process::id());
-    registry()
-        .lock()
-        .unwrap()
+    lock(registry())
         .sessions
         .insert(scan_id.clone(), super::ScanSession::new());
 
@@ -391,10 +385,7 @@ fn discovery_registers_catalogued_locations_as_cleanable_targets() {
     // this test is about discovery registering the target at all.
     assert_eq!(
         target["plan"],
-        serde_json::to_value(crate::entitlements::plan_for_category(
-            &location.category
-        ))
-        .unwrap()
+        serde_json::to_value(crate::entitlements::plan_for_category(&location.category)).unwrap()
     );
 
     let target_id = target["id"].as_str().unwrap().to_owned();
@@ -424,7 +415,7 @@ fn discovery_registers_catalogued_locations_as_cleanable_targets() {
 
     drop(events);
     ScanService::remove_target(&target_id).unwrap();
-    registry().lock().unwrap().sessions.remove(&scan_id);
+    lock(registry()).sessions.remove(&scan_id);
     let _ = std::fs::remove_dir_all(&home);
 }
 
@@ -442,9 +433,7 @@ fn an_ignore_rule_keeps_a_discovery_off_the_list() {
     std::fs::create_dir_all(location.resolve(&home)).unwrap();
 
     let scan_id = format!("discovery-ignored-{}", std::process::id());
-    registry()
-        .lock()
-        .unwrap()
+    lock(registry())
         .sessions
         .insert(scan_id.clone(), super::ScanSession::new());
 
@@ -488,7 +477,7 @@ fn an_ignore_rule_keeps_a_discovery_off_the_list() {
         "an excluded location must not be reported"
     );
 
-    registry().lock().unwrap().sessions.remove(&scan_id);
+    lock(registry()).sessions.remove(&scan_id);
     let _ = std::fs::remove_dir_all(&home);
 }
 
@@ -497,7 +486,7 @@ fn sizing_error_settles_visible_target_with_error_flag() {
     let scan_id = format!("size-error-{}", std::process::id());
     let target_id = format!("{scan_id}-target");
     insert_test_target(&target_id);
-    let mut registry_guard = registry().lock().unwrap();
+    let mut registry_guard = lock(registry());
     let session = super::ScanSession::new();
     registry_guard.sessions.insert(scan_id.clone(), session);
     registry_guard
@@ -522,20 +511,18 @@ fn sizing_error_settles_visible_target_with_error_flag() {
     assert!(!update.size_pending);
     assert!(update.size_has_errors);
     ScanService::remove_target(&target_id).unwrap();
-    registry().lock().unwrap().sessions.remove(&scan_id);
+    lock(registry()).sessions.remove(&scan_id);
 }
 
 #[test]
 fn late_size_update_for_removed_target_does_not_recreate_registry_state() {
     let scan_id = format!("late-size-{}", std::process::id());
     let target_id = format!("{scan_id}-target");
-    registry()
-        .lock()
-        .unwrap()
+    lock(registry())
         .sessions
         .insert(scan_id.clone(), super::ScanSession::new());
     insert_test_target(&target_id);
-    registry().lock().unwrap().targets.remove(&target_id);
+    lock(registry()).targets.remove(&target_id);
 
     assert!(super::apply_target_size_for_session(
         &scan_id,
@@ -547,8 +534,8 @@ fn late_size_update_for_removed_target_does_not_recreate_registry_state() {
         },
     )
     .is_none());
-    assert!(!registry().lock().unwrap().targets.contains_key(&target_id));
-    registry().lock().unwrap().sessions.remove(&scan_id);
+    assert!(!lock(registry()).targets.contains_key(&target_id));
+    lock(registry()).sessions.remove(&scan_id);
 }
 
 #[test]
@@ -736,7 +723,7 @@ fn reading_target_does_not_consume_authorization() {
         1,
         false,
     );
-    registry().lock().unwrap().targets.insert(
+    lock(registry()).targets.insert(
         target_id.clone(),
         RegisteredTarget {
             target,
@@ -770,7 +757,7 @@ fn a_shared_prefix_is_not_containment() {
         .enumerate()
         .map(|(index, path)| {
             let id = format!("{prefix}-{index}");
-            registry().lock().unwrap().targets.insert(
+            lock(registry()).targets.insert(
                 id.clone(),
                 RegisteredTarget {
                     target: ScanTarget::new(path.clone(), Category::NodeModules, 1, false),
@@ -789,7 +776,7 @@ fn a_shared_prefix_is_not_containment() {
     assert_eq!(mine, vec![&ids[0]], "only the selected project's target");
 
     for id in ids {
-        registry().lock().unwrap().targets.remove(&id);
+        lock(registry()).targets.remove(&id);
     }
 }
 
@@ -821,7 +808,7 @@ fn a_target_that_cannot_be_cleaned_is_never_offered_to_a_run() {
     reportable.cleanable = false;
 
     for (index, target) in [pending, unreadable, reportable].into_iter().enumerate() {
-        registry().lock().unwrap().targets.insert(
+        lock(registry()).targets.insert(
             format!("{prefix}-{index}"),
             RegisteredTarget {
                 target,
@@ -836,9 +823,7 @@ fn a_target_that_cannot_be_cleaned_is_never_offered_to_a_run() {
     assert!(found.iter().all(|id| !id.starts_with(&prefix)), "{found:?}");
 
     for index in 0..3 {
-        registry()
-            .lock()
-            .unwrap()
+        lock(registry())
             .targets
             .remove(&format!("{prefix}-{index}"));
     }
@@ -895,7 +880,7 @@ fn claim_blocks_duplicate_cleanup_and_release_allows_retry() {
         1,
         false,
     );
-    registry().lock().unwrap().targets.insert(
+    lock(registry()).targets.insert(
         target_id.clone(),
         RegisteredTarget {
             target,
@@ -996,7 +981,7 @@ fn cleanup_claim_rejects_pending_target() {
         false,
     );
     target.size_pending = true;
-    registry().lock().unwrap().targets.insert(
+    lock(registry()).targets.insert(
         target_id.clone(),
         RegisteredTarget {
             target,
@@ -1019,7 +1004,7 @@ fn cleanup_claim_rejects_sizing_error_target() {
         0,
         true,
     );
-    registry().lock().unwrap().targets.insert(
+    lock(registry()).targets.insert(
         target_id.clone(),
         RegisteredTarget {
             target,
@@ -1097,14 +1082,10 @@ fn scan_cancellation_does_not_remove_active_cleanup_control() {
     let target_id = format!("{scan_id}-target");
     insert_test_target(&target_id);
 
-    registry()
-        .lock()
-        .unwrap()
+    lock(registry())
         .sessions
         .insert(scan_id.clone(), super::ScanSession::new());
-    registry()
-        .lock()
-        .unwrap()
+    lock(registry())
         .sessions
         .get_mut(&scan_id)
         .unwrap()
@@ -1126,7 +1107,7 @@ fn insert_test_target(target_id: &str) {
         1,
         false,
     );
-    registry().lock().unwrap().targets.insert(
+    lock(registry()).targets.insert(
         target_id.to_string(),
         RegisteredTarget {
             target,
@@ -1155,7 +1136,7 @@ fn failed_cleanup_can_be_retried_with_same_target() {
         1,
         false,
     );
-    registry().lock().unwrap().targets.insert(
+    lock(registry()).targets.insert(
         target_id.clone(),
         RegisteredTarget {
             target,
@@ -1189,7 +1170,7 @@ fn cancelling_session_removes_targets_and_is_idempotent() {
         1,
         false,
     );
-    let mut registry = registry().lock().unwrap();
+    let mut registry = lock(registry());
     registry
         .sessions
         .insert(scan_id.clone(), super::ScanSession::new());
@@ -1228,9 +1209,7 @@ fn sizing_controller_uses_real_workers_and_settlement_path() {
     let scan_id = format!("scan-controller-{}", std::process::id());
     let target_id = format!("{scan_id}-target");
     insert_test_target(&target_id);
-    registry()
-        .lock()
-        .unwrap()
+    lock(registry())
         .targets
         .get_mut(&target_id)
         .unwrap()
@@ -1240,11 +1219,7 @@ fn sizing_controller_uses_real_workers_and_settlement_path() {
     session.target_ids.insert(target_id.clone());
     session.register_size_job(target_id.clone());
     session.walk_finished = true;
-    registry()
-        .lock()
-        .unwrap()
-        .sessions
-        .insert(scan_id.clone(), session);
+    lock(registry()).sessions.insert(scan_id.clone(), session);
 
     let events = Arc::new(std::sync::Mutex::new(
         Vec::<(String, serde_json::Value)>::new(),
@@ -1284,7 +1259,7 @@ fn sizing_controller_uses_real_workers_and_settlement_path() {
             .size_bytes,
         7
     );
-    assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));
+    assert!(!lock(registry()).sessions.contains_key(&scan_id));
     let events = events.lock().unwrap();
     assert_eq!(
         events
@@ -1321,11 +1296,7 @@ fn sizing_controller_waits_for_all_jobs_and_emits_finished_once() {
         session.register_size_job(target_id.to_string());
     }
     session.walk_finished = true;
-    registry()
-        .lock()
-        .unwrap()
-        .sessions
-        .insert(scan_id.clone(), session);
+    lock(registry()).sessions.insert(scan_id.clone(), session);
 
     let events = Arc::new(std::sync::Mutex::new(
         Vec::<(String, serde_json::Value)>::new(),
@@ -1383,7 +1354,7 @@ fn sizing_controller_waits_for_all_jobs_and_emits_finished_once() {
             .count(),
         1
     );
-    assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));
+    assert!(!lock(registry()).sessions.contains_key(&scan_id));
     ScanService::remove_target(&first_target_id).unwrap();
     ScanService::remove_target(&second_target_id).unwrap();
 }
@@ -1400,11 +1371,7 @@ fn sizing_controller_settles_real_error_without_scan_failure() {
     session.target_ids.insert(target_id.clone());
     session.register_size_job(target_id.clone());
     session.walk_finished = true;
-    registry()
-        .lock()
-        .unwrap()
-        .sessions
-        .insert(scan_id.clone(), session);
+    lock(registry()).sessions.insert(scan_id.clone(), session);
 
     let events = Arc::new(std::sync::Mutex::new(
         Vec::<(String, serde_json::Value)>::new(),
@@ -1460,7 +1427,7 @@ fn sizing_controller_settles_real_error_without_scan_failure() {
             .1["data"]["totalBytesFound"],
         0
     );
-    assert!(!registry().lock().unwrap().sessions.contains_key(&scan_id));
+    assert!(!lock(registry()).sessions.contains_key(&scan_id));
     ScanService::remove_target(&target_id).unwrap();
 }
 
@@ -1473,11 +1440,7 @@ fn sizing_controller_cancellation_joins_active_worker_without_late_events() {
     session.target_ids.insert(target_id.clone());
     session.register_size_job(target_id.clone());
     let cancel_token = Arc::clone(&session.cancel_token);
-    registry()
-        .lock()
-        .unwrap()
-        .sessions
-        .insert(scan_id.clone(), session);
+    lock(registry()).sessions.insert(scan_id.clone(), session);
 
     let (started_sender, started_receiver) = mpsc::channel();
     let (release_sender, release_receiver) = mpsc::channel();
@@ -1529,11 +1492,7 @@ fn cancelled_worker_cannot_emit_events_while_publication_barrier_keeps_session_a
         session.register_size_job(target_id.to_string());
     }
     let cancel_token = Arc::clone(&session.cancel_token);
-    registry()
-        .lock()
-        .unwrap()
-        .sessions
-        .insert(scan_id.clone(), session);
+    lock(registry()).sessions.insert(scan_id.clone(), session);
 
     let (calculator_started_sender, calculator_started_receiver) = mpsc::channel();
     let calculator_calls = Arc::new(AtomicUsize::new(0));
@@ -1605,11 +1564,7 @@ fn cancellation_cannot_remove_target_before_sized_event_publication() {
     session.target_ids.insert(target_id.clone());
     session.register_size_job(target_id.clone());
     let cancel_token = Arc::clone(&session.cancel_token);
-    registry()
-        .lock()
-        .unwrap()
-        .sessions
-        .insert(scan_id.clone(), session);
+    lock(registry()).sessions.insert(scan_id.clone(), session);
 
     let (publication_started_sender, publication_started_receiver) = mpsc::channel();
     let (publication_release_sender, publication_release_receiver) = mpsc::channel();
@@ -1679,11 +1634,7 @@ fn sizing_controller_cancellation_discards_queued_and_active_jobs() {
         session.register_size_job(target_id.to_string());
     }
     let cancel_token = Arc::clone(&session.cancel_token);
-    registry()
-        .lock()
-        .unwrap()
-        .sessions
-        .insert(scan_id.clone(), session);
+    lock(registry()).sessions.insert(scan_id.clone(), session);
 
     let (started_sender, started_receiver) = mpsc::channel();
     let (release_sender, release_receiver) = mpsc::channel();
@@ -1725,9 +1676,7 @@ fn sizing_controller_cancellation_discards_queued_and_active_jobs() {
 #[test]
 fn ending_session_removes_terminal_state() {
     let scan_id = format!("finished-scan-{}", std::process::id());
-    registry()
-        .lock()
-        .unwrap()
+    lock(registry())
         .sessions
         .insert(scan_id.clone(), super::ScanSession::new());
 

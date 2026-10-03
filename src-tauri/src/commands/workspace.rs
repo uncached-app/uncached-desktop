@@ -1,12 +1,11 @@
 use crate::errors::command::CommandError;
+use crate::workspace::footprint::{measure_footprint, Footprint};
 use crate::workspace::index::{self, IndexError, WorkspaceIndex};
 use crate::workspace::maintenance;
 use crate::workspace::running;
 use crate::workspace::schedule;
 use crate::workspace::verdict::{self, ActivityState, Verdict};
-use serde::Serialize;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::AtomicBool;
 
 /// What the interface is told when an index cannot be built. The codes and the
 /// wording are the contract with the screen, and live here with the commands.
@@ -32,25 +31,6 @@ impl From<IndexError> for CommandError {
 /// The index, with its failure told in the interface's terms.
 fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, CommandError> {
     index::build_index(paths, limit).map_err(CommandError::from)
-}
-
-/// `source_bytes` is what remains once every reclaimable target is removed.
-#[derive(Debug, Clone, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Footprint {
-    pub total_bytes: u64,
-    pub source_bytes: u64,
-    pub reclaimable_bytes: u64,
-    pub by_category: Vec<CategoryBytes>,
-    /// Some directory could not be read, so the total is partial.
-    pub has_errors: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CategoryBytes {
-    pub category: String,
-    pub bytes: u64,
 }
 
 /// Canonicalises and collapses roots so the interface lists exactly what will be scanned.
@@ -266,139 +246,8 @@ fn schedule_status(app: &tauri::AppHandle) -> Result<ScheduleStatus, String> {
     })
 }
 
-/// Every project under these folders, reduced to what a policy reads.
-///
-/// The interface reaches the same answer by chaining `scan_workspace_index`,
-/// `measure_project_footprint` and `assess_project` across a window's lifetime,
-/// filling weights in a few at a time so the screen can report progress. A
-/// scheduler has no screen and nobody to report to, so it walks the same three
-/// steps here, in order, and blocks.
-///
-/// Measuring every project is the expensive part and there is no way around it:
-/// the policy's whole question is which projects are large and cold, and a
-/// project that was not weighed is unknown rather than small. That is why this
-/// runs on a timer measured in days.
-pub(crate) fn candidates_for(
-    paths: &[String],
-    settings: &crate::settings::AppSettings,
-) -> Result<Vec<maintenance::Candidate>, String> {
-    let index = build_index(paths, crate::entitlements::root_limit())
-        .map_err(|error| error.message)?;
-
-    Ok(index
-        .projects
-        .into_iter()
-        .map(|project| {
-            // A project whose footprint could not be read stays a candidate with
-            // no weight, which the policy skips as `Unmeasured`. Dropping it here
-            // would report the same refusal as a project that does not exist.
-            let footprint = measure_footprint(Path::new(&project.path), settings).ok();
-            let verdict = match footprint.as_ref() {
-                Some(measured) => verdict::assess(verdict::VerdictInput {
-                    recoverability: Some(project.git.recoverability.level),
-                    activity: project.activity.state,
-                    reclaimable_bytes: measured.reclaimable_bytes,
-                    install_missing: project.install_missing,
-                    install_stale: project.install_stale,
-                }),
-                None => Verdict::Unknown,
-            };
-            maintenance::Candidate {
-                path: project.path,
-                name: project.name,
-                verdict,
-                idle_days: project.activity.idle_days,
-                reclaimable_bytes: footprint.map(|measured| measured.reclaimable_bytes),
-            }
-        })
-        .collect())
-}
-
-fn measure_footprint(
-    path: &Path,
-    settings: &crate::settings::AppSettings,
-) -> Result<Footprint, String> {
-    // Same providers and exclusions as the Purge, so reclaimable matches what cleanup takes.
-    let providers = crate::scanner::get_default_providers(settings);
-    let cancelled = AtomicBool::new(false);
-
-    let mut targets = Vec::new();
-    let outcome = uncached_core::traverse_workspace(path, &providers, &cancelled, |entry| {
-        match entry.category.clone() {
-            Some(category) => {
-                targets.push((entry.path.clone(), category));
-                uncached_core::TraversalControl::Prune
-            }
-            None => uncached_core::TraversalControl::Continue,
-        }
-    })
-    .map_err(|error| error.to_string())?;
-
-    // A walk that could not open every folder may have missed artifacts, so the
-    // reclaimable figure is partial for the same reason a partial size is.
-    let walk_incomplete = matches!(
-        outcome,
-        uncached_core::TraversalOutcome::Completed { unreadable } if unreadable > 0
-    );
-
-    let mut footprint = Footprint {
-        has_errors: walk_incomplete,
-        ..Footprint::default()
-    };
-    let mut by_category: Vec<(String, u64)> = Vec::new();
-    let artifact_paths: Vec<std::path::PathBuf> =
-        targets.iter().map(|(path, _)| path.clone()).collect();
-
-    for (target_path, category) in targets {
-        let size = crate::filesystem::size::calculate_dir_size_report(&target_path);
-        footprint.has_errors = footprint.has_errors || size.errors > 0;
-        footprint.reclaimable_bytes = footprint.reclaimable_bytes.saturating_add(size.bytes);
-        let wire = category.as_wire();
-        match by_category.iter_mut().find(|(name, _)| name == &wire) {
-            Some((_, bytes)) => *bytes = bytes.saturating_add(size.bytes),
-            None => by_category.push((wire, size.bytes)),
-        }
-    }
-
-    // The rest of the project, without descending into anything already
-    // measured above. The artifacts are most of a project's files — 355 source
-    // files against 17,880 artifact ones in this very repository — and sizing
-    // the whole tree and then each artifact again walked those twice. On a warm
-    // macOS cache the difference is milliseconds; on Windows, where a real-time
-    // scanner inspects every file as it is opened, it is the difference between
-    // seconds and minutes.
-    //
-    // From the canonical root, because that is the spelling the traversal
-    // returned the artifact paths in — `/var` resolves to `/private/var` on
-    // macOS, and comparing one against the other matches nothing, so every
-    // artifact would be walked again and counted twice. The test caught exactly
-    // that.
-    let source = uncached_core::filesystem::directory_size_report_skipping(
-        &uncached_core::filesystem::canonical(path).unwrap_or_else(|_| path.to_path_buf()),
-        &artifact_paths,
-        &cancelled,
-    )
-    .map(|report| report.unwrap_or_default())
-    .unwrap_or_default();
-
-    footprint.source_bytes = source.bytes;
-    footprint.has_errors = footprint.has_errors || source.errors > 0;
-    // Added rather than subtracted. Taking reclaimable off a separately measured
-    // total meant two passes disagreeing whenever a file moved between them, and
-    // a saturating subtraction hid that as a zero.
-    footprint.total_bytes = source.bytes.saturating_add(footprint.reclaimable_bytes);
-    by_category.sort_by_key(|(_, bytes)| std::cmp::Reverse(*bytes));
-    footprint.by_category = by_category
-        .into_iter()
-        .map(|(category, bytes)| CategoryBytes { category, bytes })
-        .collect();
-
-    Ok(footprint)
-}
-
 #[cfg(test)]
 mod tests {
-
     use super::{build_index, IndexError};
     use crate::errors::command::CommandError;
     use std::fs;
@@ -451,53 +300,6 @@ mod tests {
         assert_eq!(build_index(&[], 12).unwrap_err().code, "no_folder_selected");
 
         let _ = fs::remove_dir_all(&root);
-    }
-
-    #[test]
-    fn a_footprint_separates_the_work_from_what_can_be_put_back() {
-        let root = std::env::temp_dir().join(format!("uncached-footprint-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&root);
-        fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
-        fs::create_dir_all(root.join("src")).unwrap();
-        fs::write(root.join("package.json"), b"{}").unwrap();
-        fs::write(root.join("src/index.js"), vec![b'a'; 100]).unwrap();
-        fs::write(root.join("node_modules/pkg/index.js"), vec![b'b'; 900]).unwrap();
-
-        let settings = crate::settings::AppSettings::default();
-        let footprint = super::measure_footprint(&root, &settings).unwrap();
-
-        assert!(footprint.reclaimable_bytes >= 900);
-        assert_eq!(
-            footprint.source_bytes,
-            footprint.total_bytes - footprint.reclaimable_bytes
-        );
-        assert!(footprint.source_bytes < footprint.reclaimable_bytes);
-        assert_eq!(footprint.by_category.len(), 1);
-        assert_eq!(footprint.by_category[0].category, "NodeModules");
-
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn a_footprint_does_not_count_what_an_ignore_rule_protects() {
-        let root =
-            std::env::temp_dir().join(format!("uncached-footprint-ignored-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&root);
-        fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
-        fs::write(root.join("package.json"), b"{}").unwrap();
-        fs::write(root.join("node_modules/pkg/index.js"), vec![b'b'; 900]).unwrap();
-
-        let settings = crate::settings::AppSettings {
-            ignore_rules: root.join("node_modules").to_string_lossy().into_owned(),
-            ..crate::settings::AppSettings::default()
-        };
-        let footprint = super::measure_footprint(&root, &settings).unwrap();
-
-        assert_eq!(footprint.reclaimable_bytes, 0);
-        assert!(footprint.by_category.is_empty());
-        assert_eq!(footprint.source_bytes, footprint.total_bytes);
-
-        let _ = fs::remove_dir_all(root);
     }
 
     /// Each answer has to carry the path that asked for it. Zipping a reply
