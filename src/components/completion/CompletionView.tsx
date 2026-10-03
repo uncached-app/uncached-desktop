@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import confetti from "canvas-confetti";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useTranslation } from "react-i18next";
@@ -39,19 +38,30 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, b
 
     if (reducedMotion || cleanupSummary.removed === 0) return;
 
+    // Fetched when the celebration is about to happen rather than with the app:
+    // most sessions never reach this screen, and it is decoration, so a failed
+    // load just means no confetti.
+    let cancelled = false;
+    const confetti = import("canvas-confetti");
     const burst = (origin: { x: number; y: number }, angle: number) => {
-      void confetti({
-        particleCount: 28,
-        angle,
-        spread: 48,
-        startVelocity: 22,
-        gravity: 1.2,
-        ticks: 120,
-        origin,
-        colors: ["#f5c518", "#ffd83d", "#ff7a4d", "#f5f3e8"],
-        disableForReducedMotion: true,
-        zIndex: 100,
-      });
+      void confetti.then(
+        ({ default: fire }) => {
+          if (cancelled) return;
+          void fire({
+            particleCount: 28,
+            angle,
+            spread: 48,
+            startVelocity: 22,
+            gravity: 1.2,
+            ticks: 120,
+            origin,
+            colors: ["#f5c518", "#ffd83d", "#ff7a4d", "#f5f3e8"],
+            disableForReducedMotion: true,
+            zIndex: 100,
+          });
+        },
+        () => {},
+      );
     };
 
     const timers = [
@@ -60,7 +70,10 @@ export function CompletionView({ step, cleanupSummary, cleanupMode, resetScan, b
       window.setTimeout(() => burst({ x: 0.72, y: 0.72 }, 115), 1400),
     ];
 
-    return () => timers.forEach(window.clearTimeout);
+    return () => {
+      cancelled = true;
+      timers.forEach(window.clearTimeout);
+    };
   }, [cleanupSummary.removed, reducedMotion, step]);
 
   return (
