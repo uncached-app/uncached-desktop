@@ -79,9 +79,9 @@ pub async fn set_app_icon(app: AppHandle, variant: Option<String>) -> Result<(),
         return Err(CommandError::new("requires_pro_icon", "Changing the app icon requires Uncached Pro"));
     }
     apply(&app, chosen.as_deref())?;
-    let mut settings = crate::commands::settings::load_settings(&app)?;
+    let mut settings = crate::settings::load_settings(&app)?;
     settings.app_icon = chosen;
-    crate::commands::settings::persist_settings(&app, &settings)?;
+    crate::settings::persist_settings(&app, &settings)?;
     Ok(())
 }
 
@@ -90,7 +90,7 @@ pub fn restore(app: &AppHandle) {
     if !crate::commands::entitlements::current_status().pro_enabled {
         return;
     }
-    let Ok(settings) = crate::commands::settings::load_settings(app) else {
+    let Ok(settings) = crate::settings::load_settings(app) else {
         return;
     };
     if let Err(error) = apply(app, settings.app_icon.as_deref()) {

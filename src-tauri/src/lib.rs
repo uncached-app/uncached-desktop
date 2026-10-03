@@ -10,6 +10,7 @@ mod native_strings;
 mod process;
 pub mod scanner;
 mod scheduler;
+pub mod settings;
 mod shell_env;
 pub mod services;
 pub mod tray;
@@ -88,7 +89,7 @@ pub fn run() {
             tray::install(handle)?;
             tray::hide_dock_on_silent_start(handle);
             tray::watch_scans(handle);
-            commands::settings::apply_autostart(handle);
+            settings::apply_autostart(handle);
             scheduler::install(handle);
             app_icon::restore(handle);
             Ok(())

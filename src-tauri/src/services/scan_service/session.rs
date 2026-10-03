@@ -7,7 +7,7 @@ pub(super) fn scan_path(path: &Path) -> PathBuf {
 }
 
 pub(super) fn providers_for_scan(
-    settings: &crate::commands::settings::AppSettings,
+    settings: &crate::settings::AppSettings,
 ) -> uncached_core::ProviderSet {
     get_default_providers(settings)
 }
@@ -66,8 +66,7 @@ impl ScanService {
 
         std::thread::spawn(move || {
             let started_at = Instant::now();
-            let settings =
-                crate::commands::settings::load_settings(&app_handle).unwrap_or_default();
+            let settings = crate::settings::load_settings(&app_handle).unwrap_or_default();
             let providers = Arc::new(providers_for_scan(&settings));
             let target_event_sink: EventSink = {
                 let app = app_handle.clone();

@@ -1,4 +1,5 @@
-use crate::commands::{entitlements, settings, storage};
+use crate::commands::{entitlements, storage};
+use crate::settings;
 use std::path::Path;
 use tauri::AppHandle;
 

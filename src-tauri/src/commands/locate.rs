@@ -337,7 +337,7 @@ pub(crate) fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, CommandE
     if !requested.is_dir() {
         return Err(CommandError::new("not_a_folder", "That is not a folder"));
     }
-    let settings = crate::commands::settings::load_settings(app)?;
+    let settings = crate::settings::load_settings(app)?;
     let roots: Vec<PathBuf> = settings
         .workspace_roots
         .iter()

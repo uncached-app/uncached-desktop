@@ -4,13 +4,13 @@ use super::{
     RegisteredTarget, ScanService, ScanStartResult, ScanStats, SizingController, SizingJob,
     NEXT_SCAN_ID,
 };
-use crate::commands::settings::AppSettings;
 use crate::errors::NukeError;
 use crate::filesystem::size::DirSize;
 use crate::models::action::CleanMode;
 use crate::models::category::Category;
 use crate::models::target::ScanTarget;
 use crate::services::clean_service::CleanService;
+use crate::settings::AppSettings;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Barrier, Mutex};
@@ -366,7 +366,7 @@ fn discovery_registers_catalogued_locations_as_cleanable_targets() {
             sizing: &sizing.submitter(),
         },
         &home,
-        &crate::scanner::discovery_categories(&crate::commands::settings::AppSettings::default()),
+        &crate::scanner::discovery_categories(&crate::settings::AppSettings::default()),
         "",
     );
     sizing.finish();
@@ -474,7 +474,7 @@ fn an_ignore_rule_keeps_a_discovery_off_the_list() {
             sizing: &sizing.submitter(),
         },
         &home,
-        &crate::scanner::discovery_categories(&crate::commands::settings::AppSettings::default()),
+        &crate::scanner::discovery_categories(&crate::settings::AppSettings::default()),
         &location.resolve(&home).to_string_lossy(),
     );
     sizing.finish();
@@ -1169,7 +1169,7 @@ fn failed_cleanup_can_be_retried_with_same_target() {
     assert!(CleanService::clean_registered_target(
         registered,
         Arc::new(CleanupControl::new()),
-        Some(&crate::commands::settings::AppSettings::default()),
+        Some(&crate::settings::AppSettings::default()),
         CleanMode::Trash,
         None,
     )

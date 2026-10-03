@@ -49,7 +49,7 @@ pub fn message(freed: u64, reclaimable: Option<u64>) -> Option<Message> {
 
 /// Called from the scheduler's tick. The week is stamped whether or not it
 /// had anything to say, so a quiet week does not retry every fifteen minutes.
-pub fn tick(app: &AppHandle, settings: &crate::commands::settings::AppSettings, now: i64) {
+pub fn tick(app: &AppHandle, settings: &crate::settings::AppSettings, now: i64) {
     let pro_enabled = crate::commands::entitlements::current_status().pro_enabled;
     match due(
         settings.weekly_digest,
@@ -61,7 +61,7 @@ pub fn tick(app: &AppHandle, settings: &crate::commands::settings::AppSettings, 
         Due::StartWeek => {}
         Due::Now => send(app, now),
     }
-    if let Err(error) = crate::commands::settings::record_weekly_digest(app, now) {
+    if let Err(error) = crate::settings::record_weekly_digest(app, now) {
         crate::logging::warn(
             "digest",
             &format!("could not stamp the week error=\"{error}\""),

@@ -80,7 +80,7 @@ pub async fn measure_project_footprint(
     app: tauri::AppHandle,
     path: String,
 ) -> Result<Footprint, String> {
-    let settings = crate::commands::settings::load_settings(&app).unwrap_or_default();
+    let settings = crate::settings::load_settings(&app).unwrap_or_default();
     tauri::async_runtime::spawn_blocking(move || measure_footprint(Path::new(&path), &settings))
         .await
         .map_err(|error| error.to_string())?
@@ -236,7 +236,7 @@ pub async fn maintenance_schedule_status(app: tauri::AppHandle) -> Result<Schedu
 }
 
 fn schedule_status(app: &tauri::AppHandle) -> Result<ScheduleStatus, String> {
-    let settings = crate::commands::settings::load_settings(app)?;
+    let settings = crate::settings::load_settings(app)?;
     let stored = settings.maintenance_schedule;
     let free_bytes = crate::scheduler::least_free_bytes(&settings.workspace_roots);
 
@@ -280,7 +280,7 @@ fn schedule_status(app: &tauri::AppHandle) -> Result<ScheduleStatus, String> {
 /// runs on a timer measured in days.
 pub(crate) fn candidates_for(
     paths: &[String],
-    settings: &crate::commands::settings::AppSettings,
+    settings: &crate::settings::AppSettings,
 ) -> Result<Vec<maintenance::Candidate>, String> {
     let index = build_index(paths, crate::commands::entitlements::root_limit())
         .map_err(|error| error.message)?;
@@ -316,7 +316,7 @@ pub(crate) fn candidates_for(
 
 fn measure_footprint(
     path: &Path,
-    settings: &crate::commands::settings::AppSettings,
+    settings: &crate::settings::AppSettings,
 ) -> Result<Footprint, String> {
     // Same providers and exclusions as the Purge, so reclaimable matches what cleanup takes.
     let providers = crate::scanner::get_default_providers(settings);
@@ -463,7 +463,7 @@ mod tests {
         fs::write(root.join("src/index.js"), vec![b'a'; 100]).unwrap();
         fs::write(root.join("node_modules/pkg/index.js"), vec![b'b'; 900]).unwrap();
 
-        let settings = crate::commands::settings::AppSettings::default();
+        let settings = crate::settings::AppSettings::default();
         let footprint = super::measure_footprint(&root, &settings).unwrap();
 
         assert!(footprint.reclaimable_bytes >= 900);
@@ -487,9 +487,9 @@ mod tests {
         fs::write(root.join("package.json"), b"{}").unwrap();
         fs::write(root.join("node_modules/pkg/index.js"), vec![b'b'; 900]).unwrap();
 
-        let settings = crate::commands::settings::AppSettings {
+        let settings = crate::settings::AppSettings {
             ignore_rules: root.join("node_modules").to_string_lossy().into_owned(),
-            ..crate::commands::settings::AppSettings::default()
+            ..crate::settings::AppSettings::default()
         };
         let footprint = super::measure_footprint(&root, &settings).unwrap();
 

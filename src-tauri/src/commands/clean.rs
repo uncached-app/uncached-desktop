@@ -1,7 +1,7 @@
-use crate::commands::settings::AppSettings;
 use crate::models::action::{CleanRequest, CleanResult};
 use crate::services::clean_service::CleanService;
 use crate::services::scan_service::{platform, ScanService};
+use crate::settings::AppSettings;
 use tauri::AppHandle;
 
 fn clean_command_failure(
@@ -53,13 +53,13 @@ mod tests {
         clean_command_failure, cleanup_capabilities, internal_command_failure, platform,
         settings_for_clean, should_record_cleanup,
     };
-    use crate::commands::settings::AppSettings;
     use crate::errors::NukeError;
     use crate::models::action::CleanMode;
     use crate::models::category::Category;
     use crate::models::target::ScanTarget;
     use crate::services::clean_service::CleanService;
     use crate::services::scan_service::{CleanupControl, RegisteredTarget};
+    use crate::settings::AppSettings;
     use std::path::PathBuf;
     use std::sync::Arc;
 
@@ -221,8 +221,7 @@ pub(crate) async fn perform_clean(
             "This cleaner requires Uncached Pro".to_string(),
         ));
     }
-    let settings = match settings_for_clean(mode, || crate::commands::settings::load_settings(app))
-    {
+    let settings = match settings_for_clean(mode, || crate::settings::load_settings(app)) {
         Ok(settings) => settings,
         Err(_error) => {
             ScanService::release_cleanup(&target_id);
@@ -262,9 +261,7 @@ pub(crate) async fn perform_clean(
         Ok(clean_result) => {
             ScanService::finish_cleanup(&target_id);
             if should_record_cleanup(mode) {
-                if let Err(error) =
-                    crate::commands::settings::record_cleanup(app, clean_result.freed_bytes)
-                {
+                if let Err(error) = crate::settings::record_cleanup(app, clean_result.freed_bytes) {
                     crate::logging::warn(
                         "settings",
                         &format!("failed to persist cleanup history error=\"{}\"", error),
