@@ -1,4 +1,4 @@
-use crate::commands::entitlements::{plan_for_category, Plan};
+use crate::entitlements::{plan_for_category, Plan};
 use crate::models::category::Category;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -321,7 +321,7 @@ mod cleanup_ready_tests {
 #[cfg(test)]
 mod tests {
     use super::ScanTarget;
-    use crate::commands::entitlements::Plan;
+    use crate::entitlements::Plan;
     use crate::models::category::Category;
     use std::path::PathBuf;
 

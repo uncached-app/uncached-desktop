@@ -14,7 +14,7 @@ pub(super) fn providers_for_scan(
 
 impl ScanService {
     pub fn start_scan(app: &AppHandle, root_paths: &[PathBuf]) -> NukeResult<ScanStartResult> {
-        let limit = crate::commands::entitlements::root_limit();
+        let limit = crate::entitlements::root_limit();
         let mut canonical = Vec::new();
         for root_path in root_paths {
             let metadata = std::fs::symlink_metadata(root_path)

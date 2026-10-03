@@ -2,7 +2,9 @@ mod app_icon;
 mod digest;
 pub mod commands;
 pub mod errors;
+pub mod entitlements;
 pub mod filesystem;
+pub mod license;
 pub mod logging;
 pub mod menu;
 pub mod models;
@@ -85,7 +87,7 @@ pub fn run() {
         .manage(watch::Watching::default())
         .setup(|app| {
             let handle = app.handle();
-            commands::license::install(handle);
+            license::install(handle);
             tray::install(handle)?;
             tray::hide_dock_on_silent_start(handle);
             tray::watch_scans(handle);

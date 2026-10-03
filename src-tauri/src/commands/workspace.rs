@@ -68,7 +68,7 @@ pub async fn normalize_workspace_roots(paths: Vec<String>) -> Vec<String> {
 
 #[tauri::command]
 pub async fn scan_workspace_index(paths: Vec<String>) -> Result<WorkspaceIndex, CommandError> {
-    let limit = crate::commands::entitlements::root_limit();
+    let limit = crate::entitlements::root_limit();
     tauri::async_runtime::spawn_blocking(move || build_index(&paths, limit))
         .await
         .map_err(|error| CommandError::from(error.to_string()))?
@@ -173,7 +173,7 @@ pub async fn maintenance_targets(
     candidates: Vec<maintenance::Candidate>,
     policy: maintenance::MaintenancePolicy,
 ) -> Result<Vec<String>, CommandError> {
-    if !crate::commands::entitlements::current_status().pro_enabled {
+    if !crate::entitlements::current_status().pro_enabled {
         return Err(CommandError::new(
             "requires_pro",
             "Running maintenance requires Uncached Pro",
@@ -242,7 +242,7 @@ fn schedule_status(app: &tauri::AppHandle) -> Result<ScheduleStatus, String> {
 
     let held = match schedule::due(&schedule::Conditions {
         schedule: stored,
-        pro_enabled: crate::commands::entitlements::current_status().pro_enabled,
+        pro_enabled: crate::entitlements::current_status().pro_enabled,
         has_workspace: !settings.workspace_roots.is_empty(),
         scan_in_progress: crate::services::scan_service::ScanService::active_scan_count() > 0,
         last_run_at: settings.maintenance_last_run_at,
@@ -282,7 +282,7 @@ pub(crate) fn candidates_for(
     paths: &[String],
     settings: &crate::settings::AppSettings,
 ) -> Result<Vec<maintenance::Candidate>, String> {
-    let index = build_index(paths, crate::commands::entitlements::root_limit())
+    let index = build_index(paths, crate::entitlements::root_limit())
         .map_err(|error| error.message)?;
 
     Ok(index

@@ -101,7 +101,7 @@ fn tick(app: &AppHandle) {
     crate::digest::tick(app, &settings, now);
     let conditions = Conditions {
         schedule: settings.maintenance_schedule,
-        pro_enabled: crate::commands::entitlements::current_status().pro_enabled,
+        pro_enabled: crate::entitlements::current_status().pro_enabled,
         has_workspace: !settings.workspace_roots.is_empty(),
         scan_in_progress: ScanService::active_scan_count() > 0,
         last_run_at: settings.maintenance_last_run_at,
@@ -166,7 +166,7 @@ pub fn run_now(app: &AppHandle) {
         let Ok(settings) = crate::settings::load_settings(&handle) else {
             return;
         };
-        let pro_enabled = crate::commands::entitlements::current_status().pro_enabled;
+        let pro_enabled = crate::entitlements::current_status().pro_enabled;
         if !pro_enabled
             || settings.workspace_roots.is_empty()
             || ScanService::active_scan_count() > 0

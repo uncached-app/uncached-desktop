@@ -146,7 +146,7 @@ fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 
     let open = MenuItem::with_id(app, "open", &strings.tray_open, true, None::<&str>)?;
     let scan = MenuItem::with_id(app, "scan", &strings.tray_scan, true, None::<&str>)?;
-    let maintenance = (crate::commands::entitlements::current_status().pro_enabled
+    let maintenance = (crate::entitlements::current_status().pro_enabled
         && !settings.workspace_roots.is_empty())
     .then(|| {
         MenuItem::with_id(

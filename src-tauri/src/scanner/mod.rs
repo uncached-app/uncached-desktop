@@ -302,7 +302,7 @@ mod tests {
     fn nothing_inside_a_chosen_folder_is_behind_the_paywall() {
         for category in active_categories(&get_default_providers(&AppSettings::default())) {
             assert!(
-                crate::commands::entitlements::is_free_category(&category),
+                crate::entitlements::is_free_category(&category),
                 "{category:?} is found by the workspace walk and would be charged for"
             );
         }

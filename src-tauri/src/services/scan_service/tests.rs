@@ -391,7 +391,7 @@ fn discovery_registers_catalogued_locations_as_cleanable_targets() {
     // this test is about discovery registering the target at all.
     assert_eq!(
         target["plan"],
-        serde_json::to_value(crate::commands::entitlements::plan_for_category(
+        serde_json::to_value(crate::entitlements::plan_for_category(
             &location.category
         ))
         .unwrap()

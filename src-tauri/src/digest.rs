@@ -50,7 +50,7 @@ pub fn message(freed: u64, reclaimable: Option<u64>) -> Option<Message> {
 /// Called from the scheduler's tick. The week is stamped whether or not it
 /// had anything to say, so a quiet week does not retry every fifteen minutes.
 pub fn tick(app: &AppHandle, settings: &crate::settings::AppSettings, now: i64) {
-    let pro_enabled = crate::commands::entitlements::current_status().pro_enabled;
+    let pro_enabled = crate::entitlements::current_status().pro_enabled;
     match due(
         settings.weekly_digest,
         pro_enabled,

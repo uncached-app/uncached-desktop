@@ -131,7 +131,7 @@ fn verify(public_key: &str, license: &str) -> Result<String, String> {
         .map_err(|_| "the public key must be 32 bytes".to_string())?;
     let key = VerifyingKey::from_bytes(&bytes).map_err(|error| error.to_string())?;
 
-    match uncached_lib::commands::license::verify_with(&key, license, Utc::now()) {
+    match uncached_lib::license::verify_with(&key, license, Utc::now()) {
         Ok(parsed) => Ok(format!(
             "valid\n  id      {}\n  holder  {}\n  plan    {}\n  seats   {}\n  expires {}",
             parsed.id,

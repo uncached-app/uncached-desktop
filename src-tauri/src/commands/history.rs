@@ -25,7 +25,7 @@
 //! dimension that has to have been written down at the time. `clear_history`
 //! deletes both files, and nothing here leaves the machine.
 
-use crate::commands::entitlements::current_status;
+use crate::entitlements::current_status;
 use crate::models::action::{CleanMode, CleanupTrigger};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};

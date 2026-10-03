@@ -213,8 +213,8 @@ pub(crate) async fn perform_clean(
         Ok(value) => value,
         Err(error) => return clean_command_failure(&error),
     };
-    if !crate::commands::entitlements::is_free_category(&registered.target.category)
-        && !crate::commands::entitlements::current_status().pro_enabled
+    if !crate::entitlements::is_free_category(&registered.target.category)
+        && !crate::entitlements::current_status().pro_enabled
     {
         ScanService::release_cleanup(&target_id);
         return clean_command_failure(&crate::errors::NukeError::PermissionDenied(

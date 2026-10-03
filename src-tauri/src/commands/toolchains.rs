@@ -39,7 +39,7 @@ pub async fn toolchain_report(
     for path in &paths {
         projects.push(authorize(&app, path)?);
     }
-    let pro_enabled = crate::commands::entitlements::current_status().pro_enabled;
+    let pro_enabled = crate::entitlements::current_status().pro_enabled;
 
     tauri::async_runtime::spawn_blocking(move || build(&projects, pro_enabled))
         .await
