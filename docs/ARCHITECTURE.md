@@ -13,12 +13,21 @@
 ```text
 React / Vite
     |
-Tauri commands + v1 event envelopes
+commands/           Tauri handlers: take the request, call down, shape the answer
     |
-ScanService / CleanService
+services/, scheduler, digest, tray     use cases, and what runs without a window
+    |
+settings, license, entitlements, history, workspace, scanner     what the app knows
     |
 uncached-core contract, scanners, cleaners, filesystem models
 ```
+
+The rule that keeps this a stack: nothing outside `commands/` imports from it
+(`lib.rs` registers the handlers and is the one exception). A command is an
+adapter, so the scheduler, the digest and the tray reach the same code the window
+does — `services::clean_flow::perform_clean` is the one door every cleanup goes
+through — rather than a copy of it, or the command layer itself.
+`tests/layering.rs` fails when a module breaks the rule.
 
 ## Contract boundary
 

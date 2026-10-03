@@ -9,7 +9,7 @@
 //!
 //! Three properties hold whatever else changes:
 //!
-//!   - **it goes through the same door.** Removal is `commands::clean::
+//!   - **it goes through the same door.** Removal is `services::clean_flow::
 //!     perform_clean`, the function the button calls, which re-checks the
 //!     licence, re-validates the target against its providers and its recorded
 //!     identity, and appends to the history. There is no second delete path;
