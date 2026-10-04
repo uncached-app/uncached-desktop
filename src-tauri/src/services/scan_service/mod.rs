@@ -20,6 +20,7 @@ mod sizing;
 mod stats;
 mod targets;
 mod types;
+mod walk;
 
 pub use cleanup_control::*;
 use discovery::*;
@@ -30,6 +31,7 @@ use session::{providers_for_scan, scan_path};
 use sizing::*;
 use stats::*;
 pub use types::*;
+use walk::*;
 
 pub struct ScanService;
 

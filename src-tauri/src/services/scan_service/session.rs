@@ -85,110 +85,24 @@ impl ScanService {
             let progress_throttle = Arc::new(Mutex::new(ProgressThrottle::new(PROGRESS_INTERVAL)));
             let mut walk_result = Ok(uncached_core::TraversalOutcome::Completed { unreadable: 0 });
             for scan_root in &scan_roots {
-                let callback_sizing_submitter = sizing_submitter.clone();
-                let stats_for_callback = Arc::clone(&stats);
-                let registry_for_callback = Arc::clone(registry());
-                let callback_scan_id = worker_scan_id.clone();
-                let callback_event_scan_id = worker_scan_id.clone();
-                let callback_root = scan_root.clone();
-                let callback_cancel_token = Arc::clone(&cancel_token);
-                let callback_providers = Arc::clone(&providers);
-                let target_event_sink = Arc::clone(&target_event_sink);
-                let throttle_for_callback = Arc::clone(&progress_throttle);
+                let observer = WalkObserver {
+                    scan_id: worker_scan_id.clone(),
+                    root: scan_root.clone(),
+                    cancel_token: Arc::clone(&cancel_token),
+                    providers: Arc::clone(&providers),
+                    stats: Arc::clone(&stats),
+                    registry: Arc::clone(registry()),
+                    event_sink: Arc::clone(&target_event_sink),
+                    throttle: Arc::clone(&progress_throttle),
+                    submitter: sizing_submitter.clone(),
+                };
 
                 let core_cancel_token = Arc::clone(&cancel_token);
                 walk_result = uncached_core::traverse_workspace(
                     scan_root,
                     &providers,
                     &core_cancel_token,
-                    move |entry| {
-                        if callback_cancel_token.load(Ordering::Acquire) {
-                            return uncached_core::TraversalControl::Cancel;
-                        }
-                        // The guard never outlives a counter update or a snapshot:
-                        // `submit` below waits for a free worker, and a worker
-                        // settling a job needs these stats, so holding them
-                        // across it could stall the walk for good.
-                        lock(&stats_for_callback).directories_scanned += 1;
-
-                        if let Some(category) = entry.category.clone() {
-                            let core_target =
-                                uncached_core::ScanTarget::new(entry.path.clone(), category, 0)
-                                    .with_identity(entry.identity);
-                            let target = ScanTarget::from_core(&callback_scan_id, core_target);
-                            if callback_cancel_token.load(Ordering::Acquire) {
-                                return uncached_core::TraversalControl::Cancel;
-                            }
-                            lock(&stats_for_callback).targets_found += 1;
-
-                            let mut registry = lock(&registry_for_callback);
-                            let accepted = {
-                                let Some(session) = registry.sessions.get_mut(&callback_scan_id)
-                                else {
-                                    return uncached_core::TraversalControl::Cancel;
-                                };
-                                if session.cancelled || session.cancel_token.load(Ordering::Acquire)
-                                {
-                                    false
-                                } else {
-                                    session.target_ids.insert(target.id.clone());
-                                    session.register_size_job(target.id.clone());
-                                    true
-                                }
-                            };
-                            if !accepted {
-                                return uncached_core::TraversalControl::Cancel;
-                            }
-                            registry.targets.insert(
-                                target.id.clone(),
-                                RegisteredTarget {
-                                    target: target.clone(),
-                                    root_path: callback_root.clone(),
-                                    providers: Arc::clone(&callback_providers),
-                                    owner: &[],
-                                },
-                            );
-                            drop(registry);
-                            emit_target_found(&target_event_sink, &callback_event_scan_id, &target);
-                            crate::logging::info(
-                                "scan",
-                                &format!(
-                                    "target scanId=\"{}\" path=\"{}\" pending=true",
-                                    callback_event_scan_id,
-                                    target.path.display()
-                                ),
-                            );
-                            if !callback_sizing_submitter.submit(SizingJob {
-                                scan_id: callback_event_scan_id.clone(),
-                                target_id: target.id.clone(),
-                                path: target.path.clone(),
-                            }) {
-                                return uncached_core::TraversalControl::Cancel;
-                            }
-                            return uncached_core::TraversalControl::Prune;
-                        }
-
-                        // Counted above for every directory; only the report is
-                        // limited. See `PROGRESS_INTERVAL`.
-                        if !lock(&throttle_for_callback).ready_at(Instant::now()) {
-                            return uncached_core::TraversalControl::Continue;
-                        }
-                        let snapshot = {
-                            let stats = lock(&stats_for_callback);
-                            serde_json::json!({
-                                "scanId": callback_event_scan_id,
-                                "directoriesScanned": stats.directories_scanned,
-                                "targetsFound": stats.targets_found,
-                                "totalBytesFound": stats.total_bytes_found,
-                                "phase": stats.phase.as_wire()
-                            })
-                        };
-                        target_event_sink(
-                            "scan:progress",
-                            serde_json::to_value(value_event(snapshot)).unwrap(),
-                        );
-                        uncached_core::TraversalControl::Continue
-                    },
+                    |entry| observer.on_entry(entry),
                 );
                 if !matches!(
                     walk_result,

@@ -1719,3 +1719,89 @@ fn a_steady_fast_stream_is_sampled_at_the_interval_not_starved() {
     // 1000 ms of one-per-millisecond reports: one at 0, then every 100 ms.
     assert_eq!(sent, 10);
 }
+
+/// The walk queues a target for sizing and waits for a free worker when the
+/// queue is full; a worker settling a job needs the scan's stats. The walk used
+/// to hold those stats while it waited, so with more targets than the queue
+/// holds, every worker stopped on the stats and the walk stopped on the queue.
+/// One worker keeps the queue at two, and fifty targets are far past it.
+#[test]
+fn the_walk_does_not_stall_on_a_full_sizing_queue() {
+    let scan_id = format!(
+        "scan-walk-stall-{}",
+        NEXT_SCAN_ID.fetch_add(1, Ordering::Relaxed)
+    );
+    lock(registry())
+        .sessions
+        .insert(scan_id.clone(), super::ScanSession::new());
+
+    let stats = Arc::new(Mutex::new(super::ScanStats::default()));
+    let (_, sink) = event_sink();
+    let calculator: super::SizeCalculator = Arc::new(|_: &std::path::Path| {
+        // Slow enough that the queue is genuinely full when the walk submits.
+        thread::sleep(std::time::Duration::from_millis(2));
+        DirSize {
+            bytes: 1,
+            errors: 0,
+            newest_modified: None,
+        }
+    });
+    let sizing = super::SizingController::with_hooks(
+        1,
+        calculator,
+        Arc::clone(&sink),
+        Arc::new(AtomicBool::new(false)),
+        &stats,
+        std::time::Instant::now(),
+    );
+    let observer = super::WalkObserver {
+        scan_id: scan_id.clone(),
+        root: PathBuf::from("/walk-stall"),
+        cancel_token: Arc::new(AtomicBool::new(false)),
+        providers: Arc::new(providers_for_scan(&AppSettings::default())),
+        stats: Arc::clone(&stats),
+        registry: Arc::clone(registry()),
+        event_sink: sink,
+        throttle: Arc::new(Mutex::new(super::ProgressThrottle::new(
+            std::time::Duration::ZERO,
+        ))),
+        submitter: sizing.submitter(),
+    };
+
+    let (done, finished) = mpsc::channel();
+    thread::spawn(move || {
+        for index in 0..50 {
+            let entry = uncached_core::TraversalEntry {
+                path: PathBuf::from(format!("/walk-stall/p{index}/node_modules")),
+                name: "node_modules".into(),
+                category: Some(uncached_core::Category::NodeModules),
+                identity: None,
+            };
+            observer.on_entry(&entry);
+        }
+        drop(observer);
+        sizing.finish();
+        let _ = done.send(());
+    });
+
+    assert!(
+        finished
+            .recv_timeout(std::time::Duration::from_secs(20))
+            .is_ok(),
+        "the walk and the sizing workers waited on each other"
+    );
+    let stats = lock(&stats);
+    assert_eq!(stats.targets_found, 50);
+    assert_eq!(stats.total_bytes_found, 50);
+    drop(stats);
+    let ids = lock(registry())
+        .targets
+        .keys()
+        .filter(|id| id.starts_with(&scan_id))
+        .cloned()
+        .collect::<Vec<_>>();
+    for id in ids {
+        let _ = ScanService::remove_target(&id);
+    }
+    lock(registry()).sessions.remove(&scan_id);
+}
