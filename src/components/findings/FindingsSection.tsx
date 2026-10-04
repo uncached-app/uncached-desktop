@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, ArrowLeft, Check, FolderSearch, LoaderCircle, Radio, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Trans, useTranslation } from "react-i18next";
@@ -20,6 +20,7 @@ import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { ReportedOnlyList } from "./ReportedOnlyList";
 import { TargetCard } from "./TargetCard";
+import { VirtualTargetList, WINDOWING_THRESHOLD } from "./VirtualTargetList";
 import { openExternalUrl } from "../../utils/externalLink";
 import { ChoiceRow } from "../shared/ChoiceRow";
 import { StatCard } from "../shared/StatCard";
@@ -138,14 +139,35 @@ export function FindingsSection({
     }
   }, [step]);
 
-  function toggleTarget(targetId: string) {
+  // Stable across renders, so a card the change did not touch is not rendered
+  // again (see `TargetCard`). `toggleTarget` reads nothing but the setter's
+  // current value; `onRefreshSize` is a new function every render upstream, so
+  // the latest one is kept in a ref and the card is given a wrapper that never
+  // changes.
+  const toggleTarget = useCallback((targetId: string) => {
     setSelectedIds((current) => {
       const next = new Set(current);
       if (next.has(targetId)) next.delete(targetId);
       else next.add(targetId);
       return next;
     });
-  }
+  }, []);
+  const latestRefreshTargetSize = useRef(refreshTargetSize);
+  latestRefreshTargetSize.current = refreshTargetSize;
+  const refreshSizeOf = useCallback((targetId: string) => latestRefreshTargetSize.current(targetId), []);
+
+  const renderTargetRow = (target: ScanTarget, position: number) => (
+    <TargetCard
+      key={target.id}
+      target={target}
+      first={position === 0}
+      isCleaning={cleaningTargetIds.has(target.id)}
+      selected={selectedIds.has(target.id)}
+      onToggle={toggleTarget}
+      onRefreshSize={refreshSizeOf}
+      proEnabled={proEnabled}
+    />
+  );
 
   function toggleAll() {
     setSelectedIds(allSelected ? new Set() : new Set(freeTargets.map((target) => target.id)));
@@ -495,18 +517,11 @@ export function FindingsSection({
                 )}
               </div>
 
-              {listedTargets.map((target, position) => (
-                <TargetCard
-                  key={target.id}
-                  target={target}
-                  first={position === 0}
-                  isCleaning={cleaningTargetIds.has(target.id)}
-                  selected={selectedIds.has(target.id)}
-                  onToggle={toggleTarget}
-                  onRefreshSize={refreshTargetSize}
-                  proEnabled={proEnabled}
-                />
-              ))}
+              {listedTargets.length >= WINDOWING_THRESHOLD ? (
+                <VirtualTargetList items={listedTargets} renderRow={renderTargetRow} />
+              ) : (
+                listedTargets.map(renderTargetRow)
+              )}
             </div>
             <ReportedOnlyList targets={reportedOnly} />
           </div>

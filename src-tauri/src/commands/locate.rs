@@ -337,7 +337,7 @@ pub(crate) fn authorize(app: &AppHandle, path: &str) -> Result<PathBuf, CommandE
     if !requested.is_dir() {
         return Err(CommandError::new("not_a_folder", "That is not a folder"));
     }
-    let settings = crate::commands::settings::load_settings(app)?;
+    let settings = crate::settings::load_settings(app)?;
     let roots: Vec<PathBuf> = settings
         .workspace_roots
         .iter()
@@ -457,7 +457,7 @@ pub async fn restore_project(
     program: String,
 ) -> Result<String, CommandError> {
     let target = authorize(&app, &path)?;
-    let restore = crate::commands::workspace::restore_for(&target).ok_or_else(|| {
+    let restore = crate::workspace::index::restore_for(&target).ok_or_else(|| {
         CommandError::new("no_restore_recipe", "Nothing here says how to reinstall")
     })?;
 

@@ -25,7 +25,7 @@ pub fn outermost_roots(roots: Vec<PathBuf>) -> Vec<PathBuf> {
 /// `android/` that the platform tooling would otherwise claim by their bare
 /// names, and the first provider to confirm wins.
 pub fn get_default_providers(
-    settings: &crate::commands::settings::AppSettings,
+    settings: &crate::settings::AppSettings,
 ) -> uncached_core::ProviderSet {
     use uncached_core::Scanner as _;
 
@@ -120,7 +120,7 @@ fn is_bundled_in_wordpress_extension(root: &std::path::Path) -> bool {
 /// Unlike the workspace, these live under paths nobody chose and belong to
 /// tools rather than to projects, so each is its own decision.
 pub fn discovery_categories(
-    settings: &crate::commands::settings::AppSettings,
+    settings: &crate::settings::AppSettings,
 ) -> Vec<uncached_core::Category> {
     let mut categories = Vec::new();
     if settings.detect_package_manager_caches {
@@ -175,7 +175,7 @@ pub fn compile_ignore_rules(
 #[cfg(test)]
 mod tests {
     use super::{get_default_providers, is_bundled_in_wordpress_extension, outermost_roots};
-    use crate::commands::settings::AppSettings;
+    use crate::settings::AppSettings;
     use std::path::{Path, PathBuf};
     use uncached_core::{Category, ProviderSet};
 
@@ -302,7 +302,7 @@ mod tests {
     fn nothing_inside_a_chosen_folder_is_behind_the_paywall() {
         for category in active_categories(&get_default_providers(&AppSettings::default())) {
             assert!(
-                crate::commands::entitlements::is_free_category(&category),
+                crate::entitlements::is_free_category(&category),
                 "{category:?} is found by the workspace walk and would be charged for"
             );
         }

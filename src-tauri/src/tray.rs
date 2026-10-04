@@ -118,7 +118,7 @@ fn free_bytes(roots: &[String]) -> Option<u64> {
 
 fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let strings = crate::native_strings::current();
-    let settings = crate::commands::settings::load_settings(app).unwrap_or_default();
+    let settings = crate::settings::load_settings(app).unwrap_or_default();
     let size = |bytes: u64| crate::native_strings::localized_size(bytes, &strings);
     let fill = |template: &str, bytes: u64| {
         crate::native_strings::fill_size(template, &strings.locale, &size(bytes))
@@ -146,7 +146,7 @@ fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 
     let open = MenuItem::with_id(app, "open", &strings.tray_open, true, None::<&str>)?;
     let scan = MenuItem::with_id(app, "scan", &strings.tray_scan, true, None::<&str>)?;
-    let maintenance = (crate::commands::entitlements::current_status().pro_enabled
+    let maintenance = (crate::entitlements::current_status().pro_enabled
         && !settings.workspace_roots.is_empty())
     .then(|| {
         MenuItem::with_id(
@@ -261,7 +261,7 @@ pub fn intercept_close(app: &AppHandle, event: &WindowEvent) -> bool {
     if !matches!(event, WindowEvent::CloseRequested { .. }) {
         return false;
     }
-    let keep_running = crate::commands::settings::load_settings(app)
+    let keep_running = crate::settings::load_settings(app)
         .map(|settings| settings.keep_running_in_background)
         .unwrap_or(false);
     if !keep_running {

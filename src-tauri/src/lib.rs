@@ -1,8 +1,11 @@
 mod app_icon;
-mod digest;
 pub mod commands;
+mod digest;
+pub mod entitlements;
 pub mod errors;
 pub mod filesystem;
+pub mod history;
+pub mod license;
 pub mod logging;
 pub mod menu;
 pub mod models;
@@ -10,8 +13,9 @@ mod native_strings;
 mod process;
 pub mod scanner;
 mod scheduler;
-mod shell_env;
 pub mod services;
+pub mod settings;
+mod shell_env;
 pub mod tray;
 pub mod watch;
 pub mod workspace;
@@ -84,11 +88,11 @@ pub fn run() {
         .manage(watch::Watching::default())
         .setup(|app| {
             let handle = app.handle();
-            commands::license::install(handle);
+            license::install(handle);
             tray::install(handle)?;
             tray::hide_dock_on_silent_start(handle);
             tray::watch_scans(handle);
-            commands::settings::apply_autostart(handle);
+            settings::apply_autostart(handle);
             scheduler::install(handle);
             app_icon::restore(handle);
             Ok(())

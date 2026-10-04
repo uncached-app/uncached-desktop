@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Check, Copy, Eye, LoaderCircle, LockKeyhole, Radio, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatAge, formatBytes } from "../../utils/format.mjs";
@@ -102,7 +102,25 @@ function ConfidenceReasons({ target }: { target: ScanTarget }) {
   );
 }
 
-export function TargetCard({ target, first, isCleaning, selected, onToggle, onRefreshSize, proEnabled }: TargetCardProps) {
+/**
+ * One row of the review list.
+ *
+ * Memoized because the list can be thousands of rows long and nearly every
+ * interaction changes one of them: ticking a checkbox used to render every card,
+ * which at 500 targets took 109 ms and at 2,000 took 431 ms. A card renders
+ * again only when something it shows changed, which depends on the callbacks it
+ * is given being stable (the list passes them so) and on a target that did not
+ * change being the same object as before (the scan reducer keeps it so).
+ */
+export const TargetCard = memo(function TargetCard({
+  target,
+  first,
+  isCleaning,
+  selected,
+  onToggle,
+  onRefreshSize,
+  proEnabled,
+}: TargetCardProps) {
   const { t } = useTranslation();
   const [copiedPath, setCopiedPath] = useState(false);
   const [confidenceOpen, setConfidenceOpen] = useState(false);
@@ -142,7 +160,21 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
          row cannot change its border without moving its neighbours: a locked
          row recedes to the canvas colour and takes the Pro tint, a selected one
          is marked on the inside edge. */
-      className={`group grid select-none gap-3 px-4 py-3.5 transition-colors duration-200 sm:grid-cols-[1fr_auto] sm:items-center ${
+      // A long list is mostly rows nobody is looking at. `content-visibility: auto`
+      // lets the browser skip laying out and painting the ones off screen, which
+      // is where the time went once React stopped re-rendering them: with 2,000
+      // targets, 92 per cent of a re-sort was the browser working on 74,000
+      // nodes. `auto 48px` is the height of a row's *content* until it has been
+      // rendered and its real one afterwards: the intrinsic size is the content
+      // box, so the row's padding and border (29px) are added to it, and 78px
+      // here made every unrendered row 107px and the scrollbar 27 per cent too
+      // long. Ignored where unsupported.
+      //
+      // The value implies paint containment, which clips what hangs outside the
+      // row: the confidence tooltip above it and the copy confirmation below. A
+      // row being pointed at or focused is on screen by definition, so it is
+      // rendered in full and the tooltips are whole; its size does not change.
+      className={`group grid select-none gap-3 px-4 py-3.5 transition-colors duration-200 [content-visibility:auto] [contain-intrinsic-size:auto_48px] hover:[content-visibility:visible] focus-within:[content-visibility:visible] sm:grid-cols-[1fr_auto] sm:items-center ${
         first ? "" : "border-t border-forest-800"
       } ${
         proLocked
@@ -333,6 +365,6 @@ export function TargetCard({ target, first, isCleaning, selected, onToggle, onRe
       {confidenceOpen && <ConfidenceReasons target={target} />}
     </article>
   );
-}
+});
 
 

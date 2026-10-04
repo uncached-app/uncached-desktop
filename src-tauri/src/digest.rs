@@ -49,8 +49,8 @@ pub fn message(freed: u64, reclaimable: Option<u64>) -> Option<Message> {
 
 /// Called from the scheduler's tick. The week is stamped whether or not it
 /// had anything to say, so a quiet week does not retry every fifteen minutes.
-pub fn tick(app: &AppHandle, settings: &crate::commands::settings::AppSettings, now: i64) {
-    let pro_enabled = crate::commands::entitlements::current_status().pro_enabled;
+pub fn tick(app: &AppHandle, settings: &crate::settings::AppSettings, now: i64) {
+    let pro_enabled = crate::entitlements::current_status().pro_enabled;
     match due(
         settings.weekly_digest,
         pro_enabled,
@@ -61,7 +61,7 @@ pub fn tick(app: &AppHandle, settings: &crate::commands::settings::AppSettings, 
         Due::StartWeek => {}
         Due::Now => send(app, now),
     }
-    if let Err(error) = crate::commands::settings::record_weekly_digest(app, now) {
+    if let Err(error) = crate::settings::record_weekly_digest(app, now) {
         crate::logging::warn(
             "digest",
             &format!("could not stamp the week error=\"{error}\""),
@@ -71,7 +71,7 @@ pub fn tick(app: &AppHandle, settings: &crate::commands::settings::AppSettings, 
 
 fn send(app: &AppHandle, now: i64) {
     let since = chrono::DateTime::from_timestamp(now - WEEK_SECONDS, 0).unwrap_or_default();
-    let freed = crate::commands::history::freed_since(app, since);
+    let freed = crate::history::freed_since(app, since);
     let Some(message) = message(freed, crate::tray::reclaimable()) else {
         return;
     };

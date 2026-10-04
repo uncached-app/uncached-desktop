@@ -9,7 +9,7 @@
 //!
 //! Three properties hold whatever else changes:
 //!
-//!   - **it goes through the same door.** Removal is `commands::clean::
+//!   - **it goes through the same door.** Removal is `services::clean_flow::
 //!     perform_clean`, the function the button calls, which re-checks the
 //!     licence, re-validates the target against its providers and its recorded
 //!     identity, and appends to the history. There is no second delete path;
@@ -20,9 +20,9 @@
 //!     log is what answers "I did not do that", and it can only answer it if it
 //!     was written when nobody asked.
 
-use crate::commands::settings::AppSettings;
 use crate::models::action::{CleanMode, CleanRequest, CleanupTrigger};
 use crate::services::scan_service::ScanService;
+use crate::settings::AppSettings;
 use crate::workspace::schedule::{self, Conditions, Due};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -84,7 +84,7 @@ fn tick(app: &AppHandle) {
     // The tray shows free space, which only changes between its rebuilds.
     crate::tray::relabel(app);
 
-    let settings = match crate::commands::settings::load_settings(app) {
+    let settings = match crate::settings::load_settings(app) {
         Ok(settings) => settings,
         // A settings file that cannot be read is not a reason to guess at a
         // policy and start deleting under defaults.
@@ -101,7 +101,7 @@ fn tick(app: &AppHandle) {
     crate::digest::tick(app, &settings, now);
     let conditions = Conditions {
         schedule: settings.maintenance_schedule,
-        pro_enabled: crate::commands::entitlements::current_status().pro_enabled,
+        pro_enabled: crate::entitlements::current_status().pro_enabled,
         has_workspace: !settings.workspace_roots.is_empty(),
         scan_in_progress: ScanService::active_scan_count() > 0,
         last_run_at: settings.maintenance_last_run_at,
@@ -137,7 +137,7 @@ fn tick(app: &AppHandle) {
             // come back and immediately attempt the same thing again. The cost
             // of stamping early is one skipped interval; of stamping late, a
             // loop that scans the disk forever.
-            if let Err(error) = crate::commands::settings::record_maintenance_run(app, now) {
+            if let Err(error) = crate::settings::record_maintenance_run(app, now) {
                 crate::logging::warn(
                     "schedule",
                     &format!("could not stamp the run, holding error=\"{error}\""),
@@ -163,10 +163,10 @@ pub(crate) fn least_free_bytes(roots: &[String]) -> Option<u64> {
 pub fn run_now(app: &AppHandle) {
     let handle = app.clone();
     std::thread::spawn(move || {
-        let Ok(settings) = crate::commands::settings::load_settings(&handle) else {
+        let Ok(settings) = crate::settings::load_settings(&handle) else {
             return;
         };
-        let pro_enabled = crate::commands::entitlements::current_status().pro_enabled;
+        let pro_enabled = crate::entitlements::current_status().pro_enabled;
         if !pro_enabled
             || settings.workspace_roots.is_empty()
             || ScanService::active_scan_count() > 0
@@ -175,7 +175,7 @@ pub fn run_now(app: &AppHandle) {
             return;
         }
         let now = chrono::Utc::now().timestamp();
-        if let Err(error) = crate::commands::settings::record_maintenance_run(&handle, now) {
+        if let Err(error) = crate::settings::record_maintenance_run(&handle, now) {
             crate::logging::warn(
                 "schedule",
                 &format!("could not stamp the run, holding error=\"{error}\""),
@@ -205,7 +205,7 @@ fn perform(app: &AppHandle, settings: &AppSettings) {
     );
 
     let candidates =
-        match crate::commands::workspace::candidates_for(&settings.workspace_roots, settings) {
+        match crate::workspace::candidates::candidates_for(&settings.workspace_roots, settings) {
             Ok(candidates) => candidates,
             Err(error) => {
                 crate::logging::warn("schedule", &format!("index failed error=\"{error}\""));
@@ -256,7 +256,7 @@ fn perform(app: &AppHandle, settings: &AppSettings) {
     let mut failed = 0usize;
 
     for target_id in targets {
-        let envelope = tauri::async_runtime::block_on(crate::commands::clean::perform_clean(
+        let envelope = tauri::async_runtime::block_on(crate::services::clean_flow::perform_clean(
             app,
             CleanRequest {
                 target_id: target_id.clone(),

@@ -1,7 +1,7 @@
-use crate::commands::settings::AppSettings;
 use crate::errors::NukeResult;
 use crate::models::action::{CleanMode, CleanResult};
 use crate::services::scan_service::{CleanupControl, RegisteredTarget};
+use crate::settings::AppSettings;
 use std::sync::Arc;
 
 pub struct CleanService;
@@ -104,11 +104,11 @@ fn validate_confirmation(mode: CleanMode, confirmation: Option<&str>) -> NukeRes
 #[cfg(test)]
 mod tests {
     use super::{validate_confirmation, CleanService};
-    use crate::commands::settings::AppSettings;
     use crate::models::action::CleanMode;
     use crate::models::category::Category;
     use crate::models::target::ScanTarget;
     use crate::services::scan_service::{CleanupControl, RegisteredTarget};
+    use crate::settings::AppSettings;
     use std::path::PathBuf;
 
     fn registered_target(

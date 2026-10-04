@@ -23,28 +23,43 @@ const english = { dependencies, findings, insights, maintenance, modules, settin
  * `./locales/<tag>/<area>.json`, one file per area so each can be edited on its
  * own. Every other language is assembled into the same shape as English; the
  * locale tests are what hold them to it.
+ *
+ * Loaded on demand, one chunk per file, rather than bundled: a reader uses one
+ * language, and the other five used to ship in the first load of the app
+ * anyway. English stays imported by name above, since it types every key and is
+ * the fallback for anything a language lacks.
  */
 const fragments = import.meta.glob<Record<string, unknown>>("./locales/*/*.json", {
-  eager: true,
   import: "default",
 });
 
-function assemble(tag: LocaleTag): Record<string, unknown> {
-  const tree: Record<string, unknown> = {};
-  for (const [path, content] of Object.entries(fragments)) {
-    const match = path.match(/^\.\/locales\/([^/]+)\/([^/]+)\.json$/);
-    if (match && match[1] === tag) tree[match[2]] = content;
+const loaded = new Set<LocaleTag>([FALLBACK_LOCALE]);
+const loading = new Map<LocaleTag, Promise<void>>();
+
+/** Makes a language's catalogue available to i18next. Resolves once it is. */
+function loadLocale(tag: LocaleTag): Promise<void> {
+  if (loaded.has(tag)) return Promise.resolve();
+  let pending = loading.get(tag);
+  if (!pending) {
+    pending = (async () => {
+      const tree: Record<string, unknown> = {};
+      await Promise.all(
+        Object.entries(fragments).map(async ([path, load]) => {
+          const match = path.match(/^\.\/locales\/([^/]+)\/([^/]+)\.json$/);
+          if (match && match[1] === tag) tree[match[2]] = await load();
+        }),
+      );
+      i18n.addResourceBundle(tag, defaultNS, tree, true, true);
+      loaded.add(tag);
+    })().finally(() => loading.delete(tag));
+    loading.set(tag, pending);
   }
-  return tree;
+  return pending;
 }
 
+/** English only; the type that keys are checked against. */
 export const resources = {
   en: { translation: english },
-  "pt-BR": { translation: assemble("pt-BR") },
-  es: { translation: assemble("es") },
-  de: { translation: assemble("de") },
-  ja: { translation: assemble("ja") },
-  ar: { translation: assemble("ar") },
 };
 
 /**
@@ -86,24 +101,57 @@ void i18n
   .use(bidiIsolateFormatter as never)
   .use(initReactI18next)
   .init({
-  resources,
-  lng: initial,
-  fallbackLng: FALLBACK_LOCALE,
-  defaultNS,
-  // React escapes what it renders. `alwaysFormat` routes every value through
-  // the bidi formatter, which only changes anything in a right-to-left language.
-  interpolation: { escapeValue: false, alwaysFormat: true },
-  returnNull: false,
-});
-paintDocument(initial);
+    resources,
+    lng: initial,
+    fallbackLng: FALLBACK_LOCALE,
+    defaultNS,
+    // React escapes what it renders. `alwaysFormat` routes every value through
+    // the bidi formatter, which only changes anything in a right-to-left language.
+    interpolation: { escapeValue: false, alwaysFormat: true },
+    returnNull: false,
+  });
 
-/** Switches the whole interface, including `lang` and `dir` on the document. */
+/**
+ * Settles once the first paint's language is ready, and never rejects.
+ *
+ * The app renders after this, so a reader whose language is not English never
+ * sees English for a frame. If the catalogue cannot be loaded the interface
+ * stays in English, which is what every missing string falls back to anyway.
+ */
+export const ready: Promise<void> = loadLocale(initial)
+  .then(() => paintDocument(initial))
+  .catch(() => {
+    paintDocument(FALLBACK_LOCALE);
+    void i18n.changeLanguage(FALLBACK_LOCALE);
+  });
+
+let requested: LocaleTag = initial;
+
+/**
+ * Switches the whole interface, including `lang` and `dir` on the document.
+ *
+ * Returns the tag the preference resolves to straight away, but the change is
+ * applied once that language's catalogue has loaded, so the screen goes from
+ * one complete language to another instead of through a half-translated one.
+ */
 export function applyLanguage(preference: LanguagePreference): LocaleTag {
   const tag = resolveLocale(preference, navigator.languages);
-  paintDocument(tag);
-  remember(tag);
-  if (i18n.language !== tag) void i18n.changeLanguage(tag);
-  pushNativeStrings(tag);
+  requested = tag;
+  void loadLocale(tag).then(
+    () => {
+      // Another choice may have been made while this one loaded.
+      if (requested !== tag) return;
+      paintDocument(tag);
+      remember(tag);
+      if (i18n.language !== tag) void i18n.changeLanguage(tag);
+      pushNativeStrings(tag);
+    },
+    (error) => {
+      // Nothing was loaded, so nothing is applied: the current language stays.
+      // Said once, because otherwise a choice that does nothing leaves no trace.
+      console.warn(`Could not load the "${tag}" translations; keeping the current language.`, error);
+    },
+  );
   return tag;
 }
 

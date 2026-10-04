@@ -1,0 +1,859 @@
+//! The index of a workspace: which projects are under the folders the user
+//! chose, and what each one looks like at a glance.
+//!
+//! Finding the projects (walking folders for a marker) and reading them (git
+//! state, recent activity, how dependencies come back) are separate steps, so
+//! the slow second one can run on several projects at once.
+
+use crate::workspace::git::{self, GitContext};
+use crate::workspace::restore;
+use crate::workspace::verdict::{self, ActivityState};
+use serde::Serialize;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+/// Why an index could not be built.
+///
+/// The workspace layer's own error: what the interface is told, with its code
+/// and wording, is decided by the command that asked, not here.
+#[derive(Debug)]
+pub enum IndexError {
+    /// No folder was given.
+    NoFolderSelected,
+    /// A chosen folder could not be opened. `detail` is the system's reason.
+    FolderUnreadable { detail: String },
+    /// A chosen path is not a directory.
+    NotAFolder,
+    /// Reading the folder tree failed in a way that has no more specific reason.
+    Discovery(String),
+}
+
+pub const MAX_PROJECTS: usize = 250;
+const MAX_DEPTH: usize = 4;
+/// How many unreadable folders are named back. The count is the whole story;
+/// the sample only has to be long enough to show which kind of folder it is.
+const MAX_UNREADABLE_SAMPLE: usize = 5;
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceProject {
+    pub name: String,
+    pub path: String,
+    /// The indexed root this project sits under.
+    pub root: String,
+    pub kind: String,
+    pub git: GitContext,
+    pub activity: Activity,
+    /// Other indexed paths holding the same repository.
+    pub duplicate_of: Vec<String>,
+    pub install_missing: bool,
+    pub install_stale: bool,
+    /// How what a reclaim removes would come back, and whether it would come
+    /// back the same. `None` when nothing here identifies a package manager.
+    pub restore: Option<crate::workspace::restore::Restore>,
+    /// The directory this shares with at least one other project, if any.
+    pub family: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Activity {
+    pub last_activity_at: Option<i64>,
+    pub idle_days: Option<u32>,
+    pub state: ActivityState,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceIndex {
+    pub roots: Vec<String>,
+    pub projects: Vec<WorkspaceProject>,
+    /// Roots the caller asked for that this plan does not cover.
+    pub roots_over_limit: Vec<String>,
+    pub root_limit: usize,
+    /// Discovery hit `MAX_PROJECTS` or `MAX_DEPTH`.
+    pub truncated: bool,
+    /// Folders the operating system would not let discovery open. Projects
+    /// inside them are missing from this index rather than known to be absent.
+    pub unreadable: usize,
+    /// The first few of them, so the user can see which access to grant.
+    pub unreadable_sample: Vec<String>,
+    /// Directories holding more than one of these projects. What the index used
+    /// to leave on the disk: four folders under one `uncached-app` are one
+    /// piece of work, and every screen was drawing four unrelated things.
+    pub families: Vec<crate::workspace::family::Family>,
+}
+
+/// Folders discovery had to skip.
+#[derive(Debug, Default)]
+struct Skipped {
+    count: usize,
+    sample: Vec<String>,
+}
+
+impl Skipped {
+    fn note(&mut self, path: &Path) {
+        self.count += 1;
+        if self.sample.len() < MAX_UNREADABLE_SAMPLE {
+            self.sample.push(path.to_string_lossy().into_owned());
+        }
+    }
+}
+
+pub fn build_index(paths: &[String], limit: usize) -> Result<WorkspaceIndex, IndexError> {
+    if paths.is_empty() {
+        return Err(IndexError::NoFolderSelected);
+    }
+    let mut canonical = Vec::new();
+    for path in paths {
+        let root =
+            dunce::canonicalize(Path::new(path)).map_err(|error| IndexError::FolderUnreadable {
+                detail: error.to_string(),
+            })?;
+        if !root.is_dir() {
+            return Err(IndexError::NotAFolder);
+        }
+        canonical.push(root);
+    }
+    // Nested roots collapse into the outermost before the plan limit applies,
+    // so a redundant folder never costs the user a slot.
+    let canonical = crate::scanner::outermost_roots(canonical);
+    let (accepted, over_limit) = canonical.split_at(canonical.len().min(limit));
+
+    let mut roots = Vec::new();
+    let mut found = Vec::new();
+    let mut truncated = false;
+    let mut skipped = Skipped::default();
+
+    for root in accepted {
+        let before = found.len();
+        discover_projects(root, root, 0, &mut found, &mut skipped)
+            .map_err(IndexError::Discovery)?;
+        // The cap is shared across roots, so it is reported once for the whole index.
+        truncated = truncated || found.len() >= MAX_PROJECTS && found.len() > before;
+        roots.push(root.to_string_lossy().into_owned());
+    }
+
+    let mut projects = inspect_projects(&found);
+    mark_duplicates(&mut projects);
+    projects.sort_by_cached_key(|project| project.name.to_lowercase());
+
+    let families = detect_families(&projects, &roots);
+    for project in projects.iter_mut() {
+        project.family = families
+            .iter()
+            .find(|family| family.members.iter().any(|member| member == &project.path))
+            .map(|family| family.path.clone());
+    }
+
+    Ok(WorkspaceIndex {
+        roots,
+        projects,
+        roots_over_limit: over_limit
+            .iter()
+            .map(|root| root.to_string_lossy().into_owned())
+            .collect(),
+        root_limit: limit,
+        truncated,
+        unreadable: skipped.count,
+        unreadable_sample: skipped.sample,
+        families,
+    })
+}
+
+/// The disk half of `family::detect`, which is pure and takes this as a probe.
+///
+/// Two of the markers cannot be recognised by name. Every crate has a
+/// `Cargo.toml` and every package has a `package.json`; only what is inside
+/// says whether the directories beside it are members, so those two are read
+/// and the rest are a `try_exists`.
+fn detect_families(
+    projects: &[WorkspaceProject],
+    roots: &[String],
+) -> Vec<crate::workspace::family::Family> {
+    use crate::workspace::family;
+
+    let paths: Vec<String> = projects
+        .iter()
+        .map(|project| project.path.clone())
+        .collect();
+    family::detect(&paths, roots, &|directory: &Path, name: &str| match name {
+        "Cargo.toml" => std::fs::read_to_string(directory.join(name))
+            .is_ok_and(|contents| family::cargo_declares_workspace(&contents)),
+        "package.json" => std::fs::read_to_string(directory.join(name))
+            .is_ok_and(|contents| family::package_declares_workspaces(&contents)),
+        _ => directory.join(name).try_exists().unwrap_or(false),
+    })
+}
+
+/// Walks one root for projects.
+///
+/// Only the folder the user chose can fail this: a folder found inside it that
+/// the operating system withholds is counted and stepped over. Scanning a whole
+/// disk crosses plenty of those, and one of them ending the walk would leave the
+/// user with an error instead of the projects the walk had already found.
+impl std::fmt::Display for IndexError {
+    /// The same wording the interface is shown: this is what the unattended
+    /// maintenance run records when its index cannot be built.
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoFolderSelected => write!(formatter, "Select at least one folder"),
+            Self::FolderUnreadable { detail } => {
+                write!(formatter, "Cannot open workspace: {detail}")
+            }
+            Self::NotAFolder => write!(formatter, "Workspace path is not a directory"),
+            Self::Discovery(message) => write!(formatter, "{message}"),
+        }
+    }
+}
+
+/// A directory discovery decided is a project, and the root it was found under.
+///
+/// Discovery only walks folders and looks for markers; reading what is *in* a
+/// project (git state, activity, restore) is `inspect_projects`. They used to be
+/// one recursion, which made the slow half serial: each project cost seven `git`
+/// processes in a row before the walk moved on to the next folder.
+struct Found {
+    path: PathBuf,
+    root: PathBuf,
+}
+
+impl Found {
+    fn new(path: &Path, root: &Path) -> Self {
+        Self {
+            path: path.to_path_buf(),
+            root: root.to_path_buf(),
+        }
+    }
+}
+
+/// Upper bound on projects read at once. Each one starts `git` processes, so
+/// the limit is about not flooding the machine, not about what it could run.
+const MAX_INSPECTION_WORKERS: usize = 8;
+
+/// Reads every discovered project, several at a time, and returns them in the
+/// order discovery found them.
+///
+/// The order matters: the caller sorts by name afterwards and that sort is
+/// stable, so two projects with the same name keep the order they were found
+/// in, exactly as when this ran one after another.
+fn inspect_projects(found: &[Found]) -> Vec<WorkspaceProject> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Mutex, PoisonError};
+
+    let workers = std::thread::available_parallelism()
+        .map_or(1, |count| count.get())
+        .min(MAX_INSPECTION_WORKERS)
+        .min(found.len());
+    if workers <= 1 {
+        return found
+            .iter()
+            .map(|project| project_from_directory(&project.path, &project.root))
+            .collect();
+    }
+
+    let next = AtomicUsize::new(0);
+    let slots: Vec<Mutex<Option<WorkspaceProject>>> =
+        found.iter().map(|_| Mutex::new(None)).collect();
+    std::thread::scope(|scope| {
+        for _ in 0..workers {
+            scope.spawn(|| loop {
+                let index = next.fetch_add(1, Ordering::Relaxed);
+                let Some(project) = found.get(index) else {
+                    break;
+                };
+                let inspected = project_from_directory(&project.path, &project.root);
+                *slots[index].lock().unwrap_or_else(PoisonError::into_inner) = Some(inspected);
+            });
+        }
+    });
+    slots
+        .into_iter()
+        .filter_map(|slot| slot.into_inner().unwrap_or_else(PoisonError::into_inner))
+        .collect()
+}
+
+fn discover_projects(
+    root: &Path,
+    directory: &Path,
+    depth: usize,
+    found: &mut Vec<Found>,
+    skipped: &mut Skipped,
+) -> Result<(), String> {
+    if depth > MAX_DEPTH || found.len() >= MAX_PROJECTS {
+        return Ok(());
+    }
+
+    let is_project = directory.join(".git").is_dir();
+    if is_project {
+        found.push(Found::new(directory, root));
+        return Ok(());
+    }
+
+    let entries = match std::fs::read_dir(directory) {
+        Ok(entries) => entries,
+        Err(error) if depth == 0 => return Err(error.to_string()),
+        Err(_) => {
+            skipped.note(directory);
+            return Ok(());
+        }
+    };
+    for entry in entries {
+        if found.len() >= MAX_PROJECTS {
+            break;
+        }
+        let Ok(entry) = entry else {
+            skipped.note(directory);
+            continue;
+        };
+        let path = entry.path();
+        let Ok(file_type) = entry.file_type() else {
+            skipped.note(&path);
+            continue;
+        };
+        if !file_type.is_dir() {
+            continue;
+        }
+        let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if name.starts_with('.') || matches!(name, "node_modules" | "target" | "dist" | "build") {
+            continue;
+        }
+        if path != root && looks_like_project(&path) {
+            found.push(Found::new(&path, root));
+            continue;
+        }
+        discover_projects(root, &path, depth + 1, found, skipped)?;
+    }
+    Ok(())
+}
+
+fn looks_like_project(directory: &Path) -> bool {
+    directory.join(".git").is_dir()
+        || [
+            "package.json",
+            "Cargo.toml",
+            "pyproject.toml",
+            "go.mod",
+            "pom.xml",
+        ]
+        .iter()
+        .any(|file| directory.join(file).is_file())
+}
+
+/// Points every clone of the same repository at its siblings.
+///
+/// Two paths holding the same remote is something no file manager can tell the
+/// user, because the answer is not on disk — it is in what the repositories
+/// claim to be.
+fn mark_duplicates(projects: &mut [WorkspaceProject]) {
+    let mut by_remote: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+    for project in projects.iter() {
+        // Grouped on the key, not on what is displayed: the same repository
+        // cloned over SSH and over HTTPS is one repository.
+        if let Some(remote) = &project.git.remote_key {
+            by_remote
+                .entry(remote.clone())
+                .or_default()
+                .push(project.path.clone());
+        }
+    }
+
+    for project in projects.iter_mut() {
+        let Some(remote) = &project.git.remote_key else {
+            continue;
+        };
+        let Some(paths) = by_remote.get(remote) else {
+            continue;
+        };
+        if paths.len() < 2 {
+            continue;
+        }
+        project.duplicate_of = paths
+            .iter()
+            .filter(|path| *path != &project.path)
+            .cloned()
+            .collect();
+    }
+}
+
+fn project_from_directory(path: &Path, root: &Path) -> WorkspaceProject {
+    let git = git::read(path);
+    let activity = activity_of(path, git.last_commit_at);
+    let (install_missing, install_stale) = installation_state(path);
+
+    WorkspaceProject {
+        name: path
+            .file_name()
+            .map(|value| value.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "Workspace".to_string()),
+        path: path.to_string_lossy().into_owned(),
+        root: root.to_string_lossy().into_owned(),
+        kind: project_kind(path),
+        git,
+        activity,
+        duplicate_of: Vec::new(),
+        install_missing,
+        install_stale,
+        restore: restore_for(path),
+        // Filled once every project is known: belonging is a fact about the set,
+        // not about the folder in front of the walker.
+        family: None,
+    }
+}
+
+/// How this project's dependencies come back.
+///
+/// The `packageManager` field is read only when a `package.json` is there to
+/// hold it, so the common case costs one `is_file` per candidate and no reads
+/// at all.
+pub(crate) fn restore_for(path: &Path) -> Option<restore::Restore> {
+    let declared = std::fs::read_to_string(path.join("package.json"))
+        .ok()
+        .and_then(|contents| {
+            serde_json::from_str::<serde_json::Value>(&contents)
+                .ok()?
+                .get("packageManager")?
+                .as_str()
+                .map(str::to_owned)
+        });
+
+    restore::detect(&|name| path.join(name).is_file(), declared.as_deref())
+}
+
+/// Last activity, from the last commit or the newest source file.
+///
+/// Regenerable directories are excluded on purpose: a `node_modules` written by
+/// yesterday's install says nothing about whether the project is alive, and
+/// counting it would mark every abandoned project as active the moment someone
+/// runs a build in it.
+fn activity_of(path: &Path, last_commit_at: Option<i64>) -> Activity {
+    let last_activity_at = [last_commit_at, newest_source_write(path)]
+        .into_iter()
+        .flatten()
+        .max();
+    let idle_days = last_activity_at.and_then(|at| {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs() as i64;
+        u32::try_from((now - at).max(0) / 86_400).ok()
+    });
+
+    Activity {
+        last_activity_at,
+        idle_days,
+        state: verdict::activity_state(idle_days),
+    }
+}
+
+fn newest_source_write(path: &Path) -> Option<i64> {
+    let entries = std::fs::read_dir(path).ok()?;
+    entries
+        .flatten()
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_str()
+                .is_some_and(|name| !name.starts_with('.') && !is_regenerable(name))
+        })
+        .filter_map(|entry| entry.metadata().ok()?.modified().ok())
+        .filter_map(|time| time.duration_since(UNIX_EPOCH).ok())
+        .map(|since| since.as_secs() as i64)
+        .max()
+}
+
+fn is_regenerable(name: &str) -> bool {
+    matches!(
+        name,
+        "node_modules" | "target" | "dist" | "build" | "vendor" | "__pycache__" | "DerivedData"
+    )
+}
+
+/// Whether the project has a lockfile without an installation behind it, and
+/// whether that installation predates the lockfile.
+fn installation_state(path: &Path) -> (bool, bool) {
+    const PAIRS: &[(&str, &str)] = &[
+        ("package-lock.json", "node_modules"),
+        ("pnpm-lock.yaml", "node_modules"),
+        ("yarn.lock", "node_modules"),
+        ("bun.lockb", "node_modules"),
+        ("Cargo.lock", "target"),
+    ];
+
+    for (lockfile, installed) in PAIRS {
+        let lock = path.join(lockfile);
+        if !lock.is_file() {
+            continue;
+        }
+        let install = path.join(installed);
+        if !install.is_dir() {
+            return (true, false);
+        }
+        let newer = written_at(&lock)
+            .zip(written_at(&install))
+            .is_some_and(|(lock_at, install_at)| lock_at > install_at);
+        return (false, newer);
+    }
+    (false, false)
+}
+
+fn written_at(path: &Path) -> Option<i64> {
+    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
+    Some(modified.duration_since(UNIX_EPOCH).ok()?.as_secs() as i64)
+}
+
+/// What the project is written in, as the interface names it.
+///
+/// Also what decides which editor leads: a specialist opens the language it is
+/// built for and sorts below every general-purpose editor otherwise. Swift is
+/// here for exactly that — without it, Xcode's specialisation matches nothing
+/// and it never leads even an iOS project.
+fn project_kind(path: &Path) -> String {
+    if path.join("Package.swift").is_file() || has_extension(path, "xcodeproj") {
+        "Swift".to_string()
+    } else if path.join("package.json").is_file() {
+        "Node".to_string()
+    } else if path.join("Cargo.toml").is_file() {
+        "Rust".to_string()
+    } else if path.join("pyproject.toml").is_file() {
+        "Python".to_string()
+    } else if path.join("go.mod").is_file() {
+        "Go".to_string()
+    } else if path.join("pom.xml").is_file() {
+        "Java".to_string()
+    } else {
+        "Project".to_string()
+    }
+}
+
+/// Whether the directory holds anything with this extension.
+///
+/// A bundle rather than a file: `.xcodeproj` and `.xcworkspace` are directories.
+fn has_extension(directory: &Path, extension: &str) -> bool {
+    std::fs::read_dir(directory).is_ok_and(|entries| {
+        entries.flatten().any(|entry| {
+            entry
+                .path()
+                .extension()
+                .is_some_and(|found| found.eq_ignore_ascii_case(extension))
+        })
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_index, inspect_projects, project_from_directory, Found, IndexError};
+    use std::fs;
+
+    /// Reading projects several at a time must change when the answer arrives,
+    /// never what it is: same projects, same order as one after another. The
+    /// caller's name sort is stable, so the order here decides ties.
+    #[test]
+    fn inspecting_projects_in_parallel_matches_doing_it_one_at_a_time() {
+        let root = std::env::temp_dir().join(format!(
+            "uncached-inspect-order-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        // Found out of alphabetical order, so a result that came back sorted,
+        // or in the order the workers finished, would not match.
+        let found: Vec<Found> = [7, 1, 22, 3, 15, 9, 30, 2, 18, 11, 5, 26, 13, 4, 20, 8]
+            .iter()
+            .map(|n| {
+                let directory = root.join(format!("project-{n:02}"));
+                std::fs::create_dir_all(&directory).unwrap();
+                std::fs::write(directory.join("package.json"), "{}").unwrap();
+                Found::new(&directory, &root)
+            })
+            .collect();
+
+        let one_at_a_time: Vec<_> = found
+            .iter()
+            .map(|project| project_from_directory(&project.path, &project.root))
+            .collect();
+        let in_parallel = inspect_projects(&found);
+
+        assert_eq!(in_parallel.len(), found.len());
+        assert_eq!(
+            serde_json::to_string(&in_parallel).unwrap(),
+            serde_json::to_string(&one_at_a_time).unwrap()
+        );
+        assert_eq!(
+            in_parallel
+                .iter()
+                .map(|p| p.path.clone())
+                .collect::<Vec<_>>(),
+            found
+                .iter()
+                .map(|p| p.path.to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn discovers_project_and_ignores_regenerable_directories() {
+        let root = std::env::temp_dir().join(format!("uncached-workspace-{}", std::process::id()));
+        let project = root.join("app");
+        fs::create_dir_all(project.join(".git")).unwrap();
+        fs::create_dir_all(project.join("node_modules")).unwrap();
+        fs::create_dir_all(root.join("node_modules").join("nested")).unwrap();
+        fs::write(project.join("package.json"), b"{}").unwrap();
+
+        let index = index_of(&[&root]);
+        assert_eq!(index.projects.len(), 1);
+        assert_eq!(index.projects[0].name, "app");
+        assert_eq!(index.projects[0].kind, "Node");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    fn index_of(roots: &[&std::path::Path]) -> super::WorkspaceIndex {
+        let paths = roots
+            .iter()
+            .map(|root| root.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        build_index(&paths, 12).unwrap()
+    }
+
+    fn workspace(name: &str, projects: &[&str]) -> std::path::PathBuf {
+        let root =
+            std::env::temp_dir().join(format!("uncached-roots-{}-{name}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        for project in projects {
+            fs::create_dir_all(root.join(project).join(".git")).unwrap();
+            fs::write(root.join(project).join("package.json"), b"{}").unwrap();
+        }
+        root
+    }
+
+    #[test]
+    fn several_roots_index_into_one_list_that_remembers_where_each_came_from() {
+        let personal = workspace("personal", &["blog"]);
+        let work = workspace("work", &["api"]);
+
+        let index = index_of(&[&personal, &work]);
+
+        assert_eq!(index.roots.len(), 2);
+        assert_eq!(index.projects.len(), 2);
+        let blog = index
+            .projects
+            .iter()
+            .find(|project| project.name == "blog")
+            .expect("the personal project should be indexed");
+        assert!(blog.root.ends_with("personal"), "root was {}", blog.root);
+        assert!(index.roots_over_limit.is_empty());
+
+        let _ = fs::remove_dir_all(personal);
+        let _ = fs::remove_dir_all(work);
+    }
+
+    #[test]
+    fn a_root_beyond_the_limit_is_named_rather_than_dropped() {
+        let personal = workspace("limit-personal", &["blog"]);
+        let work = workspace("limit-work", &["api"]);
+        let paths = [
+            personal.to_string_lossy().into_owned(),
+            work.to_string_lossy().into_owned(),
+        ];
+
+        let index = build_index(&paths, 1).unwrap();
+
+        assert_eq!(index.roots.len(), 1);
+        assert_eq!(index.projects.len(), 1);
+        assert_eq!(index.projects[0].name, "blog");
+        assert_eq!(
+            index.roots_over_limit,
+            vec![work.canonicalize().unwrap().to_string_lossy().into_owned()]
+        );
+        assert_eq!(index.root_limit, 1);
+
+        let _ = fs::remove_dir_all(personal);
+        let _ = fs::remove_dir_all(work);
+    }
+
+    #[test]
+    fn a_root_nested_in_another_is_replaced_without_duplicating_its_projects() {
+        let outer = workspace("nested-outer", &["api"]);
+        let inner = outer.join("api");
+        let paths = [
+            outer.to_string_lossy().into_owned(),
+            inner.to_string_lossy().into_owned(),
+        ];
+
+        let index = build_index(&paths, 12).unwrap();
+
+        assert_eq!(index.roots.len(), 1);
+        assert_eq!(index.projects.len(), 1);
+        assert!(index.roots_over_limit.is_empty());
+
+        let _ = fs::remove_dir_all(outer);
+    }
+
+    /// An install run yesterday says nothing about whether a project is alive.
+    /// Counting it would mark every abandoned project active the moment a build
+    /// touched it, which is the failure the age heuristic exists to avoid.
+    #[test]
+    fn a_regenerable_directory_does_not_make_a_project_look_active() {
+        let root = std::env::temp_dir().join(format!("uncached-activity-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
+        fs::write(root.join("node_modules/pkg/index.js"), b"fresh").unwrap();
+
+        assert!(
+            super::newest_source_write(&root).is_none(),
+            "only regenerable content exists, so there is no source activity"
+        );
+
+        fs::write(root.join("index.js"), b"source").unwrap();
+        assert!(super::newest_source_write(&root).is_some());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_lockfile_without_an_installation_reads_as_broken_and_never_as_stale() {
+        let root = std::env::temp_dir().join(format!("uncached-install-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("package-lock.json"), b"{}").unwrap();
+
+        assert_eq!(super::installation_state(&root), (true, false));
+
+        fs::create_dir_all(root.join("node_modules")).unwrap();
+        let (missing, _) = super::installation_state(&root);
+        assert!(!missing);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    /// The same repository in two folders is something no file manager can
+    /// report, because the answer is not on disk.
+    #[test]
+    fn clones_of_one_repository_point_at_each_other() {
+        // Spelled differently on purpose: one clone over SSH and one over
+        // HTTPS is one repository, and the display string no longer says so.
+        let mut projects = vec![
+            project_named("first", Some("git@github.com:acme/app.git")),
+            project_named("second", Some("https://github.com/acme/app")),
+            project_named("other", Some("https://github.com/acme/other")),
+            project_named("local", None),
+        ];
+
+        super::mark_duplicates(&mut projects);
+
+        assert_eq!(projects[0].duplicate_of, vec!["second".to_string()]);
+        assert_eq!(projects[1].duplicate_of, vec!["first".to_string()]);
+        assert!(projects[2].duplicate_of.is_empty());
+        assert!(projects[3].duplicate_of.is_empty());
+    }
+
+    fn project_named(path: &str, remote: Option<&str>) -> super::WorkspaceProject {
+        super::WorkspaceProject {
+            name: path.to_string(),
+            path: path.to_string(),
+            root: "/root".to_string(),
+            kind: "Node".to_string(),
+            git: crate::workspace::git::GitContext {
+                remote: remote.map(str::to_string),
+                remote_key: remote.map(crate::workspace::git::normalise_remote),
+                ..Default::default()
+            },
+            activity: super::Activity {
+                last_activity_at: None,
+                idle_days: None,
+                state: crate::workspace::verdict::ActivityState::Unknown,
+            },
+            duplicate_of: Vec::new(),
+            install_missing: false,
+            install_stale: false,
+            restore: None,
+            family: None,
+        }
+    }
+
+    /// The half of `restore_for` the pure module cannot reach: reading
+    /// `packageManager` out of a real manifest, and surviving one that is not
+    /// JSON at all.
+    #[test]
+    fn the_declared_manager_is_read_from_the_manifest_on_disk() {
+        let root = std::env::temp_dir().join(format!("uncached-restore-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+
+        std::fs::write(
+            root.join("package.json"),
+            r#"{"packageManager":"pnpm@9.1.0"}"#,
+        )
+        .unwrap();
+        std::fs::write(root.join("package-lock.json"), "{}").unwrap();
+        let found = super::restore_for(&root).expect("a Node project");
+        assert_eq!(found.manager, "pnpm", "the manifest names the tool");
+        assert_eq!(found.pinned_by.as_deref(), Some("package-lock.json"));
+
+        // A manifest with no declaration falls back to the lockfile's own tool.
+        std::fs::write(root.join("package.json"), r#"{"name":"x"}"#).unwrap();
+        assert_eq!(super::restore_for(&root).unwrap().manager, "npm");
+
+        // A manifest that will not parse is still a Node project.
+        std::fs::write(root.join("package.json"), "not json").unwrap();
+        assert_eq!(super::restore_for(&root).unwrap().manager, "npm");
+
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn indexing_nothing_is_an_error_rather_than_an_empty_map() {
+        assert!(matches!(
+            build_index(&[], 1),
+            Err(IndexError::NoFolderSelected)
+        ));
+    }
+
+    /// Whole-disk scans cross folders the operating system withholds. Failing
+    /// there would hand the user an error in place of the projects already
+    /// found, which is what a permission-denied scan used to do.
+    #[cfg(unix)]
+    #[test]
+    fn a_folder_that_cannot_be_opened_is_counted_rather_than_ending_the_index() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = workspace("unreadable", &["visible"]);
+        let locked = root.join("locked");
+        fs::create_dir_all(&locked).unwrap();
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o000)).unwrap();
+
+        let index = index_of(&[&root]);
+
+        assert_eq!(index.projects.len(), 1);
+        assert_eq!(index.projects[0].name, "visible");
+        assert_eq!(index.unreadable, 1);
+        assert_eq!(index.unreadable_sample.len(), 1);
+        assert!(index.unreadable_sample[0].ends_with("locked"));
+
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o755)).unwrap();
+        let _ = fs::remove_dir_all(root);
+    }
+
+    /// The folder the user picked is the one case worth reporting: an index of
+    /// nothing, with no reason given, is not an answer.
+    #[cfg(unix)]
+    #[test]
+    fn a_chosen_root_that_cannot_be_opened_still_fails() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root =
+            std::env::temp_dir().join(format!("uncached-unreadable-root-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o000)).unwrap();
+
+        let paths = [root.to_string_lossy().into_owned()];
+        let failure = build_index(&paths, 12);
+
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(failure.is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+}
