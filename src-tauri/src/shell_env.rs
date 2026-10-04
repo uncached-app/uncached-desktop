@@ -5,12 +5,18 @@
 //! another disk) is invisible to it. This asks the login shell once.
 
 use std::collections::HashMap;
-use std::io::Read;
-use std::process::Stdio;
 use std::sync::OnceLock;
+
+// Only Unix has a login shell to ask; what follows is that question.
+#[cfg(unix)]
+use std::io::Read;
+#[cfg(unix)]
+use std::process::Stdio;
+#[cfg(unix)]
 use std::time::{Duration, Instant};
 
 /// Variables that move toolchain directories.
+#[cfg(unix)]
 pub const TOOLCHAIN_VARIABLES: [&str; 5] = [
     "NVM_DIR",
     "FNM_DIR",
@@ -20,8 +26,10 @@ pub const TOOLCHAIN_VARIABLES: [&str; 5] = [
 ];
 
 /// A profile that waits on input or the network must not hold the caller.
+#[cfg(unix)]
 const SHELL_TIMEOUT: Duration = Duration::from_secs(3);
 
+#[cfg(unix)]
 const MARKER: &str = "__UNCACHED_ENV__";
 
 static FROM_SHELL: OnceLock<HashMap<String, String>> = OnceLock::new();
@@ -89,6 +97,7 @@ fn read_login_shell() -> HashMap<String, String> {
 
 /// Reads `NAME=value\0` pairs after the marker; a profile's own output before
 /// it is ignored.
+#[cfg(unix)]
 fn parse(output: &str) -> HashMap<String, String> {
     let Some((_, pairs)) = output.split_once(MARKER) else {
         return HashMap::new();
@@ -101,7 +110,7 @@ fn parse(output: &str) -> HashMap<String, String> {
         .collect()
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::parse;
 

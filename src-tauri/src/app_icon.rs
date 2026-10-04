@@ -12,8 +12,14 @@ pub const VARIANTS: &[(&str, &[u8])] = &[
     ("hazard", include_bytes!("../icons/variants/hazard.png")),
     ("sunset", include_bytes!("../icons/variants/sunset.png")),
     ("olive", include_bytes!("../icons/variants/olive.png")),
-    ("ultraviolet", include_bytes!("../icons/variants/ultraviolet.png")),
-    ("evergreen", include_bytes!("../icons/variants/evergreen.png")),
+    (
+        "ultraviolet",
+        include_bytes!("../icons/variants/ultraviolet.png"),
+    ),
+    (
+        "evergreen",
+        include_bytes!("../icons/variants/evergreen.png"),
+    ),
 ];
 
 /// The variant the bundle ships as its icon.
@@ -76,7 +82,10 @@ fn show(app: &AppHandle, bytes: Option<&'static [u8]>) -> Result<(), CommandErro
 pub async fn set_app_icon(app: AppHandle, variant: Option<String>) -> Result<(), CommandError> {
     let chosen = variant.filter(|id| id != DEFAULT);
     if chosen.is_some() && !crate::entitlements::current_status().pro_enabled {
-        return Err(CommandError::new("requires_pro_icon", "Changing the app icon requires Uncached Pro"));
+        return Err(CommandError::new(
+            "requires_pro_icon",
+            "Changing the app icon requires Uncached Pro",
+        ));
     }
     apply(&app, chosen.as_deref())?;
     let mut settings = crate::settings::load_settings(&app)?;
@@ -94,7 +103,10 @@ pub fn restore(app: &AppHandle) {
         return;
     };
     if let Err(error) = apply(app, settings.app_icon.as_deref()) {
-        crate::logging::warn("icon", &format!("restore failed error=\"{}\"", error.message));
+        crate::logging::warn(
+            "icon",
+            &format!("restore failed error=\"{}\"", error.message),
+        );
     }
 }
 

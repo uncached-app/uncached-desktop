@@ -155,7 +155,9 @@ fn working_directories() -> Vec<(String, PathBuf)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_inside, running_commands, running_projects};
+    #[cfg(unix)]
+    use super::running_commands;
+    use super::{is_inside, running_projects};
     use std::collections::BTreeSet;
     use std::path::{Path, PathBuf};
 
