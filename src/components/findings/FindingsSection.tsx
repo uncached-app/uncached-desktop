@@ -20,6 +20,7 @@ import type { ListOrder } from "../../utils/scanReview.d.mts";
 import { isFreeTarget, summarizePlans } from "../../utils/entitlements.mjs";
 import { ReportedOnlyList } from "./ReportedOnlyList";
 import { TargetCard } from "./TargetCard";
+import { VirtualTargetList, WINDOWING_THRESHOLD } from "./VirtualTargetList";
 import { openExternalUrl } from "../../utils/externalLink";
 import { ChoiceRow } from "../shared/ChoiceRow";
 import { StatCard } from "../shared/StatCard";
@@ -154,6 +155,19 @@ export function FindingsSection({
   const latestRefreshTargetSize = useRef(refreshTargetSize);
   latestRefreshTargetSize.current = refreshTargetSize;
   const refreshSizeOf = useCallback((targetId: string) => latestRefreshTargetSize.current(targetId), []);
+
+  const renderTargetRow = (target: ScanTarget, position: number) => (
+    <TargetCard
+      key={target.id}
+      target={target}
+      first={position === 0}
+      isCleaning={cleaningTargetIds.has(target.id)}
+      selected={selectedIds.has(target.id)}
+      onToggle={toggleTarget}
+      onRefreshSize={refreshSizeOf}
+      proEnabled={proEnabled}
+    />
+  );
 
   function toggleAll() {
     setSelectedIds(allSelected ? new Set() : new Set(freeTargets.map((target) => target.id)));
@@ -503,18 +517,11 @@ export function FindingsSection({
                 )}
               </div>
 
-              {listedTargets.map((target, position) => (
-                <TargetCard
-                  key={target.id}
-                  target={target}
-                  first={position === 0}
-                  isCleaning={cleaningTargetIds.has(target.id)}
-                  selected={selectedIds.has(target.id)}
-                  onToggle={toggleTarget}
-                  onRefreshSize={refreshSizeOf}
-                  proEnabled={proEnabled}
-                />
-              ))}
+              {listedTargets.length >= WINDOWING_THRESHOLD ? (
+                <VirtualTargetList items={listedTargets} renderRow={renderTargetRow} />
+              ) : (
+                listedTargets.map(renderTargetRow)
+              )}
             </div>
             <ReportedOnlyList targets={reportedOnly} />
           </div>
