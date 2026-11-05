@@ -150,6 +150,9 @@ pub fn discovery_categories(
     if settings.detect_android_sdk {
         categories.push(uncached_core::Category::AndroidSdk);
     }
+    if settings.detect_browser_caches {
+        categories.push(uncached_core::Category::BrowserCache);
+    }
     // Docker's image is reported and never removed, so this switch decides
     // whether the weight is named at all rather than what may be touched.
     if settings.detect_container_storage {
@@ -270,13 +273,15 @@ mod tests {
             Some(&Category::ReactNative),
             "claims nested paths first"
         );
-        assert_eq!(categories.len(), 29);
+        assert_eq!(categories.len(), 31);
         for expected in [
             Category::NodeModules,
             Category::CargoTarget,
             Category::PyCache,
             Category::UnityLibrary,
             Category::ComposerVendor,
+            Category::JsBuildCache,
+            Category::ServerlessBuild,
         ] {
             assert!(
                 categories.contains(&expected),
@@ -345,6 +350,7 @@ mod tests {
         assert!(all.contains(&C::UnityLibrary));
         assert!(all.contains(&C::GodotCache));
         assert!(all.contains(&C::AndroidSdk));
+        assert!(all.contains(&C::BrowserCache));
         assert!(all.contains(&C::Docker));
 
         let reduced = super::discovery_categories(&AppSettings {
@@ -352,6 +358,13 @@ mod tests {
             ..Default::default()
         });
         assert!(!reduced.contains(&C::AiToolCache));
+
+        let no_browsers = super::discovery_categories(&AppSettings {
+            detect_browser_caches: false,
+            ..Default::default()
+        });
+        assert!(!no_browsers.contains(&C::BrowserCache));
+        assert!(no_browsers.contains(&C::EditorCache));
 
         // Xcode used to be added whatever the settings said, described under
         // the editor caches switch and unaffected by it. Two of its entries can

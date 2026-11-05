@@ -52,6 +52,8 @@ pub struct AppSettings {
     /// The Android SDK's machine-wide downloads and its emulators.
     #[serde(default = "enabled")]
     pub detect_android_sdk: bool,
+    #[serde(default = "enabled")]
+    pub detect_browser_caches: bool,
     /// Docker Desktop's disk image, which is reported and never removed here.
     #[serde(default = "enabled")]
     pub detect_container_storage: bool,
@@ -204,6 +206,7 @@ impl Default for AppSettings {
             detect_xcode_data: true,
             detect_game_engine_caches: true,
             detect_android_sdk: true,
+            detect_browser_caches: true,
             detect_container_storage: true,
             remember_last_workspace: true,
             check_for_updates: true,

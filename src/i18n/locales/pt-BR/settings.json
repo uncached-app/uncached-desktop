@@ -90,6 +90,10 @@
       "label": "Android SDK",
       "hint": "Inclui as imagens de sistema baixadas e os emuladores criados a partir delas."
     },
+    "browsers": {
+      "label": "Caches de navegador",
+      "hint": "Inclui os caches HTTP e de código do Chrome, Brave, Arc, Edge e Firefox. Perfis, histórico e logins nunca são tocados."
+    },
     "containerStorage": {
       "label": "Armazenamento de contêineres",
       "hint": "Informa o tamanho da imagem de disco do Docker Desktop. O Uncached nunca a remove."

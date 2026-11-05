@@ -148,7 +148,8 @@
     "packageCache": "Cache de pacotes",
     "aiToolCache": "Cache de IA",
     "editorCache": "Cache de editor",
-    "androidSdk": "Android SDK"
+    "androidSdk": "Android SDK",
+    "browserCache": "Cache de navegador"
   },
   "categoryBar": {
     "summary": "{{label}}: {{segments}}",

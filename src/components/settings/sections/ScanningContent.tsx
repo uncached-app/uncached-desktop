@@ -48,6 +48,12 @@ export function ScanningContent({
           onChange={(value) => updateSettings({ detectAndroidSdk: value })}
         />
         <SettingToggle
+          label={t("settings.scanning.browsers.label")}
+          hint={t("settings.scanning.browsers.hint")}
+          checked={settings.detectBrowserCaches}
+          onChange={(value) => updateSettings({ detectBrowserCaches: value })}
+        />
+        <SettingToggle
           label={t("settings.scanning.containerStorage.label")}
           hint={t("settings.scanning.containerStorage.hint")}
           checked={settings.detectContainerStorage}

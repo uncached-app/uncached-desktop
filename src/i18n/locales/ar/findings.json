@@ -200,7 +200,8 @@
     "packageCache": "كاش الحزم",
     "aiToolCache": "كاش أدوات الذكاء الاصطناعي",
     "editorCache": "كاش المحررات",
-    "androidSdk": "Android SDK"
+    "androidSdk": "Android SDK",
+    "browserCache": "ذاكرة المتصفح المؤقتة"
   },
   "categoryBar": {
     "summary": "{{label}}: {{segments}}",

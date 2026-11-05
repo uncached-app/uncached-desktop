@@ -90,6 +90,10 @@
       "label": "Android SDK",
       "hint": "Heruntergeladene System-Images und die daraus erstellten Emulatoren einbeziehen."
     },
+    "browsers": {
+      "label": "Browser-Caches",
+      "hint": "Bezieht die HTTP- und Code-Caches von Chrome, Brave, Arc, Edge und Firefox ein. Profile, Verlauf und Anmeldungen bleiben unberührt."
+    },
     "containerStorage": {
       "label": "Container-Speicher",
       "hint": "Größe des Disk-Images von Docker Desktop melden. Uncached entfernt es nie."

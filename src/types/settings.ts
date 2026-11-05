@@ -17,6 +17,7 @@ export type AppSettings = {
   detectGameEngineCaches: boolean;
   /** The Android SDK's system images and the emulators built from them. */
   detectAndroidSdk: boolean;
+  detectBrowserCaches: boolean;
   /** Docker Desktop's disk image, reported and never removed. */
   detectContainerStorage: boolean;
   rememberLastWorkspace: boolean;

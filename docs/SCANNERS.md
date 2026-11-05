@@ -39,13 +39,15 @@ Marcador é sempre um arquivo **diretamente ao lado** do diretório reivindicado
 | `Turbo` | `.turbo` | `package.json` ou `turbo.json` |
 | `NuxtCache` | `.nuxt` | `package.json` |
 | `SvelteKitCache` | `.svelte-kit` | `package.json` |
+| `JsBuildCache` | `.parcel-cache`, `.astro`, `.docusaurus`, `.output`, `.vercel/output` | `package.json` |
+| `ServerlessBuild` | `.serverless`, `.aws-sam` | `serverless.{yml,yaml,ts,js}`, `template.{yaml,yml}`, `samconfig.toml` |
 | `ReactNative` | `.expo`, `.metro`, `android/build`, `android/.gradle`, `ios/build`, `ios/DerivedData`, `ios/Pods` | `package.json` + diretório `ios/` ou `android/` |
 | `CargoTarget` | `target`, `.xwin-cache` | `Cargo.toml` |
 | `PyCache` | `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`, `.nox`, `__pypackages__` | nome suficiente |
 | `PixiEnv` | `.pixi` | `pixi.toml` |
 | `JupyterCheckpoints` | `.ipynb_checkpoints` | qualquer `*.ipynb` |
 | `Gradle` | `.gradle` | nome suficiente |
-| `GradleBuild` | `build` | `build.gradle[.kts]` ou `settings.gradle[.kts]` |
+| `GradleBuild` | `build`, `.cxx`, `.externalNativeBuild` | `build.gradle[.kts]` ou `settings.gradle[.kts]` |
 | `MavenTarget` | `target` | `pom.xml` |
 | `SbtTarget` | `target`, `project/target` | `build.sbt` |
 | `CMakeBuild` | `build`, `cmake-build-debug`, `cmake-build-release` | `CMakeLists.txt` |
@@ -66,7 +68,7 @@ Marcador é sempre um arquivo **diretamente ao lado** do diretório reivindicado
 
 O desktop não registra o `ComposerVendor` do core: `composer()` em `src-tauri/src/scanner/mod.rs` o substitui por um `ProjectMarker::Custom` que, além de `composer.json`, exige `composer.lock` ou `.git` na raiz, e recusa qualquer raiz abaixo de `wp-content/{plugins,themes,mu-plugins,client-mu-plugins}/<extensão>/`. Bibliotecas empacotadas dentro de um plugin trazem `composer.json` próprio e nada que permita reinstalá-las.
 
-Categorias de descoberta não vêm do walk do workspace: `KnownLocationScanner` as confirma contra um catálogo de caminhos sob o home, por plataforma. São `PackageManagerCache`, `AiToolCache`, `EditorCache`, `XcodeDerivedData` (DerivedData, device support, caches e os diretórios do simulador), `UnityLibrary` e `GodotCache` (caches das engines fora de qualquer projeto), `AndroidSdk` (system images e emuladores) e `Docker` (a imagem de disco do Docker Desktop, catalogada como `ReportOnly`).
+Categorias de descoberta não vêm do walk do workspace: `KnownLocationScanner` as confirma contra um catálogo de caminhos sob o home, por plataforma. São `PackageManagerCache`, `AiToolCache`, `EditorCache`, `XcodeDerivedData` (DerivedData, device support, caches e os diretórios do simulador), `UnityLibrary` e `GodotCache` (caches das engines fora de qualquer projeto), `AndroidSdk` (system images e emuladores), `BrowserCache` (caches HTTP e de código dos navegadores, nunca o perfil) e `Docker` (a imagem de disco do Docker Desktop, catalogada como `ReportOnly`).
 
 ### `LocationKind::ReportOnly`
 
@@ -89,7 +91,7 @@ Estas ausências são decisão, não lacuna, e seguem o Kondo:
 
 `get_default_providers()` registra **todos** os providers de workspace, sempre. Os cinco toggles que existiam foram removidos: uma regra de ignoração diz "nunca toque em nada com esse nome, em lugar nenhum", vale para as trinta categorias em vez de cinco, e vence contra o provider, a confiança e um agendamento. Um interruptor ao lado disso era duplicata mais fraca de um mecanismo que o usuário já tinha.
 
-O que restou em Settings § Scanning cobre só o que o walk nunca alcança, em sete toggles: `detectPackageManagerCaches` (`PackageManagerCache`), `detectAiToolCaches` (`AiToolCache`), `detectEditorCaches` (`EditorCache`), `detectGameEngineCaches` (`UnityLibrary` e `GodotCache`), `detectAndroidSdk` (`AndroidSdk`), `detectContainerStorage` (`Docker`) e `detectXcodeData` (`XcodeDerivedData`, exibido só no macOS). Esses não têm equivalente em regra de ignoração — vivem sob caminhos que ninguém escolheu, pertencem a ferramentas e não a projetos, e cada um custa uma coisa diferente ao ser perdido. `discovery_categories()` traduz os toggles, e a filtragem acontece antes de qualquer medição: desligar uma categoria faz o scan trabalhar menos, não esconder resultado depois.
+O que restou em Settings § Scanning cobre só o que o walk nunca alcança, em oito toggles: `detectPackageManagerCaches` (`PackageManagerCache`), `detectAiToolCaches` (`AiToolCache`), `detectEditorCaches` (`EditorCache`), `detectGameEngineCaches` (`UnityLibrary` e `GodotCache`), `detectAndroidSdk` (`AndroidSdk`), `detectBrowserCaches` (`BrowserCache`), `detectContainerStorage` (`Docker`) e `detectXcodeData` (`XcodeDerivedData`, exibido só no macOS). Esses não têm equivalente em regra de ignoração — vivem sob caminhos que ninguém escolheu, pertencem a ferramentas e não a projetos, e cada um custa uma coisa diferente ao ser perdido. `discovery_categories()` traduz os toggles, e a filtragem acontece antes de qualquer medição: desligar uma categoria faz o scan trabalhar menos, não esconder resultado depois.
 
 `detectXcodeData` controla só as entradas do catálogo de `XcodeDerivedData`; o `XcodeDerivedDataScanner` do walk continua registrado sempre, como os demais providers de workspace.
 

@@ -145,6 +145,8 @@ mod tests {
             Category::ReactNative,
             Category::NuxtCache,
             Category::SvelteKitCache,
+            Category::JsBuildCache,
+            Category::ServerlessBuild,
         ] {
             assert_eq!(
                 plan_for_category(&category),

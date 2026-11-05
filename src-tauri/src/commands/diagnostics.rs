@@ -74,13 +74,14 @@ fn describe_settings(current: &settings::AppSettings) -> Vec<String> {
             current.ignore_rules.lines().filter(|line| !line.trim().is_empty()).count()
         ),
         format!(
-            "Detects: package managers={} ai tools={} editors={} xcode={} game engines={} android={} containers={}",
+            "Detects: package managers={} ai tools={} editors={} xcode={} game engines={} android={} browsers={} containers={}",
             current.detect_package_manager_caches,
             current.detect_ai_tool_caches,
             current.detect_editor_caches,
             current.detect_xcode_data,
             current.detect_game_engine_caches,
             current.detect_android_sdk,
+            current.detect_browser_caches,
             current.detect_container_storage,
         ),
     ]
