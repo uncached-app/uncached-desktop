@@ -66,7 +66,7 @@ Marcador é sempre um arquivo **diretamente ao lado** do diretório reivindicado
 | `DartTool` | `.dart_tool` | `pubspec.yaml` |
 | `FlutterBuild` | `build`, `linux/flutter/ephemeral`, `windows/flutter/ephemeral` | `pubspec.yaml` |
 
-O desktop não registra o `ComposerVendor` do core: `composer()` em `src-tauri/src/scanner/mod.rs` o substitui por um `ProjectMarker::Custom` que, além de `composer.json`, exige `composer.lock` ou `.git` na raiz, e recusa qualquer raiz abaixo de `wp-content/{plugins,themes,mu-plugins,client-mu-plugins}/<extensão>/`. Bibliotecas empacotadas dentro de um plugin trazem `composer.json` próprio e nada que permita reinstalá-las.
+O `ComposerVendor` do core exige, além de `composer.json`, `composer.lock` ou `.git` na raiz, e recusa qualquer raiz abaixo de `wp-content/{plugins,themes,mu-plugins,client-mu-plugins}/<extensão>/`. Bibliotecas empacotadas dentro de um plugin trazem `composer.json` próprio e nada que permita reinstalá-las.
 
 Categorias de descoberta não vêm do walk do workspace: `KnownLocationScanner` as confirma contra um catálogo de caminhos sob o home, por plataforma. São `PackageManagerCache`, `AiToolCache`, `EditorCache`, `XcodeDerivedData` (DerivedData, device support, caches e os diretórios do simulador), `UnityLibrary` e `GodotCache` (caches das engines fora de qualquer projeto), `AndroidSdk` (system images e emuladores), `BrowserCache` (caches HTTP e de código dos navegadores, nunca o perfil) e `Docker` (a imagem de disco do Docker Desktop, catalogada como `ReportOnly`).
 
