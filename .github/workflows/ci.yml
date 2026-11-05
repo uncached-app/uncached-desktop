@@ -102,6 +102,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Build frontend
         # tauri.conf.json points frontendDist at ../dist, so the Rust build
         # below needs this to have run first.
