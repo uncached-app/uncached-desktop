@@ -1,5 +1,23 @@
 ## 0.3.1
 
+Every cleanup is now free. Package manager, editor and AI tool caches no longer
+need Pro.
+
+Uncached finds more to reclaim: browser caches for Chrome, Brave, Arc, Edge and
+Firefox, with a switch in Settings › Scanning; Cursor and Windsurf caches;
+Cargo git checkouts, Bundler, Composer, Poetry, SwiftPM, pub, Cabal, pre-commit,
+Electron, ccache and sccache; the Claude and Claude Code virtual machines,
+opencode snapshots, and the Codex and Gemini CLI caches; and, inside projects,
+Parcel, Astro, Docusaurus, Nitro and Vercel output, Serverless and AWS SAM
+packages, and Android NDK builds. Model weights, Conda packages and anything
+that holds session history are shown for review and never cleaned
+automatically.
+
+A Composer vendor folder is offered only where composer install can put it
+back, and never inside a WordPress plugin or theme.
+
+Uncached is now open source, under the GPL-3.0.
+
 The findings list is now virtualised: scrolling stays smooth and responsive even with hundreds of targets across large workspaces.
 
 The scan-root safety rule is now enforced on macOS and Windows, refusing operating system and installation roots from being chosen as a workspace.
