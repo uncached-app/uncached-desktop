@@ -25,7 +25,7 @@ import type { Insight } from "../utils/insights.d.mts";
 import { DIMENSIONS, buildReport } from "../utils/report.mjs";
 import type { Dimension, Filters, Report } from "../utils/report.d.mts";
 import { formatBytes } from "../utils/format.mjs";
-import type { Verdict } from "../types/workspace";
+import type { Verdict, WorkspaceProject } from "../types/workspace";
 
 /** What each reading is doing, while it is the one running. */
 const STAGE_KEYS = {
@@ -47,6 +47,8 @@ const STAGE_KEYS = {
  * the two pieces of state the sections share — which window, which filters — and
  * arranges them.
  */
+const NO_PROJECTS: WorkspaceProject[] = [];
+
 export function InsightsModule({
   proEnabled,
   onOpenWorkspace,
@@ -65,7 +67,7 @@ export function InsightsModule({
 }) {
   const { t } = useTranslation();
   const flow = usePurgeFlow();
-  const projects = flow.index.index?.projects ?? [];
+  const projects = flow.index.index?.projects ?? NO_PROJECTS;
   const { events, totals, loading } = useCleanupHistory();
   // Taken once per workspace by the flow provider, so opening this screen shows
   // what it found rather than three buttons, and leaving does not throw it away.

@@ -46,6 +46,8 @@ export function VirtualTargetList<T extends { id: string }>({
 
   // Where the list starts inside what scrolls. It moves when anything above it
   // changes height, so it is read again after every render rather than once.
+  // Runs after every render; both setters are guarded by an equality check.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;

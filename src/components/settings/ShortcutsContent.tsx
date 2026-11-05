@@ -17,6 +17,8 @@ import type { AppSettings } from "../../types/settings";
  * `cmd+shift+x`, and asking somebody to write that correctly is asking them to
  * learn a format to do a thing they can demonstrate in one gesture.
  */
+const NO_OVERRIDES: Record<string, string> = {};
+
 export function ShortcutsContent({
   settings,
   updateSettings,
@@ -25,7 +27,7 @@ export function ShortcutsContent({
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const overrides = settings.shortcuts ?? {};
+  const overrides = settings.shortcuts ?? NO_OVERRIDES;
   const bindings = resolveBindings(DEFAULT_BINDINGS, overrides);
   const clashing = new Set(conflictsIn(bindings).flat());
   const [recording, setRecording] = useState<string | null>(null);
