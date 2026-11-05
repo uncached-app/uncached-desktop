@@ -339,7 +339,7 @@ mod tests {
     fn every_target_carries_the_plan_decided_by_the_native_layer() {
         assert_eq!(wire(Category::NodeModules)["plan"], "free");
         assert_eq!(wire(Category::CargoTarget)["plan"], "free");
-        assert_eq!(wire(Category::PackageManagerCache)["plan"], "pro");
+        assert_eq!(wire(Category::PackageManagerCache)["plan"], "free");
         assert_eq!(wire(Category::Custom("unknown".to_string()))["plan"], "pro");
     }
 
@@ -419,7 +419,7 @@ mod tests {
 
         assert_eq!(target.label.as_deref(), Some("pnpm store"));
         assert_eq!(target.name, "store");
-        assert_eq!(target.plan, Plan::Pro);
+        assert_eq!(target.plan, Plan::Free);
         assert_eq!(target.blocked_by, None);
         assert_eq!(
             target.confidence.level,

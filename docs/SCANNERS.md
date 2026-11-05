@@ -99,7 +99,7 @@ O que restou em Settings § Scanning cobre só o que o walk nunca alcança, em o
 
 ## Plano
 
-`plan_for_category()` em `commands/entitlements.rs` é a única definição da fronteira Free. Todo artefato de projeto é Free, em qualquer ecossistema. O que permanece Pro é o que não é artefato de projeto: os stores compartilhados por toda a máquina (`PackageManagerCache`, `AiToolCache`, `EditorCache`), onde esvaziar torna todo restore futuro mais lento em vez de recuperar output de build, e as categorias `Custom(_)`. `Docker` é Free: sua única entrada é `ReportOnly`, então não há limpeza a cobrar.
+`plan_for_category()` em `commands/entitlements.rs` é a única definição da fronteira Free. Todo artefato de projeto é Free, em qualquer ecossistema. Os stores compartilhados por toda a máquina (`PackageManagerCache`, `AiToolCache`, `EditorCache`) também são Free, e a limpeza recusa qualquer diretório que uma ferramenta em execução esteja usando. Permanecem Pro apenas as categorias `Custom(_)`, vindas de providers externos cujo conteúdo o limite Free não consegue garantir. `Docker` é Free: sua única entrada é `ReportOnly`, então não há limpeza a cobrar.
 
 ## Adding scanner
 

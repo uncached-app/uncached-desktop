@@ -18,9 +18,11 @@ pub struct EntitlementStatus {
 /// Free, in every ecosystem — that is the job, and charging for a subset of it
 /// would make the product worse at the one thing it claims to do.
 ///
-/// What stays Pro is what is not a project artifact: the machine-wide stores a
-/// tool shares across every project, where emptying them slows down every
-/// future restore rather than reclaiming a build output.
+/// Shared stores a tool keeps across every project (package caches, AI tool
+/// caches, editor caches) are Free too: they are the same kind of reclaimable
+/// output, and cleanup refuses any directory a running tool is using. `Custom` categories come from providers outside this
+/// codebase, so the Free boundary cannot vouch for what they remove and they
+/// stay Pro.
 ///
 /// `Docker` is deliberately absent. It exists in the category model with no
 /// scanner behind it, and pricing a capability that finds nothing is the one
@@ -28,10 +30,7 @@ pub struct EntitlementStatus {
 /// on the day a provider makes it real, not before.
 pub fn plan_for_category(category: &Category) -> Plan {
     match category {
-        Category::PackageManagerCache
-        | Category::AiToolCache
-        | Category::EditorCache
-        | Category::Custom(_) => Plan::Pro,
+        Category::Custom(_) => Plan::Pro,
         _ => Plan::Free,
     }
 }
@@ -158,16 +157,21 @@ mod tests {
     }
 
     #[test]
-    fn what_is_shared_across_every_project_is_not_a_project_artifact() {
+    fn shared_tool_caches_are_free() {
         for category in [
             Category::PackageManagerCache,
             Category::AiToolCache,
             Category::EditorCache,
-            Category::Custom("anything".to_string()),
         ] {
-            assert_eq!(plan_for_category(&category), Plan::Pro);
-            assert!(!is_free_category(&category));
+            assert!(is_free_category(&category), "{category:?} must be free");
         }
+    }
+
+    #[test]
+    fn custom_categories_from_providers_stay_pro() {
+        let category = Category::Custom("anything".to_string());
+        assert_eq!(plan_for_category(&category), Plan::Pro);
+        assert!(!is_free_category(&category));
     }
 
     /// A category with no scanner behind it finds nothing, and a plan that
@@ -184,7 +188,8 @@ mod tests {
     fn plan_serializes_as_the_lowercase_wire_form() {
         let value = serde_json::to_value(plan_for_category(&Category::NodeModules)).unwrap();
         assert_eq!(value, "free");
-        let value = serde_json::to_value(plan_for_category(&Category::EditorCache)).unwrap();
+        let value =
+            serde_json::to_value(plan_for_category(&Category::Custom("x".to_string()))).unwrap();
         assert_eq!(value, "pro");
     }
 }
