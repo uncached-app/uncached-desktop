@@ -23,7 +23,6 @@ import {
   canUseCleanupMode,
   normalizeTargetFound,
   normalizeTargetSized,
-  isCurrentScanGeneration,
   isCurrentScanRequest,
   type RawTargetFound,
   type RawTargetSized,
@@ -43,7 +42,8 @@ import {
 } from "../utils/apiContract";
 import { describeError } from "../i18n/errors";
 import { shouldOpenReview } from "../utils/scanReview.mjs";
-import { applyScanEvents, type BatchableScanEvent } from "../utils/scanBatch.mjs";
+import { ScanSession } from "../utils/scanSession.mjs";
+import type { TerminalScanEvent } from "../utils/scanSession.d.mts";
 import { describeFailure } from "../i18n/errors";
 
 export function useScanWorkspace(
@@ -80,81 +80,23 @@ export function useScanWorkspace(
   const [unreadable, setUnreadable] = useState(0);
   const [capabilities, setCapabilities] = useState<CleanupCapabilities | null>(null);
 
-  const activeScanId = useRef<string | null>(null);
-  const scanGeneration = useRef(0);
   /** The folders the in-flight walk was started for, for when it finishes. */
   const walkingRoots = useRef("");
-  const pendingScan = useRef(false);
-  const pendingEvents = useRef<PendingScanEvent[]>([]);
-  const pendingSizeUpdates = useRef<Map<string, TargetSized>>(new Map());
-  /** The list as last committed, so a batch can be applied once and outside React. */
-  const targetsRef = useRef<ScanTarget[]>([]);
-  /** Target, size and progress events waiting for the next frame. */
-  const queuedEvents = useRef<BatchableScanEvent[]>([]);
-  const queuedFrame = useRef<number | null>(null);
-
-  /**
-   * The one way the list changes. The ref is what a batch reads and the state is
-   * what the screen renders, so they are written together.
-   */
-  function commitTargets(next: ScanTarget[] | ((current: ScanTarget[]) => ScanTarget[])) {
-    const value = typeof next === "function" ? next(targetsRef.current) : next;
-    targetsRef.current = value;
-    setTargets(value);
+  const sessionRef = useRef<ScanSession | null>(null);
+  if (sessionRef.current === null) {
+    sessionRef.current = new ScanSession({
+      schedule: (callback) => window.requestAnimationFrame(callback),
+      cancelSchedule: (handle) => window.cancelAnimationFrame(handle),
+      onTargets: setTargets,
+      onProgress: setProgress,
+      onEnd: (event) => handleScanEnd(event),
+    });
   }
-
-  function cancelQueuedFrame() {
-    if (queuedFrame.current !== null) {
-      window.cancelAnimationFrame(queuedFrame.current);
-      queuedFrame.current = null;
-    }
-  }
-
-  /** For a scan that is over or replaced: what it had queued is not wanted. */
-  function discardQueuedEvents() {
-    cancelQueuedFrame();
-    queuedEvents.current = [];
-  }
-
-  /**
-   * Applies everything queued as a single change.
-   *
-   * Targets, sizes and progress used to be applied one event at a time, each as
-   * its own render. The sizing workers finish in bursts, so a few hundred events
-   * arrived together and the screen spent seconds catching up; applied once per
-   * frame they cost one render. See `applyScanEvents`.
-   */
-  function flushQueuedEvents() {
-    cancelQueuedFrame();
-    const events = queuedEvents.current;
-    if (events.length === 0) return;
-    queuedEvents.current = [];
-    const applied = applyScanEvents(targetsRef.current, pendingSizeUpdates.current, events);
-    if (applied.targets !== targetsRef.current) commitTargets(applied.targets);
-    if (applied.progress) setProgress(applied.progress);
-  }
-
-  function queueScanEvent(event: BatchableScanEvent) {
-    queuedEvents.current.push(event);
-    if (queuedFrame.current === null) {
-      queuedFrame.current = window.requestAnimationFrame(() => {
-        queuedFrame.current = null;
-        flushQueuedEvents();
-      });
-    }
-  }
-
-  function acceptsScanEvent(scanId: string) {
-    return activeScanId.current === scanId;
-  }
+  const session = sessionRef.current;
+  const commitTargets = (next: ScanTarget[] | ((current: ScanTarget[]) => ScanTarget[])) => session.commit(next);
 
   function failScan(message: string) {
-    scanGeneration.current += 1;
-    activeScanId.current = null;
-    pendingScan.current = false;
-    pendingEvents.current = [];
-    discardQueuedEvents();
-    pendingSizeUpdates.current.clear();
+    session.stop();
     setScanning(false);
     setCancelling(false);
     commitTargets([]);
@@ -168,33 +110,14 @@ export function useScanWorkspace(
     setError(message);
   }
 
-  function handleScanEvent(event: PendingScanEvent) {
-    if (activeScanId.current === null) {
-      if (pendingScan.current) pendingEvents.current.push(event);
-      return;
-    }
-    if (!acceptsScanEvent(event.payload.scanId)) return;
-
-    if (event.kind === "target" || event.kind === "sized" || event.kind === "progress") {
-      queueScanEvent(event);
-      return;
-    }
-
-    // Whatever ends the scan sees the list as it stood when it ended.
-    flushQueuedEvents();
-
+  function handleScanEnd(event: TerminalScanEvent) {
     if (event.kind === "finished") {
-      pendingScan.current = false;
       setScanning(false);
       setScanFinished(true);
       setScanTargetCount(event.payload.totalTargets);
       setScannedRoots(walkingRoots.current);
       setUnreadable(event.payload.unreadable);
     } else if (event.kind === "cancelled") {
-      pendingScan.current = false;
-      pendingEvents.current = [];
-      discardQueuedEvents();
-      activeScanId.current = null;
       setScanning(false);
       setCancelling(false);
       commitTargets([]);
@@ -217,7 +140,7 @@ export function useScanWorkspace(
   ) {
     try {
        const payload = unwrapV1<T>(envelope, normalize as ((value: unknown) => T) | undefined);
-       handleScanEvent({ kind, payload } as PendingScanEvent);
+      session.handle({ kind, payload } as PendingScanEvent);
     } catch (contractError) {
       const message = contractError instanceof ApiContractError
         ? describeError(contractError.info)
@@ -238,7 +161,7 @@ export function useScanWorkspace(
       listen<ApiEnvelope<ScanStarted>>("scan:started", ({ payload }) => {
         try {
           const started = unwrapV1(payload, validateScanStarted);
-          if (acceptsScanEvent(started.scanId)) setNotice(null);
+          if (session.accepts(started.scanId)) setNotice(null);
         } catch (contractError) {
           const message = contractError instanceof ApiContractError
             ? describeError(contractError.info)
@@ -268,7 +191,7 @@ export function useScanWorkspace(
         const scanId = data && typeof data === "object" && data !== null && "scanId" in data
           ? (data as { scanId?: unknown }).scanId
           : null;
-        if (typeof scanId === "string" && shouldIgnoreScanFailure(scanId, activeScanId.current, pendingScan.current)) return;
+        if (typeof scanId === "string" && shouldIgnoreScanFailure(scanId, session.activeScanId, session.pending)) return;
         handleEnvelope("failed", payload, validateScanFailed);
       }),
     ]);
@@ -283,7 +206,7 @@ export function useScanWorkspace(
 
     return () => {
       disposed = true;
-      cancelQueuedFrame();
+      session.discardQueue();
       listeners.then((unlisten) => unlisten.forEach((stop) => stop()));
     };
     // Subscribed once: the handlers read only refs and state setters.
@@ -383,30 +306,21 @@ export function useScanWorkspace(
     setScannedRoots(null);
     walkingRoots.current = roots.join("\n");
     setUnreadable(0);
-    pendingSizeUpdates.current.clear();
     setProgress(null);
     setScanning(true);
     setStep(2);
     setNotice(null);
-    const generation = ++scanGeneration.current;
-    activeScanId.current = null;
-    pendingScan.current = true;
-    pendingEvents.current = [];
-    discardQueuedEvents();
+    const generation = session.begin();
 
     try {
       const rawResult = await invoke<RawCommandResult<ScanStartResult>>("start_scan", {
         paths: roots,
       });
-      if (!isCurrentScanGeneration(generation, scanGeneration.current, pendingScan.current)) return;
+      if (!session.isWaiting(generation)) return;
       const result = validateScanStartResult(rawResult);
-      activeScanId.current = result.scanId;
-      pendingScan.current = false;
-      const events = pendingEvents.current;
-      pendingEvents.current = [];
-      events.forEach(handleScanEvent);
+      session.accept(generation, result.scanId);
     } catch (scanError) {
-      if (isCurrentScanGeneration(generation, scanGeneration.current, pendingScan.current)) {
+      if (session.isWaiting(generation)) {
         failScan(describeFailure(scanError));
       }
     }
@@ -437,25 +351,20 @@ export function useScanWorkspace(
   }
 
   async function cancelScan() {
-    const scanId = activeScanId.current;
+    const scanId = session.activeScanId;
     if (!scanId || !scanning || cancelling) return;
-    const generation = scanGeneration.current;
+    const generation = session.generation;
 
     setCancelling(true);
     setError(null);
 
     try {
       const rawResult = await invoke<RawCommandResult<{ cancelled: boolean }>>("cancel_scan", { scanId });
-      if (generation !== scanGeneration.current || activeScanId.current !== scanId) return;
+      if (generation !== session.generation || session.activeScanId !== scanId) return;
       const result = validateCancelResult(rawResult);
       if (result.cancelled) {
-        scanGeneration.current += 1;
-        activeScanId.current = null;
-        pendingScan.current = false;
-        pendingEvents.current = [];
-        discardQueuedEvents();
+        session.stop();
         commitTargets([]);
-        pendingSizeUpdates.current.clear();
         setProgress(null);
         setScanning(false);
         setCancelling(false);
@@ -473,7 +382,7 @@ export function useScanWorkspace(
         setNotice({ kind: "cancelRefused" });
       }
     } catch (cancelError) {
-      if (isCurrentScanRequest(generation, scanGeneration.current, scanId, activeScanId.current)) {
+      if (isCurrentScanRequest(generation, session.generation, scanId, session.activeScanId)) {
         setCancelling(false);
         setError(describeFailure(cancelError));
       }
@@ -552,11 +461,7 @@ export function useScanWorkspace(
   }
 
   function resetScan() {
-    scanGeneration.current += 1;
-    activeScanId.current = null;
-    pendingScan.current = false;
-    pendingEvents.current = [];
-    discardQueuedEvents();
+    session.stop();
     commitTargets([]);
     setStep(1);
     setScanFinished(false);
