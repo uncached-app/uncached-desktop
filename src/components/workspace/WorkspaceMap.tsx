@@ -13,6 +13,19 @@ import { useFocusedProject } from "./map/useFocusedProject";
 import { rootName } from "./map/naming";
 import { VERDICT_ORDER } from "./verdictPresentation";
 import { formatBytes } from "../../utils/format.mjs";
+import {
+  countByRoot as countProjectsByRoot,
+  countCategories,
+  countVerdicts,
+  groupByFamily,
+  groupByVerdict,
+  narrowProjects,
+  rankBySize,
+  scopeProjects,
+  sumFootprints,
+  visibleFamilies,
+} from "../../utils/workspaceView.mjs";
+import type { NarrowDimension } from "../../utils/workspaceView.d.mts";
 import { useShortcuts } from "../../hooks/useShortcuts";
 import type { WorkspaceChange } from "../../hooks/useWorkspaceHistory";
 import type { Footprint, RunningProject, Verdict, WorkspaceIndex, WorkspaceProject } from "../../types/workspace";
@@ -186,12 +199,7 @@ export function WorkspaceMap({
   // verdict itself does not, so switching between verdicts never moves the
   // numbers the user is choosing from.
   const scoped = useMemo(
-    () =>
-      index.projects.filter((project) => {
-        const matchesRoot = !activeRoot || project.root === activeRoot;
-        const haystack = `${project.name} ${project.path} ${project.kind} ${project.git.branch ?? ""}`;
-        return matchesRoot && (!normalizedQuery || haystack.toLowerCase().includes(normalizedQuery));
-      }),
+    () => scopeProjects(index.projects, activeRoot, normalizedQuery),
     [index.projects, normalizedQuery, activeRoot],
   );
 
@@ -200,27 +208,12 @@ export function WorkspaceMap({
   // with only the last filter clicked would be a list that does not match what
   // the sidebar says is on.
   const narrow = useCallback(
-    (projects: WorkspaceProject[], except: "verdict" | "category" | "clones" | null) => {
-      let narrowed = projects;
-      if (activeVerdict && except !== "verdict") {
-        narrowed = narrowed.filter(
-          (project) => (verdicts[project.path] ?? "unknown") === activeVerdict,
-        );
-      }
-      if (activeCategory && except !== "category") {
-        narrowed = narrowed.filter((project) =>
-          (footprints[project.path]?.byCategory ?? []).some((entry) => entry.category === activeCategory),
-        );
-      }
-      if (clonesOnly && except !== "clones") {
-        narrowed = narrowed.filter((project) => project.duplicateOf.length > 0);
-      }
-      if (activePackage) {
-        const holding = new Set(activePackage.projects);
-        narrowed = narrowed.filter((project) => holding.has(project.path));
-      }
-      return narrowed;
-    },
+    (projects: WorkspaceProject[], except: NarrowDimension | null) =>
+      narrowProjects(
+        projects,
+        { activeVerdict, verdicts, activeCategory, footprints, clonesOnly, activePackage },
+        except,
+      ),
     [activeVerdict, verdicts, activeCategory, footprints, clonesOnly, activePackage],
   );
 
@@ -242,33 +235,17 @@ export function WorkspaceMap({
   const forCategory = useMemo(() => narrow(scoped, "category"), [narrow, scoped]);
   const forClones = useMemo(() => narrow(scoped, "clones"), [narrow, scoped]);
 
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const project of forCategory) {
-      for (const entry of footprints[project.path]?.byCategory ?? []) {
-        counts.set(entry.category, (counts.get(entry.category) ?? 0) + 1);
-      }
-    }
-    return [...counts.entries()].sort(
-      (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
-    );
-  }, [forCategory, footprints]);
+  const categoryCounts = useMemo(() => countCategories(forCategory, footprints), [forCategory, footprints]);
 
   const cloneCount = useMemo(
     () => forClones.filter((project) => project.duplicateOf.length > 0).length,
     [forClones],
   );
 
-  const verdictCounts = useMemo(() => {
-    const counts = new Map<Verdict, number>();
-    for (const project of forVerdict) {
-      const verdict = verdicts[project.path] ?? "unknown";
-      counts.set(verdict, (counts.get(verdict) ?? 0) + 1);
-    }
-    return VERDICT_ORDER.filter((verdict) => counts.has(verdict)).map(
-      (verdict) => [verdict, counts.get(verdict) ?? 0] as const,
-    );
-  }, [forVerdict, verdicts]);
+  const verdictCounts = useMemo(
+    () => countVerdicts(forVerdict, verdicts, VERDICT_ORDER),
+    [forVerdict, verdicts],
+  );
 
 
   useFocusedProject({
@@ -282,108 +259,52 @@ export function WorkspaceMap({
   // Summed over the projects that are in the index right now, not over every
   // footprint ever measured: the cache outlives the workspace it was read for,
   // so folders the user dropped would keep counting toward the total.
-  const totals = useMemo(
-    () =>
-      index.projects.reduce(
-        (sum, project) => {
-          const footprint = footprints[project.path];
-          if (!footprint) return sum;
-          return {
-            totalBytes: sum.totalBytes + footprint.totalBytes,
-            reclaimableBytes: sum.reclaimableBytes + footprint.reclaimableBytes,
-          };
-        },
-        { totalBytes: 0, reclaimableBytes: 0 },
-      ),
-    [index.projects, footprints],
-  );
+  const totals = useMemo(() => sumFootprints(index.projects, footprints), [index.projects, footprints]);
 
-  const countByRoot = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const project of index.projects) counts.set(project.root, (counts.get(project.root) ?? 0) + 1);
-    return counts;
-  }, [index.projects]);
+  const countByRoot = useMemo(() => countProjectsByRoot(index.projects), [index.projects]);
 
   // Sorted by what is on disk rather than by what is reclaimable: the question
   // this order answers is "what is taking up my space", and a 60 GB project with
   // nothing to reclaim is still the answer to it. Reclaimable already leads
   // inside every verdict group, which is the other question.
-  const ranked = useMemo(
-    () =>
-      [...visible].sort(
-        (left, right) =>
-          (footprints[right.path]?.totalBytes ?? 0) - (footprints[left.path]?.totalBytes ?? 0),
-      ),
-    [visible, footprints],
-  );
+  const ranked = useMemo(() => rankBySize(visible, footprints), [visible, footprints]);
 
   // Families are read from the whole index, then narrowed to what is on
   // screen: a filter that hides two of four members leaves a pair, not a group
   // of four with two of them missing.
-  const families = useMemo(() => {
-    const shown = new Set(visible.map((project) => project.path));
-    return (index.families ?? [])
-      .map((family) => ({ ...family, members: family.members.filter((member) => shown.has(member)) }))
-      .filter((family) => family.members.length > 1);
-  }, [index.families, visible]);
+  const families = useMemo(() => visibleFamilies(index.families ?? [], visible), [index.families, visible]);
 
   // The reading the list did not have: what shares a directory. Members keep
   // the heaviest-first order every other group uses, and everything standing
   // alone falls into one block at the end.
   const byFamily = useMemo(() => {
-    const heaviest = (left: WorkspaceProject, right: WorkspaceProject) =>
-      (footprints[right.path]?.reclaimableBytes ?? 0) - (footprints[left.path]?.reclaimableBytes ?? 0);
-    const shown = new Map(visible.map((project) => [project.path, project]));
-
-    const groups = families
-      .map((family) => ({
-        id: family.path,
-        name: family.name,
-        detail: family.declaredBy
-          ? t("workspace.family.declared", { tool: family.declaredBy })
-          : t("workspace.family.oneFolderSeveral"),
-        declared: Boolean(family.declaredBy),
-        projects: family.members
-          .map((member) => shown.get(member))
-          .filter((project): project is WorkspaceProject => Boolean(project))
-          .sort(heaviest),
-      }))
-      .filter((group) => group.projects.length > 1)
-      .sort((left, right) => right.projects.length - left.projects.length || left.name.localeCompare(right.name));
-
-    const grouped = new Set(groups.flatMap((group) => group.projects.map((project) => project.path)));
-    const alone = visible.filter((project) => !grouped.has(project.path)).sort(heaviest);
-
-    return alone.length > 0
-      ? [
-          ...groups,
-          {
-            id: "alone",
-            name: t("workspace.family.alone"),
-            detail: t("workspace.family.aloneDetail"),
-            declared: false,
-            projects: alone,
-          },
-        ]
-      : groups;
+    const { groups, alone } = groupByFamily(families, visible, footprints);
+    const named = groups.map(({ family, projects }) => ({
+      id: family.path,
+      name: family.name,
+      detail: family.declaredBy
+        ? t("workspace.family.declared", { tool: family.declaredBy })
+        : t("workspace.family.oneFolderSeveral"),
+      declared: Boolean(family.declaredBy),
+      projects,
+    }));
+    if (alone.length === 0) return named;
+    return [
+      ...named,
+      {
+        id: "alone",
+        name: t("workspace.family.alone"),
+        detail: t("workspace.family.aloneDetail"),
+        declared: false,
+        projects: alone,
+      },
+    ];
   }, [families, visible, footprints, t]);
 
-  const grouped = useMemo(() => {
-    const groups = new Map<Verdict, WorkspaceProject[]>();
-    for (const project of visible) {
-      const verdict = verdicts[project.path] ?? "unknown";
-      groups.set(verdict, [...(groups.get(verdict) ?? []), project]);
-    }
-    for (const projects of groups.values()) {
-      projects.sort(
-        (left, right) =>
-          (footprints[right.path]?.reclaimableBytes ?? 0) - (footprints[left.path]?.reclaimableBytes ?? 0),
-      );
-    }
-    return VERDICT_ORDER.filter((verdict) => groups.has(verdict)).map(
-      (verdict) => [verdict, groups.get(verdict) ?? []] as const,
-    );
-  }, [visible, verdicts, footprints]);
+  const grouped = useMemo(
+    () => groupByVerdict(visible, verdicts, footprints, VERDICT_ORDER),
+    [visible, verdicts, footprints],
+  );
 
   // Counted over the whole index, never over what is on screen: a filter is not
   // a reason to stop reporting work that exists nowhere else.
