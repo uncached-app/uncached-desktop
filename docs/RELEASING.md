@@ -56,7 +56,6 @@ gh variable set R2_BUCKET --body "<the bucket behind cdn.uncached.app>"
 | `TAURI_SIGNING_PRIVATE_KEY` | secret | Bundles ship unsigned; every client refuses them |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | Empty string, because the key was generated without one |
 | `UNCACHED_LICENSE_PUBLIC_KEY` | secret, **optional** | Not needed. The key is committed in `src-tauri/.cargo/config.toml`, where a public key belongs — it verifies signatures and unlocks nothing, and keeping it there is what makes a laptop build and a release build accept the same licences. Set this secret only to override that. The workflow refuses to build when **neither** exists, because such a build unlocks nothing for anybody and says so nowhere |
-| `UNCACHED_CORE_DEPLOY_KEY` | secret | The private core cannot be checked out |
 | `R2_ACCESS_KEY_ID` | secret | Nothing reaches R2. Shown once, beside the R2 token |
 | `R2_SECRET_ACCESS_KEY` | secret | Same |
 | `CLOUDFLARE_ACCOUNT_ID` | secret | Forms the S3 endpoint, `https://<id>.r2.cloudflarestorage.com` |
@@ -81,11 +80,33 @@ permission, so making it work meant either widening the token to one that can
 create and delete buckets, or speaking the protocol the narrow token already
 has. `aws` ships on the runner, so the narrow token stays.
 
-Apple signing adds `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
-`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`. All six
-are set; the workflow forwards them to the macOS builds, which sign with the
-Developer ID and notarise. If they were removed, the builds would fall back to
-ad-hoc signing as described above.
+The Apple secrets in the repository are no longer read: macOS is built and
+notarised on a Mac, below.
+
+## macOS is built locally
+
+A macOS runner bills ten minutes for every one it runs, and the two macOS builds
+were most of the Actions quota. `scripts/release-mac.sh` does on a Mac what
+those jobs did: builds both architectures, signs with the Developer ID, lets the
+bundler notarise the app, notarises and staples the dmg, and uploads to
+`releases/<version>/<triple>/` with the same cache headers.
+
+One-time setup:
+
+```bash
+rustup target add x86_64-apple-darwin
+brew install awscli
+```
+
+and `.env.release.local` (ignored by `*.local`) with `APPLE_SIGNING_IDENTITY`,
+`APPLE_ID`, `APPLE_PASSWORD` (app-specific), `APPLE_TEAM_ID`,
+`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and
+`CLOUDFLARE_ACCOUNT_ID`. The updater key is read from
+`~/.tauri/uncached-updater.key`.
+
+The script refuses to run unless HEAD is tagged with the version, both trees are
+clean, and `uncached-core` is at `origin/main`, which is what the workflow
+builds Linux against.
 
 ## Nothing runs on a push
 
@@ -162,10 +183,13 @@ the app draws the version directly above these words.
 ```bash
 git commit -am "release: 0.3.0"
 git tag v0.3.0
+bash scripts/release-mac.sh             # both macOS bundles to R2
 git push origin master --tags
 ```
 
-The tag is the trigger. `workflow_dispatch` takes two inputs:
+The tag is the trigger, and it goes up after the macOS bundles: the publish job
+refuses a version missing either of them. If it was pushed first, upload them
+and rerun with `publish_only`. `workflow_dispatch` takes two inputs:
 
 - `dry_run` (default `true`): builds, signs and uploads the bundles to the CDN
   and validates the manifest, but does not replace `latest.json` or attach
@@ -182,10 +206,10 @@ NSIS settings and installer artwork in `tauri.conf.json` and
 
 ## What the workflow does, and the order it matters in
 
-1. Builds three targets: macOS arm64, macOS x64, Linux x64. The macOS builds are
-   signed with the Developer ID and notarised.
-2. Signs each updater bundle with the minisign key.
-3. Uploads every bundle to `releases/<version>/<triple>/`, cached for a year and
+1. Builds Linux x64. macOS arm64 and x64 are already on R2, from
+   `scripts/release-mac.sh`.
+2. Signs the updater bundle with the minisign key.
+3. Uploads it to `releases/<version>/<triple>/`, cached for a year and
    immutable.
 4. **Then** uploads `latest.json`, cached for five minutes.
 5. Attaches the installers — dmg, deb, rpm and AppImage — to a draft GitHub
