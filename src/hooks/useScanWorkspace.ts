@@ -286,6 +286,8 @@ export function useScanWorkspace(
       cancelQueuedFrame();
       listeners.then((unlisten) => unlisten.forEach((stop) => stop()));
     };
+    // Subscribed once: the handlers read only refs and state setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
