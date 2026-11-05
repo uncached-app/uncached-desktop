@@ -505,12 +505,12 @@ mod tests {
     #[test]
     fn a_remote_on_this_disk_is_not_somewhere_else() {
         for url in [
-            "/Users/natan/documents/workspace/.bench-remotes/blog-engine",
+            "/Users/dev/documents/workspace/.bench-remotes/blog-engine",
             "../mirrors/app.git",
             "./app.git",
             "~/backups/app.git",
-            "file:///Users/natan/backups/app.git",
-            "C:\\Users\\natan\\mirrors\\app.git",
+            "file:///Users/dev/backups/app.git",
+            "C:\\Users\\dev\\mirrors\\app.git",
             "ssh://localhost/srv/git/app.git",
             "localhost:app.git",
             "",
