@@ -51,19 +51,11 @@ jobs:
         with:
           path: uncached-desktop
 
-      - name: Reject fork pull request without private-core access
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork
-        shell: bash
-        run: |
-          echo "Fork pull requests cannot receive UNCACHED_CORE_DEPLOY_KEY." >&2
-          exit 1
-
       - name: Checkout core as a sibling repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.CORE_REPOSITORY }}
           ref: ${{ env.CORE_REF }}
-          ssh-key: ${{ secrets.UNCACHED_CORE_DEPLOY_KEY }}
           path: uncached-core
 
       - name: Install Linux Tauri dependencies
@@ -101,6 +93,9 @@ jobs:
 
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Build frontend
         # tauri.conf.json points frontendDist at ../dist, so the Rust build

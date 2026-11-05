@@ -90,6 +90,10 @@
       "label": "Android SDK",
       "hint": "ダウンロードしたシステムイメージと、それから作成したエミュレータを含めます。"
     },
+    "browsers": {
+      "label": "ブラウザキャッシュ",
+      "hint": "Chrome、Brave、Arc、Edge、Firefox の HTTP キャッシュとコードキャッシュを含めます。プロファイル、履歴、ログイン情報には触れません。"
+    },
     "containerStorage": {
       "label": "コンテナストレージ",
       "hint": "Docker Desktop のディスクイメージのサイズを報告します。Uncached が削除することはありません。"

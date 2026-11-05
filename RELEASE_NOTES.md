@@ -1,3 +1,11 @@
+## 0.3.1
+
+The findings list is now virtualised: scrolling stays smooth and responsive even with hundreds of targets across large workspaces.
+
+The scan-root safety rule is now enforced on macOS and Windows, refusing operating system and installation roots from being chosen as a workspace.
+
+Scan progress updates are now throttled to 10 Hz and processed once per animation frame, eliminating interface stutter during rapid directory traversal.
+
 ## 0.3.0
 
 Uncached now tells you when Git would publish a secret. Env files, private

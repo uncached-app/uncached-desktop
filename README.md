@@ -86,7 +86,8 @@ pnpm exec tsc --noEmit             # types
 bash scripts/check-platforms.sh    # compiles and lints the non-macOS code paths
 ```
 
-Releases are tagged `v<version>` and built by CI; the checklist is in
+Releases are tagged `v<version>`; macOS is built and notarised on a Mac by
+`scripts/release-mac.sh`, Linux by CI. The checklist is in
 [`docs/RELEASING.md`](docs/RELEASING.md).
 
 ## Layout
@@ -108,5 +109,6 @@ scripts/              icons, release and platform checks
 
 ## License
 
-Proprietary. Use of the app is governed by the
-[EULA](https://uncached.app/eula).
+Source code: [GPL-3.0-only](LICENSE). Pro features in official builds
+require a license from [uncached.app](https://uncached.app). The Uncached name
+and logo are not covered by the code license.

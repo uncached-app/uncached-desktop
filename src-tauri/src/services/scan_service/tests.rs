@@ -89,7 +89,7 @@ fn target_found_event_serializes_as_v1_without_identity() {
 fn target_found_event_carries_every_field_the_ui_contract_requires() {
     for (category, expected_plan) in [
         (Category::NodeModules, "free"),
-        (Category::PackageManagerCache, "pro"),
+        (Category::PackageManagerCache, "free"),
     ] {
         let target = ScanTarget::new(PathBuf::from(r"C:\workspace\artifact"), category, 12, false);
         let value = serde_json::to_value(target_found_event("scan-1", &target)).unwrap();

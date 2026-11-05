@@ -15,6 +15,7 @@ import {
   Feather,
   Folder,
   Gamepad2,
+  Globe,
   Hammer,
   Layers,
   Notebook,
@@ -35,6 +36,7 @@ const TRANSLATED_LABELS: Record<string, CategoryLabel> = {
   AiToolCache: "aiToolCache",
   EditorCache: "editorCache",
   AndroidSdk: "androidSdk",
+  BrowserCache: "browserCache",
 };
 
 export const CATEGORY_PRESENTATION: Record<string, { label: string; icon: LucideIcon }> = {
@@ -43,6 +45,8 @@ export const CATEGORY_PRESENTATION: Record<string, { label: string; icon: Lucide
   Turbo: { label: "Turborepo", icon: Package },
   NuxtCache: { label: "Nuxt", icon: Package },
   SvelteKitCache: { label: "SvelteKit", icon: Package },
+  JsBuildCache: { label: "JavaScript build", icon: Package },
+  ServerlessBuild: { label: "Serverless", icon: Cloud },
   ReactNative: { label: "React Native", icon: Smartphone },
   CargoTarget: { label: "Rust (Cargo)", icon: Box },
   PyCache: { label: "Python", icon: Layers },
@@ -72,6 +76,7 @@ export const CATEGORY_PRESENTATION: Record<string, { label: string; icon: Lucide
   AiToolCache: { label: englishFindings.categories.aiToolCache, icon: Sparkles },
   EditorCache: { label: englishFindings.categories.editorCache, icon: Code },
   AndroidSdk: { label: englishFindings.categories.androidSdk, icon: Smartphone },
+  BrowserCache: { label: englishFindings.categories.browserCache, icon: Globe },
 };
 
 const CUSTOM_CATEGORY_PREFIX = "Custom:";

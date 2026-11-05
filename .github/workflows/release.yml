@@ -1,4 +1,9 @@
-# Builds every platform, signs the update artifacts, and publishes them.
+# Builds Linux, signs its update artifacts, and publishes every platform.
+#
+# The macOS bundles are not built here: scripts/release-mac.sh builds, signs,
+# notarises and uploads them from a Mac into the same `releases/<version>/`
+# prefix, before the tag is pushed. The publish job refuses a version that is
+# missing them.
 #
 # The manifest is written last, on purpose. `latest.json` is what tells running
 # copies of Uncached that a new version exists, so it must not name a file that
@@ -12,10 +17,8 @@
 #                              every shipped binary as its public half, so it
 #                              can never be rotated for copies already out
 #                              there. Losing it ends the update path.
-#   Apple / Windows signing    proves the app is not malware, to the operating
-#                              system. Absent here until the certificates
-#                              exist; its absence does not stop updates, it
-#                              stops them being installed without a warning.
+#   Apple signing              proves the app is not malware, to the operating
+#                              system. Done by scripts/release-mac.sh.
 name: Release
 
 on:
@@ -53,25 +56,15 @@ jobs:
   build:
     name: ${{ matrix.target }}
     # Skipped when a republish names the run to take bundles from. Compiling
-    # four platforms of Rust is the expensive half of a release, and a release
-    # that failed after the build — on a version string, a notes file, a
-    # credential — does not need any of it done twice.
+    # Rust is the expensive half of a release, and a release that failed after
+    # the build — on a version string, a notes file, a credential — does not
+    # need any of it done twice.
     if: github.event_name == 'push' || !inputs.publish_only
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Two separate macOS builds rather than a universal binary: the
-          # updater manifest keys on architecture, and an Intel machine
-          # downloading an Apple Silicon bundle is a failure with no message
-          # worth reading.
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            rust: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            rust: x86_64-apple-darwin
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             rust: x86_64-unknown-linux-gnu
@@ -84,22 +77,11 @@ jobs:
         with:
           path: uncached-desktop
 
-      - name: Require private core deploy key
-        shell: bash
-        env:
-          UNCACHED_CORE_DEPLOY_KEY: ${{ secrets.UNCACHED_CORE_DEPLOY_KEY }}
-        run: |
-          if [ -z "$UNCACHED_CORE_DEPLOY_KEY" ]; then
-            echo "Missing Actions secret UNCACHED_CORE_DEPLOY_KEY." >&2
-            exit 1
-          fi
-
       - name: Checkout core as a sibling repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.CORE_REPOSITORY }}
           ref: ${{ env.CORE_REF }}
-          ssh-key: ${{ secrets.UNCACHED_CORE_DEPLOY_KEY }}
           path: uncached-core
           fetch-depth: 0
 
@@ -191,56 +173,11 @@ jobs:
 
       # The repo root is the Cargo workspace (`members = ["src-tauri"]`), so
       # `target/` is there and not under src-tauri. Pointed at the wrong place
-      # this caches nothing and every build is a cold one, which on a macOS
-      # runner is billed at ten times the minutes.
+      # this caches nothing and every build is a cold one.
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: uncached-desktop
-
-      # Forwarded only when they exist, and that is the whole point of the
-      # step. A secret that is not set does not disappear from a workflow — it
-      # arrives as an empty string, and the bundler tests for the variable
-      # being *present*, not for it having a value. Passing them
-      # unconditionally made the macOS build try to import an empty certificate
-      # and fail: "no code signing" became "broken code signing", which is
-      # strictly worse than never mentioning Apple at all.
-      - name: Forward Apple signing, if there is any
-        if: startsWith(matrix.os, 'macos')
-        shell: bash
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          if [ -z "$APPLE_CERTIFICATE" ]; then
-            # Ad-hoc rather than nothing. An unsigned bundle on Apple Silicon is
-            # not merely untrusted — Gatekeeper reports it as *damaged*, and the
-            # only way past that is a terminal command, which is not something
-            # to ask of somebody who has just downloaded an app. An ad-hoc
-            # signature is still untrusted and still needs right-click → Open,
-            # but it says "unidentified developer", which is true and which the
-            # dialog itself offers a way through.
-            #
-            # It cannot be notarised, so this is the floor until the
-            # certificates exist, not a substitute for them.
-            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
-            echo "::notice::No Apple certificate. Signing ad-hoc: installs behind an unidentified-developer warning, not a damaged-app error."
-            exit 0
-          fi
-          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
-            value=$(printenv "$name" || true)
-            [ -n "$value" ] || continue
-            {
-              echo "$name<<UNCACHED_EOF"
-              echo "$value"
-              echo "UNCACHED_EOF"
-            } >> "$GITHUB_ENV"
-          done
-          echo "::notice::Apple signing is configured; the bundle will be signed and notarised."
 
       - name: Build and sign
         id: tauri
@@ -313,31 +250,6 @@ jobs:
             echo "No .sig beside any bundle: the updater signing key did not reach this build." >&2
             exit 1
           fi
-
-      # The installer a person opens, as opposed to the app inside it, which the
-      # bundler has already notarised. Stapling rewrites the dmg; no updater
-      # signature covers it, so nothing downstream goes stale.
-      - name: Notarise the disk image
-        if: startsWith(matrix.os, 'macos') && env.APPLE_ID != ''
-        shell: bash
-        env:
-          SOURCE: ${{ github.workspace }}/release/${{ matrix.target }}
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          images=("$SOURCE"/*.dmg)
-          if [ ${#images[@]} -ne 1 ]; then
-            echo "Expected one dmg in $SOURCE, found ${#images[@]}." >&2
-            exit 1
-          fi
-          xcrun notarytool submit "${images[0]}" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait \
-            --timeout 30m
-          xcrun stapler staple "${images[0]}"
-          xcrun stapler validate "${images[0]}"
 
       # Straight to where the CDN serves it: nothing reads `releases/<version>/`
       # until `latest.json` names that version, and the manifest goes up last.

@@ -1,4 +1,4 @@
-[patch."ssh://git@github.com/uncached-app/uncached-core.git"]
+[patch."https://github.com/uncached-app/uncached-core.git"]
 uncached-core = { path = "../../uncached-core" }
 
 # The licence public key is compiled into the binary. It is not a secret — it
