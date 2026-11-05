@@ -13,9 +13,10 @@ export default defineConfig([
     languageOptions: { globals: globals.browser },
     rules: {
       // React Compiler diagnostics; this app does not run the compiler.
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/incompatible-library": "warn",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/incompatible-library": "off",
+      "react-hooks/exhaustive-deps": "error",
       "@typescript-eslint/no-unused-vars": ["error", { varsIgnorePattern: "^_", argsIgnorePattern: "^_" }],
     },
   },
